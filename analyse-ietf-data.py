@@ -1,32 +1,26 @@
 #!/usr/bin/env python3
 
+from pathlib  import Path
 from ietfdata import RFCIndex
 
-#for d in ["data", "data/rfc", "data/id"]:
-#    Path(d).mkdir(exist_ok=True)
+import requests
+import time
 
-# # Fetch the index if it doesn't exist or is more than 24 hours old:
-# if not self.path.exists() or ((time.time() - self.path.stat().st_mtime) > 86400):
-#     print("[ietf-data] fetch", self.path)
-#     response = requests.get("https://www.rfc-editor.org/rfc-index.xml")
-#     with open(self.path, "w") as f:
-#         f.write(response.text)
+for d in ["data", "data/rfc", "data/id"]:
+    if not Path(d).is_dir():
+        print("[mkdir]", d)
+        Path(d).mkdir(exist_ok=True)
 
-index = RFCIndex("data/rfc-index.xml")
-for doc in index.rfcs:
-    print(doc)
+# Fetch the index if it doesn't exist or is more than 24 hours old:
+index_path = Path("data/rfc-index.xml")
+if not index_path.exists() or ((time.time() - index_path.stat().st_mtime) > 86400):
+    print("[fetch]", index_path)
+    response = requests.get("https://www.rfc-editor.org/rfc-index.xml")
+    with open(index_path, "w") as f:
+        f.write(response.text)
 
-for doc in index.rfcs_not_issued:
-    print(doc)
-
-for doc in index.bcps:
-    print(doc)
-
-for doc in index.stds:
-    print(doc)
-
-for doc in index.fyis:
-    print(doc)
+print("[parse]", index_path)
+index = RFCIndex(index_path)
 
 
 
