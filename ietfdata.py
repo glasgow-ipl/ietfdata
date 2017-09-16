@@ -33,7 +33,7 @@ class RfcEntry:
         is_also      : List of strings
         see_also     : List of strings
         errata_url   : None or string
-        abstract     : None or string
+        abstract     : None or Element
     """
     def __init__(self, rfc_element):
         self.wg           = None
