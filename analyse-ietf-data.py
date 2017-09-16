@@ -3,10 +3,11 @@
 from pathlib  import Path
 from ietfdata import RFCIndex
 
+import datetime
 import requests
 import time
 
-for d in ["data", "data/rfc", "data/id"]:
+for d in ["data", "data/rfc", "data/id", "plots"]:
     if not Path(d).is_dir():
         print("[mkdir]", d)
         Path(d).mkdir(exist_ok=True)
@@ -22,5 +23,10 @@ if not index_path.exists() or ((time.time() - index_path.stat().st_mtime) > 8640
 print("[parse]", index_path)
 index = RFCIndex(index_path)
 
-
+with open("plots/rfcs-by-year.dat", "w") as f:
+    total = 0
+    for year in range(1968, datetime.datetime.now().year+1):
+        x = list(filter(lambda rfc: rfc.year == year, index.rfcs))
+        total += len(x)
+        f.write("{0} {1} {2}\n".format(year, len(x), total))
 
