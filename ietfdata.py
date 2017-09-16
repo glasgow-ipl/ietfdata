@@ -1,12 +1,14 @@
-from pathlib import Path
 
 import requests
 import time
 import xml.etree.ElementTree as ET
 
+# ==================================================================================================
+
 class RfcEntry:
     """
-      An RFC entry in the rfc-index.xml file.
+      An RFC entry in the rfc-index.xml file. No attempt is made to
+      normalise the data included here.
 
       Attributes:
         doc_id       : String, e.g., "RFC3550"
@@ -193,6 +195,8 @@ class RfcEntry:
         repr = repr + "}\n"
         return repr
 
+# ==================================================================================================
+
 class RfcNotIssuedEntry:
     """
       An RFC that was not issued in the rfc-index.xml file.
@@ -213,7 +217,16 @@ class RfcNotIssuedEntry:
         repr = repr + "}\n"
         return repr
 
+# ==================================================================================================
+
 class BcpEntry:
+    """
+      A BCP entry in the rfc-index.xml file.
+
+      Attributes:
+        doc_id       : String, e.g., "RFC3550"
+        is_also      : List of strings
+    """
     def __init__(self, bcp_element):
         self.is_also = []
 
@@ -237,7 +250,17 @@ class BcpEntry:
         repr = repr + "}\n"
         return repr
 
+# ==================================================================================================
+
 class StdEntry:
+    """
+      An STD entry in the rfc-index.xml file.
+
+      Attributes:
+        doc_id       : String, e.g., "RFC3550"
+        title        : String
+        is_also      : List of strings
+    """
     def __init__(self, std_element):
         self.is_also = []
 
@@ -264,7 +287,16 @@ class StdEntry:
         repr = repr + "}\n"
         return repr
 
+# ==================================================================================================
+
 class FyiEntry:
+    """
+      A FYI entry in the rfc-index.xml file.
+
+      Attributes:
+        doc_id       : String, e.g., "RFC3550"
+        is_also      : List of strings
+    """
     def __init__(self, fyi_element):
         self.is_also = []
 
@@ -289,12 +321,19 @@ class FyiEntry:
         repr = repr + "}\n"
         return repr
 
+# ==================================================================================================
+
 class RFCIndex:
     """
     The RFC Index.
 
     Attributes:
-        xml  : An ElementTree representing the parsed XML of the index
+        xml             : An ElementTree representing the parsed XML of the index
+        rfcs            : List of RfcEntry
+        rfcs_not_issued : List of RfcNotIssuedEntry
+        bcps            : List of BcpEntry
+        stds            : List of StdEntry
+        fyis            : List of FyiEntry
     """
     def __init__(self, indexfile):
         self.xml = ET.parse(indexfile)
@@ -318,4 +357,6 @@ class RFCIndex:
                 self.fyis.append(FyiEntry(doc))
             else:
                 print("unknown tag:", doc.tag)
+
+# ==================================================================================================
 
