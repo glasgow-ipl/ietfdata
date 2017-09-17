@@ -36,13 +36,7 @@ class RfcEntry:
         abstract     : None or Element
     """
     def __init__(self, rfc_element):
-        self.wg           = None
-        self.area         = None
         self.authors      = []
-        self.day          = None
-        self.errata_url   = None
-        self.abstract     = None
-        self.draft        = None
         self.keywords     = []
         self.updates      = []
         self.updated_by   = []
