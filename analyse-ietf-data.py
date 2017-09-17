@@ -39,10 +39,10 @@ for rfc in index.rfc.values():
             loc = "data/rfc/rfc" + num + ".txt"
         elif file_format == "PDF":
             url = "https://www.rfc-editor.org/rfc/rfc" + num + ".pdf"
-            loc = "data/rfc/rfc" + num + ".txt"
+            loc = "data/rfc/rfc" + num + ".pdf"
         elif file_format == "PS":
             url = "https://www.rfc-editor.org/rfc/rfc" + num + ".ps"
-            loc = "data/rfc/rfc" + num + ".txt"
+            loc = "data/rfc/rfc" + num + ".ps"
         else:
             raise NotImplementedError
 
