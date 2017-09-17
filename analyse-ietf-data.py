@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from pathlib  import Path
-from ietfdata import RFCIndex
+from rfcindex import RFCIndex
 
 import datetime
 import requests
