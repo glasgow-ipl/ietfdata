@@ -161,29 +161,29 @@ class RfcEntry:
 
     def __str__(self):
         return "RFC {\n" \
-             + "      doc_id : " + self.doc_id            + "\n" \
-             + "      title  : " + self.title             + "\n" \
-             + "     authors : " + str(self.authors)      + "\n" \
-             + "         doi : " + self.doi               + "\n" \
-             + "      stream : " + self.stream            + "\n" \
-             + "          wg : " + str(self.wg)           + "\n" \
-             + "        area : " + str(self.area)         + "\n" \
-             + " curr_status : " + self.curr_status       + "\n" \
-             + " publ_status : " + self.publ_status       + "\n" \
-             + "         day : " + str(self.day)          + "\n" \
-             + "       month : " + self.month             + "\n" \
-             + "        year : " + str(self.year)         + "\n" \
-             + "     formats : " + str(self.formats)      + "\n" \
-             + "       draft : " + str(self.draft)        + "\n" \
-             + "    keywords : " + str(self.keywords)     + "\n" \
-             + "     updates : " + str(self.updates)      + "\n" \
-             + "  updated_by : " + str(self.updated_by)   + "\n" \
-             + "   obsoletes : " + str(self.obsoletes)    + "\n" \
-             + "obsoleted_by : " + str(self.obsoleted_by) + "\n" \
-             + "     is_also : " + str(self.is_also)      + "\n" \
-             + "    see_also : " + str(self.see_also)     + "\n" \
-             + "  errata_url : " + str(self.errata_url)   + "\n" \
-             + "    abstract : " + str(self.abstract)     + "\n" \
+             + "      doc_id: " + self.doc_id            + "\n" \
+             + "       title: " + self.title             + "\n" \
+             + "     authors: " + str(self.authors)      + "\n" \
+             + "         doi: " + self.doi               + "\n" \
+             + "      stream: " + self.stream            + "\n" \
+             + "          wg: " + str(self.wg)           + "\n" \
+             + "        area: " + str(self.area)         + "\n" \
+             + " curr_status: " + self.curr_status       + "\n" \
+             + " publ_status: " + self.publ_status       + "\n" \
+             + "         day: " + str(self.day)          + "\n" \
+             + "       month: " + self.month             + "\n" \
+             + "        year: " + str(self.year)         + "\n" \
+             + "     formats: " + str(self.formats)      + "\n" \
+             + "       draft: " + str(self.draft)        + "\n" \
+             + "    keywords: " + str(self.keywords)     + "\n" \
+             + "     updates: " + str(self.updates)      + "\n" \
+             + "  updated_by: " + str(self.updated_by)   + "\n" \
+             + "   obsoletes: " + str(self.obsoletes)    + "\n" \
+             + "obsoleted_by: " + str(self.obsoleted_by) + "\n" \
+             + "     is_also: " + str(self.is_also)      + "\n" \
+             + "    see_also: " + str(self.see_also)     + "\n" \
+             + "  errata_url: " + str(self.errata_url)   + "\n" \
+             + "    abstract: " + str(self.abstract)     + "\n" \
              + "}\n"
 
 # ==================================================================================================
@@ -204,7 +204,7 @@ class RfcNotIssuedEntry:
 
     def __str__(self):
         return "RFC-Not-Issued {\n" \
-             + "      doc_id : " + self.doc_id + "\n" \
+             + "      doc_id: " + self.doc_id + "\n" \
              + "}\n"
 
 # ==================================================================================================
@@ -234,8 +234,8 @@ class BcpEntry:
 
     def __str__(self):
         return "BCP {\n" \
-             + "      doc_id : " + self.doc_id        + "\n" \
-             + "     is_also : " + str(self.is_also)  + "\n" \
+             + "      doc_id: " + self.doc_id        + "\n" \
+             + "     is_also: " + str(self.is_also)  + "\n" \
              + "}\n"
 
 # ==================================================================================================
@@ -268,9 +268,9 @@ class StdEntry:
 
     def __str__(self):
         return "STD {\n" \
-             + "      doc_id : " + self.doc_id       + "\n" \
-             + "       title : " + self.title        + "\n" \
-             + "     is_also : " + str(self.is_also) + "\n" \
+             + "      doc_id: " + self.doc_id       + "\n" \
+             + "       title: " + self.title        + "\n" \
+             + "     is_also: " + str(self.is_also) + "\n" \
              + "}\n"
 
 # ==================================================================================================
@@ -300,8 +300,8 @@ class FyiEntry:
 
     def __str__(self):
         return "FYI {\n" \
-             + "      doc_id : " + self.doc_id       + "\n" \
-             + "     is_also : " + str(self.is_also) + "\n" \
+             + "      doc_id: " + self.doc_id       + "\n" \
+             + "     is_also: " + str(self.is_also) + "\n" \
              + "}\n"
 
 # ==================================================================================================
