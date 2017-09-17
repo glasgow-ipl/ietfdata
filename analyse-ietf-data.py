@@ -52,8 +52,8 @@ for rfc in index.rfc.values():
             if response.status_code != 200:
                 print("  Failed: ", response.status_code)
             else:
-                with open(loc, "w") as f:
-                    f.write(response.text)
+                with open(loc, "wb") as f:
+                    f.write(response.content)
             size = Path(loc).stat().st_size
             if size != char_count:
                 print("        Size mismatch: got", size, "but expected", char_count)
