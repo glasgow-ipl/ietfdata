@@ -160,41 +160,31 @@ class RfcEntry:
                 raise NotImplementedError
 
     def __str__(self):
-        repr =        "RFC {\n"
-        repr = repr + "      doc_id : " + self.doc_id      + "\n"
-        repr = repr + "      title  : " + self.title       + "\n"
-        for author in self.authors:
-            repr = repr + "      author : " + author       + "\n"
-        repr = repr + "         doi : " + self.doi         + "\n"
-        repr = repr + "      stream : " + self.stream      + "\n"
-        repr = repr + "          wg : " + str(self.wg)     + "\n" 
-        repr = repr + "        area : " + str(self.area)   + "\n" 
-        repr = repr + " curr_status : " + self.curr_status + "\n"
-        repr = repr + " publ_status : " + self.publ_status + "\n"
-        repr = repr + "         day : " + str(self.day)    + "\n"
-        repr = repr + "       month : " + self.month       + "\n"
-        repr = repr + "        year : " + str(self.year)   + "\n"
-        for (file_format, char_count, page_count) in self.formats:
-            repr = repr + "      format : " + file_format + " " + char_count + " " + str(page_count)  + "\n"
-        repr = repr + "       draft : " + str(self.draft)  + "\n"
-        for kwd in self.keywords:
-            repr = repr + "    keywords : " + kwd  + "\n"
-        for doc in self.updates:
-            repr = repr + "     updates : " + doc  + "\n"
-        for doc in self.updated_by:
-            repr = repr + "  updated_by : " + doc  + "\n"
-        for doc in self.obsoletes:
-            repr = repr + "   obsoletes : " + doc  + "\n"
-        for doc in self.obsoleted_by:
-            repr = repr + "obsoleted_by : " + doc  + "\n"
-        for doc in self.is_also:
-            repr = repr + "     is_also : " + doc  + "\n"
-        for doc in self.see_also:
-            repr = repr + "    see_also : " + doc  + "\n"
-        repr = repr + "  errata_url : " + str(self.errata_url)  + "\n"
-        repr = repr + "    abstract : " + str(self.abstract)    + "\n"
-        repr = repr + "}\n"
-        return repr
+        return "RFC {\n" \
+             + "      doc_id : " + self.doc_id            + "\n" \
+             + "      title  : " + self.title             + "\n" \
+             + "     authors : " + str(self.authors)      + "\n" \
+             + "         doi : " + self.doi               + "\n" \
+             + "      stream : " + self.stream            + "\n" \
+             + "          wg : " + str(self.wg)           + "\n" \
+             + "        area : " + str(self.area)         + "\n" \
+             + " curr_status : " + self.curr_status       + "\n" \
+             + " publ_status : " + self.publ_status       + "\n" \
+             + "         day : " + str(self.day)          + "\n" \
+             + "       month : " + self.month             + "\n" \
+             + "        year : " + str(self.year)         + "\n" \
+             + "     formats : " + str(self.formats)      + "\n" \
+             + "       draft : " + str(self.draft)        + "\n" \
+             + "    keywords : " + str(self.keywords)     + "\n" \
+             + "     updates : " + str(self.updates)      + "\n" \
+             + "  updated_by : " + str(self.updated_by)   + "\n" \
+             + "   obsoletes : " + str(self.obsoletes)    + "\n" \
+             + "obsoleted_by : " + str(self.obsoleted_by) + "\n" \
+             + "     is_also : " + str(self.is_also)      + "\n" \
+             + "    see_also : " + str(self.see_also)     + "\n" \
+             + "  errata_url : " + str(self.errata_url)   + "\n" \
+             + "    abstract : " + str(self.abstract)     + "\n" \
+             + "}\n"
 
 # ==================================================================================================
 
@@ -213,10 +203,9 @@ class RfcNotIssuedEntry:
                 raise NotImplementedError
 
     def __str__(self):
-        repr =        "RFC-Not-Issued {\n"
-        repr = repr + "      doc_id : " + self.doc_id + "\n"
-        repr = repr + "}\n"
-        return repr
+        return "RFC-Not-Issued {\n" \
+             + "      doc_id : " + self.doc_id + "\n" \
+             + "}\n"
 
 # ==================================================================================================
 
@@ -244,12 +233,10 @@ class BcpEntry:
                 raise NotImplementedError
 
     def __str__(self):
-        repr =        "BCP {\n"
-        repr = repr + "      doc_id : " + self.doc_id + "\n"
-        for doc in self.is_also:
-            repr = repr + "     is_also : " + doc  + "\n"
-        repr = repr + "}\n"
-        return repr
+        return "BCP {\n" \
+             + "      doc_id : " + self.doc_id        + "\n" \
+             + "     is_also : " + str(self.is_also)  + "\n" \
+             + "}\n"
 
 # ==================================================================================================
 
@@ -280,13 +267,11 @@ class StdEntry:
                 raise NotImplementedError
 
     def __str__(self):
-        repr =        "STD {\n"
-        repr = repr + "      doc_id : " + self.doc_id + "\n"
-        repr = repr + "       title : " + self.title  + "\n"
-        for doc in self.is_also:
-            repr = repr + "     is_also : " + doc  + "\n"
-        repr = repr + "}\n"
-        return repr
+        return "STD {\n" \
+             + "      doc_id : " + self.doc_id       + "\n" \
+             + "       title : " + self.title        + "\n" \
+             + "     is_also : " + str(self.is_also) + "\n" \
+             + "}\n"
 
 # ==================================================================================================
 
@@ -314,12 +299,10 @@ class FyiEntry:
                 raise NotImplementedError
 
     def __str__(self):
-        repr =        "FYI {\n"
-        repr = repr + "      doc_id : " + self.doc_id + "\n"
-        for doc in self.is_also:
-            repr = repr + "     is_also : " + doc  + "\n"
-        repr = repr + "}\n"
-        return repr
+        return "FYI {\n" \
+             + "      doc_id : " + self.doc_id       + "\n" \
+             + "     is_also : " + str(self.is_also) + "\n" \
+             + "}\n"
 
 # ==================================================================================================
 
