@@ -30,3 +30,29 @@ with open("plots/rfcs-by-year.dat", "w") as f:
         total += len(x)
         f.write("{0} {1} {2}\n".format(year, len(x), total))
 
+# Fetch the RFC text:
+for rfc in index.rfc.values():
+    for (file_format, char_count, page_count) in rfc.formats:
+        num = str(int(rfc.doc_id[3:]))
+        if   file_format == "ASCII":
+            url = "https://www.rfc-editor.org/rfc/rfc" + num + ".txt"
+            loc = "data/rfc/rfc" + num + ".txt"
+        elif file_format == "PDF":
+            url = "https://www.rfc-editor.org/rfc/rfc" + num + ".pdf"
+            loc = "data/rfc/rfc" + num + ".txt"
+        elif file_format == "PS":
+            url = "https://www.rfc-editor.org/rfc/rfc" + num + ".ps"
+            loc = "data/rfc/rfc" + num + ".txt"
+        else:
+            raise NotImplementedError
+
+        if not Path(loc).exists():
+            print("[fetch]", url, "->", loc)
+            response = requests.get(url)
+            if response.status_code != 200:
+                print("  Failed: ", response.status_code)
+            else:
+                with open(loc, "w") as f:
+                    f.write(response.text)
+
+
