@@ -224,7 +224,7 @@ class BcpEntry:
       A BCP entry in the rfc-index.xml file.
 
       Attributes:
-        doc_id       : String, e.g., "RFC3550"
+        doc_id       : String, e.g., "BCP002"
         is_also      : List of strings
     """
     def __init__(self, bcp_element):
@@ -257,7 +257,7 @@ class StdEntry:
       An STD entry in the rfc-index.xml file.
 
       Attributes:
-        doc_id       : String, e.g., "RFC3550"
+        doc_id       : String, e.g., "STD0089"
         title        : String
         is_also      : List of strings
     """
@@ -294,7 +294,7 @@ class FyiEntry:
       A FYI entry in the rfc-index.xml file.
 
       Attributes:
-        doc_id       : String, e.g., "RFC3550"
+        doc_id       : String, e.g., "FYI0038"
         is_also      : List of strings
     """
     def __init__(self, fyi_element):
