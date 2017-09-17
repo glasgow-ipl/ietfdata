@@ -318,23 +318,28 @@ class RFCIndex:
         fyis            : List of FyiEntry
     """
     def __init__(self, indexfile):
-        self.rfcs = []
-        self.rfcs_not_issued = []
-        self.bcps = []
-        self.stds = []
-        self.fyis = []
+        self.rfc            = {}
+        self.rfc_not_issued = {}
+        self.bcp            = {}
+        self.std            = {}
+        self.fyi            = {}
 
         for doc in ET.parse(indexfile).getroot():
             if   doc.tag == "{http://www.rfc-editor.org/rfc-index}rfc-entry":
-                self.rfcs.append(RfcEntry(doc))
+                val = RfcEntry(doc)
+                self.rfc[val.doc_id] = val
             elif doc.tag == "{http://www.rfc-editor.org/rfc-index}rfc-not-issued-entry":
-                self.rfcs_not_issued.append(RfcNotIssuedEntry(doc))
+                val = RfcNotIssuedEntry(doc)
+                self.rfc_not_issued[val.doc_id] = val
             elif doc.tag == "{http://www.rfc-editor.org/rfc-index}bcp-entry":
-                self.bcps.append(BcpEntry(doc))
+                val = BcpEntry(doc)
+                self.bcp[val.doc_id] = val
             elif doc.tag == "{http://www.rfc-editor.org/rfc-index}std-entry":
-                self.stds.append(StdEntry(doc))
+                val = StdEntry(doc)
+                self.std[val.doc_id] = val
             elif doc.tag == "{http://www.rfc-editor.org/rfc-index}fyi-entry":
-                self.fyis.append(FyiEntry(doc))
+                val = FyiEntry(doc)
+                self.fyi[val.doc_id] = val
             else:
                 raise NotImplementedError
 
