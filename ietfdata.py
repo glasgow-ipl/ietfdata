@@ -1,6 +1,4 @@
 
-import requests
-import time
 import xml.etree.ElementTree as ET
 
 # ==================================================================================================
