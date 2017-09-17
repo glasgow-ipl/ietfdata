@@ -54,5 +54,8 @@ for rfc in index.rfc.values():
             else:
                 with open(loc, "w") as f:
                     f.write(response.text)
+            size = Path(loc).stat().st_size
+            if size != char_count:
+                print("        Size mismatch: got", size, "but expected", char_count)
 
 
