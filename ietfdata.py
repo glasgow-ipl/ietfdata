@@ -36,6 +36,15 @@ class RfcEntry:
         abstract     : None or Element
     """
     def __init__(self, rfc_element):
+        # We explicitly set all attributes that are optional in the XML 
+        # to None, or to an empty list, so code using this doesn't need 
+        # worry about missing attributes.
+        self.wg           = None
+        self.area         = None
+        self.day          = None
+        self.errata_url   = None
+        self.abstract     = None
+        self.draft        = None
         self.authors      = []
         self.keywords     = []
         self.updates      = []
