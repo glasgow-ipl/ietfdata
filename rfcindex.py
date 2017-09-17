@@ -99,9 +99,9 @@ class RfcEntry:
                     if   inner.tag == "{http://www.rfc-editor.org/rfc-index}file-format":
                         file_format = inner.text
                     elif inner.tag == "{http://www.rfc-editor.org/rfc-index}char-count":
-                        char_count = inner.text
+                        char_count = int(inner.text)
                     elif inner.tag == "{http://www.rfc-editor.org/rfc-index}page-count":
-                        page_count = inner.text
+                        page_count = int(inner.text)
                     else:
                         raise NotImplementedError
                 self.formats.append((file_format, char_count, page_count))
