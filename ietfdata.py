@@ -311,11 +311,11 @@ class RFCIndex:
     The RFC Index.
 
     Attributes:
-        rfc            : List of RfcEntry
-        rfc_not_issued : List of RfcNotIssuedEntry
-        bcp            : List of BcpEntry
-        std            : List of StdEntry
-        fyi            : List of FyiEntry
+        rfc            : Dictionary of RfcEntry
+        rfc_not_issued : Dictionary of RfcNotIssuedEntry
+        bcp            : Dictionary of BcpEntry
+        std            : Dictionary of StdEntry
+        fyi            : Dictionary of FyiEntry
     """
     def __init__(self, indexfile):
         self.rfc            = {}
