@@ -313,7 +313,6 @@ class FyiEntry:
                     else:
                         raise NotImplementedError
             else:
-                print(elem.tag)
                 raise NotImplementedError
 
     def __str__(self):
@@ -331,7 +330,6 @@ class RFCIndex:
     The RFC Index.
 
     Attributes:
-        xml             : An ElementTree representing the parsed XML of the index
         rfcs            : List of RfcEntry
         rfcs_not_issued : List of RfcNotIssuedEntry
         bcps            : List of BcpEntry
@@ -339,15 +337,13 @@ class RFCIndex:
         fyis            : List of FyiEntry
     """
     def __init__(self, indexfile):
-        self.xml = ET.parse(indexfile)
-
         self.rfcs = []
         self.rfcs_not_issued = []
         self.bcps = []
         self.stds = []
         self.fyis = []
 
-        for doc in self.xml.getroot():
+        for doc in ET.parse(indexfile).getroot():
             if   doc.tag == "{http://www.rfc-editor.org/rfc-index}rfc-entry":
                 self.rfcs.append(RfcEntry(doc))
             elif doc.tag == "{http://www.rfc-editor.org/rfc-index}rfc-not-issued-entry":
@@ -359,7 +355,7 @@ class RFCIndex:
             elif doc.tag == "{http://www.rfc-editor.org/rfc-index}fyi-entry":
                 self.fyis.append(FyiEntry(doc))
             else:
-                print("unknown tag:", doc.tag)
+                raise NotImplementedError
 
 # ==================================================================================================
 
