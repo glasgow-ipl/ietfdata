@@ -36,17 +36,17 @@ for rfc in index.rfc.values():
         num = str(int(rfc.doc_id[3:]))
         if   file_format == "ASCII":
             url = "https://www.rfc-editor.org/rfc/rfc" + num + ".txt"
-            loc = "data/rfc/rfc" + num + ".txt"
+            loc = Path("data/rfc/rfc" + num + ".txt")
         elif file_format == "PDF":
             url = "https://www.rfc-editor.org/rfc/rfc" + num + ".pdf"
-            loc = "data/rfc/rfc" + num + ".pdf"
+            loc = Path("data/rfc/rfc" + num + ".pdf")
         elif file_format == "PS":
             url = "https://www.rfc-editor.org/rfc/rfc" + num + ".ps"
-            loc = "data/rfc/rfc" + num + ".ps"
+            loc = Path("data/rfc/rfc" + num + ".ps")
         else:
             raise NotImplementedError
 
-        if not Path(loc).exists():
+        if not loc.exists():
             print("[fetch]", url, "->", loc)
             response = requests.get(url)
             if response.status_code != 200:
@@ -54,8 +54,7 @@ for rfc in index.rfc.values():
             else:
                 with open(loc, "wb") as f:
                     f.write(response.content)
-            size = Path(loc).stat().st_size
-            if size != char_count:
-                print("        Size mismatch: got", size, "but expected", char_count)
 
+        if loc.stat().st_size != char_count:
+            print("  ", rfc.doc_id, "is", loc.stat().st_size, "bytes, but expected", char_count)
 
