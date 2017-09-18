@@ -94,6 +94,7 @@ class RfcEntry:
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}format":
                 # Not all formats have pages, and some of those that do don't have a page count
                 page_count = None
+                char_count = None
 
                 for inner in elem:
                     if   inner.tag == "{http://www.rfc-editor.org/rfc-index}file-format":
