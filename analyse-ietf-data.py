@@ -27,6 +27,7 @@
 
 from pathlib  import Path
 from rfcindex import RFCIndex
+from rfc      import RFC
 
 import datetime
 import requests
@@ -56,30 +57,7 @@ with open("plots/rfcs-by-year.dat", "w") as f:
         f.write("{0} {1} {2}\n".format(year, len(x), total))
 
 # Fetch the RFC text:
-for rfc in index.rfc.values():
-    for (file_format, char_count, page_count) in rfc.formats:
-        num = str(int(rfc.doc_id[3:]))
-        if   file_format == "ASCII":
-            url = "https://www.rfc-editor.org/rfc/rfc" + num + ".txt"
-            loc = Path("data/rfc/rfc" + num + ".txt")
-        elif file_format == "PDF":
-            url = "https://www.rfc-editor.org/rfc/rfc" + num + ".pdf"
-            loc = Path("data/rfc/rfc" + num + ".pdf")
-        elif file_format == "PS":
-            url = "https://www.rfc-editor.org/rfc/rfc" + num + ".ps"
-            loc = Path("data/rfc/rfc" + num + ".ps")
-        else:
-            raise NotImplementedError
-
-        if not loc.exists():
-            print("[fetch]", url, "->", loc)
-            response = requests.get(url)
-            if response.status_code != 200:
-                print("  Failed: ", response.status_code)
-            else:
-                with open(loc, "wb") as f:
-                    f.write(response.content)
-
-        if loc.stat().st_size != char_count:
-            print("  ", rfc.doc_id, "is", loc.stat().st_size, "bytes, but expected", char_count)
+rfc = {}
+for r in index.rfc.values():
+    rfc[r.doc_id] = RFC(r)
 
