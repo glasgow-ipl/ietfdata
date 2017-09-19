@@ -45,7 +45,7 @@ class RfcEntry:
         day          : None or integer
         month        : String holding the month name
         year         : Integer
-        format       : List of tuples (file format, char count, page count)
+        formats      : List of tuples (file format, char count, page count)
         draft        : None or string
         keywords     : List of strings
         updates      : List of strings
