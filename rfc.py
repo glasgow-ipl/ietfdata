@@ -25,6 +25,7 @@
 
 from pathlib  import Path
 
+import re
 import requests
 
 def fetch_rfc(num, extn):
@@ -45,6 +46,35 @@ def fetch_rfc(num, extn):
                 f.write(response.content)
     return loc
 
+def is_authors_address_header(line):
+    if   re.compile("^(([A-Z]|([0-9]+(\\.[0-9]+)?))(\\.?))? *Author('|s|'s|s')? +(and Contributor('|s|'s|s') +)?[Aa]dd?ress(es)?:? *$").match(line) != None:
+        return True
+    elif re.compile("^(([A-Z]|([0-9]+(\\.[0-9]+)?))(\\.?))? *Editor('|s|'s|s')? +(and Contributor('|s|'s|s') +)?[Aa]dd?ress(es)?:? *$").match(line) != None:
+        return True
+    elif re.compile("^(([A-Z]|([0-9]+(\\.[0-9]+)?))(\\.?))? *(Author|Editor)('|s|'s|s')? +Information:? *$").match(line) != None:
+        return True
+    elif re.compile("^(([A-Z]|([0-9]+(\\.[0-9]+)?))(\\.?))? *((Author|Editor)('|s|'s|s')? +)?(Contact +)?[Aa]ddress(es)?:? *$").match(line) != None:
+        return True
+    elif re.compile("^(([A-Z]|([0-9]+(\\.[0-9]+)?))(\\.?))? *((Author|Editor)('|s|'s|s')? +)?(Contact +)?Information:? *$").match(line) != None:
+        return True
+    elif re.compile("^(([A-Z]|([0-9]+(\\.[0-9]+)?))(\\.?))? *(Author|Editor)('|s|'s|s')?:? *$").match(line) != None:
+        return True
+    elif re.compile("^(([A-Z]|([0-9]+(\\.[0-9]+)?))(\\.?))? *- +(Author|Editor)('|s|'s|s')? [Aa]ddress(es)?:? *$").match(line) != None:
+        return True
+    elif re.compile("^(([A-Z]|([0-9]+(\\.[0-9]+)?))(\\.?))? *Complete List of (Author|Editor)('|s|'s|s')( Addresses)? *$").match(line) != None:
+        return True
+    elif re.compile("^Authors \\(volunteer EF Design Team members\\) *$").match(line) != None:
+        return True
+    elif re.compile("^(([A-Z]|([0-9]+(\\.[0-9]+)?))(\\.?))? *Addresses of the Authors (and [a-zA-Z0-9]+ Working Group Chair)? *$").match(line) != None:
+        return True
+    elif re.compile("^(([A-Z]|([0-9]+(\\.[0-9]+)?))(\\.?))? *(Author|Editor)('|s|'s|s')? (and (Working Group )?Chair Address(es)?)? *$").match(line) != None:
+        return True
+    elif re.compile("^(([A-Z]|([0-9]+(\\.[0-9]+)?))(\\.?))? *Contact Information and useful links *$").match(line) != None:
+        return True
+    elif re.compile("^Addresses$").match(line) != None:
+        return True
+    else:
+        return False
 
 class RFC:
     """
@@ -120,4 +150,59 @@ class RFC:
             else:
                 raise NotImplementedError
 
-          
+    def file_txt_encoding(self):
+        # Most RFCs are UTF-8, or it's ASCII subset. A few are not. Return
+        # an appropriate encoding for the text of this RFC.
+        if   (self.doc_id == "RFC0064") or (self.doc_id == "RFC0101") or \
+             (self.doc_id == "RFC0177") or (self.doc_id == "RFC0178") or \
+             (self.doc_id == "RFC0182") or (self.doc_id == "RFC0227") or \
+             (self.doc_id == "RFC0234") or (self.doc_id == "RFC0235") or \
+             (self.doc_id == "RFC0237") or (self.doc_id == "RFC0243") or \
+             (self.doc_id == "RFC0270") or (self.doc_id == "RFC0282") or \
+             (self.doc_id == "RFC0288") or (self.doc_id == "RFC0290") or \
+             (self.doc_id == "RFC0292") or (self.doc_id == "RFC0303") or \
+             (self.doc_id == "RFC0306") or (self.doc_id == "RFC0307") or \
+             (self.doc_id == "RFC0310") or (self.doc_id == "RFC0313") or \
+             (self.doc_id == "RFC0315") or (self.doc_id == "RFC0316") or \
+             (self.doc_id == "RFC0317") or (self.doc_id == "RFC0323") or \
+             (self.doc_id == "RFC0327") or (self.doc_id == "RFC0367") or \
+             (self.doc_id == "RFC0369") or (self.doc_id == "RFC0441") or \
+             (self.doc_id == "RFC1305"):
+            return "iso8859_1"
+        elif self.doc_id == "RFC2166":
+            return "windows-1252"
+        elif (self.doc_id == "RFC2497") or (self.doc_id == "RFC2497") or \
+             (self.doc_id == "RFC2557"):
+            return "iso8859_1"
+        elif self.doc_id == "RFC2708":
+            # This RFC is corrupt: line 521 has a byte with value 0xC6 that
+            # is clearly intended to be a ' character, but that code point
+            # doesn't correspond to ' in any character set I can find. Use
+            # ISO 8859-1 which gets all characters right apart from this.
+            return "iso8859_1"
+        elif self.doc_id == "RFC2875":
+            # Both the text and PDF versions of this document have corrupt
+            # characters (lines 754 and 926 of the text version). Using 
+            # ISO 8859-1 is no more corrupt than the original.
+            return "iso8859_1"
+        else:
+            return "utf-8"
+
+    def authors(self): 
+        if self.file_txt == None:
+            return None
+
+        authors = []
+        with open(self.file_txt, encoding=self.file_txt_encoding()) as inf:
+            while True:
+                line = inf.readline()
+                if is_authors_address_header(line):
+                    break
+                if line == "":
+                    # Reached end of file without finding an "Authors' Address" line
+                    return None
+
+            authors.append(line)
+        return authors
+
+

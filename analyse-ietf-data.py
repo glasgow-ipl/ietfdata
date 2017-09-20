@@ -60,4 +60,10 @@ with open("plots/rfcs-by-year.dat", "w") as f:
 rfc = {}
 for r in index.rfc.values():
     rfc[r.doc_id] = RFC(r)
+    a = rfc[r.doc_id].authors()
+    if a == None:
+        print(r.doc_id, a)
+
+
+
 
