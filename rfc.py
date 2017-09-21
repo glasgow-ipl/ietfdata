@@ -47,31 +47,41 @@ def fetch_rfc(num, extn):
     return loc
 
 def is_authors_address_header(line):
-    if   re.compile("^(([A-Z]|([0-9]+(\\.[0-9]+)?))(\\.?))? *Author('|s|'s|s')? +(and Contributor('|s|'s|s') +)?[Aa]dd?ress(es)?:? *$").match(line) != None:
+    if   re.compile("^( *Appendix)? *(([A-Z]|([0-9]+(\\.[0-9]+)?))([:\\.]?))? *Author('|s|'s|s')? +(and Contributor('|s|'s|s') +)?[Aa]dd?ress(es)?:? *$").match(line) != None:
         return True
-    elif re.compile("^(([A-Z]|([0-9]+(\\.[0-9]+)?))(\\.?))? *Editor('|s|'s|s')? +(and Contributor('|s|'s|s') +)?[Aa]dd?ress(es)?:? *$").match(line) != None:
+    elif re.compile("^( *Appendix)? *(([A-Z]|([0-9]+(\\.[0-9]+)?))([:\\.]?))? *Editor('|s|'s|s')? +(and [Cc]ontributor('|s|'s|s') +)?[Aa]dd?ress(es)?:? *$").match(line) != None:
         return True
-    elif re.compile("^(([A-Z]|([0-9]+(\\.[0-9]+)?))(\\.?))? *(Author|Editor)('|s|'s|s')? +Information:? *$").match(line) != None:
+    elif re.compile("^( *Appendix)? *(([A-Z]|([0-9]+(\\.[0-9]+)?))([:\\.]?))? *(Author|Editor)('|s|'s|s')? +[Ii]nformation( and [Aa]cknowledgments)?:? *$").match(line) != None:
         return True
-    elif re.compile("^(([A-Z]|([0-9]+(\\.[0-9]+)?))(\\.?))? *((Author|Editor)('|s|'s|s')? +)?(Contact +)?[Aa]ddress(es)?:? *$").match(line) != None:
+    elif re.compile("^( *Appendix)? *(([A-Z]|([0-9]+(\\.[0-9]+)?))([:\\.]?))? *((Author|Editor)('|s|'s|s')? +)?([Cc]ontact +)?[Aa]ddress(es)?:? *$").match(line) != None:
         return True
-    elif re.compile("^(([A-Z]|([0-9]+(\\.[0-9]+)?))(\\.?))? *((Author|Editor)('|s|'s|s')? +)?(Contact +)?Information:? *$").match(line) != None:
+    elif re.compile("^( *Appendix)? *(([A-Z]|([0-9]+(\\.[0-9]+)?))([:\\.]?))? *((Author|Editor)('|s|'s|s')? +)?([Cc]ontact +)?[Ii]nformation:? *$").match(line) != None:
         return True
-    elif re.compile("^(([A-Z]|([0-9]+(\\.[0-9]+)?))(\\.?))? *(Author|Editor)('|s|'s|s')?:? *$").match(line) != None:
+    elif re.compile("^( *Appendix)? *(([A-Z]|([0-9]+(\\.[0-9]+)?))([:\\.]?))? *(Author|Editor)('|s|'s|s')?:? *$").match(line) != None:
         return True
-    elif re.compile("^(([A-Z]|([0-9]+(\\.[0-9]+)?))(\\.?))? *- +(Author|Editor)('|s|'s|s')? [Aa]ddress(es)?:? *$").match(line) != None:
+    elif re.compile("^( *Appendix)? *(([A-Z]|([0-9]+(\\.[0-9]+)?))([:\\.]?))? *Author('|s|'s|s')? and Editor('|s|'s|s')? [Aa]ddress(es)?:? *$").match(line) != None:
         return True
-    elif re.compile("^(([A-Z]|([0-9]+(\\.[0-9]+)?))(\\.?))? *Complete List of (Author|Editor)('|s|'s|s')( Addresses)? *$").match(line) != None:
+    elif re.compile("^( *Appendix)? *(([A-Z]|([0-9]+(\\.[0-9]+)?))([:\\.]?))? *-? +(Author|Editor)('|s|'s|s')? [Aa]ddress(es)?( and [Cc]ontacts)?:? *$").match(line) != None:
+        return True
+    elif re.compile("^( *Appendix)? *(([A-Z]|([0-9]+(\\.[0-9]+)?))([:\\.]?))? *[Cc]omplete [Ll]ist of (Author|Editor)('|s|'s|s')( Addresses)? *$").match(line) != None:
+        return True
+    elif re.compile("^( *Appendix)? *(([A-Z]|([0-9]+(\\.[0-9]+)?))([:\\.]?))? *(AUTHOR|EDITOR)('|S|'S|S')? ADDRESS(ES)?:? *$").match(line) != None:
+        return True
+    elif re.compile("^( *Appendix)? *(([A-Z]|([0-9]+(\\.[0-9]+)?))([:\\.]?))? *Addresses of (the )?(Author|Editor)('|s|'s|s')?( and( +[a-zA-Z0-9]+)? (Working Group )?Chairs?)? *$").match(line) != None:
+        return True
+    elif re.compile("^( *Appendix)? *(([A-Z]|([0-9]+(\\.[0-9]+)?))([:\\.]?))? *(Author|Editor)('|s|'s|s')? (and (Working Group )?Chair('|s|'s|s')?( Address(es)?)?)? *$").match(line) != None:
+        return True
+    elif re.compile("^( *Appendix)? *(([A-Z]|([0-9]+(\\.[0-9]+)?))([:\\.]?))? *Contact Information and useful links *$").match(line) != None:
         return True
     elif re.compile("^Authors \\(volunteer EF Design Team members\\) *$").match(line) != None:
         return True
-    elif re.compile("^(([A-Z]|([0-9]+(\\.[0-9]+)?))(\\.?))? *Addresses of the Authors (and [a-zA-Z0-9]+ Working Group Chair)? *$").match(line) != None:
+    elif re.compile("^Contacts$").match(line) != None:
         return True
-    elif re.compile("^(([A-Z]|([0-9]+(\\.[0-9]+)?))(\\.?))? *(Author|Editor)('|s|'s|s')? (and (Working Group )?Chair Address(es)?)? *$").match(line) != None:
-        return True
-    elif re.compile("^(([A-Z]|([0-9]+(\\.[0-9]+)?))(\\.?))? *Contact Information and useful links *$").match(line) != None:
+    elif re.compile("^CONTACT$").match(line) != None:
         return True
     elif re.compile("^Addresses$").match(line) != None:
+        return true
+    elif re.compile("^XV. AUTHOR'S ADDRESS$").match(line) != None:
         return True
     else:
         return False
