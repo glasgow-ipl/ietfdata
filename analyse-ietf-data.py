@@ -41,12 +41,12 @@ for d in ["data", "data/rfc", "data/id", "plots"]:
 # Fetch the index if it doesn't exist or is more than 24 hours old:
 index_path = Path("data/rfc-index.xml")
 if not index_path.exists() or ((time.time() - index_path.stat().st_mtime) > 86400):
-    print("[fetch]", index_path)
+    print("Fetch", index_path)
     response = requests.get("https://www.rfc-editor.org/rfc-index.xml")
     with open(index_path, "w") as f:
         f.write(response.text)
 
-print("[parse]", index_path)
+print("Parse", index_path)
 index = RFCIndex(index_path)
 
 with open("plots/rfcs-by-year.dat", "w") as f:
@@ -57,12 +57,22 @@ with open("plots/rfcs-by-year.dat", "w") as f:
         f.write("{0} {1} {2}\n".format(year, len(x), total))
 
 # Fetch the RFC text:
+print("Fetch and Parse RFCs:", end="", flush=True)
+cnt = -1
 rfc = {}
 for r in index.rfc.values():
+    # Display progress:
+    cnt = cnt + 1
+    if (cnt % 100) == 0:
+        print("", flush=True)
+        print("{:5}: ".format(cnt), end="", flush=True)
+    else:
+        print(".", end="", flush=True)
+
     rfc[r.doc_id] = RFC(r)
     a = rfc[r.doc_id].authors()
-    if a == None:
-        print(r.doc_id, a)
+#    if a == None:
+#        print(r.doc_id, a)
 
 
 
