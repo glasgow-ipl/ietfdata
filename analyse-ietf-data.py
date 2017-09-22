@@ -73,7 +73,7 @@ for r in index.rfc.values():
     a = rfc[r.doc_id].authors()
 #    if a == None:
 #        print(r.doc_id, a)
-
+print("", flush=True)
 
 
 
