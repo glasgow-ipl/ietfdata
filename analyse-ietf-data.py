@@ -33,21 +33,31 @@ import datetime
 import requests
 import time
 
+# =================================================================================================
+# Fetch the RFC data:
+
 for d in ["data", "data/rfc", "data/id", "plots"]:
     if not Path(d).is_dir():
         print("[mkdir]", d)
         Path(d).mkdir(exist_ok=True)
 
-# Fetch the index if it doesn't exist or is more than 24 hours old:
+# Fetch rfc-index.xml if it doesn't exist or is more than 24 hours old:
 index_path = Path("data/rfc-index.xml")
 if not index_path.exists() or ((time.time() - index_path.stat().st_mtime) > 86400):
-    print("Fetch", index_path)
+    print("[fetch]", index_path)
     response = requests.get("https://www.rfc-editor.org/rfc-index.xml")
     with open(index_path, "w") as f:
         f.write(response.text)
 
-print("Parse", index_path)
+# Parse rfc-index.xml:
+print("[parse]", index_path)
 index = RFCIndex(index_path)
+
+# Parse and fetch RFCs:
+for rfcnum in index.rfc.values():
+    rfc = RFC(rfcnum)
+
+# =================================================================================================
 
 with open("plots/rfcs-by-year.dat", "w") as f:
     total = 0
@@ -56,24 +66,4 @@ with open("plots/rfcs-by-year.dat", "w") as f:
         total += len(x)
         f.write("{0} {1} {2}\n".format(year, len(x), total))
 
-# Fetch the RFC text:
-print("Fetch and Parse RFCs:", end="", flush=True)
-cnt = -1
-rfc = {}
-for r in index.rfc.values():
-    # Display progress:
-    cnt = cnt + 1
-    if (cnt % 100) == 0:
-        print("", flush=True)
-        print("{:5}: ".format(cnt), end="", flush=True)
-    else:
-        print(".", end="", flush=True)
-
-    rfc[r.doc_id] = RFC(r)
-    a = rfc[r.doc_id].authors()
-#    if a == None:
-#        print(r.doc_id, a)
-print("", flush=True)
-
-
-
+# =================================================================================================
