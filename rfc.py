@@ -28,7 +28,7 @@ from pathlib  import Path
 import re
 import requests
 
-def fetch_rfc(num, extn):
+def fetch_rfc(num, extn, size):
     """
     A helper function to fetch an RFC. 
     """
@@ -39,11 +39,16 @@ def fetch_rfc(num, extn):
         print("[fetch]", url, "->", loc)
         response = requests.get(url)
         if response.status_code != 200:
-            print("  Failed: ", response.status_code)
+            print("[error]", response.status_code)
             return None
         else:
             with open(loc, "wb") as f:
                 f.write(response.content)
+
+    actual_size = loc.stat().st_size 
+    if actual_size != size:
+        print(" [warn] RFC {:5} is {:6d} bytes, expected {:6d}".format(num, actual_size, size))
+
     return loc
 
 def is_authors_address_header(line):
@@ -153,11 +158,11 @@ class RFC:
         for (file_format, char_count, page_count) in self.formats:
             num = str(int(self.doc_id[3:]))
             if   file_format == "ASCII":
-                self.file_txt = fetch_rfc(num, ".txt")
+                self.file_txt = fetch_rfc(num, ".txt", char_count)
             elif file_format == "PDF":
-                self.file_pdf = fetch_rfc(num, ".pdf")
+                self.file_pdf = fetch_rfc(num, ".pdf", char_count)
             elif file_format == "PS":
-                self.file_ps  = fetch_rfc(num, ".ps")
+                self.file_ps  = fetch_rfc(num, ".ps", char_count)
             else:
                 raise NotImplementedError
 
