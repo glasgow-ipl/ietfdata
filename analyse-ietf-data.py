@@ -25,9 +25,10 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from pathlib  import Path
-from rfcindex import RFCIndex
-from rfc      import RFC
+from pathlib     import Path
+from rfcindex    import RFCIndex
+from rfc         import RFC
+from datatracker import DataTracker
 
 import datetime
 import requests
@@ -56,6 +57,13 @@ index = RFCIndex(index_path)
 # Parse and fetch RFCs:
 for rfcnum in index.rfc.values():
     rfc = RFC(rfcnum)
+
+# =================================================================================================
+# Query the datatracker
+
+datatracker = DataTracker()
+for g in datatracker.groups():
+    print(g)
 
 # =================================================================================================
 
