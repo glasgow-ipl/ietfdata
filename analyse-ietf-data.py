@@ -37,7 +37,7 @@ import time
 # =================================================================================================
 # Fetch the RFC data:
 
-for d in ["data", "data/rfc", "data/id", "plots"]:
+for d in ["data", "data/rfc", "plots"]:
     if not Path(d).is_dir():
         print("[mkdir]", d)
         Path(d).mkdir(exist_ok=True)
@@ -62,8 +62,8 @@ for rfcnum in index.rfc.values():
 # Query the datatracker
 
 datatracker = DataTracker()
-for g in datatracker.groups():
-    print(g)
+datatracker.groups()
+datatracker.documents()
 
 # =================================================================================================
 
