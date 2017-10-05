@@ -129,7 +129,7 @@ class DataTracker:
                     print("[mkdir]", groupdir)
                     Path(groupdir).mkdir(exist_ok=True)
 
-                f  = dir + obj['acronym'] + ".json"
+                f  = groupdir + obj['acronym'] + ".json"
                 with open(f, "w") as outf:
                     print("[fetch]", f)
                     json.dump(obj, outf)
