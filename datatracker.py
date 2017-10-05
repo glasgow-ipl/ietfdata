@@ -63,15 +63,18 @@ def get_last_fetch(filename):
         last_fetch = inf.read()
         inf.close()
     except OSError:
-        last_fetch = "1970-01-01"
+        last_fetch = "1970-01-01T00:00:00"
     return last_fetch
 
 def set_last_fetch(filename):
     with open(filename, "w") as outf:
-        year  = datetime.datetime.now().year
-        month = datetime.datetime.now().month
-        day   = datetime.datetime.now().day
-        last_fetch = "{:04d}-{:02}-{:02d}".format(year, month, day)
+        y  = datetime.datetime.now().year
+        m = datetime.datetime.now().month
+        d   = datetime.datetime.now().day
+        hour   = datetime.datetime.now().hour
+        mins   = datetime.datetime.now().minute
+        secs   = datetime.datetime.now().second
+        last_fetch = "{:04d}-{:02}-{:02d}T{:02}:{:02}:{:02}".format(y, m, d, hour, mins, secs)
         outf.write(last_fetch)
 
 # =============================================================================
