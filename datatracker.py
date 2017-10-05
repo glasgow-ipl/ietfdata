@@ -156,8 +156,9 @@ class DataTracker:
                 if not Path(docdir).is_dir():
                     print("[mkdir]", docdir)
                     Path(docdir).mkdir(exist_ok=True)
-                with open(docdir + doc['name'] + ".json", "w") as outf:
-                    print("[fetch]", docdir + doc['name'] + ".json")
+                name = doc['name'].replace("/", "-").replace(" ", "_")
+                with open(docdir + name + ".json", "w") as outf:
+                    print("[fetch]", docdir + name + ".json")
                     json.dump(doc, outf)
         set_last_fetch("data/datatracker/docs/.last_fetch")
         # FIXME: finish this...
