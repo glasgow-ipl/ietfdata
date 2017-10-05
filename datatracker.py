@@ -123,14 +123,20 @@ class DataTracker:
             objs = r.json()['objects']
             url = meta['next']
             for obj in objs:
-                id = obj['id']
-                with open("data/datatracker/groups/" + str(id), "w") as outf:
-                    print("[fetch] datatracker group", str(id), obj['acronym'])
+                grouptype = obj['type'][obj['type'].rstrip("/").rfind('/'):]
+                groupdir  = "data/datatracker/groups" + grouptype
+                if not Path(groupdir).is_dir():
+                    print("[mkdir]", groupdir)
+                    Path(groupdir).mkdir(exist_ok=True)
+
+                f  = dir + obj['acronym'] + ".json"
+                with open(f, "w") as outf:
+                    print("[fetch]", f)
                     json.dump(obj, outf)
         set_last_fetch("data/datatracker/groups/.last_fetch")
         # Read and return the contents of the cache:
         groups = []
-        for group in glob.glob("data/datatracker/groups/[0-9]*"):
+        for group in glob.glob("data/datatracker/groups/[0-9]*.json"):
             with open(group) as inf:
                 groups.append(Group(json.load(inf)))
         return groups
