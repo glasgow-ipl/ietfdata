@@ -28,6 +28,24 @@
 #
 # The Datatracker API is at https://datatracker.ietf.org/api/v1 and is
 # a REST API implemented using Django Tastypie (http://tastypieapi.org)
+#
+# Information about working groups:
+#   https://datatracker.ietf.org/api/v1/group/group/                            - list of groups
+#   https://datatracker.ietf.org/api/v1/group/group/?id=2161                    - info about group 2161
+#   https://datatracker.ietf.org/api/v1/group/grouphistory/?group=2161          - history
+#   https://datatracker.ietf.org/api/v1/group/groupurl/?group=2161              - URLs
+#   https://datatracker.ietf.org/api/v1/group/groupevent/?group=2161            - events
+#   https://datatracker.ietf.org/api/v1/group/groupmilestone/?group=2161        - milestones
+#   https://datatracker.ietf.org/api/v1/group/groupmilestonehistory/?group=2161 - milestones
+#   https://datatracker.ietf.org/api/v1/group/milestonegroupevent/?group=2161   - changed milestones
+#   https://datatracker.ietf.org/api/v1/group/role/?group=2161                  - WG chairs and ADs
+#   https://datatracker.ietf.org/api/v1/group/changestategroupevent/?group=2161 - Group state changes
+#   ...not clear what "rolehistory" and "groupstatetransitions" do...
+#
+# Information about documents:
+#   https://datatracker.ietf.org/api/v1/doc/document/                           - list of documents
+#   https://datatracker.ietf.org/api/v1/doc/document/?name=...                  - info about document ...
+#   ...
 
 from pathlib     import Path
 
