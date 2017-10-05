@@ -106,7 +106,7 @@ class Group:
 
 class DataTracker:
     def __init__(self):
-        for d in ["data/datatracker", "data/datatracker/groups"]:
+        for d in ["data/datatracker", "data/datatracker/groups", "data/datatracker/docs"]:
             if not Path(d).is_dir():
                 print("[mkdir]", d)
                 Path(d).mkdir(exist_ok=True)
@@ -134,5 +134,26 @@ class DataTracker:
             with open(group) as inf:
                 groups.append(Group(json.load(inf)))
         return groups
+
+    def documents(self):
+        # Update the local cache of documents:
+        last_fetch = get_last_fetch("data/datatracker/docs/.last_fetch")
+        url  = "/api/v1/doc/document/?&time__gt=" + last_fetch
+        while url != None:
+            r = self.session.get(self.datatracker + url, verify=True)
+            meta = r.json()['meta']
+            docs = r.json()['objects']
+            url = meta['next']
+            for doc in docs:
+                doctype = doc['type'][doc['type'].rstrip("/").rfind('/'):]
+                docdir  = "data/datatracker/docs" + doctype
+                if not Path(docdir).is_dir():
+                    print("[mkdir]", docdir)
+                    Path(docdir).mkdir(exist_ok=True)
+                with open(docdir + doc['name'] + ".json", "w") as outf:
+                    print("[fetch]", docdir + doc['name'] + ".json")
+                    json.dump(doc, outf)
+        set_last_fetch("data/datatracker/docs/.last_fetch")
+        # FIXME: finish this...
 
 # =============================================================================
