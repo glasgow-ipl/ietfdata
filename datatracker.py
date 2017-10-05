@@ -115,7 +115,7 @@ class DataTracker:
 
     def groups(self):
         # Update the local cache of group data:
-        last_fetch = get_last_fetch("data/datatracker/groups/last_fetch")
+        last_fetch = get_last_fetch("data/datatracker/groups/.last_fetch")
         url  = "/api/v1/group/group/?time__gt=" + last_fetch
         while url != None:
             r = self.session.get(self.datatracker + url, verify=True)
@@ -127,7 +127,7 @@ class DataTracker:
                 with open("data/datatracker/groups/" + str(id), "w") as outf:
                     print("[fetch] datatracker group", str(id), obj['acronym'])
                     json.dump(obj, outf)
-        set_last_fetch("data/datatracker/groups/last_fetch")
+        set_last_fetch("data/datatracker/groups/.last_fetch")
         # Read and return the contents of the cache:
         groups = []
         for group in glob.glob("data/datatracker/groups/[0-9]*"):
