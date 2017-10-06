@@ -31,7 +31,7 @@
 #
 # Information about working groups:
 #   https://datatracker.ietf.org/api/v1/group/group/                            - list of groups
-#   https://datatracker.ietf.org/api/v1/group/group/?id=2161                    - info about group 2161
+#   https://datatracker.ietf.org/api/v1/group/group/2161/                       - info about group 2161
 #   https://datatracker.ietf.org/api/v1/group/grouphistory/?group=2161          - history
 #   https://datatracker.ietf.org/api/v1/group/groupurl/?group=2161              - URLs
 #   https://datatracker.ietf.org/api/v1/group/groupevent/?group=2161            - events
@@ -45,6 +45,15 @@
 # Information about documents:
 #   https://datatracker.ietf.org/api/v1/doc/document/                           - list of documents
 #   https://datatracker.ietf.org/api/v1/doc/document/?name=...                  - info about document ...
+#   ...
+#
+# Information about people:
+#   https://datatracker.ietf.org/api/v1/person/person/                    - list of people
+#   https://datatracker.ietf.org/api/v1/person/person/20209/              - info about person 20209
+#   https://datatracker.ietf.org/api/v1/person/email/csp@csperkins.org/   - map from email address to person
+#
+# Information about meetings:
+#   https://datatracker.ietf.org/api/v1/meeting/meeting/                  - list of meetings
 #   ...
 
 from pathlib     import Path
