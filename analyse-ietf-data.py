@@ -62,6 +62,7 @@ for rfcnum in index.rfc.values():
 # Query the datatracker
 
 datatracker = DataTracker()
+datatracker.people()
 datatracker.groups()
 datatracker.documents()
 

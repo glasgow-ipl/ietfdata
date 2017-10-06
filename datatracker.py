@@ -109,12 +109,36 @@ class Group:
 
 class DataTracker:
     def __init__(self):
-        for d in ["data/datatracker", "data/datatracker/groups", "data/datatracker/docs"]:
+        for d in ["data/datatracker", "data/datatracker/person", "data/datatracker/groups", "data/datatracker/docs"]:
             if not Path(d).is_dir():
                 print("[mkdir]", d)
                 Path(d).mkdir(exist_ok=True)
         self.session     = requests.Session()
         self.datatracker = "https://datatracker.ietf.org"
+
+    def people(self):
+        # Update the local cache of information about people:
+        last_fetch = get_last_fetch("data/datatracker/person/.last_fetch")
+        url = "/api/v1/person/person/?time__gt=" + last_fetch
+        cnt = 0
+        while url != None:
+            r = self.session.get(self.datatracker + url, verify=True)
+            meta = r.json()['meta']
+            objs = r.json()['objects']
+            url = meta['next']
+            tot = meta['total_count']
+            for obj in objs:
+                persondir  = "data/datatracker/person/"
+                if not Path(persondir).is_dir():
+                    print("[mkdir]", persondir)
+                    Path(persondir).mkdir(exist_ok=True)
+
+                f  = persondir + str(obj['id']) + ".json"
+                with open(f, "w") as outf:
+                    cnt = cnt + 1
+                    print("[fetch] {:d}/{:d} {:s}".format(cnt, tot, f))
+                    json.dump(obj, outf)
+        set_last_fetch("data/datatracker/person/.last_fetch")
 
     def groups(self):
         # Update the local cache of group data:
