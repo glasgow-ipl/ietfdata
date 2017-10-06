@@ -119,12 +119,14 @@ class DataTracker:
     def groups(self):
         # Update the local cache of group data:
         last_fetch = get_last_fetch("data/datatracker/groups/.last_fetch")
-        url  = "/api/v1/group/group/?time__gt=" + last_fetch
+        url = "/api/v1/group/group/?time__gt=" + last_fetch
+        cnt = 0
         while url != None:
             r = self.session.get(self.datatracker + url, verify=True)
             meta = r.json()['meta']
             objs = r.json()['objects']
             url = meta['next']
+            tot = meta['total_count']
             for obj in objs:
                 grouptype = obj['type'][obj['type'].rstrip("/").rfind('/'):]
                 groupdir  = "data/datatracker/groups" + grouptype
@@ -134,7 +136,8 @@ class DataTracker:
 
                 f  = groupdir + obj['acronym'] + ".json"
                 with open(f, "w") as outf:
-                    print("[fetch]", f)
+                    cnt = cnt + 1
+                    print("[fetch] {:d}/{:d} {:s}".format(cnt, tot, f))
                     json.dump(obj, outf)
         set_last_fetch("data/datatracker/groups/.last_fetch")
         # Read and return the contents of the cache:
@@ -147,12 +150,14 @@ class DataTracker:
     def documents(self):
         # Update the local cache of documents:
         last_fetch = get_last_fetch("data/datatracker/docs/.last_fetch")
-        url  = "/api/v1/doc/document/?&time__gt=" + last_fetch
+        url = "/api/v1/doc/document/?&time__gt=" + last_fetch
+        cnt = 0
         while url != None:
             r = self.session.get(self.datatracker + url, verify=True)
             meta = r.json()['meta']
             docs = r.json()['objects']
             url = meta['next']
+            tot = meta['total_count']
             for doc in docs:
                 doctype = doc['type'][doc['type'].rstrip("/").rfind('/'):]
                 docdir  = "data/datatracker/docs" + doctype
@@ -161,7 +166,8 @@ class DataTracker:
                     Path(docdir).mkdir(exist_ok=True)
                 name = doc['name'].replace("/", "-").replace(" ", "_")
                 with open(docdir + name + ".json", "w") as outf:
-                    print("[fetch]", docdir + name + ".json")
+                    cnt = cnt + 1
+                    print("[fetch] {:d}/{:d} {:s}".format(cnt, tot, docdir + name + ".json"))
                     json.dump(doc, outf)
         set_last_fetch("data/datatracker/docs/.last_fetch")
         # FIXME: finish this...
