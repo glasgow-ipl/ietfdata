@@ -82,12 +82,22 @@
 #   https://datatracker.ietf.org/api/v1/doc/dochistory/
 #
 # Information about people:
-#   https://datatracker.ietf.org/api/v1/person/person/                    - list of people
-#   https://datatracker.ietf.org/api/v1/person/person/20209/              - info about person 20209
-#   https://datatracker.ietf.org/api/v1/person/email/csp@csperkins.org/   - map from email address to person
+#   https://datatracker.ietf.org/api/v1/person/person/                          - list of people
+#   https://datatracker.ietf.org/api/v1/person/person/20209/                    - info about person 20209
+#   https://datatracker.ietf.org/api/v1/person/email/csp@csperkins.org/         - map from email address to person
 #
 # Information about meetings:
-#   https://datatracker.ietf.org/api/v1/meeting/meeting/                  - list of meetings
+#   https://datatracker.ietf.org/api/v1/meeting/meeting/                        - list of meetings
+#   https://datatracker.ietf.org/api/v1/meeting/meeting/747/                    - information about meeting number 747
+#   https://datatracker.ietf.org/api/v1/meeting/session/                        - list of all sessions in meetings
+#   https://datatracker.ietf.org/api/v1/meeting/session/25886/                  - a session in a meeting
+#   https://datatracker.ietf.org/api/v1/meeting/session/?meeting=747            - sessions in meeting number 747
+#   https://datatracker.ietf.org/api/v1/meeting/session/?meeting=747&group=2161 - sessions in meeting number 747 for group 2161
+#   https://datatracker.ietf.org/api/v1/meeting/schedtimesessassignment/59003/  - a schededuled session within a meeting
+#   https://datatracker.ietf.org/api/v1/meeting/timeslot/9480/                  - a time slot within a meeting (time, duration, location)
+#   https://datatracker.ietf.org/api/v1/meeting/schedule/791/                   - a draft of the meeting agenda
+#   https://datatracker.ietf.org/api/v1/meeting/room/537/                       - a room at a meeting
+#   https://datatracker.ietf.org/api/v1/meeting/floorplan/14/                   - floor plan for a meeting venue
 #   ...
 #
 # See also:
