@@ -102,6 +102,8 @@
 #
 # See also:
 #   RFC 6174 "Definition of IETF Working Group Document States"
+#   https://trac.tools.ietf.org/tools/ietfdb/wiki/DatatrackerDrafts
+#   https://trac.tools.ietf.org/tools/ietfdb/wiki/DatabaseSchemaDescription
 
 from pathlib     import Path
 
