@@ -137,24 +137,26 @@ class Person:
     def __init__(self, datatracker, person_id):
         api_url  = "/api/v1/person/person/" + person_id
         response = datatracker.session.get(datatracker.base_url + api_url, verify=True)
-
-        self.person_id        = response.json()['id']
-        self.user             = response.json()['user']
-        self.name             = response.json()['name']
-        self.name_ascii       = response.json()['ascii']
-        self.name_ascii_short = response.json()['ascii_short']
-        self.address          = response.json()['address']
-        self.affiliation      = response.json()['affiliation']
-        self.biography        = response.json()['biography']
-        self.last_modified    = response.json()['time']
-        self.photo            = response.json()['photo']
-        self.photo_thumb      = response.json()['photo_thumb']
-        # The following need follow-up queries to the tracker to derive
-        # See https://datatracker.ietf.org/person/Colin%20Perkins for an example
-        self.roles            = None
-        self.rfcs             = None
-        self.active_drafts    = None
-        self.expired_drafts   = None
+        if response.status_code == 200:
+            self.person_id        = response.json()['id']
+            self.user             = response.json()['user']
+            self.name             = response.json()['name']
+            self.name_ascii       = response.json()['ascii']
+            self.name_ascii_short = response.json()['ascii_short']
+            self.address          = response.json()['address']
+            self.affiliation      = response.json()['affiliation']
+            self.biography        = response.json()['biography']
+            self.last_modified    = response.json()['time']
+            self.photo            = response.json()['photo']
+            self.photo_thumb      = response.json()['photo_thumb']
+            # The following need follow-up queries to the tracker to derive
+            # See https://datatracker.ietf.org/person/Colin%20Perkins for an example
+            self.roles            = None
+            self.rfcs             = None
+            self.active_drafts    = None
+            self.expired_drafts   = None
+        else:
+            None
 
     def __str__(self):
         return "Person {\n" \
