@@ -186,6 +186,12 @@ class DataTracker:
         return self._people[person_id]
 
     def person_from_email(self, person_email):
-        pass
+        api_url   = "/api/v1/person/email/" + person_email + "/"
+        response  = self.session.get(self.base_url + api_url, verify=True)
+        if response.status_code == 200:
+            person_id = response.json()['person'].replace("/api/v1/person/person/", "").rstrip('/')
+            return self.person(person_id)
+        else:
+            return None
 
 # =============================================================================
