@@ -29,46 +29,54 @@
 # The Datatracker API is at https://datatracker.ietf.org/api/v1 and is
 # a REST API implemented using Django Tastypie (http://tastypieapi.org)
 #
+# It's possible to do time range queries on a lot of these values, for example:
+#   https://datatracker.ietf.org/api/v1/person/person/?time__gt=2018-03-27T14:07:36
+#
 # Information about working groups:
-#   https://datatracker.ietf.org/api/v1/group/group/                            - list of groups
-#   https://datatracker.ietf.org/api/v1/group/group/2161/                       - info about group 2161
-#   https://datatracker.ietf.org/api/v1/group/grouphistory/?group=2161          - history
-#   https://datatracker.ietf.org/api/v1/group/groupurl/?group=2161              - URLs
-#   https://datatracker.ietf.org/api/v1/group/groupevent/?group=2161            - events
-#   https://datatracker.ietf.org/api/v1/group/groupmilestone/?group=2161        - milestones
-#   https://datatracker.ietf.org/api/v1/group/groupmilestonehistory/?group=2161 - milestones
-#   https://datatracker.ietf.org/api/v1/group/milestonegroupevent/?group=2161   - changed milestones
-#   https://datatracker.ietf.org/api/v1/group/role/?group=2161                  - WG chairs and ADs
-#   https://datatracker.ietf.org/api/v1/group/changestategroupevent/?group=2161 - Group state changes
-#   ...not clear what "rolehistory" and "groupstatetransitions" do...
+#   https://datatracker.ietf.org/api/v1/group/group/                               - list of groups
+#   https://datatracker.ietf.org/api/v1/group/group/2161/                          - info about group 2161
+#   https://datatracker.ietf.org/api/v1/group/grouphistory/?group=2161             - history
+#   https://datatracker.ietf.org/api/v1/group/groupurl/?group=2161                 - URLs
+#   https://datatracker.ietf.org/api/v1/group/groupevent/?group=2161               - events
+#   https://datatracker.ietf.org/api/v1/group/groupmilestone/?group=2161           - Current milestones
+#   https://datatracker.ietf.org/api/v1/group/groupmilestonehistory/?group=2161    - Previous milestones
+#   https://datatracker.ietf.org/api/v1/group/milestonegroupevent/?group=2161      - changed milestones
+#   https://datatracker.ietf.org/api/v1/group/role/?group=2161                     - The current WG chairs and ADs of a group
+#   https://datatracker.ietf.org/api/v1/group/role/?person=20209                   - Groups a person is currently involved with
+#   https://datatracker.ietf.org/api/v1/group/role/?email=csp@csperkins.org        - Groups a person is currently involved with
+#   https://datatracker.ietf.org/api/v1/group/rolehistory/?group=2161              - The previous WG chairs and ADs of a group
+#   https://datatracker.ietf.org/api/v1/group/rolehistory/?person=20209            - Groups a person was previously involved with
+#   https://datatracker.ietf.org/api/v1/group/rolehistory/?email=csp@csperkins.org - Groups a person was previously involved with
+#   https://datatracker.ietf.org/api/v1/group/changestategroupevent/?group=2161    - Group state changes
+#   https://datatracker.ietf.org/api/v1/group/groupstatetransitions                - ???
 #
 # Information about documents:
-#   https://datatracker.ietf.org/api/v1/doc/document/                           - list of documents
-#   https://datatracker.ietf.org/api/v1/doc/document/?name=...                  - info about document ...
-#   https://datatracker.ietf.org/api/v1/doc/docevent/                           - list of document events
-#   https://datatracker.ietf.org/api/v1/doc/docevent/?doc=...                   - events for a document
-#   https://datatracker.ietf.org/api/v1/doc/docevent/?by=...                    - events by a person (as /api/v1/person/person)
-#   https://datatracker.ietf.org/api/v1/doc/docevent/?time=...                  - events by time
-#   https://datatracker.ietf.org/api/v1/doc/statedocevent/                      - subset of /api/v1/doc/docevent/; same parameters
-#   https://datatracker.ietf.org/api/v1/doc/ballotdocevent/                     -               "                "
-#   https://datatracker.ietf.org/api/v1/doc/newrevisiondocevent/                -               "                "
-#   https://datatracker.ietf.org/api/v1/doc/submissiondocevent/                 -               "                "
-#   https://datatracker.ietf.org/api/v1/doc/writeupdocevent/                    -               "                "
-#   https://datatracker.ietf.org/api/v1/doc/consensusdocevent/                  -               "                "
-#   https://datatracker.ietf.org/api/v1/doc/ballotpositiondocevent/             -               "                "
-#   https://datatracker.ietf.org/api/v1/doc/reviewrequestdocevent/              -               "                "
-#   https://datatracker.ietf.org/api/v1/doc/lastcalldocevent/                   -               "                "
-#   https://datatracker.ietf.org/api/v1/doc/telechatdocevent/                   -               "                "
-#   https://datatracker.ietf.org/api/v1/doc/documentauthor/?document=...        - authors of a document
-#   https://datatracker.ietf.org/api/v1/doc/documentauthor/?person=...          - documents by person (as /api/v1/person/person)
-#   https://datatracker.ietf.org/api/v1/doc/documentauthor/?email=...           - documents by person with particular email
-#   https://datatracker.ietf.org/api/v1/doc/relateddocument/?source=...         - documents that source draft relates to (references, replaces, etc)
-#   https://datatracker.ietf.org/api/v1/doc/relateddocument/?target=...         - documents that relate to target draft
-#   https://datatracker.ietf.org/api/v1/doc/docalias/rfcXXXX/                   - draft that became the given RFC
-#   https://datatracker.ietf.org/api/v1/doc/docalias/bcpXXXX/                   - draft that became the given BCP
-#   https://datatracker.ietf.org/api/v1/doc/docalias/stdXXXX/                   - RFC that is the given STD
-#   https://datatracker.ietf.org/api/v1/doc/state/                              - Types of state a document can be in
-#   https://datatracker.ietf.org/api/v1/doc/ballottype/                         - Types of ballot that can be issued on a document
+#   https://datatracker.ietf.org/api/v1/doc/document/                              - list of documents
+#   https://datatracker.ietf.org/api/v1/doc/document/?name=...                     - info about document ...
+#   https://datatracker.ietf.org/api/v1/doc/docevent/                              - list of document events
+#   https://datatracker.ietf.org/api/v1/doc/docevent/?doc=...                      - events for a document
+#   https://datatracker.ietf.org/api/v1/doc/docevent/?by=...                       - events by a person (as /api/v1/person/person)
+#   https://datatracker.ietf.org/api/v1/doc/docevent/?time=...                     - events by time
+#   https://datatracker.ietf.org/api/v1/doc/statedocevent/                         - subset of /api/v1/doc/docevent/; same parameters
+#   https://datatracker.ietf.org/api/v1/doc/ballotdocevent/                        -               "                "
+#   https://datatracker.ietf.org/api/v1/doc/newrevisiondocevent/                   -               "                "
+#   https://datatracker.ietf.org/api/v1/doc/submissiondocevent/                    -               "                "
+#   https://datatracker.ietf.org/api/v1/doc/writeupdocevent/                       -               "                "
+#   https://datatracker.ietf.org/api/v1/doc/consensusdocevent/                     -               "                "
+#   https://datatracker.ietf.org/api/v1/doc/ballotpositiondocevent/                -               "                "
+#   https://datatracker.ietf.org/api/v1/doc/reviewrequestdocevent/                 -               "                "
+#   https://datatracker.ietf.org/api/v1/doc/lastcalldocevent/                      -               "                "
+#   https://datatracker.ietf.org/api/v1/doc/telechatdocevent/                      -               "                "
+#   https://datatracker.ietf.org/api/v1/doc/documentauthor/?document=...           - authors of a document
+#   https://datatracker.ietf.org/api/v1/doc/documentauthor/?person=...             - documents by person (as /api/v1/person/person)
+#   https://datatracker.ietf.org/api/v1/doc/documentauthor/?email=...              - documents by person with particular email
+#   https://datatracker.ietf.org/api/v1/doc/relateddocument/?source=...            - documents that source draft relates to (references, replaces, etc)
+#   https://datatracker.ietf.org/api/v1/doc/relateddocument/?target=...            - documents that relate to target draft
+#   https://datatracker.ietf.org/api/v1/doc/docalias/rfcXXXX/                      - draft that became the given RFC
+#   https://datatracker.ietf.org/api/v1/doc/docalias/bcpXXXX/                      - draft that became the given BCP
+#   https://datatracker.ietf.org/api/v1/doc/docalias/stdXXXX/                      - RFC that is the given STD
+#   https://datatracker.ietf.org/api/v1/doc/state/                                 - Types of state a document can be in
+#   https://datatracker.ietf.org/api/v1/doc/ballottype/                            - Types of ballot that can be issued on a document
 #
 #   https://datatracker.ietf.org/api/v1/doc/relateddochistory/
 #   https://datatracker.ietf.org/api/v1/doc/dochistoryauthor/
@@ -85,6 +93,9 @@
 #   https://datatracker.ietf.org/api/v1/person/person/                          - list of people
 #   https://datatracker.ietf.org/api/v1/person/person/20209/                    - info about person 20209
 #   https://datatracker.ietf.org/api/v1/person/email/csp@csperkins.org/         - map from email address to person
+#   https://datatracker.ietf.org/api/v1/person/personhistory/                   - ???
+#   https://datatracker.ietf.org/api/v1/person/personevent/                     - ???
+#   https://datatracker.ietf.org/api/v1/person/alias/                           - ???
 #
 # Information about meetings:
 #   https://datatracker.ietf.org/api/v1/meeting/meeting/                        - list of meetings
@@ -113,145 +124,53 @@ import json
 import requests
 
 # =============================================================================
-# Helper functions:
+# Classes to represent information stored in the IETF Datatracker:
 
-def get_last_fetch(filename):
-    try:
-        inf = open(filename, "r")
-        last_fetch = inf.read()
-        inf.close()
-    except OSError:
-        last_fetch = "1970-01-01T00:00:00"
-    return last_fetch
+class Person:
+    """
+    Information about a person in the IETF datatracker.
 
-def set_last_fetch(filename):
-    with open(filename, "w") as outf:
-        y  = datetime.datetime.now().year
-        m = datetime.datetime.now().month
-        d   = datetime.datetime.now().day
-        hour   = datetime.datetime.now().hour
-        mins   = datetime.datetime.now().minute
-        secs   = datetime.datetime.now().second
-        last_fetch = "{:04d}-{:02}-{:02d}T{:02}:{:02}:{:02}".format(y, m, d, hour, mins, secs)
-        outf.write(last_fetch)
+    Attributes:
+        datatracker : a DataTracker object
+        person_id   : the person to lookup
+    """
+    def __init__(self, datatracker, person_id):
+        api_url  = "/api/v1/person/person/" + person_id
+        response = datatracker.session.get(datatracker.base_url + api_url, verify=True)
 
-# =============================================================================
-# Classes to represent data stored in the IETF Datatracker:
-
-class Group:
-    # See https://datatracker.ietf.org/api/v1/group/group/schema/
-    def __init__(self, json):
-        self.id             = json['id']
-        self.type           = json['type']
-        self.name           = json['name']
-        self.acronym        = json['acronym']
-        self.state          = json['state']
-        self.charter        = json['charter']
-        self.ad             = json['ad']
-        self.list_email     = json['list_email']
-        self.list_subscribe = json['list_subscribe']
-        self.list_archive   = json['list_archive']
-        self.time           = json['time']
-        self.description    = json['description']
-        self.comments       = json['comments']
-        self.resource_uri   = json['resource_uri']
-        self.parent         = json['parent']
-        self.unused_states  = json['unused_states']
-        self.unused_tags    = json['unused_tags']
-
-    def __str__(self):
-        return str(self.id) + " " +self.type + " " + self.name
+        self.person_id        = response.json()['id']
+        self.user             = response.json()['user']
+        self.name             = response.json()['name']
+        self.name_ascii       = response.json()['ascii']
+        self.name_ascii_short = response.json()['ascii_short']
+        self.address          = response.json()['address']
+        self.affiliation      = response.json()['affiliation']
+        self.biography        = response.json()['biography']
+        self.last_modified    = response.json()['time']
+        self.photo            = response.json()['photo']
+        self.photo_thumb      = response.json()['photo_thumb']
+        # The following need follow-up queries to the tracker to derive
+        # See https://datatracker.ietf.org/person/Colin%20Perkins for an example
+        self.roles            = None
+        self.rfcs             = None
+        self.active_drafts    = None
+        self.expired_drafts   = None
 
 # =============================================================================
 # Class to query the IETF Datatracker:
 
 class DataTracker:
     def __init__(self):
-        for d in ["data/datatracker", "data/datatracker/person", "data/datatracker/groups", "data/datatracker/docs"]:
-            if not Path(d).is_dir():
-                print("[mkdir]", d)
-                Path(d).mkdir(exist_ok=True)
-        self.session     = requests.Session()
-        self.datatracker = "https://datatracker.ietf.org"
+        self.session  = requests.Session()
+        self.base_url = "https://datatracker.ietf.org"
+        self._people  = {}
 
-    def people(self):
-        # Update the local cache of information about people:
-        last_fetch = get_last_fetch("data/datatracker/person/.last_fetch")
-        url = "/api/v1/person/person/?time__gt=" + last_fetch
-        cnt = 0
-        while url != None:
-            r = self.session.get(self.datatracker + url, verify=True)
-            meta = r.json()['meta']
-            objs = r.json()['objects']
-            url = meta['next']
-            tot = meta['total_count']
-            for obj in objs:
-                persondir  = "data/datatracker/person/"
-                if not Path(persondir).is_dir():
-                    print("[mkdir]", persondir)
-                    Path(persondir).mkdir(exist_ok=True)
+    def person(self, person_id):
+        if person_id not in self._people:
+            self._people[person_id] = Person(self, person_id)
+        return self._people[person_id]
 
-                f  = persondir + str(obj['id']) + ".json"
-                with open(f, "w") as outf:
-                    cnt = cnt + 1
-                    print("[fetch] {:d}/{:d} {:s}".format(cnt, tot, f))
-                    json.dump(obj, outf)
-        set_last_fetch("data/datatracker/person/.last_fetch")
-
-    def groups(self):
-        # Update the local cache of group data:
-        last_fetch = get_last_fetch("data/datatracker/groups/.last_fetch")
-        url = "/api/v1/group/group/?time__gt=" + last_fetch
-        cnt = 0
-        while url != None:
-            r = self.session.get(self.datatracker + url, verify=True)
-            meta = r.json()['meta']
-            objs = r.json()['objects']
-            url = meta['next']
-            tot = meta['total_count']
-            for obj in objs:
-                grouptype = obj['type'][obj['type'].rstrip("/").rfind('/'):]
-                groupdir  = "data/datatracker/groups" + grouptype
-                if not Path(groupdir).is_dir():
-                    print("[mkdir]", groupdir)
-                    Path(groupdir).mkdir(exist_ok=True)
-
-                f  = groupdir + obj['acronym'] + ".json"
-                with open(f, "w") as outf:
-                    cnt = cnt + 1
-                    print("[fetch] {:d}/{:d} {:s}".format(cnt, tot, f))
-                    json.dump(obj, outf)
-        set_last_fetch("data/datatracker/groups/.last_fetch")
-        # Read and return the contents of the cache:
-        groups = []
-        for group in glob.glob("data/datatracker/groups/[0-9]*.json"):
-            with open(group) as inf:
-                groups.append(Group(json.load(inf)))
-        return groups
-
-    def documents(self):
-        # Update the local cache of documents:
-        last_fetch = get_last_fetch("data/datatracker/docs/.last_fetch")
-        url = "/api/v1/doc/document/?&time__gt=" + last_fetch
-        cnt = 0
-        while url != None:
-            r = self.session.get(self.datatracker + url, verify=True)
-            meta = r.json()['meta']
-            docs = r.json()['objects']
-            url = meta['next']
-            tot = meta['total_count']
-            for doc in docs:
-                doctype = doc['type'][doc['type'].rstrip("/").rfind('/'):]
-                docdir  = "data/datatracker/docs" + doctype
-                if not Path(docdir).is_dir():
-                    print("[mkdir]", docdir)
-                    Path(docdir).mkdir(exist_ok=True)
-                name = doc['name'].replace("/", "-").replace(" ", "_")
-                with open(docdir + name + ".json", "w") as outf:
-                    cnt = cnt + 1
-                    print("[fetch] {:d}/{:d} {:s}".format(cnt, tot, docdir + name + ".json"))
-                    json.dump(doc, outf)
-        set_last_fetch("data/datatracker/docs/.last_fetch")
-        # FIXME: finish this...
+    def person_from_email(self, person_email):
+        pass
 
 # =============================================================================
