@@ -156,6 +156,21 @@ class Person:
         self.active_drafts    = None
         self.expired_drafts   = None
 
+    def __str__(self):
+        return "Person {\n" \
+             + "  person_id:     " + str(self.person_id) + "\n" \
+             + "  user:          " + str(self.user)            + "\n" \
+             + "  name:          " + str(self.name)            + "\n" \
+             + "  ascii   :      " + str(self.name_ascii)      + "\n" \
+             + "  ascii_short:   " + str(self.name_ascii_short)+ "\n" \
+             + "  address:       " + str(self.address)         + "\n" \
+             + "  affiliation:   " + str(self.affiliation)     + "\n" \
+             + "  biography:     " + str(self.biography)       + "\n" \
+             + "  last_modified: " + str(self.last_modified)   + "\n" \
+             + "  photo:         " + str(self.photo)           + "\n" \
+             + "  photo_thumb:   " + str(self.photo_thumb)     + "\n" \
+             + "}\n"
+
 # =============================================================================
 # Class to query the IETF Datatracker:
 
