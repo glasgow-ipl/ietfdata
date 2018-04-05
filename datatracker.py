@@ -112,9 +112,16 @@
 #   ...
 #
 # See also:
-#   RFC 6174 "Definition of IETF Working Group Document States"
-#   https://trac.tools.ietf.org/tools/ietfdb/wiki/DatatrackerDrafts
+#   https://datatracker.ietf.org/api/
 #   https://trac.tools.ietf.org/tools/ietfdb/wiki/DatabaseSchemaDescription
+#   https://trac.tools.ietf.org/tools/ietfdb/wiki/DatatrackerDrafts
+#   RFC 6174 "Definition of IETF Working Group Document States"
+#   RFC 6175 "Requirements to Extend the Datatracker for IETF Working Group Chairs and Authors"
+#   RFC 6292 "Requirements for a Working Group Charter Tool"
+#   RFC 6293 "Requirements for Internet-Draft Tracking by the IETF Community in the Datatracker"
+#   RFC 6322 "Datatracker States and Annotations for the IAB, IRTF, and Independent Submission Streams"
+#   RFC 6359 "Datatracker Extensions to Include IANA and RFC Editor Processing Information"
+#   RFC 7760 "Statement of Work for Extensions to the IETF Datatracker for Author Statistics"
 
 from pathlib     import Path
 
