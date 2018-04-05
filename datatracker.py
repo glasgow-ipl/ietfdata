@@ -156,12 +156,6 @@ class Person:
             self.last_modified    = response.json()['time']
             self.photo            = response.json()['photo']
             self.photo_thumb      = response.json()['photo_thumb']
-            # The following need follow-up queries to the tracker to derive
-            # See https://datatracker.ietf.org/person/Colin%20Perkins for an example
-            self.roles            = None
-            self.rfcs             = None
-            self.active_drafts    = None
-            self.expired_drafts   = None
         else:
             None
 
