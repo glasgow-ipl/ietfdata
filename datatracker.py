@@ -157,7 +157,7 @@ class Person:
             self.photo            = response.json()['photo']
             self.photo_thumb      = response.json()['photo_thumb']
         else:
-            None
+            raise Exception("No such person")
 
     def __str__(self):
         return "Person {\n" \
@@ -195,6 +195,6 @@ class DataTracker:
             person_id = response.json()['person'].replace("/api/v1/person/person/", "").rstrip('/')
             return self.person(person_id)
         else:
-            return None
+            raise Exception("No such person")
 
 # =============================================================================
