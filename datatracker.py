@@ -29,7 +29,7 @@
 # The Datatracker API is at https://datatracker.ietf.org/api/v1 and is
 # a REST API implemented using Django Tastypie (http://tastypieapi.org)
 #
-# It's possible to do time range queries on a lot of these values, for example:
+# It's possible to do time range queries on many of these values, for example:
 #   https://datatracker.ietf.org/api/v1/person/person/?time__gt=2018-03-27T14:07:36
 #
 # Information about working groups:
@@ -51,8 +51,8 @@
 #   https://datatracker.ietf.org/api/v1/group/groupstatetransitions                - ???
 #
 # Information about documents:
-#   https://datatracker.ietf.org/api/v1/doc/document/                              - list of documents
-#   https://datatracker.ietf.org/api/v1/doc/document/?name=...                     - info about document ...
+# * https://datatracker.ietf.org/api/v1/doc/document/                              - list of documents
+# * https://datatracker.ietf.org/api/v1/doc/document/draft-ietf-quic-transport/    - info about document
 #   https://datatracker.ietf.org/api/v1/doc/docevent/                              - list of document events
 #   https://datatracker.ietf.org/api/v1/doc/docevent/?doc=...                      - events for a document
 #   https://datatracker.ietf.org/api/v1/doc/docevent/?by=...                       - events by a person (as /api/v1/person/person)
@@ -90,9 +90,9 @@
 #   https://datatracker.ietf.org/api/v1/doc/dochistory/
 #
 # Information about people:
-#   https://datatracker.ietf.org/api/v1/person/person/                          - list of people
-#   https://datatracker.ietf.org/api/v1/person/person/20209/                    - info about person 20209
-#   https://datatracker.ietf.org/api/v1/person/email/csp@csperkins.org/         - map from email address to person
+# * https://datatracker.ietf.org/api/v1/person/person/                          - list of people
+# * https://datatracker.ietf.org/api/v1/person/person/20209/                    - info about person 20209
+# * https://datatracker.ietf.org/api/v1/person/email/csp@csperkins.org/         - map from email address to person
 #   https://datatracker.ietf.org/api/v1/person/personhistory/                   - ???
 #   https://datatracker.ietf.org/api/v1/person/personevent/                     - ???
 #   https://datatracker.ietf.org/api/v1/person/alias/                           - ???
