@@ -89,13 +89,6 @@
 #   https://datatracker.ietf.org/api/v1/doc/editedauthorsdocevent/
 #   https://datatracker.ietf.org/api/v1/doc/dochistory/
 #
-# Information about people:
-#   https://datatracker.ietf.org/api/v1/person/person/                          - list of people
-#   https://datatracker.ietf.org/api/v1/person/person/20209/                    - info about person 20209
-#   https://datatracker.ietf.org/api/v1/person/email/csp@csperkins.org/         - map from email address to person
-#   https://datatracker.ietf.org/api/v1/person/personhistory/                   - ???
-#   https://datatracker.ietf.org/api/v1/person/personevent/                     - ???
-#   https://datatracker.ietf.org/api/v1/person/alias/                           - ???
 #
 # Information about meetings:
 #   https://datatracker.ietf.org/api/v1/meeting/meeting/                        - list of meetings
@@ -131,50 +124,6 @@ import json
 import requests
 
 # =============================================================================
-# Classes to represent information stored in the IETF Datatracker:
-
-class Person:
-    """
-    Information about a person in the IETF datatracker.
-
-    Attributes:
-        datatracker : a DataTracker object
-        person_id   : the person to lookup
-    """
-    def __init__(self, datatracker, person_id):
-        api_url  = "/api/v1/person/person/" + person_id
-        response = datatracker.session.get(datatracker.base_url + api_url, verify=True)
-        if response.status_code == 200:
-            self.person_id        = response.json()['id']
-            self.user             = response.json()['user']
-            self.name             = response.json()['name']
-            self.name_ascii       = response.json()['ascii']
-            self.name_ascii_short = response.json()['ascii_short']
-            self.address          = response.json()['address']
-            self.affiliation      = response.json()['affiliation']
-            self.biography        = response.json()['biography']
-            self.last_modified    = response.json()['time']
-            self.photo            = response.json()['photo']
-            self.photo_thumb      = response.json()['photo_thumb']
-        else:
-            raise Exception("No such person")
-
-    def __str__(self):
-        return "Person {\n" \
-             + "  person_id:     " + str(self.person_id) + "\n" \
-             + "  user:          " + str(self.user)            + "\n" \
-             + "  name:          " + str(self.name)            + "\n" \
-             + "  ascii   :      " + str(self.name_ascii)      + "\n" \
-             + "  ascii_short:   " + str(self.name_ascii_short)+ "\n" \
-             + "  address:       " + str(self.address)         + "\n" \
-             + "  affiliation:   " + str(self.affiliation)     + "\n" \
-             + "  biography:     " + str(self.biography)       + "\n" \
-             + "  last_modified: " + str(self.last_modified)   + "\n" \
-             + "  photo:         " + str(self.photo)           + "\n" \
-             + "  photo_thumb:   " + str(self.photo_thumb)     + "\n" \
-             + "}\n"
-
-# =============================================================================
 # Class to query the IETF Datatracker:
 
 class DataTracker:
@@ -183,12 +132,38 @@ class DataTracker:
         self.base_url = "https://datatracker.ietf.org"
         self._people  = {}
 
-    def person(self, person_id):
+    def person(self, person_id): 
+        """
+        Returns are JSON object representing the person, for example:
+            {
+                'address': 'School of Computing Science\r\nUniversity of Glasgow\r\nGlasgow G12 8QQ\r\nUnited Kingdom', 
+                'affiliation': 'University of Glasgow', 
+                'ascii': 'Colin Perkins', 
+                'ascii_short': '', 
+                'biography': '', 
+                'id': 20209, 
+                'name': 'Colin Perkins', 
+                'photo': None, 
+                'photo_thumb': None, 
+                'resource_uri': '/api/v1/person/person/20209/', 
+                'time': '2012-02-26T00:03:54', 
+                'user': ''
+            }
+        """
         if person_id not in self._people:
-            self._people[person_id] = Person(self, person_id)
+            api_url  = "/api/v1/person/person/" + person_id
+            response = self.session.get(self.base_url + api_url, verify=True)
+            if response.status_code == 200:
+                self._people[person_id] = response.json()
+            else:
+                raise Exception("No such person")
         return self._people[person_id]
 
     def person_from_email(self, person_email):
+        """
+        Returns the same JSON object as the person() method, but looked up by
+        email address rather than ID number.
+        """
         api_url   = "/api/v1/person/email/" + person_email + "/"
         response  = self.session.get(self.base_url + api_url, verify=True)
         if response.status_code == 200:
@@ -196,5 +171,24 @@ class DataTracker:
             return self.person(person_id)
         else:
             raise Exception("No such person")
+
+    def people(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07"):
+        """
+        Returns a list JSON objects representing all people recorded in the 
+        datatracker. As of 29 April 2018, that list contained 21500 entries. 
+        The since and until parameters can be used to contraint the output
+        to only those entries added/modified in a particular time range.
+        """
+        people  = []
+        api_url = "/api/v1/person/person/?time__gt=" + since + "&time__lt=" + until
+        while api_url != None:
+            r = self.session.get(self.base_url + api_url, verify=True)
+            meta = r.json()['meta']
+            objs = r.json()['objects']
+            api_url = meta['next']
+            for obj in objs:
+                self._people[obj['id']] = obj
+                people.append(obj)
+        return people
 
 # =============================================================================
