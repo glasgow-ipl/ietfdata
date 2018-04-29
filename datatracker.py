@@ -128,13 +128,14 @@ import requests
 
 class DataTracker:
     def __init__(self):
-        self.session  = requests.Session()
-        self.base_url = "https://datatracker.ietf.org"
-        self._people  = {}
+        self.session    = requests.Session()
+        self.base_url   = "https://datatracker.ietf.org"
+        self._people    = {}
+        self._documents = {}
 
     def person(self, person_id): 
         """
-        Returns are JSON object representing the person, for example:
+        Returns a JSON object representing the person, for example:
             {
                 'address': 'School of Computing Science\r\nUniversity of Glasgow\r\nGlasgow G12 8QQ\r\nUnited Kingdom', 
                 'affiliation': 'University of Glasgow', 
@@ -176,8 +177,8 @@ class DataTracker:
         """
         Returns a list JSON objects representing all people recorded in the 
         datatracker. As of 29 April 2018, that list contained 21500 entries. 
-        The since and until parameters can be used to contraint the output
-        to only those entries added/modified in a particular time range.
+        The since and until parameters can be used to contrain the output to 
+        only those entries added/modified in a particular time range.
         """
         people  = []
         api_url = "/api/v1/person/person/?time__gt=" + since + "&time__lt=" + until
@@ -190,5 +191,96 @@ class DataTracker:
                 self._people[obj['id']] = obj
                 people.append(obj)
         return people
+
+    def documents(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07", doctype="draft"):
+        """
+        Returns a list JSON objects representing all documents recorded in the 
+        datatracker. As of 29 April 2018, that list contained 84000 entries. 
+        The since and until parameters can be used to contrain the output to 
+        only those entries added/modified in a particular time range. The 
+        doctype parameter is one of:
+             "agenda"     - Agenda
+             "bluesheets" - Bluesheets
+             "charter"    - Charter
+             "conflrev"   - Conflict Review
+             "draft"      - Draft
+             "liaison"    - Liaison
+             "liai-att"   - Liaison Attachment
+             "minutes"    - Minutes
+             "recording"  - Recording
+             "review"     - Review
+             "shepwrit"   - Shepherd's writeup
+             "slides"     - Slides
+             "statchg"    - Status Change
+        and constrains the type of document returned. The JSON objects returned
+        are the same format as those returned by the document() method.
+        """
+        documents = []
+        api_url   = "/api/v1/doc/document/?time__gt=" + since + "&time__lt=" + until + "&type=" + doctype
+        while api_url != None:
+            r = self.session.get(self.base_url + api_url, verify=True)
+            meta = r.json()['meta']
+            objs = r.json()['objects']
+            api_url = meta['next']
+            for obj in objs:
+                self._documents[obj['name']] = obj
+                documents.append(obj)
+        return documents
+
+    def document(self, name):
+        """
+        Returns a JSON object representing a document identified by name, for example:
+            {
+               "states" : [
+                  "/api/v1/doc/state/1/",
+                  "/api/v1/doc/state/38/"
+               ],
+               "rev" : "11",
+               "name" : "draft-ietf-quic-transport",
+               "intended_std_level" : "/api/v1/name/intendedstdlevelname/ps/",
+               "std_level" : null,
+               "pages" : 105,
+               "abstract" : "   This document defines the core of the QUIC transport protocol.  This\n   document describes connection establishment, packet format,\n   multiplexing and reliability.  Accompanying documents describe the\n   cryptographic handshake and loss detection.\n",
+               "type" : "/api/v1/name/doctypename/draft/",
+               "rfc" : null,
+               "group" : "/api/v1/group/group/2161/",
+               "external_url" : "",
+               "resource_uri" : "/api/v1/doc/document/draft-ietf-quic-transport/",
+               "tags" : [],
+               "shepherd" : null,
+               "order" : 1,
+               "stream" : "/api/v1/name/streamname/ietf/",
+               "expires" : "2018-10-19T16:10:12",
+               "ad" : null,
+               "notify" : "",
+               "title" : "QUIC: A UDP-Based Multiplexed and Secure Transport",
+               "words" : 24198,
+               "internal_comments" : "",
+               "submissions" : [
+                  "/api/v1/submit/submission/82995/",
+                  "/api/v1/submit/submission/83773/",
+                  "/api/v1/submit/submission/85557/",
+                  "/api/v1/submit/submission/86717/",
+                  "/api/v1/submit/submission/87084/",
+                  "/api/v1/submit/submission/88860/",
+                  "/api/v1/submit/submission/89569/",
+                  "/api/v1/submit/submission/89982/",
+                  "/api/v1/submit/submission/91554/",
+                  "/api/v1/submit/submission/92517/",
+                  "/api/v1/submit/submission/93617/",
+                  "/api/v1/submit/submission/94830/"
+               ],
+               "time" : "2018-04-17T16:10:12",
+               "note" : ""
+            }
+        """
+        if name not in self._documents:
+            api_url  = "/api/v1/doc/document/" + name + "/"
+            response = self.session.get(self.base_url + api_url, verify=True)
+            if response.status_code == 200:
+                self._documents[name] = response.json()
+            else:
+                raise Exception("No such document")
+        return self._documents[name]
 
 # =============================================================================
