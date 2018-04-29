@@ -89,6 +89,13 @@
 #   https://datatracker.ietf.org/api/v1/doc/editedauthorsdocevent/
 #   https://datatracker.ietf.org/api/v1/doc/dochistory/
 #
+# Information about people:
+#   https://datatracker.ietf.org/api/v1/person/person/                          - list of people
+#   https://datatracker.ietf.org/api/v1/person/person/20209/                    - info about person 20209
+#   https://datatracker.ietf.org/api/v1/person/email/csp@csperkins.org/         - map from email address to person
+#   https://datatracker.ietf.org/api/v1/person/personhistory/                   - ???
+#   https://datatracker.ietf.org/api/v1/person/personevent/                     - ???
+#   https://datatracker.ietf.org/api/v1/person/alias/                           - ???
 #
 # Information about meetings:
 #   https://datatracker.ietf.org/api/v1/meeting/meeting/                        - list of meetings
