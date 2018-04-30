@@ -132,6 +132,10 @@ import requests
 # Class to query the IETF Datatracker:
 
 class DataTracker:
+    """
+    A class for interacting with the IETF DataTracker.
+    """
+
     def __init__(self):
         self.session    = requests.Session()
         self.base_url   = "https://datatracker.ietf.org"
