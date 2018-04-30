@@ -164,7 +164,7 @@ class DataTracker:
             if response.status_code == 200:
                 self._people[person_id] = response.json()
             else:
-                raise Exception("No such person")
+                return None
         return self._people[person_id]
 
     def person_from_email(self, person_email):
@@ -178,7 +178,7 @@ class DataTracker:
             person_id = response.json()['person'].replace("/api/v1/person/person/", "").rstrip('/')
             return self.person(person_id)
         else:
-            raise Exception("No such person")
+            return None
 
     def people(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07"):
         """
@@ -287,7 +287,7 @@ class DataTracker:
             if response.status_code == 200:
                 self._documents[name] = response.json()
             else:
-                raise Exception("No such document")
+                return None
         return self._documents[name]
 
 # =============================================================================
