@@ -201,6 +201,24 @@ class DataTracker:
                 people.append(obj)
         return people
 
+    def __fix_document(self, document):
+        # FIXME: handle 'tags', 'submissions', and 'states'
+        if document['std_level'] != None:
+            document['std_level'] = document['std_level'].replace("/api/v1/name/stdlevelname/", "").rstrip('/')
+        if document['intended_std_level'] != None:
+            document['intended_std_level'] = document['intended_std_level'].replace("/api/v1/name/intendedstdlevelname/", "").rstrip('/')
+        if document['group'] != None:
+            document['group']  = document['group'].replace("/api/v1/group/group/", "").rstrip('/')
+        if document['type'] != None:
+            document['type']   = document['type'].replace("/api/v1/name/doctypename/", "").rstrip('/')
+        if document['stream'] != None:
+            document['stream'] = document['stream'].replace("/api/v1/name/streamname/", "").rstrip('/')
+        if document['ad'] != None:
+            document['ad'] = document['ad'].replace("/api/v1/person/person/", "").rstrip('/')
+        if document['shepherd'] != None:
+            document['shepherd'] = document['shepherd'].replace("/api/v1/person/person/", "").rstrip('/')
+        return document
+
     def documents(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07", doctype="draft"):
         """
         Returns a list JSON objects representing all documents recorded in the 
@@ -233,7 +251,7 @@ class DataTracker:
             api_url = meta['next']
             for obj in objs:
                 self._documents[obj['name']] = obj
-                documents.append(obj)
+                documents.append(self.__fix_document(obj))
         return documents
 
     def document(self, name):
@@ -246,19 +264,19 @@ class DataTracker:
                ],
                "rev" : "11",
                "name" : "draft-ietf-quic-transport",
-               "intended_std_level" : "/api/v1/name/intendedstdlevelname/ps/",
+               "intended_std_level" : "ps",
                "std_level" : null,
                "pages" : 105,
                "abstract" : "   This document defines the core of the QUIC transport protocol.  This\n   document describes connection establishment, packet format,\n   multiplexing and reliability.  Accompanying documents describe the\n   cryptographic handshake and loss detection.\n",
-               "type" : "/api/v1/name/doctypename/draft/",
+               "type" : "draft",
                "rfc" : null,
-               "group" : "/api/v1/group/group/2161/",
+               "group" : "2161",
                "external_url" : "",
                "resource_uri" : "/api/v1/doc/document/draft-ietf-quic-transport/",
                "tags" : [],
                "shepherd" : null,
                "order" : 1,
-               "stream" : "/api/v1/name/streamname/ietf/",
+               "stream" : "ietf",
                "expires" : "2018-10-19T16:10:12",
                "ad" : null,
                "notify" : "",
@@ -287,7 +305,7 @@ class DataTracker:
             api_url  = "/api/v1/doc/document/" + name + "/"
             response = self.session.get(self.base_url + api_url, verify=True)
             if response.status_code == 200:
-                self._documents[name] = response.json()
+                self._documents[name] = self.__fix_document(response.json())
             else:
                 return None
         return self._documents[name]

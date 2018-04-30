@@ -23,4 +23,5 @@ print(d1)
 
 d2 = dt.document_from_rfc("rfc3550")
 print(d2)
+print(dt.person(d2['ad']))
 
