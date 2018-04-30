@@ -35,20 +35,20 @@
 # Information about working groups:
 #   https://datatracker.ietf.org/api/v1/group/group/                               - list of groups
 #   https://datatracker.ietf.org/api/v1/group/group/2161/                          - info about group 2161
-#   https://datatracker.ietf.org/api/v1/group/grouphistory/?group=2161             - history
-#   https://datatracker.ietf.org/api/v1/group/groupurl/?group=2161                 - URLs
-#   https://datatracker.ietf.org/api/v1/group/groupevent/?group=2161               - events
-#   https://datatracker.ietf.org/api/v1/group/groupmilestone/?group=2161           - Current milestones
-#   https://datatracker.ietf.org/api/v1/group/groupmilestonehistory/?group=2161    - Previous milestones
-#   https://datatracker.ietf.org/api/v1/group/milestonegroupevent/?group=2161      - changed milestones
-#   https://datatracker.ietf.org/api/v1/group/role/?group=2161                     - The current WG chairs and ADs of a group
-#   https://datatracker.ietf.org/api/v1/group/role/?person=20209                   - Groups a person is currently involved with
-#   https://datatracker.ietf.org/api/v1/group/role/?email=csp@csperkins.org        - Groups a person is currently involved with
-#   https://datatracker.ietf.org/api/v1/group/rolehistory/?group=2161              - The previous WG chairs and ADs of a group
-#   https://datatracker.ietf.org/api/v1/group/rolehistory/?person=20209            - Groups a person was previously involved with
-#   https://datatracker.ietf.org/api/v1/group/rolehistory/?email=csp@csperkins.org - Groups a person was previously involved with
-#   https://datatracker.ietf.org/api/v1/group/changestategroupevent/?group=2161    - Group state changes
-#   https://datatracker.ietf.org/api/v1/group/groupstatetransitions                - ???
+#   https://datatracker.ietf.org/api/v1/group/grouphistory/?group=2161             - history
+#   https://datatracker.ietf.org/api/v1/group/groupurl/?group=2161                 - URLs
+#   https://datatracker.ietf.org/api/v1/group/groupevent/?group=2161               - events
+#   https://datatracker.ietf.org/api/v1/group/groupmilestone/?group=2161           - Current milestones
+#   https://datatracker.ietf.org/api/v1/group/groupmilestonehistory/?group=2161    - Previous milestones
+#   https://datatracker.ietf.org/api/v1/group/milestonegroupevent/?group=2161      - changed milestones
+#   https://datatracker.ietf.org/api/v1/group/role/?group=2161                     - The current WG chairs and ADs of a group
+#   https://datatracker.ietf.org/api/v1/group/role/?person=20209                   - Groups a person is currently involved with
+#   https://datatracker.ietf.org/api/v1/group/role/?email=csp@csperkins.org        - Groups a person is currently involved with
+#   https://datatracker.ietf.org/api/v1/group/rolehistory/?group=2161              - The previous WG chairs and ADs of a group
+#   https://datatracker.ietf.org/api/v1/group/rolehistory/?person=20209            - Groups a person was previously involved with
+#   https://datatracker.ietf.org/api/v1/group/rolehistory/?email=csp@csperkins.org - Groups a person was previously involved with
+#   https://datatracker.ietf.org/api/v1/group/changestategroupevent/?group=2161    - Group state changes
+#   https://datatracker.ietf.org/api/v1/group/groupstatetransitions                - ???
 #
 # Information about documents:
 # * https://datatracker.ietf.org/api/v1/doc/document/                              - list of documents
@@ -122,8 +122,6 @@
 #   RFC 6322 "Datatracker States and Annotations for the IAB, IRTF, and Independent Submission Streams"
 #   RFC 6359 "Datatracker Extensions to Include IANA and RFC Editor Processing Information"
 #   RFC 7760 "Statement of Work for Extensions to the IETF Datatracker for Author Statistics"
-
-from pathlib     import Path
 
 import datetime
 import glob
