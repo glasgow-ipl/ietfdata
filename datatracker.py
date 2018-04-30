@@ -72,7 +72,7 @@
 #   https://datatracker.ietf.org/api/v1/doc/documentauthor/?email=...              - documents by person with particular email
 #   https://datatracker.ietf.org/api/v1/doc/relateddocument/?source=...            - documents that source draft relates to (references, replaces, etc)
 #   https://datatracker.ietf.org/api/v1/doc/relateddocument/?target=...            - documents that relate to target draft
-#   https://datatracker.ietf.org/api/v1/doc/docalias/rfcXXXX/                      - draft that became the given RFC
+# * https://datatracker.ietf.org/api/v1/doc/docalias/rfcXXXX/                      - draft that became the given RFC
 #   https://datatracker.ietf.org/api/v1/doc/docalias/bcpXXXX/                      - draft that became the given BCP
 #   https://datatracker.ietf.org/api/v1/doc/docalias/stdXXXX/                      - RFC that is the given STD
 #   https://datatracker.ietf.org/api/v1/doc/state/                                 - Types of state a document can be in
@@ -291,5 +291,17 @@ class DataTracker:
             else:
                 return None
         return self._documents[name]
+
+    def document_from_rfc(self, rfc):
+        """
+        Returns the document that became the specified RFC.
+        """
+        api_url  = "/api/v1/doc/docalias/" + rfc + "/"
+        response = self.session.get(self.base_url + api_url, verify=True)
+        if response.status_code == 200:
+            name = response.json()['document'].replace("/api/v1/doc/document/", "").rstrip('/')
+            return self.document(name)
+        else:
+            return None
 
 # =============================================================================
