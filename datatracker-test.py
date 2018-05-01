@@ -21,7 +21,16 @@ dt = DataTracker()
 
 d1 = dt.document("draft-ietf-quic-transport")
 print(d1)
+print("")
+for s in d1['states']:
+    print(dt.document_state(s))
+    print("")
+
 
 d2 = dt.document_from_rfc("rfc3550")
 print(d2)
+print("")
+for s in d2['states']:
+    print(dt.document_state(s))
+    print("")
 

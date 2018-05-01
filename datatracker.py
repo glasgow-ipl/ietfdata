@@ -75,7 +75,7 @@
 # * https://datatracker.ietf.org/api/v1/doc/docalias/rfcXXXX/                      - draft that became the given RFC
 #   https://datatracker.ietf.org/api/v1/doc/docalias/bcpXXXX/                      - draft that became the given BCP
 #   https://datatracker.ietf.org/api/v1/doc/docalias/stdXXXX/                      - RFC that is the given STD
-#   https://datatracker.ietf.org/api/v1/doc/state/                                 - Types of state a document can be in
+# * https://datatracker.ietf.org/api/v1/doc/state/                                 - Types of state a document can be in
 #   https://datatracker.ietf.org/api/v1/doc/ballottype/                            - Types of ballot that can be issued on a document
 #
 #   https://datatracker.ietf.org/api/v1/doc/relateddochistory/
@@ -141,6 +141,7 @@ class DataTracker:
         self.base_url   = "https://datatracker.ietf.org"
         self._people    = {}
         self._documents = {}
+        self._states    = {}
 
     def person(self, person_id): 
         """
@@ -310,5 +311,33 @@ class DataTracker:
             return self.document(name)
         else:
             return None
+
+    def document_state(self, state):
+        """
+        Returns a JSON object representing the state of a document, for example:
+            {
+              'desc': 'The ID has been published as an RFC.', 
+              'id': 7, 
+              'name': 'RFC Published', 
+              'next_states': ['8'], 
+              'order': 32, 
+              'resource_uri': '/api/v1/doc/state/7/', 
+              'slug': 'pub', 
+              'type': 'draft-iesg', 
+              'used': True
+            }
+        The state parameter is one of the 'states' from a document object.
+        """
+        if state not in self._states:
+            api_url  = "/api/v1/doc/state/" + state
+            response = self.session.get(self.base_url + api_url, verify=True)
+            if response.status_code == 200:
+                resp = response.json()
+                resp['next_states'] = list(map(lambda s : s.replace("/api/v1/doc/state/",     "").rstrip('/'), resp['next_states']))
+                resp['type']        = resp['type'].replace("/api/v1/doc/statetype/", "").rstrip('/')
+                self._states[state] = resp
+            else:
+                return None
+        return self._states[state]
 
 # =============================================================================
