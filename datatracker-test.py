@@ -12,19 +12,20 @@ dt = DataTracker()
 # people = dt.people(since="2018-04-01T00:00:00", until="2018-04-01T23:59:59")
 # print(len(people))
 
-documents = dt.documents(since="2018-04-27T00:00:00", doctype="charter")
-print(len(documents))
-for d in documents:
-    print(d)
-    print("")
-    print("")
-
-documents = dt.documents(since="2018-04-27T00:00:00", doctype="draft", group="2161")
-print(len(documents))
-for d in documents:
-    print(d)
-    print("")
-    print("")
+# documents = dt.documents(since="2018-04-27T00:00:00", doctype="charter")
+# print(len(documents))
+# for d in documents:
+#     print(d)
+#     print("")
+#     print("")
+# 
+# documents = dt.documents(since="2018-04-27T00:00:00", doctype="draft", group="2161")
+# for d in documents:
+#     print(d)
+#     for s in d['states']:
+#         print(dt.document_state(s))
+#         print("")
+#     print("")
 
 # d1 = dt.document("draft-ietf-quic-transport")
 # print(d1)
@@ -36,7 +37,10 @@ for d in documents:
 #     print(dt.document_state(s))
 #     print("")
 
-# for s in dt.document_states():
-#     print(s)
-#     print("")
+print("digraph states {")
+for s in dt.document_states():
+    print('  ' + str(s['id']) + ' [label="' + s['slug'] + '"]')
+    for n in s['next_states']:
+        print('  ' + str(s['id']) + ' -> ' + n)
+print("}")
 
