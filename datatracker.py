@@ -137,11 +137,12 @@ class DataTracker:
     """
 
     def __init__(self):
-        self.session    = requests.Session()
-        self.base_url   = "https://datatracker.ietf.org"
-        self._people    = {}
-        self._documents = {}
-        self._states    = {}
+        self.session      = requests.Session()
+        self.base_url     = "https://datatracker.ietf.org"
+        self._people      = {}
+        self._documents   = {}
+        self._states      = {}
+        self._submissions = {}
 
     def person(self, person_id): 
         """
@@ -358,5 +359,20 @@ class DataTracker:
                 self._states[obj['id']] = obj
                 states.append(obj)
         return states
+
+    def submission(self, submission):
+        """
+        Returns a JSON object giving information about a document submission.
+        """
+        if submission not in self._submissions:
+            api_url = "/api/v1/submit/submission/" + submission + "/"
+            response = self.session.get(self.base_url + api_url, verify=True)
+            if response.status_code == 200:
+                resp = response.json()
+                resp['group'] = resp['group'].replace("/api/v1/group/group/", "").rstrip('/')
+                self._submissions[submission] = resp
+            else:
+                return None
+        return self._submissions[submission]
 
 # =============================================================================
