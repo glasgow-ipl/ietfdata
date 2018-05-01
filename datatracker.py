@@ -223,13 +223,13 @@ class DataTracker:
         document['tags']        = list(map(lambda s : s.replace("/api/v1/name/doctagname/",   "").rstrip('/'), document['tags']))
         return document
 
-    def documents(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07", doctype="draft"):
+    def documents(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07", doctype="", group=""):
         """
         Returns a list JSON objects representing all documents recorded in the 
         datatracker. As of 29 April 2018, that list contained 84000 entries. 
         The since and until parameters can be used to contrain the output to 
-        only those entries added/modified in a particular time range. The 
-        doctype parameter is one of:
+        only those entries added/modified in a particular time range. 
+        The doctype parameter can be one of:
              "agenda"     - Agenda
              "bluesheets" - Bluesheets
              "charter"    - Charter
@@ -243,11 +243,18 @@ class DataTracker:
              "shepwrit"   - Shepherd's writeup
              "slides"     - Slides
              "statchg"    - Status Change
-        and constrains the type of document returned. The JSON objects returned
-        are the same format as those returned by the document() method.
+        and will constrain the type of document returned. 
+        The group can be a group identifier, as used by the group() method, and
+        will constrain the results to documents from the specified group.
+        The JSON objects returned are the same format as those returned by the 
+        document() method.
         """
         documents = []
-        api_url   = "/api/v1/doc/document/?time__gt=" + since + "&time__lt=" + until + "&type=" + doctype
+        api_url   = "/api/v1/doc/document/?time__gt=" + since + "&time__lt=" + until 
+        if doctype != "":
+            api_url = api_url + "&type=" + doctype
+        if group != "":
+            api_url = api_url + "&group=" + group
         while api_url != None:
             r = self.session.get(self.base_url + api_url, verify=True)
             meta = r.json()['meta']
@@ -268,7 +275,7 @@ class DataTracker:
                "intended_std_level" : "ps",
                "std_level" : null,
                "pages" : 105,
-               "abstract" : "   This document defines the core of the QUIC transport protocol.  This\n   document describes connection establishment, packet format,\n   multiplexing and reliability.  Accompanying documents describe the\n   cryptographic handshake and loss detection.\n",
+               "abstract" : "This document defines the core of the QUIC transport protocol...",
                "type" : "draft",
                "rfc" : null,
                "group" : "2161",
@@ -291,6 +298,9 @@ class DataTracker:
                "time" : "2018-04-17T16:10:12",
                "note" : ""
             }
+        The document_state() method can be used to get additional information on states.
+        The group() method can be used to get additional information on the group.
+        The submissions() method can be used to get additional information on submissions.
         """
         if name not in self._documents:
             api_url  = "/api/v1/doc/document/" + name + "/"
@@ -370,9 +380,14 @@ class DataTracker:
             if response.status_code == 200:
                 resp = response.json()
                 resp['group'] = resp['group'].replace("/api/v1/group/group/", "").rstrip('/')
+                # FIXME: there is more tidying that can be done here
                 self._submissions[submission] = resp
             else:
                 return None
         return self._submissions[submission]
+
+    def group(self, group_id):
+        # FIXME
+        pass
 
 # =============================================================================
