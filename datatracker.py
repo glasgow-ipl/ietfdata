@@ -202,7 +202,6 @@ class DataTracker:
         return people
 
     def __fix_document(self, document):
-        # FIXME: handle 'tags', 'submissions', and 'states'
         if document['std_level'] != None:
             document['std_level'] = document['std_level'].replace("/api/v1/name/stdlevelname/", "").rstrip('/')
         if document['intended_std_level'] != None:
@@ -217,6 +216,9 @@ class DataTracker:
             document['ad'] = document['ad'].replace("/api/v1/person/person/", "").rstrip('/')
         if document['shepherd'] != None:
             document['shepherd'] = document['shepherd'].replace("/api/v1/person/person/", "").rstrip('/')
+        document['submissions'] = list(map(lambda s : s.replace("/api/v1/submit/submission/", "").rstrip('/'), document['submissions']))
+        document['states']      = list(map(lambda s : s.replace("/api/v1/doc/state/",         "").rstrip('/'), document['states']))
+        document['tags']        = list(map(lambda s : s.replace("/api/v1/name/doctagname/",   "").rstrip('/'), document['tags']))
         return document
 
     def documents(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07", doctype="draft"):
@@ -258,10 +260,7 @@ class DataTracker:
         """
         Returns a JSON object representing a document identified by name, for example:
             {
-               "states" : [
-                  "/api/v1/doc/state/1/",
-                  "/api/v1/doc/state/38/"
-               ],
+               "states" : [ '1', '38' ],
                "rev" : "11",
                "name" : "draft-ietf-quic-transport",
                "intended_std_level" : "ps",
@@ -284,18 +283,8 @@ class DataTracker:
                "words" : 24198,
                "internal_comments" : "",
                "submissions" : [
-                  "/api/v1/submit/submission/82995/",
-                  "/api/v1/submit/submission/83773/",
-                  "/api/v1/submit/submission/85557/",
-                  "/api/v1/submit/submission/86717/",
-                  "/api/v1/submit/submission/87084/",
-                  "/api/v1/submit/submission/88860/",
-                  "/api/v1/submit/submission/89569/",
-                  "/api/v1/submit/submission/89982/",
-                  "/api/v1/submit/submission/91554/",
-                  "/api/v1/submit/submission/92517/",
-                  "/api/v1/submit/submission/93617/",
-                  "/api/v1/submit/submission/94830/"
+                  '82995', '83773', '85557', '86717', '87084', '88860',
+                  '89569', '89982', '91554', '92517', '93617', '94830'
                ],
                "time" : "2018-04-17T16:10:12",
                "note" : ""
