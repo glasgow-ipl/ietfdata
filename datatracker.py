@@ -333,11 +333,30 @@ class DataTracker:
             response = self.session.get(self.base_url + api_url, verify=True)
             if response.status_code == 200:
                 resp = response.json()
-                resp['next_states'] = list(map(lambda s : s.replace("/api/v1/doc/state/",     "").rstrip('/'), resp['next_states']))
+                resp['next_states'] = list(map(lambda s : s.replace("/api/v1/doc/state/", "").rstrip('/'), resp['next_states']))
                 resp['type']        = resp['type'].replace("/api/v1/doc/statetype/", "").rstrip('/')
                 self._states[state] = resp
             else:
                 return None
         return self._states[state]
+
+    def document_states(self):
+        """
+        Returns the list of all possible states a document can be in. Each 
+        element is a state, as returned by document_state().
+        """
+        states = []
+        api_url   = "/api/v1/doc/state/"
+        while api_url != None:
+            r = self.session.get(self.base_url + api_url, verify=True)
+            meta = r.json()['meta']
+            objs = r.json()['objects']
+            api_url = meta['next']
+            for obj in objs:
+                obj['next_states'] = list(map(lambda s : s.replace("/api/v1/doc/state/", "").rstrip('/'), obj['next_states']))
+                obj['type']        = obj['type'].replace("/api/v1/doc/statetype/", "").rstrip('/')
+                self._states[obj['id']] = obj
+                states.append(obj)
+        return states
 
 # =============================================================================
