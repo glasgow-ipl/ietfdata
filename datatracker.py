@@ -48,6 +48,7 @@ import datetime
 import glob
 import json
 import requests
+import unittest
 
 # =============================================================================
 # Class to query the IETF Datatracker:
@@ -394,5 +395,44 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/meeting/room/537/                       - a room at a meeting
     #   https://datatracker.ietf.org/api/v1/meeting/floorplan/14/                   - floor plan for a meeting venue
     #   ...
+
+# =============================================================================
+# Unit tests:
+
+class TestDatatracker(unittest.TestCase):
+    def test_person(self):
+        dt = DataTracker()
+        p1 = dt.person("20209")
+        self.assertEqual(p1['ascii'], 'Colin Perkins')
+        self.assertEqual(p1['ascii_short'], '')
+        self.assertEqual(p1['biography'], '')
+        self.assertEqual(p1['consent'], None)
+        self.assertEqual(p1['id'], 20209)
+        self.assertEqual(p1['name'], 'Colin Perkins')
+        self.assertEqual(p1['name_from_draft'], 'Colin Perkins')
+        self.assertEqual(p1['photo'], None)
+        self.assertEqual(p1['photo_thumb'], None)
+        self.assertEqual(p1['resource_uri'], '/api/v1/person/person/20209/')
+        self.assertEqual(p1['time'], '2012-02-26T00:03:54')
+        self.assertEqual(p1['user'], '')
+
+    def test_person_from_email(self):
+        dt = DataTracker()
+        p1 = dt.person_from_email("ietf@trammell.ch")
+        self.assertEqual(p1['ascii'], 'Brian Trammell')
+        self.assertEqual(p1['ascii_short'], '')
+        self.assertEqual(p1['biography'], "Brian Trammell is a Senior Researcher at the Networked Systems and Network Security Groups at the Swiss Federal Institute of Technology (ETH) Zurich. His primary focus is on network monitoring and measurement, specifically on performance measurement, security monitoring, measurement tools, and privacy issues in measurement and management. Active in the IETF since 2005, he's co-authored 19 RFCs in various areas. He co-chairs the IP Performance Meaurement working group and the Path Aware Networking Research Group. Prior to his work with CSG, he was Engineering Technical Lead at the CERT Network Situational Awareness group, and a veteran of a variety of short-lived Internet start-ups. He earned a BS in Computer Science from Georgia Tech in 2000.")
+        self.assertEqual(p1['consent'], None)
+        self.assertEqual(p1['id'], 109354)
+        self.assertEqual(p1['name'], 'Brian Trammell')
+        self.assertEqual(p1['name_from_draft'], 'Brian Trammell')
+        self.assertEqual(p1['photo'], 'https://www.ietf.org/lib/dt/media/photo/Brian_Trammell-2-800px.jpg')
+        self.assertEqual(p1['photo_thumb'], 'https://www.ietf.org/lib/dt/media/photo/Brian_Trammell-2-800px_UrxVEEk.jpg')
+        self.assertEqual(p1['resource_uri'], '/api/v1/person/person/109354/')
+        self.assertEqual(p1['time'], '2012-02-26T00:04:12')
+        self.assertEqual(p1['user'], '')
+
+if __name__ == '__main__':
+    unittest.main()
 
 # =============================================================================
