@@ -65,6 +65,9 @@ class DataTracker:
         self._states      = {}
         self._submissions = {}
 
+    def __del__(self):
+        self.session.close()
+
     # Datatracker API endpoints returning information about people:
     # * https://datatracker.ietf.org/api/v1/person/person/                          - list of people
     # * https://datatracker.ietf.org/api/v1/person/person/20209/                    - info about person 20209
