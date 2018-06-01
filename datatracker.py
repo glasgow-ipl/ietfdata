@@ -136,32 +136,32 @@ class DataTracker:
                 yield obj
 
     # Datatracker API endpoints returning information about documents:
-    # * https://datatracker.ietf.org/api/v1/doc/document/                              - list of documents
-    # * https://datatracker.ietf.org/api/v1/doc/document/draft-ietf-quic-transport/    - info about document
-    #   https://datatracker.ietf.org/api/v1/doc/docevent/                              - list of document events
-    #   https://datatracker.ietf.org/api/v1/doc/docevent/?doc=...                      - events for a document
-    #   https://datatracker.ietf.org/api/v1/doc/docevent/?by=...                       - events by a person (as /api/v1/person/person)
-    #   https://datatracker.ietf.org/api/v1/doc/docevent/?time=...                     - events by time
-    #   https://datatracker.ietf.org/api/v1/doc/statedocevent/                         - subset of /api/v1/doc/docevent/; same parameters
-    #   https://datatracker.ietf.org/api/v1/doc/ballotdocevent/                        -               "                "
-    #   https://datatracker.ietf.org/api/v1/doc/newrevisiondocevent/                   -               "                "
-    #   https://datatracker.ietf.org/api/v1/doc/submissiondocevent/                    -               "                "
-    #   https://datatracker.ietf.org/api/v1/doc/writeupdocevent/                       -               "                "
-    #   https://datatracker.ietf.org/api/v1/doc/consensusdocevent/                     -               "                "
-    #   https://datatracker.ietf.org/api/v1/doc/ballotpositiondocevent/                -               "                "
-    #   https://datatracker.ietf.org/api/v1/doc/reviewrequestdocevent/                 -               "                "
-    #   https://datatracker.ietf.org/api/v1/doc/lastcalldocevent/                      -               "                "
-    #   https://datatracker.ietf.org/api/v1/doc/telechatdocevent/                      -               "                "
-    #   https://datatracker.ietf.org/api/v1/doc/documentauthor/?document=...           - authors of a document
-    #   https://datatracker.ietf.org/api/v1/doc/documentauthor/?person=...             - documents by person (as /api/v1/person/person)
-    #   https://datatracker.ietf.org/api/v1/doc/documentauthor/?email=...              - documents by person with particular email
-    #   https://datatracker.ietf.org/api/v1/doc/relateddocument/?source=...            - documents that source draft relates to (references, replaces, etc)
-    #   https://datatracker.ietf.org/api/v1/doc/relateddocument/?target=...            - documents that relate to target draft
-    # * https://datatracker.ietf.org/api/v1/doc/docalias/rfcXXXX/                      - draft that became the given RFC
-    #   https://datatracker.ietf.org/api/v1/doc/docalias/bcpXXXX/                      - draft that became the given BCP
-    #   https://datatracker.ietf.org/api/v1/doc/docalias/stdXXXX/                      - RFC that is the given STD
-    # * https://datatracker.ietf.org/api/v1/doc/state/                                 - Types of state a document can be in
-    #   https://datatracker.ietf.org/api/v1/doc/ballottype/                            - Types of ballot that can be issued on a document
+    # * https://datatracker.ietf.org/api/v1/doc/document/                        - list of documents
+    # * https://datatracker.ietf.org/api/v1/doc/document/draft-ietf-avt-rtp-new/ - info about document
+    #   https://datatracker.ietf.org/api/v1/doc/docevent/                        - list of document events
+    #   https://datatracker.ietf.org/api/v1/doc/docevent/?doc=...                - events for a document
+    #   https://datatracker.ietf.org/api/v1/doc/docevent/?by=...                 - events by a person (as /api/v1/person/person)
+    #   https://datatracker.ietf.org/api/v1/doc/docevent/?time=...               - events by time
+    #   https://datatracker.ietf.org/api/v1/doc/statedocevent/                   - subset of /api/v1/doc/docevent/; same parameters
+    #   https://datatracker.ietf.org/api/v1/doc/ballotdocevent/                  -               "                "
+    #   https://datatracker.ietf.org/api/v1/doc/newrevisiondocevent/             -               "                "
+    #   https://datatracker.ietf.org/api/v1/doc/submissiondocevent/              -               "                "
+    #   https://datatracker.ietf.org/api/v1/doc/writeupdocevent/                 -               "                "
+    #   https://datatracker.ietf.org/api/v1/doc/consensusdocevent/               -               "                "
+    #   https://datatracker.ietf.org/api/v1/doc/ballotpositiondocevent/          -               "                "
+    #   https://datatracker.ietf.org/api/v1/doc/reviewrequestdocevent/           -               "                "
+    #   https://datatracker.ietf.org/api/v1/doc/lastcalldocevent/                -               "                "
+    #   https://datatracker.ietf.org/api/v1/doc/telechatdocevent/                -               "                "
+    #   https://datatracker.ietf.org/api/v1/doc/documentauthor/?document=...     - authors of a document
+    #   https://datatracker.ietf.org/api/v1/doc/documentauthor/?person=...       - documents by person (as /api/v1/person/person)
+    #   https://datatracker.ietf.org/api/v1/doc/documentauthor/?email=...        - documents by person with particular email
+    #   https://datatracker.ietf.org/api/v1/doc/relateddocument/?source=...      - documents that source draft relates to (references, replaces, etc)
+    #   https://datatracker.ietf.org/api/v1/doc/relateddocument/?target=...      - documents that relate to target draft
+    # * https://datatracker.ietf.org/api/v1/doc/docalias/rfcXXXX/                - draft that became the given RFC
+    #   https://datatracker.ietf.org/api/v1/doc/docalias/bcpXXXX/                - draft that became the given BCP
+    #   https://datatracker.ietf.org/api/v1/doc/docalias/stdXXXX/                - RFC that is the given STD
+    # * https://datatracker.ietf.org/api/v1/doc/state/                           - Types of state a document can be in
+    #   https://datatracker.ietf.org/api/v1/doc/ballottype/                      - Types of ballot that can be issued on a document
     #
     #   https://datatracker.ietf.org/api/v1/doc/relateddochistory/
     #   https://datatracker.ietf.org/api/v1/doc/dochistoryauthor/
@@ -170,7 +170,7 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/doc/addedmessageevent/
     #   https://datatracker.ietf.org/api/v1/doc/documenturl/
     #   https://datatracker.ietf.org/api/v1/doc/docreminder/
-    #   https://datatracker.ietf.org/api/v1/doc/statetype/
+    # * https://datatracker.ietf.org/api/v1/doc/statetype/                       - Possible types of state for a document
     #   https://datatracker.ietf.org/api/v1/doc/editedauthorsdocevent/
     #   https://datatracker.ietf.org/api/v1/doc/dochistory/
 
@@ -287,6 +287,7 @@ class DataTracker:
     def document_from_rfc(self, rfc):
         """
         Returns the document that became the specified RFC.
+        The rfc parameter is of the form "rfc3550".
         """
         api_url  = "/api/v1/doc/docalias/" + rfc + "/"
         response = self.session.get(self.base_url + api_url, verify=True)
@@ -371,8 +372,8 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/group/role/?person=20209                   - Groups a person is currently involved with
     #   https://datatracker.ietf.org/api/v1/group/role/?email=csp@csperkins.org        - Groups a person is currently involved with
     #   https://datatracker.ietf.org/api/v1/group/rolehistory/?group=2161              - The previous WG chairs and ADs of a group
-    #   https://datatracker.ietf.org/api/v1/group/rolehistory/?person=20209            - Groups a person was previously involved with
-    #   https://datatracker.ietf.org/api/v1/group/rolehistory/?email=csp@csperkins.org - Groups a person was previously involved with
+    #   https://datatracker.ietf.org/api/v1/group/rolehistory/?person=20209            - Groups person was previously involved with
+    #   https://datatracker.ietf.org/api/v1/group/rolehistory/?email=csp@csperkins.org - Groups person was previously involved with
     #   https://datatracker.ietf.org/api/v1/group/changestategroupevent/?group=2161    - Group state changes
     #   https://datatracker.ietf.org/api/v1/group/groupstatetransitions                - ???
 
