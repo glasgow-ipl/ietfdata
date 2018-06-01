@@ -125,7 +125,6 @@ class DataTracker:
         the output to only those entries added/modified in a particular time
         range.
         """
-        people  = []
         api_url = "/api/v1/person/person/?time__gt=" + since + "&time__lt=" + until
         while api_url != None:
             r = self.session.get(self.base_url + api_url, verify=True)
@@ -225,7 +224,6 @@ class DataTracker:
         The JSON objects returned are the same format as those returned by the 
         document() method.
         """
-        documents = []
         api_url   = "/api/v1/doc/document/?time__gt=" + since + "&time__lt=" + until 
         if doctype != "":
             api_url = api_url + "&type=" + doctype
