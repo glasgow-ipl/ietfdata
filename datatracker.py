@@ -200,8 +200,7 @@ class DataTracker:
             api_url = meta['next']
             for obj in objs:
                 self._people[obj['id']] = obj
-                people.append(obj)
-        return people
+                yield obj
 
     def __fix_document(self, document):
         if document['std_level'] != None:
