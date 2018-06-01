@@ -325,13 +325,17 @@ class DataTracker:
                 return None
         return self._states[state]
 
-    def document_states(self):
+    def document_states(self, statetype=""):
         """
-        Returns the list of all possible states a document can be in. Each 
-        element is a state, as returned by document_state().
+        A generator returning the possible states a document can be in.
+        Each element is a state, as returned by document_state(). 
+        The statetype parameter allows subsetting of the possible states,
+        for example specifying statetype="draft-rfceditor" returns the
+        states a document can be in during RFC Editor processing.
         """
-        states = []
         api_url   = "/api/v1/doc/state/"
+        if statetype != "":
+            api_url = api_url + "?type=" + statetype
         while api_url != None:
             r = self.session.get(self.base_url + api_url, verify=True)
             meta = r.json()['meta']
