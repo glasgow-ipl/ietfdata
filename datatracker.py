@@ -343,6 +343,22 @@ class DataTracker:
                 self._states[obj['id']] = obj
                 yield obj
 
+    def document_state_types(self):
+        """
+        A generator returning possible state types for a document.
+        These are the possible values of the 'type' field in the 
+        output of document_state(), or the statetype parameter to
+        document_states().
+        """
+        api_url   = "/api/v1/doc/statetype/"
+        while api_url != None:
+            r = self.session.get(self.base_url + api_url, verify=True)
+            meta = r.json()['meta']
+            objs = r.json()['objects']
+            api_url = meta['next']
+            for obj in objs:
+                yield obj['slug']
+
     def submission(self, submission):
         """
         Returns a JSON object giving information about a document submission.
