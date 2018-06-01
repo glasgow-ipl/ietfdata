@@ -261,8 +261,7 @@ class DataTracker:
             api_url = meta['next']
             for obj in objs:
                 self._documents[obj['name']] = obj
-                documents.append(self.__fix_document(obj))
-        return documents
+                yield self.__fix_document(obj)
 
     def document(self, name):
         """
@@ -366,8 +365,7 @@ class DataTracker:
                 obj['next_states'] = list(map(lambda s : s.replace("/api/v1/doc/state/", "").rstrip('/'), obj['next_states']))
                 obj['type']        = obj['type'].replace("/api/v1/doc/statetype/", "").rstrip('/')
                 self._states[obj['id']] = obj
-                states.append(obj)
-        return states
+                yield obj
 
     def submission(self, submission):
         """
