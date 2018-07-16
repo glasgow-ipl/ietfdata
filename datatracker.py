@@ -122,8 +122,7 @@ class DataTracker:
         A generator that returns JSON objects representing all people recorded
         in the datatracker. As of 29 April 2018, there are approximately 21500
         people recorded. The since and until parameters can be used to contrain
-        the output to only those entries added/modified in a particular time
-        range.
+        the output to only entries with timestamps in a particular time range.
         """
         api_url = "/api/v1/person/person/?time__gt=" + since + "&time__lt=" + until
         while api_url != None:
@@ -199,7 +198,7 @@ class DataTracker:
         A generator that returns JSON objects representing all documents
         recorded in the datatracker. As of 29 April 2018, approximately
         84000 documents are recorded. The since and until parameters can
-        be used to contrain output to only those entries added/modified
+        be used to contrain output to only those entries with timestamps
         in a particular time range. 
 
         The doctype parameter can be one of:
@@ -229,6 +228,7 @@ class DataTracker:
             api_url = api_url + "&type=" + doctype
         if group != "":
             api_url = api_url + "&group=" + group
+        print(api_url)
         while api_url != None:
             r = self.session.get(self.base_url + api_url, verify=True)
             meta = r.json()['meta']
@@ -536,6 +536,8 @@ class TestDatatracker(unittest.TestCase):
     def test_documents(self):
         dt = DataTracker()
         documents = list(dt.documents(since="2018-04-27T00:00:00", until="2018-05-31T23:59:59", doctype="draft", group="2161"))
+        for doc in documents:
+            print(doc['name'])
         self.assertEqual(documents[0]['name'], 'draft-ietf-quic-transport')
         self.assertEqual(documents[1]['name'], 'draft-ietf-quic-recovery')
         self.assertEqual(documents[2]['name'], 'draft-ietf-quic-tls')
