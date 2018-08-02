@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (C) 2017 University of Glasgow
+# Copyright (C) 2017-2018 University of Glasgow
 # 
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions 
@@ -33,14 +33,43 @@ from datatracker import DataTracker
 import datetime
 import requests
 import time
+import json
+import sys
 
 # =================================================================================================
-# Fetch the RFC data:
+# Create data directories:
 
-for d in ["data", "data/rfc", "plots"]:
+for d in ["data", "data/rfc", "data/people", "data/docs"]:
     if not Path(d).is_dir():
         print("[mkdir]", d)
         Path(d).mkdir(exist_ok=True)
+
+# =================================================================================================
+# Functions to manage the last fetch times:
+
+y    = datetime.datetime.now().year
+m    = datetime.datetime.now().month
+d    = datetime.datetime.now().day
+hour = datetime.datetime.now().hour
+mins = datetime.datetime.now().minute
+secs = datetime.datetime.now().second
+time_curr  = "{:04d}-{:02}-{:02d}T{:02}:{:02}:{:02}".format(y, m, d, hour, mins, secs)
+
+def set_last_fetch(filename, last_fetch):
+    with open(filename, "w") as outf:
+        outf.write(last_fetch)
+
+def get_last_fetch(filename):
+    try:
+        inf = open(filename, "r")
+        last_fetch = inf.read()
+        inf.close()
+    except OSError:
+        last_fetch = "1970-01-01T00:00:00"
+    return last_fetch
+
+# =================================================================================================
+# Fetch the RFC data:
 
 # Fetch rfc-index.xml if it doesn't exist or is more than 24 hours old:
 index_path = Path("data/rfc-index.xml")
@@ -62,17 +91,31 @@ for rfcnum in index.rfc.values():
 # Query the datatracker
 
 datatracker = DataTracker()
-datatracker.people()
-datatracker.groups()
-datatracker.documents()
 
-# =================================================================================================
+# Fetch the people:
+time_prev = get_last_fetch("data/people/.last_fetched")
+for person in datatracker.people(time_prev, time_curr):
+    filename = "data/people/" + str(person["id"])
+    with open(filename, "w") as f:
+        json.dump(person, f)
+        print("[fetch] person {:6d}: {}".format(person["id"], person["name"]))
+    set_last_fetch("data/people/.last_fetched", time_curr)
 
-with open("plots/rfcs-by-year.dat", "w") as f:
-    total = 0
-    for year in range(1968, datetime.datetime.now().year+1):
-        x = list(filter(lambda rfc: rfc.year == year, index.rfc.values()))
-        total += len(x)
-        f.write("{0} {1} {2}\n".format(year, len(x), total))
+# Fetch the documents:
+for dt in ["agenda"]:
+    # "bluesheets", "charter", "conflrev", "draft", "liaison", "liai-att", 
+    # "minutes", "recording", "review", "shepwrit", "slides", "statchg"
+    d = "data/docs/" + dt
+    if not Path(d).is_dir():
+        print("[mkdir]", d)
+        Path(d).mkdir(exist_ok=True)
+
+    time_prev = get_last_fetch(d + "/.last_fetched")
+    for doc in datatracker.documents(since=time_prev, until=time_curr, doctype=dt):
+        filename = d + "/" + doc["name"]
+        with open(filename, "w") as f:
+            json.dump(doc, f)
+            print("[fetch] {}: {}".format(dt, doc["name"]))
+        set_last_fetch(d + "/.last_fetched", time_curr)
 
 # =================================================================================================
