@@ -195,6 +195,42 @@ class DataTracker:
         document['submissions'] = list(map(lambda s : s.replace("/api/v1/submit/submission/", "").rstrip('/'), document['submissions']))
         document['states']      = list(map(lambda s : s.replace("/api/v1/doc/state/",         "").rstrip('/'), document['states']))
         document['tags']        = list(map(lambda s : s.replace("/api/v1/name/doctagname/",   "").rstrip('/'), document['tags']))
+
+        # Rewrite the external_url field to be an absolute, dereferencable, URL:
+        if document['type'] == "agenda":
+            meeting = document['name'].split("-")[1]
+            if document["external_url"].startswith("agenda-" + meeting + "-"):
+                new_url = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + document["external_url"]
+            else:
+                new_url = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + document["name"]
+        elif document['type'] == "bluesheets":
+            meeting = document['name'].split("-")[1]
+            new_url = "https://www.ietf.org/proceedings/" + meeting + "/bluesheets/" + document["external_url"]
+        elif document['type'] == "charter":
+            new_url = "https://www.ietf.org/charter/" + document["name"] + "-" + document["rev"] + ".txt"
+        elif document['type'] == "conflrev":
+            new_url = "https://www.ietf.org/cr/" + document["name"] + "-" + document["rev"] + ".txt"
+        elif document['type'] == "draft":
+            new_url = "https://www.ietf.org/archive/id/" + document["name"] + "-" + document["rev"] + ".txt"
+        elif document['type'] == "liaison":
+            new_url = "https://www.ietf.org/lib/dt/documents/LIAISON/" + document["external_url"]
+        elif document['type'] == "liai-att":
+            new_url = "https://www.ietf.org/lib/dt/documents/LIAISON/" + document["external_url"]
+        elif document['type'] == "minutes":
+            meeting = document['name'].split("-")[1]
+            new_url = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + document["name"] + "-" + document["rev"]
+        elif document['type'] == "recording":
+            new_url = document["external_url"]
+        elif document['type'] == "review":
+            new_url = document["external_url"]
+        elif document['type'] == "shepwrit":
+            new_url = document["external_url"]
+        elif document['type'] == "slides":
+            new_url = "https://www.ietf.org/archive/id/" + document["name"] + "-" + document["rev"] + ".txt"
+        elif document['type'] == "statchg":
+            new_url = "https://www.ietf.org/sc/" + document["name"] + "-" + document["rev"] + ".txt"
+        document['external_url'] = new_url
+
         return document
 
     def documents(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07", doctype="", group=""):
@@ -232,7 +268,6 @@ class DataTracker:
             api_url = api_url + "&type=" + doctype
         if group != "":
             api_url = api_url + "&group=" + group
-        print(api_url)
         while api_url != None:
             r = self.session.get(self.base_url + api_url, verify=True)
             meta = r.json()['meta']
