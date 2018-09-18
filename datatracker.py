@@ -604,17 +604,13 @@ class TestDatatracker(unittest.TestCase):
 
     def test_documents(self):
         dt = DataTracker()
-        documents = list(dt.documents(since="2018-04-27T00:00:00", until="2018-05-31T23:59:59", doctype="draft", group="2161"))
-        for doc in documents:
-            print(doc['name'])
-        self.assertEqual(documents[0]['name'], 'draft-ietf-quic-transport')
-        self.assertEqual(documents[1]['name'], 'draft-ietf-quic-recovery')
-        self.assertEqual(documents[2]['name'], 'draft-ietf-quic-tls')
-        self.assertEqual(documents[3]['name'], 'draft-ietf-quic-http')
-        self.assertEqual(documents[4]['name'], 'draft-ietf-quic-qpack')
-        self.assertEqual(documents[5]['name'], 'draft-ietf-quic-invariants')
-        self.assertEqual(documents[6]['name'], 'draft-ietf-quic-applicability')
-        self.assertEqual(documents[7]['name'], 'draft-ietf-quic-manageability')
+        documents = list(dt.documents(since="2007-01-01T00:00:00", until="2007-12-31T23:59:59", doctype="draft", group="941"))
+        self.assertEqual(documents[0]['name'], 'draft-ietf-avt-tfrc-profile')
+        self.assertEqual(documents[1]['name'], 'draft-ietf-avt-rtcp-xr-mib')
+        self.assertEqual(documents[2]['name'], 'draft-ietf-avt-rtp-no-op')
+        self.assertEqual(documents[3]['name'], 'draft-ietf-avt-rtcpxr-video')
+        self.assertEqual(documents[4]['name'], 'draft-ietf-avt-rtcpxr-audio')
+        self.assertEqual(documents[5]['name'], 'draft-ietf-avt-rtcpxr-mpts')
 
     def test_document_from_rfc(self):
         dt = DataTracker()
