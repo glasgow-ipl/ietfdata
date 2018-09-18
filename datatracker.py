@@ -65,6 +65,7 @@ class DataTracker:
         self._documents   = {}
         self._states      = {}
         self._submissions = {}
+        self._groups      = {}
 
     def __del__(self):
         self.session.close()
@@ -439,6 +440,35 @@ class DataTracker:
     def group(self, group_id):
         # FIXME
         pass
+
+    def group_from_acronym(self, acronym):
+        api_url  = "/api/v1/group/group/?acronym=" + acronym
+        response = self.session.get(self.base_url + api_url, verify=True)
+        if response.status_code == 200:
+            return response.json()["objects"][0]
+        else:
+            return None
+
+    def groups(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07", name_contains=None):
+        # FIXME: no tests for this
+        """
+        A generator that returns JSON objects representing all groups recorded
+        in the datatracker. The since and until parameters can be used to contrain
+        the output to only entries with timestamps in a particular time range.
+        If provided, name_contains filters based on the whether the name field
+        contains the specified value.
+        """
+        api_url = "/api/v1/group/group/?time__gt=" + since + "&time__lt=" + until
+        if name_contains != None:
+            api_url = api_url + "&name__contains=" + name_contains
+        while api_url != None:
+            r = self.session.get(self.base_url + api_url, verify=True)
+            meta = r.json()['meta']
+            objs = r.json()['objects']
+            api_url = meta['next']
+            for obj in objs:
+                self._people[obj['id']] = obj
+                yield obj
 
     # Datatracker API endpoints returning information about meetings:
     #   https://datatracker.ietf.org/api/v1/meeting/meeting/                        - list of meetings
@@ -824,6 +854,11 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(sub['submitter'], 'Ali C. Begen')
         self.assertEqual(sub['title'], 'Guidelines for Choosing RTP Control Protocol (RTCP) Canonical Names (CNAMEs)')
         self.assertEqual(sub['words'], None)
+
+    def test_group_from_acronym(self):
+        dt = DataTracker()
+        group = dt.group_from_acronym("avt")
+        self.assertEqual(group['id'], 941)
 
 if __name__ == '__main__':
     unittest.main()
