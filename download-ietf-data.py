@@ -90,6 +90,7 @@ for rfcnum in index.rfc.values():
 # =================================================================================================
 # Query the datatracker
 
+requests    = requests.Session()
 datatracker = DataTracker()
 
 # Fetch the people:
@@ -112,10 +113,18 @@ for dt in ["agenda"]:
 
     time_prev = get_last_fetch(d + "/.last_fetched")
     for doc in datatracker.documents(since=time_prev, until=time_curr, doctype=dt):
-        filename = d + "/" + doc["name"]
-        with open(filename, "w") as f:
-            json.dump(doc, f)
+        metadata_file = d + "/" + doc["name"] + ".json"
+        contents_file = d + "/" + doc["name"]
+        with open(metadata_file, "w") as f:
             print("[fetch] {}: {}".format(dt, doc["name"]))
+            json.dump(doc, f)
+        with open(contents_file, "wb") as f:
+            print("[fetch] {}: {}".format(dt, doc["external_url"]))
+            response = requests.get(doc["external_url"], verify=True)
+            if response.status_code == 200:
+                f.write(response.content)
+            else:
+                print("[*****] error", response.status_code)
         set_last_fetch(d + "/.last_fetched", time_curr)
 
 # =================================================================================================
