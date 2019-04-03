@@ -23,8 +23,9 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import xml.etree.ElementTree as ET
+from typing import List, Optional, Tuple, Dict
 
+import xml.etree.ElementTree as ET
 import requests
 import unittest
 
@@ -34,33 +35,32 @@ class RfcEntry:
     """
       An RFC entry in the rfc-index.xml file. No attempt is made to
       normalise the data included here.
-
-      Attributes:
-        doc_id       : String, e.g., "RFC3550"
-        title        : String
-        authors      : List of strings 
-        doi          : String
-        stream       : String
-        wg           : None or string
-        area         : None or string
-        curr_status  : String
-        publ_status  : String
-        day          : None or integer
-        month        : String holding the month name
-        year         : Integer
-        formats      : List of tuples (file format, char count, page count)
-        draft        : None or string
-        keywords     : List of strings
-        updates      : List of strings
-        updated_by   : List of strings
-        obsoletes    : List of strings
-        obsoleted_by : List of strings
-        is_also      : List of strings
-        see_also     : List of strings
-        errata_url   : None or string
-        abstract     : None or Element
     """
-    def __init__(self, rfc_element):
+    doc_id       : str
+    title        : str
+    authors      : List[str]
+    doi          : str
+    stream       : str
+    wg           : Optional[str]
+    area         : Optional[str]
+    curr_status  : str
+    publ_status  : str
+    day          : Optional[int]
+    month        : str
+    year         : int
+    formats      : List[Tuple[str, Optional[int], Optional[int]]]
+    draft        : Optional[str]
+    keywords     : List[str]
+    updates      : List[str]
+    updated_by   : List[str]
+    obsoletes    : List[str]
+    obsoleted_by : List[str]
+    is_also      : List[str]
+    see_also     : List[str]
+    errata_url   : Optional[str]
+    abstract     : Optional[ET.Element]
+
+    def __init__(self, rfc_element: ET.Element):
         # We explicitly set all attributes that are optional in the XML 
         # to None, or to an empty list, so code using this doesn't need 
         # worry about missing attributes.
@@ -82,24 +82,31 @@ class RfcEntry:
 
         for elem in rfc_element:
             if   elem.tag == "{http://www.rfc-editor.org/rfc-index}doc-id":
+                assert elem.text is not None
                 self.doc_id = elem.text
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}title":
+                assert elem.text is not None
                 self.title  = elem.text
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}doi":
+                assert elem.text is not None
                 self.doi = elem.text
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}stream":
+                assert elem.text is not None
                 self.stream = elem.text
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}wg_acronym":
                 self.wg = elem.text
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}area":
                 self.area = elem.text
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}current-status":
+                assert elem.text is not None
                 self.curr_status = elem.text
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}publication-status":
+                assert elem.text is not None
                 self.publ_status = elem.text
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}author":
                 for inner in elem:
                     if   inner.tag == "{http://www.rfc-editor.org/rfc-index}name":
+                        assert inner.text is not None
                         self.authors.append(inner.text)
                     elif inner.tag == "{http://www.rfc-editor.org/rfc-index}title":
                         # Ignore <title>...</title> within <author>...</author> tags
@@ -109,6 +116,7 @@ class RfcEntry:
                         raise NotImplementedError
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}date":
                 for inner in elem:
+                    assert inner.text is not None
                     if   inner.tag == "{http://www.rfc-editor.org/rfc-index}day":
                         # <day>...</day> is only included for 1 April RFCs
                         self.day = int(inner.text)
@@ -124,6 +132,7 @@ class RfcEntry:
                 char_count = None
 
                 for inner in elem:
+                    assert inner.text is not None
                     if   inner.tag == "{http://www.rfc-editor.org/rfc-index}file-format":
                         file_format = inner.text
                     elif inner.tag == "{http://www.rfc-editor.org/rfc-index}char-count":
@@ -139,42 +148,48 @@ class RfcEntry:
                 for inner in elem:
                     if   inner.tag == "{http://www.rfc-editor.org/rfc-index}kw":
                         # Omit empty <kw></kw> 
-                        if inner.text != None:
+                        if inner.text is not None:
                             self.keywords.append(inner.text)
                     else:
                         raise NotImplementedError
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}updates":
                 for inner in elem:
+                    assert inner.text is not None
                     if   inner.tag == "{http://www.rfc-editor.org/rfc-index}doc-id":
                         self.updates.append(inner.text)
                     else:
                         raise NotImplementedError
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}updated-by":
                 for inner in elem:
+                    assert inner.text is not None
                     if   inner.tag == "{http://www.rfc-editor.org/rfc-index}doc-id":
                         self.updated_by.append(inner.text)
                     else:
                         raise NotImplementedError
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}obsoletes":
                 for inner in elem:
+                    assert inner.text is not None
                     if   inner.tag == "{http://www.rfc-editor.org/rfc-index}doc-id":
                         self.obsoletes.append(inner.text)
                     else:
                         raise NotImplementedError
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}obsoleted-by":
                 for inner in elem:
+                    assert inner.text is not None
                     if   inner.tag == "{http://www.rfc-editor.org/rfc-index}doc-id":
                         self.obsoleted_by.append(inner.text)
                     else:
                         raise NotImplementedError
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}is-also":
                 for inner in elem:
+                    assert inner.text is not None
                     if   inner.tag == "{http://www.rfc-editor.org/rfc-index}doc-id":
                         self.is_also.append(inner.text)
                     else:
                         raise NotImplementedError
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}see-also":
                 for inner in elem:
+                    assert inner.text is not None
                     if   inner.tag == "{http://www.rfc-editor.org/rfc-index}doc-id":
                         self.see_also.append(inner.text)
                     else:
@@ -215,7 +230,7 @@ class RfcEntry:
              + "}\n"
 
 
-    def charset(self):
+    def charset(self) -> str:
         # Most RFCs are UTF-8, or it's ASCII subset. A few are not. Return
         # an appropriate encoding for the text of this RFC.
         if   (self.doc_id == "RFC0064") or (self.doc_id == "RFC0101") or \
@@ -259,13 +274,13 @@ class RfcEntry:
 class RfcNotIssuedEntry:
     """
       An RFC that was not issued in the rfc-index.xml file.
-
-      Attributes:
-        doc_id       : String, e.g., "RFC3550"
     """
-    def __init__(self, rfc_not_issued_element):
+    doc_id : str
+
+    def __init__(self, rfc_not_issued_element: ET.Element):
         for elem in rfc_not_issued_element:
             if   elem.tag == "{http://www.rfc-editor.org/rfc-index}doc-id":
+                assert elem.text is not None
                 self.doc_id = elem.text
             else:
                 raise NotImplementedError
@@ -280,19 +295,21 @@ class RfcNotIssuedEntry:
 class BcpEntry:
     """
       A BCP entry in the rfc-index.xml file.
-
-      Attributes:
-        doc_id       : String, e.g., "BCP002"
-        is_also      : List of strings
     """
-    def __init__(self, bcp_element):
+
+    doc_id  : str
+    is_also : List[str]
+
+    def __init__(self, bcp_element: ET.Element):
         self.is_also = []
 
         for elem in bcp_element:
             if   elem.tag == "{http://www.rfc-editor.org/rfc-index}doc-id":
+                assert elem.text is not None
                 self.doc_id = elem.text
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}is-also":
                 for inner in elem:
+                    assert inner.text is not None
                     if   inner.tag == "{http://www.rfc-editor.org/rfc-index}doc-id":
                         self.is_also.append(inner.text)
                     else:
@@ -311,22 +328,24 @@ class BcpEntry:
 class StdEntry:
     """
       An STD entry in the rfc-index.xml file.
-
-      Attributes:
-        doc_id       : String, e.g., "STD0089"
-        title        : String
-        is_also      : List of strings
     """
-    def __init__(self, std_element):
+
+    doc_id  : str
+    title   : str
+    is_also : List[str]
+
+    def __init__(self, std_element: ET.Element):
         self.is_also = []
 
         for elem in std_element:
+            assert elem.text is not None
             if   elem.tag == "{http://www.rfc-editor.org/rfc-index}doc-id":
                 self.doc_id = elem.text
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}title":
                 self.title  = elem.text
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}is-also":
                 for inner in elem:
+                    assert inner.text is not None
                     if   inner.tag == "{http://www.rfc-editor.org/rfc-index}doc-id":
                         self.is_also.append(inner.text)
                     else:
@@ -346,19 +365,21 @@ class StdEntry:
 class FyiEntry:
     """
       A FYI entry in the rfc-index.xml file.
-
-      Attributes:
-        doc_id       : String, e.g., "FYI0038"
-        is_also      : List of strings
     """
-    def __init__(self, fyi_element):
+
+    doc_id   : str
+    is_also  : List[str]
+
+    def __init__(self, fyi_element: ET.Element):
         self.is_also = []
 
         for elem in fyi_element:
+            assert elem.text is not None
             if   elem.tag == "{http://www.rfc-editor.org/rfc-index}doc-id":
                 self.doc_id = elem.text
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}is-also":
                 for inner in elem:
+                    assert inner.text is not None
                     if   inner.tag == "{http://www.rfc-editor.org/rfc-index}doc-id":
                         self.is_also.append(inner.text)
                     else:
@@ -377,14 +398,14 @@ class FyiEntry:
 class RFCIndex:
     """
     The RFC Index.
-
-    Attributes:
-        rfc            : Dictionary of RfcEntry
-        rfc_not_issued : Dictionary of RfcNotIssuedEntry
-        bcp            : Dictionary of BcpEntry
-        std            : Dictionary of StdEntry
-        fyi            : Dictionary of FyiEntry
     """
+
+    rfc            : Dict[str, RfcEntry]
+    rfc_not_issued : Dict[str, RfcNotIssuedEntry]
+    bcp            : Dict[str, BcpEntry]
+    std            : Dict[str, StdEntry]
+    fyi            : Dict[str, FyiEntry]
+
     def __init__(self):
         self.rfc            = {}
         self.rfc_not_issued = {}
