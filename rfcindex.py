@@ -1,4 +1,4 @@
-# Copyright (C) 2017 University of Glasgow
+# Copyright (C) 2017-2019 University of Glasgow
 # 
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions 
@@ -24,6 +24,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import xml.etree.ElementTree as ET
+
+import requests
+import unittest
 
 # ==================================================================================================
 
@@ -342,14 +345,21 @@ class RFCIndex:
         std            : Dictionary of StdEntry
         fyi            : Dictionary of FyiEntry
     """
-    def __init__(self, indexfile):
+    def __init__(self):
         self.rfc            = {}
         self.rfc_not_issued = {}
         self.bcp            = {}
         self.std            = {}
         self.fyi            = {}
 
-        for doc in ET.parse(indexfile).getroot():
+        session  = requests.Session()
+        response = session.get("https://www.rfc-editor.org/rfc-index.xml", verify=True)
+        if response.status_code != 200:
+            print("cannot fetch RFC index")
+            return
+        session.close()
+
+        for doc in ET.fromstring(response.text):
             if   doc.tag == "{http://www.rfc-editor.org/rfc-index}rfc-entry":
                 val = RfcEntry(doc)
                 self.rfc[val.doc_id] = val
@@ -369,4 +379,14 @@ class RFCIndex:
                 raise NotImplementedError
 
 # ==================================================================================================
+# Unit tests:
 
+class TestRFCIndex(unittest.TestCase):
+    def test_rfc_index(self):
+        rfcindex = RFCIndex()
+        print(rfcindex.rfc["RFC3550"])
+
+if __name__ == '__main__':
+    unittest.main()
+
+# ==================================================================================================
