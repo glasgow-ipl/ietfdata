@@ -269,6 +269,19 @@ class RfcEntry:
             return "utf-8"
 
 
+    def url(self, required_format: str) -> Optional[str]:
+        for (fmt, size, pages) in self.formats:
+            if fmt == required_format:
+                if required_format == "ASCII":
+                    return "https://www.rfc-editor.org/rfc/" + self.doc_id.lower() + ".txt"
+                elif required_format == "PS":
+                    return "https://www.rfc-editor.org/rfc/" + self.doc_id.lower() + ".ps"
+                elif required_format == "PDF":
+                    return "https://www.rfc-editor.org/rfc/" + self.doc_id.lower() + ".pdf"
+                else:
+                    return None
+        return None
+
 # ==================================================================================================
 
 class RfcNotIssuedEntry:
@@ -443,9 +456,14 @@ class RFCIndex:
 # Unit tests:
 
 class TestRFCIndex(unittest.TestCase):
-    def test_rfc_index(self):
-        rfcindex = RFCIndex()
-        print(rfcindex.rfc["RFC3550"])
+    def setUp(self):
+        self.index = RFCIndex()
+
+    def test_rfc_url(self):
+        self.assertEqual(self.index.rfc["RFC3550"].url("ASCII"), "https://www.rfc-editor.org/rfc/rfc3550.txt")
+        self.assertEqual(self.index.rfc["RFC3550"].url("PS"),    "https://www.rfc-editor.org/rfc/rfc3550.ps")
+        self.assertEqual(self.index.rfc["RFC3550"].url("PDF"),   "https://www.rfc-editor.org/rfc/rfc3550.pdf")
+        self.assertEqual(self.index.rfc["RFC3550"].url("XML"),   None)
 
 if __name__ == '__main__':
     unittest.main()
