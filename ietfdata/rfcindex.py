@@ -269,7 +269,7 @@ class RfcEntry:
             return "utf-8"
 
 
-    def url(self, required_format: str) -> Optional[str]:
+    def content_url(self, required_format: str) -> Optional[str]:
         for (fmt, size, pages) in self.formats:
             if fmt == required_format:
                 if required_format == "ASCII":
@@ -460,10 +460,10 @@ class TestRFCIndex(unittest.TestCase):
         self.index = RFCIndex()
 
     def test_rfc_url(self):
-        self.assertEqual(self.index.rfc["RFC3550"].url("ASCII"), "https://www.rfc-editor.org/rfc/rfc3550.txt")
-        self.assertEqual(self.index.rfc["RFC3550"].url("PS"),    "https://www.rfc-editor.org/rfc/rfc3550.ps")
-        self.assertEqual(self.index.rfc["RFC3550"].url("PDF"),   "https://www.rfc-editor.org/rfc/rfc3550.pdf")
-        self.assertEqual(self.index.rfc["RFC3550"].url("XML"),   None)
+        self.assertEqual(self.index.rfc["RFC3550"].content_url("ASCII"), "https://www.rfc-editor.org/rfc/rfc3550.txt")
+        self.assertEqual(self.index.rfc["RFC3550"].content_url("PS"),    "https://www.rfc-editor.org/rfc/rfc3550.ps")
+        self.assertEqual(self.index.rfc["RFC3550"].content_url("PDF"),   "https://www.rfc-editor.org/rfc/rfc3550.pdf")
+        self.assertEqual(self.index.rfc["RFC3550"].content_url("XML"),   None)
 
 if __name__ == '__main__':
     unittest.main()
