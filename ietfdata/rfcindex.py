@@ -33,8 +33,8 @@ import unittest
 
 class RfcEntry:
     """
-      An RFC entry in the rfc-index.xml file. No attempt is made to
-      normalise the data included here.
+    An RFC entry in the rfc-index.xml file. No attempt is made to
+    normalise the data included here.
     """
     doc_id       : str
     title        : str
@@ -61,9 +61,6 @@ class RfcEntry:
     abstract     : Optional[ET.Element]
 
     def __init__(self, rfc_element: ET.Element):
-        # We explicitly set all attributes that are optional in the XML 
-        # to None, or to an empty list, so code using this doesn't need 
-        # worry about missing attributes.
         self.wg           = None
         self.area         = None
         self.day          = None
@@ -130,7 +127,6 @@ class RfcEntry:
                 # Not all formats have pages, and some of those that do don't have a page count
                 page_count = None
                 char_count = None
-
                 for inner in elem:
                     assert inner.text is not None
                     if   inner.tag == "{http://www.rfc-editor.org/rfc-index}file-format":
@@ -197,10 +193,12 @@ class RfcEntry:
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}errata-url":
                 self.errata_url = elem.text
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}abstract":
-                # The <abstract>...</abstract> contains formatted XML
+                # The <abstract>...</abstract> contains formatted XML, most
+                # typically a sequence of <p>...</p> tags.
                 self.abstract = elem
             else:
                 raise NotImplementedError
+
 
     def __str__(self):
         return "RFC {\n" \
@@ -231,8 +229,10 @@ class RfcEntry:
 
 
     def charset(self) -> str:
-        # Most RFCs are UTF-8, or it's ASCII subset. A few are not. Return
-        # an appropriate encoding for the text of this RFC.
+        """
+        Most RFCs are UTF-8, or it's ASCII subset. A few are not. Return
+        an appropriate encoding for the text of this RFC.
+        """
         if   (self.doc_id == "RFC0064") or (self.doc_id == "RFC0101") or \
              (self.doc_id == "RFC0177") or (self.doc_id == "RFC0178") or \
              (self.doc_id == "RFC0182") or (self.doc_id == "RFC0227") or \
@@ -458,6 +458,9 @@ class RFCIndex:
 class TestRFCIndex(unittest.TestCase):
     def setUp(self):
         self.index = RFCIndex()
+
+    def test_rfc(self):
+        print(self.index.rfc["RFC3550"])
 
     def test_rfc_url(self):
         self.assertEqual(self.index.rfc["RFC3550"].content_url("ASCII"), "https://www.rfc-editor.org/rfc/rfc3550.txt")
