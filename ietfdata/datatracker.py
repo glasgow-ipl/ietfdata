@@ -61,11 +61,6 @@ class DataTracker:
     def __init__(self):
         self.session      = requests.Session()
         self.base_url     = "https://datatracker.ietf.org"
-        self._people      = {}
-        self._documents   = {}
-        self._states      = {}
-        self._submissions = {}
-        self._groups      = {}
 
     def __del__(self):
         self.session.close()
@@ -96,14 +91,12 @@ class DataTracker:
                 "ascii_short" : ""
             }
         """
-        if person_id not in self._people:
-            api_url  = "/api/v1/person/person/" + person_id
-            response = self.session.get(self.base_url + api_url, verify=True)
-            if response.status_code == 200:
-                self._people[person_id] = response.json()
-            else:
-                return None
-        return self._people[person_id]
+        api_url  = "/api/v1/person/person/" + person_id
+        response = self.session.get(self.base_url + api_url, verify=True)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return None
 
     def person_from_email(self, person_email):
         """
@@ -136,7 +129,6 @@ class DataTracker:
             objs = r.json()['objects']
             api_url = meta['next']
             for obj in objs:
-                self._people[obj['id']] = obj
                 yield obj
 
     # Datatracker API endpoints returning information about documents:
@@ -275,7 +267,6 @@ class DataTracker:
             objs = r.json()['objects']
             api_url = meta['next']
             for obj in objs:
-                self._documents[obj['name']] = obj
                 yield self.__fix_document(obj)
 
     def document(self, name):
@@ -315,14 +306,12 @@ class DataTracker:
         The group() method can be used to get additional information on the group.
         The submissions() method can be used to get additional information on submissions.
         """
-        if name not in self._documents:
-            api_url  = "/api/v1/doc/document/" + name + "/"
-            response = self.session.get(self.base_url + api_url, verify=True)
-            if response.status_code == 200:
-                self._documents[name] = self.__fix_document(response.json())
-            else:
-                return None
-        return self._documents[name]
+        api_url  = "/api/v1/doc/document/" + name + "/"
+        response = self.session.get(self.base_url + api_url, verify=True)
+        if response.status_code == 200:
+            return self.__fix_document(response.json())
+        else:
+            return None
 
     def document_from_rfc(self, rfc):
         """
@@ -353,17 +342,15 @@ class DataTracker:
             }
         The state parameter is one of the 'states' from a document object.
         """
-        if state not in self._states:
-            api_url  = "/api/v1/doc/state/" + state
-            response = self.session.get(self.base_url + api_url, verify=True)
-            if response.status_code == 200:
-                resp = response.json()
-                resp['next_states'] = list(map(lambda s : s.replace("/api/v1/doc/state/", "").rstrip('/'), resp['next_states']))
-                resp['type']        = resp['type'].replace("/api/v1/doc/statetype/", "").rstrip('/')
-                self._states[state] = resp
-            else:
-                return None
-        return self._states[state]
+        api_url  = "/api/v1/doc/state/" + state
+        response = self.session.get(self.base_url + api_url, verify=True)
+        if response.status_code == 200:
+            resp = response.json()
+            resp['next_states'] = list(map(lambda s : s.replace("/api/v1/doc/state/", "").rstrip('/'), resp['next_states']))
+            resp['type']        = resp['type'].replace("/api/v1/doc/statetype/", "").rstrip('/')
+            return resp
+        else:
+            return None
 
     def document_states(self, statetype=""):
         """
@@ -384,7 +371,6 @@ class DataTracker:
             for obj in objs:
                 obj['next_states'] = list(map(lambda s : s.replace("/api/v1/doc/state/", "").rstrip('/'), obj['next_states']))
                 obj['type']        = obj['type'].replace("/api/v1/doc/statetype/", "").rstrip('/')
-                self._states[obj['id']] = obj
                 yield obj
 
     def document_state_types(self):
@@ -407,17 +393,15 @@ class DataTracker:
         """
         Returns a JSON object giving information about a document submission.
         """
-        if submission not in self._submissions:
-            api_url = "/api/v1/submit/submission/" + submission + "/"
-            response = self.session.get(self.base_url + api_url, verify=True)
-            if response.status_code == 200:
-                resp = response.json()
-                resp['group'] = resp['group'].replace("/api/v1/group/group/", "").rstrip('/')
-                # FIXME: there is more tidying that can be done here
-                self._submissions[submission] = resp
-            else:
-                return None
-        return self._submissions[submission]
+        api_url = "/api/v1/submit/submission/" + submission + "/"
+        response = self.session.get(self.base_url + api_url, verify=True)
+        if response.status_code == 200:
+            resp = response.json()
+            resp['group'] = resp['group'].replace("/api/v1/group/group/", "").rstrip('/')
+            # FIXME: there is more tidying that can be done here
+            return resp
+        else:
+            return None
 
     # Datatracker API endpoints returning information about working groups:
     #   https://datatracker.ietf.org/api/v1/group/group/                               - list of groups
@@ -467,7 +451,6 @@ class DataTracker:
             objs = r.json()['objects']
             api_url = meta['next']
             for obj in objs:
-                self._people[obj['id']] = obj
                 yield obj
 
     # Datatracker API endpoints returning information about meetings:
