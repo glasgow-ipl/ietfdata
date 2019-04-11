@@ -600,10 +600,20 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(e.active,    True)
         self.assertEqual(e.primary,   True)
 
-    def test_people(self):
-        dt = DataTracker()
-        for person in list(dt.people(since="2018-04-01T00:00:00", until="2018-04-30T23:59:59")):
-            print(person)
+
+#    def test_people(self):
+#        dt = DataTracker()
+#        for person in list(dt.people(since="2018-04-01T00:00:00", until="2018-04-30T23:59:59")):
+#            print(person)
+
+
+
+
+
+
+
+
+
 
 #    def test_document(self):
 #        dt = DataTracker()
