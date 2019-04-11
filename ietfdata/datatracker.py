@@ -153,10 +153,11 @@ class DTDocument:
     std_level          : Optional[str] # "std"
     intended_std_level : Optional[str] # "std"
     rfc                : str           # "3550"
-    time               : str           # "2015-10-14T13:49:52"
+    timestamp          : str           # "2015-10-14T13:49:52"
     note               : str           # ""
     rev                : str           # "12"
     pages              : int           # 104
+    words              : int           # 34861
     order              : int           # 1
     tags               : List[str]     # ["/api/v1/name/doctagname/app-min/", "/api/v1/name/doctagname/errata/"]
     area_director_uri  : Optional[str] # "/api/v1/person/person/2515/"
@@ -169,7 +170,6 @@ class DTDocument:
     name               : str           # "draft-ietf-avt-rtp-new"
     stream             : Optional[str] # "ietf"
     uploaded_filename  : str           # ""
-    words              : int           # 34861
     states             : List[str]     # ["/api/v1/doc/state/3/", "/api/v1/doc/state/7/"]
     submissions        : List[str]     # []
     external_url       : str           # ""
@@ -184,10 +184,11 @@ class DTDocument:
         self.std_level          = json["std_level"]
         self.intended_std_level = json["intended_std_level"]
         self.rfc                = json["rfc"]
-        self.time               = json["time"]
+        self.timestamp          = json["time"]
         self.note               = json["note"]
         self.rev                = json["rev"]
         self.pages              = json["pages"]
+        self.words              = json["words"]
         self.order              = json["order"]
         self.tags               = json["tags"]
         self.area_director_uri  = json["ad"]
@@ -200,61 +201,88 @@ class DTDocument:
         self.name               = json["name"]
         self.stream             = json["stream"]
         self.uploaded_filename  = json["uploaded_filename"]
-        self.words              = json["words"]
         self.states             = json["states"]
         self.submissions        = json["submissions"]
         self.external_url       = json["external_url"]
 
-        if self.std_level != None:
-            self.std_level = self.std_level.replace("/api/v1/name/stdlevelname/", "").rstrip('/')
-        if self.intended_std_level != None:
-            self.intended_std_level = self.intended_std_level.replace("/api/v1/name/intendedstdlevelname/", "").rstrip('/')
-        if self.document_type != None:
-            self.document_type = self.document_type.replace("/api/v1/name/doctypename/", "").rstrip('/')
-        if self.stream != None:
-            self.stream = self.stream.replace("/api/v1/name/streamname/", "").rstrip('/')
-        self.submissions = list(map(lambda s : s.replace("/api/v1/submit/submission/", "").rstrip('/'), self.submissions))
-        self.states      = list(map(lambda s : s.replace("/api/v1/doc/state/",         "").rstrip('/'), self.states))
-        self.tags        = list(map(lambda s : s.replace("/api/v1/name/doctagname/",   "").rstrip('/'), self.tags))
-
-        # Rewrite the external_url field to be an absolute, dereferencable, URL:
-        if self.document_type == "agenda":
+        if self.document_type == "/api/v1/name/doctypename/agenda/":
             meeting = self.name.split("-")[1]
             if self.external_url.startswith("agenda-" + meeting + "-"):
                 self.external_url = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + self.external_url
             else:
                 self.external_url = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + self.name
-        elif self.document_type == "minutes":
+        elif self.document_type == "/api/v1/name/doctypename/minutes/":
+            assert self.external_url == "" # No external URL supplied, generate one
             meeting = self.name.split("-")[1]
             self.external_url = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + self.name + "-" + self.rev
-        elif self.document_type == "bluesheets":
+        elif self.document_type == "/api/v1/name/doctypename/bluesheets/":
+            assert self.external_url == "" # No external URL supplied, generate one
             meeting = self.name.split("-")[1]
             self.external_url = "https://www.ietf.org/proceedings/" + meeting + "/bluesheets/" + self.external_url
-        elif self.document_type == "charter":
+        elif self.document_type == "/api/v1/name/doctypename/charter/":
+            assert self.external_url == "" # No external URL supplied, generate one
             self.external_url = "https://www.ietf.org/charter/"    + self.name + "-" + self.rev + ".txt"
-        elif self.document_type == "conflrev":
+        elif self.document_type == "/api/v1/name/doctypename/conflrev/":
+            assert self.external_url == "" # No external URL supplied, generate one
             self.external_url = "https://www.ietf.org/cr/"         + self.name + "-" + self.rev + ".txt"
-        elif self.document_type == "draft":
+        elif self.document_type == "/api/v1/name/doctypename/draft/":
+            assert self.external_url == "" # No external URL supplied, generate one
             self.external_url = "https://www.ietf.org/archive/id/" + self.name + "-" + self.rev + ".txt"
-        elif self.document_type == "slides":
+        elif self.document_type == "/api/v1/name/doctypename/slides/":
+            assert self.external_url == "" # No external URL supplied, generate one
             self.external_url = "https://www.ietf.org/archive/id/" + self.name + "-" + self.rev + ".txt"
-        elif self.document_type == "statchg":
+        elif self.document_type == "/api/v1/name/doctypename/statchg/":
+            assert self.external_url == "" # No external URL supplied, generate one
             self.external_url = "https://www.ietf.org/sc/"         + self.name + "-" + self.rev + ".txt"
-        elif self.document_type == "liaison":
+        elif self.document_type == "/api/v1/name/doctypename/liaison/":
+            assert self.external_url == "" # No external URL supplied, generate one
             self.external_url = "https://www.ietf.org/lib/dt/documents/LIAISON/" + self.external_url
-        elif self.document_type == "liai-att":
+        elif self.document_type == "/api/v1/name/doctypename/liai-att/":
+            assert self.external_url == "" # No external URL supplied, generate one
             self.external_url = "https://www.ietf.org/lib/dt/documents/LIAISON/" + self.external_url
-        elif self.document_type == "recording":
+        elif self.document_type == "/api/v1/name/doctypename/recording/":
             pass
-        elif self.document_type == "review":
+        elif self.document_type == "/api/v1/name/doctypename/review/":
             pass
-        elif self.document_type == "shepwrit":
+        elif self.document_type == "/api/v1/name/doctypename/shepwrit/":
             pass
         else:
             raise NotImplementedError
 
         assert self.document_uri.startswith("/api/v1/doc/document/")
         assert self.area_director_uri is None or self.area_director_uri.startswith("/api/v1/person/person")
+        assert self.shepherd          is None or self.shepherd.startswith("/api/v1/person/email")
+
+
+    def __str__(self) -> str:
+        return "DTDocument {\n" \
+             + "   document_uri       = {}\n".format(self.document_uri) \
+             + "   document_type      = {}\n".format(self.document_type) \
+             + "   group_uri          = {}\n".format(self.group_uri) \
+             + "   std_level          = {}\n".format(self.std_level) \
+             + "   intended_std_level = {}\n".format(self.intended_std_level) \
+             + "   rfc                = {}\n".format(self.rfc) \
+             + "   timestamp          = {}\n".format(self.timestamp) \
+             + "   note               = {}\n".format(self.note) \
+             + "   rev                = {}\n".format(self.rev) \
+             + "   pages              = {}\n".format(self.pages) \
+             + "   words              = {}\n".format(self.words) \
+             + "   order              = {}\n".format(self.order) \
+             + "   tags               = {}\n".format(self.tags) \
+             + "   area_director_uri  = {}\n".format(self.area_director_uri) \
+             + "   shepherd           = {}\n".format(self.shepherd) \
+             + "   internal_comments  = {}\n".format(self.internal_comments) \
+             + "   abstract           = {}\n".format(self.abstract) \
+             + "   title              = {}\n".format(self.title) \
+             + "   expires            = {}\n".format(self.expires) \
+             + "   notify             = {}\n".format(self.notify) \
+             + "   name               = {}\n".format(self.name) \
+             + "   stream             = {}\n".format(self.stream) \
+             + "   uploaded_filename  = {}\n".format(self.uploaded_filename) \
+             + "   states             = {}\n".format(self.states) \
+             + "   submissions        = {}\n".format(self.submissions) \
+             + "   external_url       = {}\n".format(self.external_url) \
+             + "}\n"
 
 # =================================================================================================================================
 # A class to represent the datatracker:
@@ -624,9 +652,10 @@ class TestDatatracker(unittest.TestCase):
 #            print(person)
 
 
-#    def test_document(self):
-#        dt = DataTracker()
-#        d1 = dt.document("draft-ietf-avt-rtp-cnames")
+    def test_document(self):
+        dt = DataTracker()
+        d  = dt.document("/api/v1/doc/document/draft-ietf-mmusic-rfc4566bis/")
+        print(d)
 
 #    def test_documents(self):
 #        dt = DataTracker()
