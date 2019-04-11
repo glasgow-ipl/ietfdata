@@ -53,238 +53,6 @@ import requests
 import unittest
 
 # =================================================================================================================================
-# Classes representing objects in the datatracker:
-
-class DTPerson:
-    """
-    A person in the datatracker.
-    """
-    person_id        : int            # 20209
-    person_uri       : str            # "/api/v1/person/person/20209/"
-    name             : str            # "Colin Perkins"
-    name_from_draft  : str            # "Colin Perkins"
-    name_ascii       : str            # "Colin Perkins"
-    name_ascii_short : Optional[str]  # None
-    photo            : Optional[str]  # "https://www.ietf.org/lib/dt/media/photo/Colin-Perkins-sm.jpg"
-    photo_thumb      : Optional[str]  # "https://www.ietf.org/lib/dt/media/photo/Colin-Perkins-sm_PMIAhXi.jpg"
-    user             : Optional[str]  #
-    consent          : Optional[bool] # True
-    timestamp        : str            # "2012-02-26T00:03:54"
-    biography        : str            # "Colin Perkins is a..."
-
-    def __init__(self, json):
-        """
-        Initialise based on the JSON supplied by the datatracker.
-        """
-        self.person_id        = json["id"]
-        self.person_uri       = json["resource_uri"]
-        self.name             = json["name"]
-        self.name_from_draft  = json["name_from_draft"]
-        self.name_ascii       = json["ascii"]
-        self.name_ascii_short = json["ascii_short"]
-        self.photo            = json["photo"]
-        self.photo_thumb      = json["photo_thumb"]
-        self.user             = json["user"]
-        self.consent          = json["consent"]
-        self.timestamp        = json["time"]
-        self.biography        = json["biography"]
-        assert self.person_uri.startswith("/api/v1/person/person/")
-
-    def __str__(self) -> str:
-        return "DTPerson {\n" \
-             + "   person_id        = {}\n".format(self.person_id) \
-             + "   person_uri       = {}\n".format(self.person_uri) \
-             + "   name             = {}\n".format(self.name) \
-             + "   name_from_draft  = {}\n".format(self.name_from_draft) \
-             + "   name_ascii       = {}\n".format(self.name_ascii) \
-             + "   name_ascii_short = {}\n".format(self.name_ascii_short) \
-             + "   photo            = {}\n".format(self.photo) \
-             + "   photo_thumb      = {}\n".format(self.photo_thumb) \
-             + "   user             = {}\n".format(self.user) \
-             + "   consent          = {}\n".format(self.consent) \
-             + "   timestamp        = {}\n".format(self.timestamp) \
-             + "   biography        = {}\n".format(self.biography) \
-             + "}\n"
-
-
-class DTEmail:
-    """
-    A mapping from an email address to a person.
-    """
-    email      : str   # "csp@csperkins.org"
-    email_uri  : str   # "/api/v1/person/email/csp@csperkins.org/"
-    person_uri : str   # "/api/v1/person/person/20209/" - suitable for use with person()
-    origin     : str   # "author: draft-ietf-mmusic-rfc4566bis"
-    timestamp  : str   # "1970-01-01T23:59:59"
-    active     : bool  # True
-    primary    : bool  # True
-
-    def __init__(self, json):
-        """
-        Initialise based on the JSON supplied by the datatracker.
-        """
-        self.email      = json["address"]
-        self.email_uri  = json["resource_uri"]
-        self.person_uri = json["person"]
-        self.origin     = json["origin"]
-        self.timestamp  = json["time"]
-        self.active     = json["active"]
-        self.primary    = json["primary"]
-        assert self. email_uri.startswith("/api/v1/person/email/")
-        assert self.person_uri.startswith("/api/v1/person/person/")
-
-
-    def __str__(self) -> str:
-        return "DTEmail {\n" \
-             + "   email      = {}\n".format(self.email) \
-             + "   email_uri  = {}\n".format(self.email_uri) \
-             + "   person_uri = {}\n".format(self.person_uri) \
-             + "   origin     = {}\n".format(self.origin) \
-             + "   timestamp  = {}\n".format(self.timestamp) \
-             + "   active     = {}\n".format(self.active) \
-             + "   primary    = {}\n".format(self.primary) \
-             + "}\n"
-
-
-class DTDocument:
-    document_uri       : str           # "/api/v1/doc/document/draft-ietf-avt-rtp-new/"
-    document_type      : Optional[str] # "draft"
-    group_uri          : Optional[str] # "/api/v1/group/group/941/"
-    std_level          : Optional[str] # "std"
-    intended_std_level : Optional[str] # "std"
-    rfc                : str           # "3550"
-    timestamp          : str           # "2015-10-14T13:49:52"
-    note               : str           # ""
-    rev                : str           # "12"
-    pages              : int           # 104
-    words              : int           # 34861
-    order              : int           # 1
-    tags               : List[str]     # ["/api/v1/name/doctagname/app-min/", "/api/v1/name/doctagname/errata/"]
-    area_director_uri  : Optional[str] # "/api/v1/person/person/2515/"
-    shepherd           : Optional[str] # "/api/v1/person/email/..."? (see draft-ietf-roll-useofrplinfo)
-    internal_comments  : str           # ""
-    abstract           : str           # "This memorandum describes RTP, the real-time transport protocol..."
-    title              : str           # "RTP: A Transport Protocol for Real-Time Applications"
-    expires            : str           # "2003-09-08T00:00:12"
-    notify             : str           # "magnus.westerlund@ericsson.com, csp@csperkins.org"
-    name               : str           # "draft-ietf-avt-rtp-new"
-    stream             : Optional[str] # "ietf"
-    uploaded_filename  : str           # ""
-    states             : List[str]     # ["/api/v1/doc/state/3/", "/api/v1/doc/state/7/"]
-    submissions        : List[str]     # []
-    external_url       : str           # ""
-
-    def __init__(self, json):
-        """
-        Initialise based on the JSON supplied by the datatracker.
-        """
-        self.document_uri       = json["resource_uri"]
-        self.document_type      = json["type"]
-        self.group_uri          = json["group"]
-        self.std_level          = json["std_level"]
-        self.intended_std_level = json["intended_std_level"]
-        self.rfc                = json["rfc"]
-        self.timestamp          = json["time"]
-        self.note               = json["note"]
-        self.rev                = json["rev"]
-        self.pages              = json["pages"]
-        self.words              = json["words"]
-        self.order              = json["order"]
-        self.tags               = json["tags"]
-        self.area_director_uri  = json["ad"]
-        self.shepherd           = json["shepherd"]
-        self.internal_comments  = json["internal_comments"]
-        self.abstract           = json["abstract"]
-        self.title              = json["title"]
-        self.expires            = json["expires"]
-        self.notify             = json["notify"]
-        self.name               = json["name"]
-        self.stream             = json["stream"]
-        self.uploaded_filename  = json["uploaded_filename"]
-        self.states             = json["states"]
-        self.submissions        = json["submissions"]
-        self.external_url       = json["external_url"]
-
-        if self.document_type == "/api/v1/name/doctypename/agenda/":
-            meeting = self.name.split("-")[1]
-            if self.external_url.startswith("agenda-" + meeting + "-"):
-                self.external_url = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + self.external_url
-            else:
-                self.external_url = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + self.name
-        elif self.document_type == "/api/v1/name/doctypename/minutes/":
-            assert self.external_url == "" # No external URL supplied, generate one
-            meeting = self.name.split("-")[1]
-            self.external_url = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + self.name + "-" + self.rev
-        elif self.document_type == "/api/v1/name/doctypename/bluesheets/":
-            assert self.external_url == "" # No external URL supplied, generate one
-            meeting = self.name.split("-")[1]
-            self.external_url = "https://www.ietf.org/proceedings/" + meeting + "/bluesheets/" + self.external_url
-        elif self.document_type == "/api/v1/name/doctypename/charter/":
-            assert self.external_url == "" # No external URL supplied, generate one
-            self.external_url = "https://www.ietf.org/charter/"    + self.name + "-" + self.rev + ".txt"
-        elif self.document_type == "/api/v1/name/doctypename/conflrev/":
-            assert self.external_url == "" # No external URL supplied, generate one
-            self.external_url = "https://www.ietf.org/cr/"         + self.name + "-" + self.rev + ".txt"
-        elif self.document_type == "/api/v1/name/doctypename/draft/":
-            assert self.external_url == "" # No external URL supplied, generate one
-            self.external_url = "https://www.ietf.org/archive/id/" + self.name + "-" + self.rev + ".txt"
-        elif self.document_type == "/api/v1/name/doctypename/slides/":
-            assert self.external_url == "" # No external URL supplied, generate one
-            self.external_url = "https://www.ietf.org/archive/id/" + self.name + "-" + self.rev + ".txt"
-        elif self.document_type == "/api/v1/name/doctypename/statchg/":
-            assert self.external_url == "" # No external URL supplied, generate one
-            self.external_url = "https://www.ietf.org/sc/"         + self.name + "-" + self.rev + ".txt"
-        elif self.document_type == "/api/v1/name/doctypename/liaison/":
-            assert self.external_url == "" # No external URL supplied, generate one
-            self.external_url = "https://www.ietf.org/lib/dt/documents/LIAISON/" + self.external_url
-        elif self.document_type == "/api/v1/name/doctypename/liai-att/":
-            assert self.external_url == "" # No external URL supplied, generate one
-            self.external_url = "https://www.ietf.org/lib/dt/documents/LIAISON/" + self.external_url
-        elif self.document_type == "/api/v1/name/doctypename/recording/":
-            pass
-        elif self.document_type == "/api/v1/name/doctypename/review/":
-            pass
-        elif self.document_type == "/api/v1/name/doctypename/shepwrit/":
-            pass
-        else:
-            raise NotImplementedError
-
-        assert self.document_uri.startswith("/api/v1/doc/document/")
-        assert self.area_director_uri is None or self.area_director_uri.startswith("/api/v1/person/person")
-        assert self.shepherd          is None or self.shepherd.startswith("/api/v1/person/email")
-
-
-    def __str__(self) -> str:
-        return "DTDocument {\n" \
-             + "   document_uri       = {}\n".format(self.document_uri) \
-             + "   document_type      = {}\n".format(self.document_type) \
-             + "   group_uri          = {}\n".format(self.group_uri) \
-             + "   std_level          = {}\n".format(self.std_level) \
-             + "   intended_std_level = {}\n".format(self.intended_std_level) \
-             + "   rfc                = {}\n".format(self.rfc) \
-             + "   timestamp          = {}\n".format(self.timestamp) \
-             + "   note               = {}\n".format(self.note) \
-             + "   rev                = {}\n".format(self.rev) \
-             + "   pages              = {}\n".format(self.pages) \
-             + "   words              = {}\n".format(self.words) \
-             + "   order              = {}\n".format(self.order) \
-             + "   tags               = {}\n".format(self.tags) \
-             + "   area_director_uri  = {}\n".format(self.area_director_uri) \
-             + "   shepherd           = {}\n".format(self.shepherd) \
-             + "   internal_comments  = {}\n".format(self.internal_comments) \
-             + "   abstract           = {}\n".format(self.abstract) \
-             + "   title              = {}\n".format(self.title) \
-             + "   expires            = {}\n".format(self.expires) \
-             + "   notify             = {}\n".format(self.notify) \
-             + "   name               = {}\n".format(self.name) \
-             + "   stream             = {}\n".format(self.stream) \
-             + "   uploaded_filename  = {}\n".format(self.uploaded_filename) \
-             + "   states             = {}\n".format(self.states) \
-             + "   submissions        = {}\n".format(self.submissions) \
-             + "   external_url       = {}\n".format(self.external_url) \
-             + "}\n"
-
-# =================================================================================================================================
 # A class to represent the datatracker:
 
 class DataTracker:
@@ -308,42 +76,95 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/person/historicalemail/         - ???
     #   https://datatracker.ietf.org/api/v1/person/alias/                   - ???
 
-    def email(self, email: str) -> Optional[DTEmail]:
+    def email(self, email: str):
         """
-        Lookup an email address in the datatracker, returning a mapping from the email address to a Person.
+        Lookup information about an email address in the datatracker.
 
-        email : the email address to lookup
+        Parameters:
+           email : the email address to lookup
+
+        Returns:
+            A Dict containing the following fields:
+                "resource_uri" -- A URI representing this resource
+                "address"      -- The requested email address
+                "person"       -- A URI suitable for use with the person() method
+                "time"         -- 
+                "origin"       -- 
+                "primary"      -- True if this is the primary email address of the person
+                "active"       -- True if this is an active email address
         """
-        url      = self.base_url + "/api/v1/person/email/" + email + "/"
-        response = self.session.get(url, verify=True)
+        response = self.session.get(self.base_url + "/api/v1/person/email/" + email + "/", verify=True)
         if response.status_code == 200:
-            return DTEmail(response.json())
+            return response.json()
         else:
             return None
 
 
-    def person(self, person_uri: str) -> Optional[DTPerson]: 
+    def person_from_email(self, email: str):
+        """
+        Lookup a person in the datatracker based on their email address.
+
+        Parameters:
+            email : the email address to lookup
+
+        Returns:
+            A Dict containing the same fields as the person() method.
+        """
+        return self.person("/api/v1/person/email/" + email + "/")
+
+
+    def person(self, person_uri: str):
         """
         Lookup a Person in the datatracker.
 
-        person_uri : a URI of the form "/api/v1/person/person/20209/"
+        Parameters:
+            person_uri : a URI of the form "/api/v1/person/person/20209/" or "api/v1/person/email/csp@csperkins.org/"
+
+        Returns:
+            A Dict containing the following fields:
+                "resource_uri"    -- A URI representing this resource
+                "id"              -- A unique identifier for the person
+                "name"            -- 
+                "name_from_draft" -- 
+                "ascii"           -- 
+                "ascii_short"     -- 
+                "user"            -- 
+                "time"            -- 
+                "photo"           -- URL for a full size photo
+                "photo_thumb"     -- URL for a thumbnail photo
+                "biography"       -- Biography of the person
+                "consent"         -- 
         """
-        assert person_uri.startswith("/api/v1/person/person/")
-        url      = self.base_url + person_uri
-        response = self.session.get(url, verify=True)
-        if response.status_code == 200:
-            return DTPerson(response.json())
+        assert person_uri.startswith("/api/v1/person/")
+        assert person_uri.endswith("/")
+        if person_uri.startswith("/api/v1/person/person/"):
+            response = self.session.get(self.base_url + person_uri, verify=True)
+            if response.status_code == 200:
+                return response.json()
+            else:
+                return None
+        elif person_uri.startswith("/api/v1/person/email/"):
+            response = self.session.get(self.base_url + person_uri, verify=True)
+            if response.status_code == 200:
+                return self.person(response.json()["person"])
+            else:
+                return None
         else:
-            return None
+            raise RuntimeError
 
 
-    def people(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07", name_contains=None) -> Iterator[DTPerson]:
+    def people(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07", name_contains=None):
         """
         A generator that returns people recorded in the datatracker. As of April
-        2018, there are approximately 21500 people recorded. The since and until
-        parameters can be used to contrain output to only entries with timestamp
-        in a particular range. The name_contains paramter filters results based
-        on whether the name field contains the specified value.
+        2018, there are approximately 21500 people recorded.
+
+        Parameters:
+            since         -- Only return people with timestamp after this
+            until         -- Only return people with timestamp before this
+            name_contains -- Only return peopls whose name containing this string
+
+        Returns:
+            An iterator, where each element is as returned by the person() method
         """
         url = self.base_url + "/api/v1/person/person/?time__gt=" + since + "&time__lt=" + until
         if name_contains is not None:
@@ -354,54 +175,134 @@ class DataTracker:
             objs = r.json()['objects']
             url  = meta['next']
             for obj in objs:
-                yield DTPerson(obj)
+                yield obj
 
 
     # Datatracker API endpoints returning information about documents:
     # * https://datatracker.ietf.org/api/v1/doc/document/                        - list of documents
     # * https://datatracker.ietf.org/api/v1/doc/document/draft-ietf-avt-rtp-new/ - info about document
 
-    def document(self, document_uri) -> Optional[DTDocument]:
+    def _fix_external_url(self, doc):
+        if doc["type"] == "/api/v1/name/doctypename/agenda/":
+            meeting = doc["name"].split("-")[1]
+            if doc["external_url"].startswith("agenda-" + meeting + "-"):
+                doc["external_url"] = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + doc["external_url"]
+            else:
+                doc["external_url"] = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + doc["name"]
+        elif doc["type"] == "/api/v1/name/doctypename/minutes/":
+            meeting = doc["name"].split("-")[1]
+            doc["external_url"] = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + doc["name"]
+        elif doc["type"] == "/api/v1/name/doctypename/bluesheets/":
+            assert doc["external_url"] != ""
+            meeting = doc["name"].split("-")[1]
+            doc["external_url"] = "https://www.ietf.org/proceedings/" + meeting + "/bluesheets/" + doc["external_url"]
+        elif doc["type"] == "/api/v1/name/doctypename/charter/":
+            assert doc["external_url"] == "" # No external URL supplied, generate one
+            doc["external_url"] = "https://www.ietf.org/charter/"    + doc["name"] + "-" + doc["rev"] + ".txt"
+        elif doc["type"] == "/api/v1/name/doctypename/conflrev/":
+            assert doc["external_url"] == "" # No external URL supplied, generate one
+            doc["external_url"] = "https://www.ietf.org/cr/"         + doc["name"] + "-" + doc["rev"] + ".txt"
+        elif doc["type"] == "/api/v1/name/doctypename/draft/":
+            assert doc["external_url"] == "" # No external URL supplied, generate one
+            doc["external_url"] = "https://www.ietf.org/archive/id/" + doc["name"] + "-" + doc["rev"] + ".txt"
+        elif doc["type"] == "/api/v1/name/doctypename/slides/":
+            assert doc["external_url"] == "" # No external URL supplied, generate one
+            doc["external_url"] = "https://www.ietf.org/archive/id/" + doc["name"] + "-" + doc["rev"] + ".txt"
+        elif doc["type"] == "/api/v1/name/doctypename/statchg/":
+            assert doc["external_url"] == "" # No external URL supplied, generate one
+            doc["external_url"] = "https://www.ietf.org/sc/"         + doc["name"] + "-" + doc["rev"] + ".txt"
+        elif doc["type"] == "/api/v1/name/doctypename/liaison/":
+            doc["external_url"] = "https://www.ietf.org/lib/dt/documents/LIAISON/" + doc["external_url"]
+        elif doc["type"] == "/api/v1/name/doctypename/liai-att/":
+            doc["external_url"] = "https://www.ietf.org/lib/dt/documents/LIAISON/" + doc["external_url"]
+        elif doc["type"] == "/api/v1/name/doctypename/recording/":
+            pass
+        elif doc["type"] == "/api/v1/name/doctypename/review/":
+            pass
+        elif doc["type"] == "/api/v1/name/doctypename/shepwrit/":
+            pass
+        else:
+            raise NotImplementedError
+
+
+    def document(self, document_uri: str):
         """
         Lookup a document in the datatracker.
 
-        document_uri : a URI of the form "/api/v1/doc/document/draft-ietf-avt-rtp-new/"
+        Parameters:
+            document_uri : a URI of the form "/api/v1/doc/document/draft-ietf-avt-rtp-new/"
+
+        Returns:
+            A Dict containing the following fields:
+                "resource_uri"      -- A URI representing this resource
+                "time"              -- 
+                "notify"            -- List of email addresses to notify on updates or state changed
+                "expires"           -- Expiration time for the document
+                "type"              -- "/api/v1/name/doctypename/draft/")
+                "rev"               -- Revision number of the document
+                "abstract"          -- The abstract of the document, if present
+                "internal_comments" --
+                "states"            -- 
+                "ad"                -- The responsible area director; a URI suitable for use with the person() method
+                "group"             -- The responsible working group, if any
+                "stream"            -- 
+                "rfc"               -- 
+                "intended_std_level -- 
+                "resource_uri"      --
+                "std_level"         --
+                "external_url"      -- A URL from which the document can be fetched
+                "order"             -- 
+                "shepherd"          -- The document shepherd; a URI suitable for use with the person() method
+                "note"              -- 
+                "submissions"       --
+                "tags"              -- 
+                "words"             -- 
+                "uploaded_filename" -- 
+                "pages"             -- 
+                "name"              -- 
+                "title"             --
         """
         assert document_uri.startswith("/api/v1/doc/document/")
-        url      = self.base_url + document_uri
-        response = self.session.get(url, verify=True)
+        assert document_uri.endswith("/")
+        response = self.session.get(self.base_url + document_uri, verify=True)
         if response.status_code == 200:
-            return DTDocument(response.json())
+            doc = response.json()
+            assert doc["resource_uri"].startswith("/api/v1/doc/document/")
+            assert doc["ad"]       is None or doc["ad"].startswith("/api/v1/person/person")
+            assert doc["shepherd"] is None or doc["shepherd"].startswith("/api/v1/person/email")
+            self._fix_external_url(doc)
+            return doc
         else:
             return None
 
 
-    def documents(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07", doctype=None, group_uri=None) -> Iterator[DTDocument]:
+    def documents(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07", doctype=None, group_uri=None):
         """
         A generator that returns JSON objects representing all documents
         recorded in the datatracker. As of 29 April 2018, approximately
-        84000 documents are recorded. The since and until parameters can
-        be used to contrain output to only those entries with timestamps
-        in a particular time range. 
+        84000 documents are recorded.
 
-        The doctype parameter can be one of:
-             "agenda"     - Agenda
-             "bluesheets" - Bluesheets
-             "charter"    - Charter
-             "conflrev"   - Conflict Review
-             "draft"      - Draft
-             "liaison"    - Liaison
-             "liai-att"   - Liaison Attachment
-             "minutes"    - Minutes
-             "recording"  - Recording
-             "review"     - Review
-             "shepwrit"   - Shepherd's writeup
-             "slides"     - Slides
-             "statchg"    - Status Change
-        and will constrain the type of document returned. 
+        Parameters:
+            since     -- Only return people with timestamp after this
+            until     -- Only return people with timestamp before this
+            doctype   -- Constrain the results to be of type:
+                            "agenda"     - Agenda
+                            "bluesheets" - Bluesheets
+                            "charter"    - Charter
+                            "conflrev"   - Conflict Review
+                            "draft"      - Draft
+                            "liaison"    - Liaison
+                            "liai-att"   - Liaison Attachment
+                            "minutes"    - Minutes
+                            "recording"  - Recording
+                            "review"     - Review
+                            "shepwrit"   - Shepherd's writeup
+                            "slides"     - Slides
+                            "statchg"    - Status Change
+            group_uri -- Constrain the results to documents from the specified group.
 
-        The group can be a group_uri, as used by the group() method, and
-        will constrain the results to documents from the specified group.
+        Returns:
+            An iterator, where each element is as returned by the document() method
         """
         url = self.base_url + "/api/v1/doc/document/?time__gt=" + since + "&time__lt=" + until 
         if doctype != None:
@@ -413,8 +314,12 @@ class DataTracker:
             meta = r.json()['meta']
             objs = r.json()['objects']
             url  = meta['next']
-            for obj in objs:
-                yield DTDocument(obj)
+            for doc in objs:
+                assert doc["resource_uri"].startswith("/api/v1/doc/document/")
+                assert doc["ad"]       is None or doc["ad"].startswith("/api/v1/person/person")
+                assert doc["shepherd"] is None or doc["shepherd"].startswith("/api/v1/person/email")
+                self._fix_external_url(doc)
+                yield doc
 
 
     # Datatracker API endpoints returning information about documents aliases:
@@ -422,10 +327,15 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/doc/docalias/bcpXXXX/                - draft that became the given BCP
     #   https://datatracker.ietf.org/api/v1/doc/docalias/stdXXXX/                - RFC that is the given STD
 
-    def document_for_rfc(self, rfc: str) -> Optional[DTDocument]:
+    def document_from_rfc(self, rfc: str):
         """
         Returns the document that became the specified RFC.
-        The rfc parameter is of the form "rfc3550" or "RFC3550".
+
+        Parameters:
+            rfc -- The RFC to lookup, in the form "rfc3550" or "RFC3550"
+
+        Returns:
+            A Dict containing the same fields as the document() method.
         """
         assert rfc.lower().startswith("rfc")
         url  = self.base_url + "/api/v1/doc/docalias/" + rfc.lower() + "/"
@@ -617,54 +527,140 @@ class DataTracker:
 # Unit tests:
 
 class TestDatatracker(unittest.TestCase):
-    def test_person(self):
-        dt = DataTracker()
-        p  = dt.person("/api/v1/person/person/20209")
-        self.assertEqual(p.person_id,        20209)
-        self.assertEqual(p.person_uri,       "/api/v1/person/person/20209/")
-        self.assertEqual(p.name,             "Colin Perkins")
-        self.assertEqual(p.name_from_draft,  "Colin Perkins")
-        self.assertEqual(p.name_ascii,       "Colin Perkins")
-        self.assertEqual(p.name_ascii_short, None)
-        self.assertEqual(p.user,             "")
-        self.assertEqual(p.timestamp,        "2012-02-26T00:03:54")
-        self.assertEqual(p.photo,            "https://www.ietf.org/lib/dt/media/photo/Colin-Perkins-sm.jpg")
-        self.assertEqual(p.photo_thumb,      "https://www.ietf.org/lib/dt/media/photo/Colin-Perkins-sm_PMIAhXi.jpg")
-        self.assertEqual(p.biography,        "Colin Perkins is a Senior Lecturer (Associate Professor) in the School of Computing Science at the University of Glasgow. His research interests are on transport protocols for real-time and interactive multimedia, and on network protocol design, implementation, and specification. He’s been a participant in the IETF and IRTF since 1996, working primarily in the transport area where he co-chairs the RMCAT working group and is a past chair of the AVT and MMUSIC working groups, and in related IRTF research groups. He proposed and co-chaired the first Applied Networking Research Workshop (ANRW), and has been a long-term participant in the Applied Networking Research Prize (ANRP) awarding committee. He received his BEng in Electronic Engineering in 1992, and my PhD in 1996, both from the Department of Electronics at the University of York.")
-        self.assertEqual(p.consent,          True)
-
-
     def test_email(self):
         dt = DataTracker()
         e  = dt.email("csp@csperkins.org")
-        self.assertEqual(e.email,     "csp@csperkins.org")
-        self.assertEqual(e.email_uri, "/api/v1/person/email/csp@csperkins.org/")
-        self.assertEqual(e.person_uri,"/api/v1/person/person/20209/")
-        self.assertEqual(e.origin,    "author: draft-ietf-mmusic-rfc4566bis")
-        self.assertEqual(e.timestamp, "1970-01-01T23:59:59")
-        self.assertEqual(e.active,    True)
-        self.assertEqual(e.primary,   True)
+        self.assertEqual(e["resource_uri"], "/api/v1/person/email/csp@csperkins.org/")
+        self.assertEqual(e["address"],      "csp@csperkins.org")
+        self.assertEqual(e["person"],       "/api/v1/person/person/20209/")
+        self.assertEqual(e["time"],         "1970-01-01T23:59:59")
+        self.assertEqual(e["origin"],       "author: draft-ietf-mmusic-rfc4566bis")
+        self.assertEqual(e["primary"],      True)
+        self.assertEqual(e["active"],       True)
+
+
+    def test_person_from_email(self):
+        dt = DataTracker()
+        p  = dt.person_from_email("csp@csperkins.org")
+        self.assertEqual(p["resource_uri"], "/api/v1/person/person/20209/")
+
+
+    def test_person_person(self):
+        dt = DataTracker()
+        p  = dt.person("/api/v1/person/person/20209/")
+        self.assertEqual(p["id"],              20209)
+        self.assertEqual(p["resource_uri"],    "/api/v1/person/person/20209/")
+        self.assertEqual(p["name"],            "Colin Perkins")
+        self.assertEqual(p["name_from_draft"], "Colin Perkins")
+        self.assertEqual(p["ascii"],           "Colin Perkins")
+        self.assertEqual(p["ascii_short"],     None)
+        self.assertEqual(p["user"],            "")
+        self.assertEqual(p["time"],            "2012-02-26T00:03:54")
+        self.assertEqual(p["photo"],           "https://www.ietf.org/lib/dt/media/photo/Colin-Perkins-sm.jpg")
+        self.assertEqual(p["photo_thumb"],     "https://www.ietf.org/lib/dt/media/photo/Colin-Perkins-sm_PMIAhXi.jpg")
+        self.assertEqual(p["biography"],       "Colin Perkins is a Senior Lecturer (Associate Professor) in the School of Computing Science at the University of Glasgow. His research interests are on transport protocols for real-time and interactive multimedia, and on network protocol design, implementation, and specification. He’s been a participant in the IETF and IRTF since 1996, working primarily in the transport area where he co-chairs the RMCAT working group and is a past chair of the AVT and MMUSIC working groups, and in related IRTF research groups. He proposed and co-chaired the first Applied Networking Research Workshop (ANRW), and has been a long-term participant in the Applied Networking Research Prize (ANRP) awarding committee. He received his BEng in Electronic Engineering in 1992, and my PhD in 1996, both from the Department of Electronics at the University of York.")
+        self.assertEqual(p["consent"],         True)
+
+    def test_person_email(self):
+        dt = DataTracker()
+        p  = dt.person("/api/v1/person/email/csp@csperkins.org/")
+        self.assertEqual(p["resource_uri"],    "/api/v1/person/person/20209/")
 
 
 #    def test_people(self):
 #        dt = DataTracker()
 #        for person in list(dt.people(since="2018-04-01T00:00:00", until="2018-04-30T23:59:59")):
-#            print(person)
+#            print(person["resource_uri"])
 
 
-    def test_document(self):
+    def test_document_draft(self):
         dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/draft-ietf-mmusic-rfc4566bis/")
-        print(d)
+        d  = dt.document("/api/v1/doc/document/draft-ietf-avt-rtp-new/")
+        self.assertEqual(d["resource_uri"], "/api/v1/doc/document/draft-ietf-avt-rtp-new/")
+        self.assertEqual(d["time"], "2015-10-14T13:49:52")
+        self.assertEqual(d["notify"], "magnus.westerlund@ericsson.com, csp@csperkins.org")
+        self.assertEqual(d["expires"], "2003-09-08T00:00:12")
+        self.assertEqual(d["type"], "/api/v1/name/doctypename/draft/")
+        self.assertEqual(d["rev"], "12")
+        self.assertEqual(d["abstract"], "This memorandum describes RTP, the real-time transport protocol.  RTP provides end-to-end network transport functions suitable for applications transmitting real-time data, such as audio, video or simulation data, over multicast or unicast network services.  RTP does not address resource reservation and does not guarantee quality-of- service for real-time services.  The data transport is augmented by a control protocol (RTCP) to allow monitoring of the data delivery in a manner scalable to large multicast networks, and to provide minimal control and identification functionality.  RTP and RTCP are designed to be independent of the underlying transport and network layers.  The protocol supports the use of RTP-level translators and mixers.  Most of the text in this memorandum is identical to RFC 1889 which it obsoletes.  There are no changes in the packet formats on the wire, only changes to the rules and algorithms governing how the protocol is used.  The biggest change is an enhancement to the scalable timer algorithm for calculating when to send RTCP packets in order to minimize transmission in excess of the intended rate when many participants join a session simultaneously. [STANDARDS-TRACK]")
+        self.assertEqual(d["internal_comments"], "")
+        self.assertEqual(d["states"], ["/api/v1/doc/state/3/", "/api/v1/doc/state/7/"])
+        self.assertEqual(d["ad"], "/api/v1/person/person/2515/")
+        self.assertEqual(d["group"], "/api/v1/group/group/941/")
+        self.assertEqual(d["stream"], "/api/v1/name/streamname/ietf/")
+        self.assertEqual(d["rfc"], "3550")
+        self.assertEqual(d["intended_std_level"], "/api/v1/name/intendedstdlevelname/std/")
+        self.assertEqual(d["resource_uri"], "/api/v1/doc/document/draft-ietf-avt-rtp-new/")
+        self.assertEqual(d["std_level"], "/api/v1/name/stdlevelname/std/")
+        self.assertEqual(d["external_url"], "https://www.ietf.org/archive/id/draft-ietf-avt-rtp-new-12.txt")
+        self.assertEqual(d["order"], 1)
+        self.assertEqual(d["shepherd"], None)
+        self.assertEqual(d["note"], "")
+        self.assertEqual(d["submissions"], [])
+        self.assertEqual(d["tags"], ["/api/v1/name/doctagname/app-min/", "/api/v1/name/doctagname/errata/"])
+        self.assertEqual(d["words"], 34861)
+        self.assertEqual(d["uploaded_filename"], "")
+        self.assertEqual(d["pages"], 104)
+        self.assertEqual(d["name"], "draft-ietf-avt-rtp-new")
+        self.assertEqual(d["title"], "RTP: A Transport Protocol for Real-Time Applications")
+        self.assertEqual(dt.session.get(d["external_url"]).status_code, 200)
+
+    def test_document_agenda(self):
+        dt = DataTracker()
+        d  = dt.document("/api/v1/doc/document/agenda-90-precis/")
+        self.assertEqual(d["resource_uri"],      "/api/v1/doc/document/agenda-90-precis/")
+        self.assertEqual(d["external_url"],      "https://datatracker.ietf.org/meeting/90/materials/agenda-90-precis")
+        self.assertEqual(d["uploaded_filename"], "agenda-90-precis.txt")
+        self.assertEqual(dt.session.get(d["external_url"]).status_code, 200)
+
+    def test_document_minutes(self):
+        dt = DataTracker()
+        d  = dt.document("/api/v1/doc/document/minutes-89-cfrg/")
+        self.assertEqual(d["resource_uri"],      "/api/v1/doc/document/minutes-89-cfrg/")
+        self.assertEqual(d["external_url"],      "https://datatracker.ietf.org/meeting/89/materials/minutes-89-cfrg")
+        self.assertEqual(dt.session.get(d["external_url"]).status_code, 200)
+
+
+    def test_document_bluesheets(self):
+        dt = DataTracker()
+        for d in dt.documents(doctype="bluesheets"):
+            print(d)
+
+    def test_document_charter(self):
+        pass
+
+    def test_document_conflrev(self):
+        pass
+
+    def test_document_slides(self):
+        pass
+
+    def test_document_statchg(self):
+        pass
+
+    def test_document_liaison(self):
+        pass
+
+    def test_document_liai_att(self):
+        pass
+
+    def test_document_recording(self):
+        pass
+
+    def test_document_review(self):
+        pass
+
+    def test_document_shepwrit(self):
+        pass
 
 #    def test_documents(self):
 #        dt = DataTracker()
 #        documents = list(dt.documents(since="2007-01-01T00:00:00", until="2007-12-31T23:59:59", doctype="draft", group="941"))
 
-    def test_document_for_rfc(self):
+    def test_document_from_rfc(self):
         dt = DataTracker()
-        d  = dt.document_for_rfc("rfc3550")
-        self.assertEqual(d.document_uri, "/api/v1/doc/document/draft-ietf-avt-rtp-new/")
+        d  = dt.document_from_rfc("rfc3550")
+        self.assertEqual(d["resource_uri"], "/api/v1/doc/document/draft-ietf-avt-rtp-new/")
 
 #    def test_document_state(self):
 #        dt = DataTracker()
