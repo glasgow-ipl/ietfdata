@@ -411,70 +411,70 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/doc/state/                           - Types of state a document can be in
     # * https://datatracker.ietf.org/api/v1/doc/statetype/                       - Possible types of state for a document
 
-    def document_state(self, state):
-        """
-        Returns a JSON object representing the state of a document, for example:
-            {
-              'desc': 'The ID has been published as an RFC.', 
-              'id': 7, 
-              'name': 'RFC Published', 
-              'next_states': ['8'], 
-              'order': 32, 
-              'resource_uri': '/api/v1/doc/state/7/', 
-              'slug': 'pub', 
-              'type': 'draft-iesg', 
-              'used': True
-            }
-        The state parameter is one of the 'states' from a document object.
-        """
-        api_url  = "/api/v1/doc/state/" + state
-        response = self.session.get(self.base_url + api_url, verify=True)
-        if response.status_code == 200:
-            resp = response.json()
-            resp['next_states'] = list(map(lambda s : s.replace("/api/v1/doc/state/", "").rstrip('/'), resp['next_states']))
-            resp['type']        = resp['type'].replace("/api/v1/doc/statetype/", "").rstrip('/')
-            return resp
-        else:
-            return None
+#    def document_state(self, state):
+#        """
+#        Returns a JSON object representing the state of a document, for example:
+#            {
+#              'desc': 'The ID has been published as an RFC.', 
+#              'id': 7, 
+#              'name': 'RFC Published', 
+#              'next_states': ['8'], 
+#              'order': 32, 
+#              'resource_uri': '/api/v1/doc/state/7/', 
+#              'slug': 'pub', 
+#              'type': 'draft-iesg', 
+#              'used': True
+#            }
+#        The state parameter is one of the 'states' from a document object.
+#        """
+#        api_url  = "/api/v1/doc/state/" + state
+#        response = self.session.get(self.base_url + api_url, verify=True)
+#        if response.status_code == 200:
+#            resp = response.json()
+#            resp['next_states'] = list(map(lambda s : s.replace("/api/v1/doc/state/", "").rstrip('/'), resp['next_states']))
+#            resp['type']        = resp['type'].replace("/api/v1/doc/statetype/", "").rstrip('/')
+#            return resp
+#        else:
+#            return None
 
 
-    def document_states(self, statetype=""):
-        """
-        A generator returning the possible states a document can be in.
-        Each element is a state, as returned by document_state(). 
-        The statetype parameter allows subsetting of the possible states,
-        for example specifying statetype="draft-rfceditor" returns the
-        states a document can be in during RFC Editor processing.
-        """
-        api_url   = "/api/v1/doc/state/"
-        if statetype != "":
-            api_url = api_url + "?type=" + statetype
-        while api_url != None:
-            r = self.session.get(self.base_url + api_url, verify=True)
-            meta = r.json()['meta']
-            objs = r.json()['objects']
-            api_url = meta['next']
-            for obj in objs:
-                obj['next_states'] = list(map(lambda s : s.replace("/api/v1/doc/state/", "").rstrip('/'), obj['next_states']))
-                obj['type']        = obj['type'].replace("/api/v1/doc/statetype/", "").rstrip('/')
-                yield obj
+#    def document_states(self, statetype=""):
+#        """
+#        A generator returning the possible states a document can be in.
+#        Each element is a state, as returned by document_state(). 
+#        The statetype parameter allows subsetting of the possible states,
+#        for example specifying statetype="draft-rfceditor" returns the
+#        states a document can be in during RFC Editor processing.
+#        """
+#        api_url   = "/api/v1/doc/state/"
+#        if statetype != "":
+#            api_url = api_url + "?type=" + statetype
+#        while api_url != None:
+#            r = self.session.get(self.base_url + api_url, verify=True)
+#            meta = r.json()['meta']
+#            objs = r.json()['objects']
+#            api_url = meta['next']
+#            for obj in objs:
+#                obj['next_states'] = list(map(lambda s : s.replace("/api/v1/doc/state/", "").rstrip('/'), obj['next_states']))
+#                obj['type']        = obj['type'].replace("/api/v1/doc/statetype/", "").rstrip('/')
+#                yield obj
 
 
-    def document_state_types(self):
-        """
-        A generator returning possible state types for a document.
-        These are the possible values of the 'type' field in the 
-        output of document_state(), or the statetype parameter to
-        document_states().
-        """
-        api_url   = "/api/v1/doc/statetype/"
-        while api_url != None:
-            r = self.session.get(self.base_url + api_url, verify=True)
-            meta = r.json()['meta']
-            objs = r.json()['objects']
-            api_url = meta['next']
-            for obj in objs:
-                yield obj['slug']
+#    def document_state_types(self):
+#        """
+#        A generator returning possible state types for a document.
+#        These are the possible values of the 'type' field in the 
+#        output of document_state(), or the statetype parameter to
+#        document_states().
+#        """
+#        api_url   = "/api/v1/doc/statetype/"
+#        while api_url != None:
+#            r = self.session.get(self.base_url + api_url, verify=True)
+#            meta = r.json()['meta']
+#            objs = r.json()['objects']
+#            api_url = meta['next']
+#            for obj in objs:
+#                yield obj['slug']
 
 
     #   https://datatracker.ietf.org/api/v1/doc/docevent/                        - list of document events
@@ -507,19 +507,19 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/doc/addedmessageevent/
     #   https://datatracker.ietf.org/api/v1/doc/editedauthorsdocevent/
 
-    def submission(self, submission):
-        """
-        Returns a JSON object giving information about a document submission.
-        """
-        api_url = "/api/v1/submit/submission/" + submission + "/"
-        response = self.session.get(self.base_url + api_url, verify=True)
-        if response.status_code == 200:
-            resp = response.json()
-            resp['group'] = resp['group'].replace("/api/v1/group/group/", "").rstrip('/')
-            # FIXME: there is more tidying that can be done here
-            return resp
-        else:
-            return None
+#    def submission(self, submission):
+#        """
+#        Returns a JSON object giving information about a document submission.
+#        """
+#        api_url = "/api/v1/submit/submission/" + submission + "/"
+#        response = self.session.get(self.base_url + api_url, verify=True)
+#        if response.status_code == 200:
+#            resp = response.json()
+#            resp['group'] = resp['group'].replace("/api/v1/group/group/", "").rstrip('/')
+#            # FIXME: there is more tidying that can be done here
+#            return resp
+#        else:
+#            return None
 
     # Datatracker API endpoints returning information about working groups:
     #   https://datatracker.ietf.org/api/v1/group/group/                               - list of groups
@@ -539,37 +539,37 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/group/changestategroupevent/?group=2161    - Group state changes
     #   https://datatracker.ietf.org/api/v1/group/groupstatetransitions                - ???
 
-    def group(self, group_id):
-        # FIXME
-        pass
+#    def group(self, group_id):
+#        # FIXME
+#        pass
 
-    def group_from_acronym(self, acronym):
-        api_url  = "/api/v1/group/group/?acronym=" + acronym
-        response = self.session.get(self.base_url + api_url, verify=True)
-        if response.status_code == 200:
-            return response.json()["objects"][0]
-        else:
-            return None
+#    def group_from_acronym(self, acronym):
+#        api_url  = "/api/v1/group/group/?acronym=" + acronym
+#        response = self.session.get(self.base_url + api_url, verify=True)
+#        if response.status_code == 200:
+#            return response.json()["objects"][0]
+#        else:
+#            return None
 
-    def groups(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07", name_contains=None):
-        # FIXME: no tests for this
-        """
-        A generator that returns JSON objects representing all groups recorded
-        in the datatracker. The since and until parameters can be used to contrain
-        the output to only entries with timestamps in a particular time range.
-        If provided, name_contains filters based on the whether the name field
-        contains the specified value.
-        """
-        api_url = "/api/v1/group/group/?time__gt=" + since + "&time__lt=" + until
-        if name_contains != None:
-            api_url = api_url + "&name__contains=" + name_contains
-        while api_url != None:
-            r = self.session.get(self.base_url + api_url, verify=True)
-            meta = r.json()['meta']
-            objs = r.json()['objects']
-            api_url = meta['next']
-            for obj in objs:
-                yield obj
+#    def groups(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07", name_contains=None):
+#        # FIXME: no tests for this
+#        """
+#        A generator that returns JSON objects representing all groups recorded
+#        in the datatracker. The since and until parameters can be used to contrain
+#        the output to only entries with timestamps in a particular time range.
+#        If provided, name_contains filters based on the whether the name field
+#        contains the specified value.
+#        """
+#        api_url = "/api/v1/group/group/?time__gt=" + since + "&time__lt=" + until
+#        if name_contains != None:
+#            api_url = api_url + "&name__contains=" + name_contains
+#        while api_url != None:
+#            r = self.session.get(self.base_url + api_url, verify=True)
+#            meta = r.json()['meta']
+#            objs = r.json()['objects']
+#            api_url = meta['next']
+#            for obj in objs:
+#                yield obj
 
     # Datatracker API endpoints returning information about meetings:
     #   https://datatracker.ietf.org/api/v1/meeting/meeting/                        - list of meetings
