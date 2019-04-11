@@ -44,6 +44,8 @@
 #   RFC 6359 "Datatracker Extensions to Include IANA and RFC Editor Processing Information"
 #   RFC 7760 "Statement of Work for Extensions to the IETF Datatracker for Author Statistics"
 
+from typing import List, Optional, Tuple, Dict, Iterator
+
 import datetime
 import glob
 import json
@@ -51,182 +53,284 @@ import requests
 import unittest
 
 # =============================================================================
-# Class to query the IETF Datatracker:
+
+class DTPerson:
+    """
+    A person in the datatracker.
+    """
+    person_id        : int            # 20209
+    person_uri       : str            # "/api/v1/person/person/20209/"
+    name             : str            # "Colin Perkins"
+    name_from_draft  : str            # "Colin Perkins"
+    name_ascii       : str            # "Colin Perkins"
+    name_ascii_short : Optional[str]  # None
+    photo            : Optional[str]  # "https://www.ietf.org/lib/dt/media/photo/Colin-Perkins-sm.jpg"
+    photo_thumb      : Optional[str]  # "https://www.ietf.org/lib/dt/media/photo/Colin-Perkins-sm_PMIAhXi.jpg"
+    user             : Optional[str]  #
+    consent          : Optional[bool] # True
+    timestamp        : str            # "2012-02-26T00:03:54"
+    biography        : str            # "Colin Perkins is a..."
+
+    def __init__(self, json):
+        """
+        Initialise based on the JSON supplied by the datatracker.
+        """
+        self.person_id        = json["id"]
+        self.person_uri       = json["resource_uri"]
+        self.name             = json["name"]
+        self.name_from_draft  = json["name_from_draft"]
+        self.name_ascii       = json["ascii"]
+        self.name_ascii_short = json["ascii_short"]
+        self.photo            = json["photo"]
+        self.photo_thumb      = json["photo_thumb"]
+        self.user             = json["user"]
+        self.consent          = json["consent"]
+        self.timestamp        = json["time"]
+        self.biography        = json["biography"]
+        assert self.person_uri.startswith("/api/v1/person/person/")
+
+    def __str__(self) -> str:
+        return "DTPerson {\n" \
+             + "   person_id        = {}\n".format(self.person_id) \
+             + "   person_uri       = {}\n".format(self.person_uri) \
+             + "   name             = {}\n".format(self.name) \
+             + "   name_from_draft  = {}\n".format(self.name_from_draft) \
+             + "   name_ascii       = {}\n".format(self.name_ascii) \
+             + "   name_ascii_short = {}\n".format(self.name_ascii_short) \
+             + "   photo            = {}\n".format(self.photo) \
+             + "   photo_thumb      = {}\n".format(self.photo_thumb) \
+             + "   user             = {}\n".format(self.user) \
+             + "   consent          = {}\n".format(self.consent) \
+             + "   timestamp        = {}\n".format(self.timestamp) \
+             + "   biography        = {}\n".format(self.biography) \
+             + "}\n"
+
+
+class DTEmail:
+    """
+    A mapping from an email address to a person.
+    """
+    email      : str   # "csp@csperkins.org"
+    email_uri  : str   # "/api/v1/person/email/csp@csperkins.org/"
+    person_uri : str   # "/api/v1/person/person/20209/"
+    origin     : str   # "author: draft-ietf-mmusic-rfc4566bis"
+    time       : str   # "1970-01-01T23:59:59"
+    active     : bool  # True
+    primary    : bool  # True
+
+    def __init__(self, json):
+        """
+        Initialise based on the JSON supplied by the datatracker.
+        """
+        self.email      = json["address"]
+        self.email_uri  = json["resource_uri"]
+        self.person_uri = json["person"]
+        self.origin     = json["origin"]
+        self.time       = json["time"]
+        self.active     = json["active"]
+        self.primary    = json["primary"]
+        assert self. email_uri.startswith("/api/v1/person/email/")
+        assert self.person_uri.startswith("/api/v1/person/person/")
+
+
+class DTDocument:
+    document_uri       : str           # "/api/v1/doc/document/draft-ietf-avt-rtp-new/"
+    document_type      : Optional[str] # "draft"
+    group_uri          : Optional[str] # "/api/v1/group/group/941/"
+    std_level          : Optional[str] # "std"
+    intended_std_level : Optional[str] # "std"
+    rfc                : str           # "3550"
+    time               : str           # "2015-10-14T13:49:52"
+    note               : str           # ""
+    rev                : str           # "12"
+    pages              : int           # 104
+    order              : int           # 1
+    tags               : List[str]     # ["/api/v1/name/doctagname/app-min/", "/api/v1/name/doctagname/errata/"]
+    area_director      : Optional[str] # "/api/v1/person/person/2515/"
+    shepherd           : Optional[str] # "/api/v1/person/email/..."? (see draft-ietf-roll-useofrplinfo)
+    internal_comments  : str           # ""
+    abstract           : str           # "This memorandum describes RTP, the real-time transport protocol..."
+    title              : str           # "RTP: A Transport Protocol for Real-Time Applications"
+    expires            : str           # "2003-09-08T00:00:12"
+    notify             : str           # "magnus.westerlund@ericsson.com, csp@csperkins.org"
+    name               : str           # "draft-ietf-avt-rtp-new"
+    stream             : Optional[str] # "ietf"
+    uploaded_filename  : str           # ""
+    words              : int           # 34861
+    states             : List[str]     # ["/api/v1/doc/state/3/", "/api/v1/doc/state/7/"]
+    submissions        : List[str]     # []
+    external_url       : str           # ""
+
+    def __init__(self, json):
+        """
+        Initialise based on the JSON supplied by the datatracker.
+        """
+        self.document_uri       = json["resource_uri"]
+        self.document_type      = json["type"]
+        self.group_uri          = json["group"]
+        self.std_level          = json["std_level"]
+        self.intended_std_level = json["intended_std_level"]
+        self.rfc                = json["rfc"]
+        self.time               = json["time"]
+        self.note               = json["note"]
+        self.rev                = json["rev"]
+        self.pages              = json["pages"]
+        self.order              = json["order"]
+        self.tags               = json["tags"]
+        self.area_director      = json["ad"]
+        self.shepherd           = json["shepherd"]
+        self.internal_comments  = json["internal_comments"]
+        self.abstract           = json["abstract"]
+        self.title              = json["title"]
+        self.expires            = json["expires"]
+        self.notify             = json["notify"]
+        self.name               = json["name"]
+        self.stream             = json["stream"]
+        self.uploaded_filename  = json["uploaded_filename"]
+        self.words              = json["words"]
+        self.states             = json["states"]
+        self.submissions        = json["submissions"]
+        self.external_url       = json["external_url"]
+
+        if self.std_level != None:
+            self.std_level = self.std_level.replace("/api/v1/name/stdlevelname/", "").rstrip('/')
+        if self.intended_std_level != None:
+            self.intended_std_level = self.intended_std_level.replace("/api/v1/name/intendedstdlevelname/", "").rstrip('/')
+        if self.document_type != None:
+            self.document_type = self.document_type.replace("/api/v1/name/doctypename/", "").rstrip('/')
+        if self.stream != None:
+            self.stream = self.stream.replace("/api/v1/name/streamname/", "").rstrip('/')
+        self.submissions = list(map(lambda s : s.replace("/api/v1/submit/submission/", "").rstrip('/'), self.submissions))
+        self.states      = list(map(lambda s : s.replace("/api/v1/doc/state/",         "").rstrip('/'), self.states))
+        self.tags        = list(map(lambda s : s.replace("/api/v1/name/doctagname/",   "").rstrip('/'), self.tags))
+
+        # Rewrite the external_url field to be an absolute, dereferencable, URL:
+        if self.document_type == "agenda":
+            meeting = self.name.split("-")[1]
+            if self.external_url.startswith("agenda-" + meeting + "-"):
+                self.external_url = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + self.external_url
+            else:
+                self.external_url = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + self.name
+        elif self.document_type == "minutes":
+            meeting = self.name.split("-")[1]
+            self.external_url = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + self.name + "-" + self.rev
+        elif self.document_type == "bluesheets":
+            meeting = self.name.split("-")[1]
+            self.external_url = "https://www.ietf.org/proceedings/" + meeting + "/bluesheets/" + self.external_url
+        elif self.document_type == "charter":
+            self.external_url = "https://www.ietf.org/charter/"    + self.name + "-" + self.rev + ".txt"
+        elif self.document_type == "conflrev":
+            self.external_url = "https://www.ietf.org/cr/"         + self.name + "-" + self.rev + ".txt"
+        elif self.document_type == "draft":
+            self.external_url = "https://www.ietf.org/archive/id/" + self.name + "-" + self.rev + ".txt"
+        elif self.document_type == "slides":
+            self.external_url = "https://www.ietf.org/archive/id/" + self.name + "-" + self.rev + ".txt"
+        elif self.document_type == "statchg":
+            self.external_url = "https://www.ietf.org/sc/"         + self.name + "-" + self.rev + ".txt"
+        elif self.document_type == "liaison":
+            self.external_url = "https://www.ietf.org/lib/dt/documents/LIAISON/" + self.external_url
+        elif self.document_type == "liai-att":
+            self.external_url = "https://www.ietf.org/lib/dt/documents/LIAISON/" + self.external_url
+        elif self.document_type == "recording":
+            pass
+        elif self.document_type == "review":
+            pass
+        elif self.document_type == "shepwrit":
+            pass
+        else:
+            raise NotImplementedError
+
+# =============================================================================
 
 class DataTracker:
     """
     A class for interacting with the IETF DataTracker.
     """
-
     def __init__(self):
         self.session      = requests.Session()
         self.base_url     = "https://datatracker.ietf.org"
 
+
     def __del__(self):
         self.session.close()
 
+
     # Datatracker API endpoints returning information about people:
-    # * https://datatracker.ietf.org/api/v1/person/person/                          - list of people
-    # * https://datatracker.ietf.org/api/v1/person/person/20209/                    - info about person 20209
-    # * https://datatracker.ietf.org/api/v1/person/email/csp@csperkins.org/         - map from email address to person
-    #   https://datatracker.ietf.org/api/v1/person/personhistory/                   - ???
-    #   https://datatracker.ietf.org/api/v1/person/personevent/                     - ???
-    #   https://datatracker.ietf.org/api/v1/person/alias/                           - ???
+    # * https://datatracker.ietf.org/api/v1/person/person/                  - list of people
+    # * https://datatracker.ietf.org/api/v1/person/person/20209/            - info about person 20209
+    # * https://datatracker.ietf.org/api/v1/person/email/csp@csperkins.org/ - map from email address to person
+    #   https://datatracker.ietf.org/api/v1/person/historicalperson/        - ???
+    #   https://datatracker.ietf.org/api/v1/person/historicalemail/         - ???
+    #   https://datatracker.ietf.org/api/v1/person/alias/                   - ???
 
-    def person(self, person_id): 
+    def email(self, email: str) -> Optional[DTEmail]:
         """
-        Returns a JSON dictionary representing the person, for example:
-            {
-                "time" : "2012-02-26T00:03:54",
-                "biography" : "",
-                "ascii" : "Colin Perkins",
-                "name_from_draft" : "Colin Perkins",
-                "photo_thumb" : null,
-                "id" : 20209,
-                "photo" : null,
-                "name" : "Colin Perkins",
-                "resource_uri" : "/api/v1/person/person/20209/",
-                "user" : "",
-                "consent" : null,
-                "ascii_short" : ""
-            }
+        Lookup an email address in the datatracker, returning a mapping from the email address to a Person.
+
+        email : the email address to lookup
         """
-        api_url  = "/api/v1/person/person/" + person_id
-        response = self.session.get(self.base_url + api_url, verify=True)
+        url      = self.base_url + "/api/v1/person/email/" + email + "/"
+        response = self.session.get(url, verify=True)
         if response.status_code == 200:
-            return response.json()
+            return DTEmail(response.json())
         else:
             return None
 
-    def person_from_email(self, person_email):
+
+    def person(self, person_uri: str) -> Optional[DTPerson]: 
         """
-        Returns the same JSON dictionary as the person() method, but found
-        by email address rather than ID number.
+        Lookup a Person in the datatracker.
+
+        person_uri : a URI of the form "/api/v1/person/person/20209/"
         """
-        api_url   = "/api/v1/person/email/" + person_email + "/"
-        response  = self.session.get(self.base_url + api_url, verify=True)
+        assert person_uri.startswith("/api/v1/person/person/")
+        url      = self.base_url + person_uri
+        response = self.session.get(url, verify=True)
         if response.status_code == 200:
-            person_id = response.json()['person'].replace("/api/v1/person/person/", "").rstrip('/')
-            return self.person(person_id)
+            return DTPerson(response.json())
         else:
             return None
 
-    def people(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07", name_contains=None):
+
+    def people(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07", name_contains=None) -> Iterator[DTPerson]:
         """
-        A generator that returns JSON objects representing all people recorded
-        in the datatracker. As of 29 April 2018, there are approximately 21500
-        people recorded. The since and until parameters can be used to contrain
-        the output to only entries with timestamps in a particular time range.
-        If provided, name_contains filters based on the whether the name field
-        contains the specified value.
+        A generator that returns people recorded in the datatracker. As of April
+        2018, there are approximately 21500 people recorded. The since and until
+        parameters can be used to contrain output to only entries with timestamp
+        in a particular range. The name_contains paramter filters results based
+        on whether the name field contains the specified value.
         """
-        api_url = "/api/v1/person/person/?time__gt=" + since + "&time__lt=" + until
-        if name_contains != None:
-            api_url = api_url + "&name__contains=" + name_contains
-        while api_url != None:
-            r = self.session.get(self.base_url + api_url, verify=True)
+        url = self.base_url + "/api/v1/person/person/?time__gt=" + since + "&time__lt=" + until
+        if name_contains is not None:
+            url = url + "&name__contains=" + name_contains
+        while url is not None:
+            r = self.session.get(url, verify=True)
             meta = r.json()['meta']
             objs = r.json()['objects']
-            api_url = meta['next']
+            url  = meta['next']
             for obj in objs:
-                yield obj
+                yield DTPerson(obj)
+
 
     # Datatracker API endpoints returning information about documents:
     # * https://datatracker.ietf.org/api/v1/doc/document/                        - list of documents
     # * https://datatracker.ietf.org/api/v1/doc/document/draft-ietf-avt-rtp-new/ - info about document
-    #   https://datatracker.ietf.org/api/v1/doc/docevent/                        - list of document events
-    #   https://datatracker.ietf.org/api/v1/doc/docevent/?doc=...                - events for a document
-    #   https://datatracker.ietf.org/api/v1/doc/docevent/?by=...                 - events by a person (as /api/v1/person/person)
-    #   https://datatracker.ietf.org/api/v1/doc/docevent/?time=...               - events by time
-    #   https://datatracker.ietf.org/api/v1/doc/statedocevent/                   - subset of /api/v1/doc/docevent/; same parameters
-    #   https://datatracker.ietf.org/api/v1/doc/ballotdocevent/                  -               "                "
-    #   https://datatracker.ietf.org/api/v1/doc/newrevisiondocevent/             -               "                "
-    #   https://datatracker.ietf.org/api/v1/doc/submissiondocevent/              -               "                "
-    #   https://datatracker.ietf.org/api/v1/doc/writeupdocevent/                 -               "                "
-    #   https://datatracker.ietf.org/api/v1/doc/consensusdocevent/               -               "                "
-    #   https://datatracker.ietf.org/api/v1/doc/ballotpositiondocevent/          -               "                "
-    #   https://datatracker.ietf.org/api/v1/doc/reviewrequestdocevent/           -               "                "
-    #   https://datatracker.ietf.org/api/v1/doc/lastcalldocevent/                -               "                "
-    #   https://datatracker.ietf.org/api/v1/doc/telechatdocevent/                -               "                "
-    #   https://datatracker.ietf.org/api/v1/doc/documentauthor/?document=...     - authors of a document
-    #   https://datatracker.ietf.org/api/v1/doc/documentauthor/?person=...       - documents by person (as /api/v1/person/person)
-    #   https://datatracker.ietf.org/api/v1/doc/documentauthor/?email=...        - documents by person with particular email
-    #   https://datatracker.ietf.org/api/v1/doc/relateddocument/?source=...      - documents that source draft relates to (references, replaces, etc)
-    #   https://datatracker.ietf.org/api/v1/doc/relateddocument/?target=...      - documents that relate to target draft
-    # * https://datatracker.ietf.org/api/v1/doc/docalias/rfcXXXX/                - draft that became the given RFC
-    #   https://datatracker.ietf.org/api/v1/doc/docalias/bcpXXXX/                - draft that became the given BCP
-    #   https://datatracker.ietf.org/api/v1/doc/docalias/stdXXXX/                - RFC that is the given STD
-    # * https://datatracker.ietf.org/api/v1/doc/state/                           - Types of state a document can be in
-    #   https://datatracker.ietf.org/api/v1/doc/ballottype/                      - Types of ballot that can be issued on a document
-    #
-    #   https://datatracker.ietf.org/api/v1/doc/relateddochistory/
-    #   https://datatracker.ietf.org/api/v1/doc/dochistoryauthor/
-    #   https://datatracker.ietf.org/api/v1/doc/initialreviewdocevent/
-    #   https://datatracker.ietf.org/api/v1/doc/deletedevent/
-    #   https://datatracker.ietf.org/api/v1/doc/addedmessageevent/
-    #   https://datatracker.ietf.org/api/v1/doc/documenturl/
-    #   https://datatracker.ietf.org/api/v1/doc/docreminder/
-    # * https://datatracker.ietf.org/api/v1/doc/statetype/                       - Possible types of state for a document
-    #   https://datatracker.ietf.org/api/v1/doc/editedauthorsdocevent/
-    #   https://datatracker.ietf.org/api/v1/doc/dochistory/
 
-    def __fix_document(self, document):
-        if document['std_level'] != None:
-            document['std_level'] = document['std_level'].replace("/api/v1/name/stdlevelname/", "").rstrip('/')
-        if document['intended_std_level'] != None:
-            document['intended_std_level'] = document['intended_std_level'].replace("/api/v1/name/intendedstdlevelname/", "").rstrip('/')
-        if document['group'] != None:
-            document['group']  = document['group'].replace("/api/v1/group/group/", "").rstrip('/')
-        if document['type'] != None:
-            document['type']   = document['type'].replace("/api/v1/name/doctypename/", "").rstrip('/')
-        if document['stream'] != None:
-            document['stream'] = document['stream'].replace("/api/v1/name/streamname/", "").rstrip('/')
-        if document['ad'] != None:
-            document['ad'] = document['ad'].replace("/api/v1/person/person/", "").rstrip('/')
-        if document['shepherd'] != None:
-            document['shepherd'] = document['shepherd'].replace("/api/v1/person/person/", "").rstrip('/')
-        document['submissions'] = list(map(lambda s : s.replace("/api/v1/submit/submission/", "").rstrip('/'), document['submissions']))
-        document['states']      = list(map(lambda s : s.replace("/api/v1/doc/state/",         "").rstrip('/'), document['states']))
-        document['tags']        = list(map(lambda s : s.replace("/api/v1/name/doctagname/",   "").rstrip('/'), document['tags']))
+    def document(self, document_uri) -> Optional[DTDocument]:
+        """
+        Lookup a document in the datatracker.
 
-        # Rewrite the external_url field to be an absolute, dereferencable, URL:
-        if document['type'] == "agenda":
-            meeting = document['name'].split("-")[1]
-            if document["external_url"].startswith("agenda-" + meeting + "-"):
-                new_url = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + document["external_url"]
-            else:
-                new_url = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + document["name"]
-        elif document['type'] == "bluesheets":
-            meeting = document['name'].split("-")[1]
-            new_url = "https://www.ietf.org/proceedings/" + meeting + "/bluesheets/" + document["external_url"]
-        elif document['type'] == "charter":
-            new_url = "https://www.ietf.org/charter/" + document["name"] + "-" + document["rev"] + ".txt"
-        elif document['type'] == "conflrev":
-            new_url = "https://www.ietf.org/cr/" + document["name"] + "-" + document["rev"] + ".txt"
-        elif document['type'] == "draft":
-            new_url = "https://www.ietf.org/archive/id/" + document["name"] + "-" + document["rev"] + ".txt"
-        elif document['type'] == "liaison":
-            new_url = "https://www.ietf.org/lib/dt/documents/LIAISON/" + document["external_url"]
-        elif document['type'] == "liai-att":
-            new_url = "https://www.ietf.org/lib/dt/documents/LIAISON/" + document["external_url"]
-        elif document['type'] == "minutes":
-            meeting = document['name'].split("-")[1]
-            new_url = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + document["name"] + "-" + document["rev"]
-        elif document['type'] == "recording":
-            new_url = document["external_url"]
-        elif document['type'] == "review":
-            new_url = document["external_url"]
-        elif document['type'] == "shepwrit":
-            new_url = document["external_url"]
-        elif document['type'] == "slides":
-            new_url = "https://www.ietf.org/archive/id/" + document["name"] + "-" + document["rev"] + ".txt"
-        elif document['type'] == "statchg":
-            new_url = "https://www.ietf.org/sc/" + document["name"] + "-" + document["rev"] + ".txt"
-        document['external_url'] = new_url
+        document_uri : a URI of the form "/api/v1/doc/document/draft-ietf-avt-rtp-new/"
+        """
+        url      = self.base_url + document_uri
+        response = self.session.get(url, verify=True)
+        if response.status_code == 200:
+            return DTDocument(response.json())
+        else:
+            return None
 
-        return document
 
-    def documents(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07", doctype="", group=""):
+    def documents(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07", doctype=None, group_uri=None) -> Iterator[DTDocument]:
         """
         A generator that returns JSON objects representing all documents
         recorded in the datatracker. As of 29 April 2018, approximately
@@ -250,81 +354,43 @@ class DataTracker:
              "statchg"    - Status Change
         and will constrain the type of document returned. 
 
-        The group can be a group identifier, as used by the group() method, and
+        The group can be a group_uri, as used by the group() method, and
         will constrain the results to documents from the specified group.
-
-        The JSON objects returned are the same format as those returned by the 
-        document() method.
         """
-        api_url   = "/api/v1/doc/document/?time__gt=" + since + "&time__lt=" + until 
-        if doctype != "":
-            api_url = api_url + "&type=" + doctype
-        if group != "":
-            api_url = api_url + "&group=" + group
-        while api_url != None:
-            r = self.session.get(self.base_url + api_url, verify=True)
+        url = self.base_url + "/api/v1/doc/document/?time__gt=" + since + "&time__lt=" + until 
+        if doctype != None:
+            url = url + "&type=" + doctype
+        if group_uri != None:
+            url = url + "&group=" + group_uri
+        while url != None:
+            r = self.session.get(url, verify=True)
             meta = r.json()['meta']
             objs = r.json()['objects']
-            api_url = meta['next']
+            url  = meta['next']
             for obj in objs:
-                yield self.__fix_document(obj)
+                yield DTDocument(obj)
 
-    def document(self, name):
-        """
-        Returns a JSON object representing a document identified by name, for example:
-            {
-               "states" : [ '1', '38' ],
-               "rev" : "11",
-               "name" : "draft-ietf-quic-transport",
-               "intended_std_level" : "ps",
-               "std_level" : null,
-               "pages" : 105,
-               "abstract" : "This document defines the core of the QUIC transport protocol...",
-               "type" : "draft",
-               "rfc" : null,
-               "group" : "2161",
-               "external_url" : "",
-               "resource_uri" : "/api/v1/doc/document/draft-ietf-quic-transport/",
-               "tags" : [],
-               "shepherd" : null,
-               "order" : 1,
-               "stream" : "ietf",
-               "expires" : "2018-10-19T16:10:12",
-               "ad" : null,
-               "notify" : "",
-               "title" : "QUIC: A UDP-Based Multiplexed and Secure Transport",
-               "words" : 24198,
-               "internal_comments" : "",
-               "submissions" : [
-                  '82995', '83773', '85557', '86717', '87084', '88860',
-                  '89569', '89982', '91554', '92517', '93617', '94830'
-               ],
-               "time" : "2018-04-17T16:10:12",
-               "note" : ""
-            }
-        The document_state() method can be used to get additional information on states.
-        The group() method can be used to get additional information on the group.
-        The submissions() method can be used to get additional information on submissions.
-        """
-        api_url  = "/api/v1/doc/document/" + name + "/"
-        response = self.session.get(self.base_url + api_url, verify=True)
-        if response.status_code == 200:
-            return self.__fix_document(response.json())
-        else:
-            return None
 
-    def document_from_rfc(self, rfc):
+    # Datatracker API endpoints returning information about documents aliases:
+    # * https://datatracker.ietf.org/api/v1/doc/docalias/rfcXXXX/                - draft that became the given RFC
+    #   https://datatracker.ietf.org/api/v1/doc/docalias/bcpXXXX/                - draft that became the given BCP
+    #   https://datatracker.ietf.org/api/v1/doc/docalias/stdXXXX/                - RFC that is the given STD
+
+    def document_from_rfc(self, rfc) -> Optional[DTDocument]:
         """
         Returns the document that became the specified RFC.
         The rfc parameter is of the form "rfc3550".
         """
-        api_url  = "/api/v1/doc/docalias/" + rfc + "/"
-        response = self.session.get(self.base_url + api_url, verify=True)
+        url  = self.base_url + "/api/v1/doc/docalias/" + rfc + "/"
+        response = self.session.get(url, verify=True)
         if response.status_code == 200:
-            name = response.json()['document'].replace("/api/v1/doc/document/", "").rstrip('/')
-            return self.document(name)
+            return self.document(response.json()['document'])
         else:
             return None
+
+
+    # * https://datatracker.ietf.org/api/v1/doc/state/                           - Types of state a document can be in
+    # * https://datatracker.ietf.org/api/v1/doc/statetype/                       - Possible types of state for a document
 
     def document_state(self, state):
         """
@@ -352,6 +418,7 @@ class DataTracker:
         else:
             return None
 
+
     def document_states(self, statetype=""):
         """
         A generator returning the possible states a document can be in.
@@ -373,6 +440,7 @@ class DataTracker:
                 obj['type']        = obj['type'].replace("/api/v1/doc/statetype/", "").rstrip('/')
                 yield obj
 
+
     def document_state_types(self):
         """
         A generator returning possible state types for a document.
@@ -388,6 +456,37 @@ class DataTracker:
             api_url = meta['next']
             for obj in objs:
                 yield obj['slug']
+
+
+    #   https://datatracker.ietf.org/api/v1/doc/docevent/                        - list of document events
+    #   https://datatracker.ietf.org/api/v1/doc/docevent/?doc=...                - events for a document
+    #   https://datatracker.ietf.org/api/v1/doc/docevent/?by=...                 - events by a person (as /api/v1/person/person)
+    #   https://datatracker.ietf.org/api/v1/doc/docevent/?time=...               - events by time
+    #   https://datatracker.ietf.org/api/v1/doc/documentauthor/?document=...     - authors of a document
+    #   https://datatracker.ietf.org/api/v1/doc/documentauthor/?person=...       - documents by person (as /api/v1/person/person)
+    #   https://datatracker.ietf.org/api/v1/doc/documentauthor/?email=...        - documents by person with particular email
+    #   https://datatracker.ietf.org/api/v1/doc/dochistory/
+    #   https://datatracker.ietf.org/api/v1/doc/dochistoryauthor/
+    #   https://datatracker.ietf.org/api/v1/doc/docreminder/
+    #   https://datatracker.ietf.org/api/v1/doc/documenturl/
+    #   https://datatracker.ietf.org/api/v1/doc/statedocevent/                   - subset of /api/v1/doc/docevent/; same parameters
+    #   https://datatracker.ietf.org/api/v1/doc/ballotdocevent/                  -               "                "
+    #   https://datatracker.ietf.org/api/v1/doc/newrevisiondocevent/             -               "                "
+    #   https://datatracker.ietf.org/api/v1/doc/submissiondocevent/              -               "                "
+    #   https://datatracker.ietf.org/api/v1/doc/writeupdocevent/                 -               "                "
+    #   https://datatracker.ietf.org/api/v1/doc/consensusdocevent/               -               "                "
+    #   https://datatracker.ietf.org/api/v1/doc/ballotpositiondocevent/          -               "                "
+    #   https://datatracker.ietf.org/api/v1/doc/reviewrequestdocevent/           -               "                "
+    #   https://datatracker.ietf.org/api/v1/doc/lastcalldocevent/                -               "                "
+    #   https://datatracker.ietf.org/api/v1/doc/telechatdocevent/                -               "                "
+    #   https://datatracker.ietf.org/api/v1/doc/relateddocument/?source=...      - documents that source draft relates to (references, replaces, etc)
+    #   https://datatracker.ietf.org/api/v1/doc/relateddocument/?target=...      - documents that relate to target draft
+    #   https://datatracker.ietf.org/api/v1/doc/ballottype/                      - Types of ballot that can be issued on a document
+    #   https://datatracker.ietf.org/api/v1/doc/relateddochistory/
+    #   https://datatracker.ietf.org/api/v1/doc/initialreviewdocevent/
+    #   https://datatracker.ietf.org/api/v1/doc/deletedevent/
+    #   https://datatracker.ietf.org/api/v1/doc/addedmessageevent/
+    #   https://datatracker.ietf.org/api/v1/doc/editedauthorsdocevent/
 
     def submission(self, submission):
         """
@@ -473,97 +572,118 @@ class DataTracker:
 class TestDatatracker(unittest.TestCase):
     def test_person(self):
         dt = DataTracker()
-        p1 = dt.person("20209")
+        p  = dt.person("/api/v1/person/person/20209")
+        self.assertEqual(p.person_id,        20209)
+        self.assertEqual(p.person_uri,       "/api/v1/person/person/20209/")
+        self.assertEqual(p.name,             "Colin Perkins")
+        self.assertEqual(p.name_from_draft,  "Colin Perkins")
+        self.assertEqual(p.name_ascii,       "Colin Perkins")
+        self.assertEqual(p.name_ascii_short, None)
+        self.assertEqual(p.user,             "")
+        self.assertEqual(p.timestamp,        "2012-02-26T00:03:54")
+        self.assertEqual(p.photo,            "https://www.ietf.org/lib/dt/media/photo/Colin-Perkins-sm.jpg")
+        self.assertEqual(p.photo_thumb,      "https://www.ietf.org/lib/dt/media/photo/Colin-Perkins-sm_PMIAhXi.jpg")
+        self.assertEqual(p.biography,        "Colin Perkins is a Senior Lecturer (Associate Professor) in the School of Computing Science at the University of Glasgow. His research interests are on transport protocols for real-time and interactive multimedia, and on network protocol design, implementation, and specification. He’s been a participant in the IETF and IRTF since 1996, working primarily in the transport area where he co-chairs the RMCAT working group and is a past chair of the AVT and MMUSIC working groups, and in related IRTF research groups. He proposed and co-chaired the first Applied Networking Research Workshop (ANRW), and has been a long-term participant in the Applied Networking Research Prize (ANRP) awarding committee. He received his BEng in Electronic Engineering in 1992, and my PhD in 1996, both from the Department of Electronics at the University of York.")
+        self.assertEqual(p.consent,          True)
 
-    def test_person_from_email(self):
+    def test_email(self):
         dt = DataTracker()
+        e  = dt.email("csp@csperkins.org")
+        self.assertEqual(e.email,     "csp@csperkins.org")
+        self.assertEqual(e.email_uri, "/api/v1/person/email/csp@csperkins.org/")
+        self.assertEqual(e.person_uri,"/api/v1/person/person/20209/")
+        self.assertEqual(e.origin,    "author: draft-ietf-mmusic-rfc4566bis")
+        self.assertEqual(e.time,      "1970-01-01T23:59:59")
+        self.assertEqual(e.active,    True)
+        self.assertEqual(e.primary,   True)
 
     def test_people(self):
         dt = DataTracker()
-        people = list(dt.people(since="2018-04-01T00:00:00", until="2018-04-30T23:59:59"))
+        for person in list(dt.people(since="2018-04-01T00:00:00", until="2018-04-30T23:59:59")):
+            print(person)
 
-    def test_document(self):
-        dt = DataTracker()
-        d1 = dt.document("draft-ietf-avt-rtp-cnames")
+#    def test_document(self):
+#        dt = DataTracker()
+#        d1 = dt.document("draft-ietf-avt-rtp-cnames")
 
-    def test_documents(self):
-        dt = DataTracker()
-        documents = list(dt.documents(since="2007-01-01T00:00:00", until="2007-12-31T23:59:59", doctype="draft", group="941"))
+#    def test_documents(self):
+#        dt = DataTracker()
+#        documents = list(dt.documents(since="2007-01-01T00:00:00", until="2007-12-31T23:59:59", doctype="draft", group="941"))
 
-    def test_document_from_rfc(self):
-        dt = DataTracker()
-        d  = dt.document_from_rfc("rfc3550")
+#    def test_document_from_rfc(self):
+#        dt = DataTracker()
+#        d  = dt.document_from_rfc("rfc3550")
 
-    def test_document_state(self):
-        dt = DataTracker()
-        s = dt.document_state('7')
-        # self.assertEqual(s['desc'], 'The ID has been published as an RFC.')
-        # self.assertEqual(s['id'], 7)
-        # self.assertEqual(s['name'], 'RFC Published')
-        # self.assertEqual(s['next_states'], ['8'])
-        # self.assertEqual(s['order'], 32)
-        # self.assertEqual(s['resource_uri'], '/api/v1/doc/state/7/')
-        # self.assertEqual(s['slug'], 'pub')
-        # self.assertEqual(s['type'], 'draft-iesg')
-        # self.assertEqual(s['used'], True)
+#    def test_document_state(self):
+#        dt = DataTracker()
+#        s = dt.document_state('7')
+#        self.assertEqual(s['desc'], 'The ID has been published as an RFC.')
+#        self.assertEqual(s['id'], 7)
+#        self.assertEqual(s['name'], 'RFC Published')
+#        self.assertEqual(s['next_states'], ['8'])
+#        self.assertEqual(s['order'], 32)
+#        self.assertEqual(s['resource_uri'], '/api/v1/doc/state/7/')
+#        self.assertEqual(s['slug'], 'pub')
+#        self.assertEqual(s['type'], 'draft-iesg')
+#        self.assertEqual(s['used'], True)
 
-    def test_document_states(self):
-        dt = DataTracker()
-        states = list(dt.document_states(statetype="draft-rfceditor"))
-        # self.assertEqual(states[ 0]['name'], 'AUTH')
-        # self.assertEqual(states[ 1]['name'], 'AUTH48')
-        # self.assertEqual(states[ 2]['name'], 'EDIT')
-        # self.assertEqual(states[ 3]['name'], 'IANA')
-        # self.assertEqual(states[ 4]['name'], 'IESG')
-        # self.assertEqual(states[ 5]['name'], 'ISR')
-        # self.assertEqual(states[ 6]['name'], 'ISR-AUTH')
-        # self.assertEqual(states[ 7]['name'], 'REF')
-        # self.assertEqual(states[ 8]['name'], 'RFC-EDITOR')
-        # self.assertEqual(states[ 9]['name'], 'TO')
-        # self.assertEqual(states[10]['name'], 'MISSREF')
-        # self.assertEqual(states[11]['name'], 'AUTH48-DONE')
-        # self.assertEqual(states[12]['name'], 'AUTH48-DONE')
-        # self.assertEqual(states[13]['name'], 'EDIT')
-        # self.assertEqual(states[14]['name'], 'IANA')
-        # self.assertEqual(states[15]['name'], 'IESG')
-        # self.assertEqual(states[16]['name'], 'ISR-AUTH')
-        # self.assertEqual(states[17]['name'], 'Pending')
+#    def test_document_states(self):
+#        dt = DataTracker()
+#        states = list(dt.document_states(statetype="draft-rfceditor"))
+#        self.assertEqual(states[ 0]['name'], 'AUTH')
+#        self.assertEqual(states[ 1]['name'], 'AUTH48')
+#        self.assertEqual(states[ 2]['name'], 'EDIT')
+#        self.assertEqual(states[ 3]['name'], 'IANA')
+#        self.assertEqual(states[ 4]['name'], 'IESG')
+#        self.assertEqual(states[ 5]['name'], 'ISR')
+#        self.assertEqual(states[ 6]['name'], 'ISR-AUTH')
+#        self.assertEqual(states[ 7]['name'], 'REF')
+#        self.assertEqual(states[ 8]['name'], 'RFC-EDITOR')
+#        self.assertEqual(states[ 9]['name'], 'TO')
+#        self.assertEqual(states[10]['name'], 'MISSREF')
+#        self.assertEqual(states[11]['name'], 'AUTH48-DONE')
+#        self.assertEqual(states[12]['name'], 'AUTH48-DONE')
+#        self.assertEqual(states[13]['name'], 'EDIT')
+#        self.assertEqual(states[14]['name'], 'IANA')
+#        self.assertEqual(states[15]['name'], 'IESG')
+#        self.assertEqual(states[16]['name'], 'ISR-AUTH')
+#        self.assertEqual(states[17]['name'], 'Pending')
 
-    def test_document_state_types(self):
-        dt = DataTracker()
-        st = list(dt.document_state_types())
-        # self.assertEqual(st[ 0], 'draft')
-        # self.assertEqual(st[ 1], 'draft-iesg')
-        # self.assertEqual(st[ 2], 'draft-iana')
-        # self.assertEqual(st[ 3], 'draft-rfceditor')
-        # self.assertEqual(st[ 4], 'draft-stream-ietf')
-        # self.assertEqual(st[ 5], 'draft-stream-irtf')
-        # self.assertEqual(st[ 6], 'draft-stream-ise')
-        # self.assertEqual(st[ 7], 'draft-stream-iab')
-        # self.assertEqual(st[ 8], 'slides')
-        # self.assertEqual(st[ 9], 'minutes')
-        # self.assertEqual(st[10], 'agenda')
-        # self.assertEqual(st[11], 'liai-att')
-        # self.assertEqual(st[12], 'charter')
-        # self.assertEqual(st[13], 'conflrev')
-        # self.assertEqual(st[14], 'draft-iana-action')
-        # self.assertEqual(st[15], 'draft-iana-review')
-        # self.assertEqual(st[16], 'statchg')
-        # self.assertEqual(st[17], 'recording')
-        # self.assertEqual(st[18], 'bluesheets')
-        # self.assertEqual(st[19], 'reuse_policy')
-        # self.assertEqual(st[20], 'review')
-        # self.assertEqual(st[21], 'liaison')
-        # self.assertEqual(st[22], 'shepwrit')
+#    def test_document_state_types(self):
+#        dt = DataTracker()
+#        st = list(dt.document_state_types())
+#        self.assertEqual(st[ 0], 'draft')
+#        self.assertEqual(st[ 1], 'draft-iesg')
+#        self.assertEqual(st[ 2], 'draft-iana')
+#        self.assertEqual(st[ 3], 'draft-rfceditor')
+#        self.assertEqual(st[ 4], 'draft-stream-ietf')
+#        self.assertEqual(st[ 5], 'draft-stream-irtf')
+#        self.assertEqual(st[ 6], 'draft-stream-ise')
+#        self.assertEqual(st[ 7], 'draft-stream-iab')
+#        self.assertEqual(st[ 8], 'slides')
+#        self.assertEqual(st[ 9], 'minutes')
+#        self.assertEqual(st[10], 'agenda')
+#        self.assertEqual(st[11], 'liai-att')
+#        self.assertEqual(st[12], 'charter')
+#        self.assertEqual(st[13], 'conflrev')
+#        self.assertEqual(st[14], 'draft-iana-action')
+#        self.assertEqual(st[15], 'draft-iana-review')
+#        self.assertEqual(st[16], 'statchg')
+#        self.assertEqual(st[17], 'recording')
+#        self.assertEqual(st[18], 'bluesheets')
+#        self.assertEqual(st[19], 'reuse_policy')
+#        self.assertEqual(st[20], 'review')
+#        self.assertEqual(st[21], 'liaison')
+#        self.assertEqual(st[22], 'shepwrit')
 
-    def test_submission(self):
-        dt = DataTracker()
-        sub = dt.submission('24225')
+#    def test_submission(self):
+#        dt = DataTracker()
+#        sub = dt.submission('24225')
 
-    def test_group_from_acronym(self):
-        dt = DataTracker()
-        group = dt.group_from_acronym("avt")
-        #self.assertEqual(group['id'], 941)
+#    def test_group_from_acronym(self):
+#        dt = DataTracker()
+#        group = dt.group_from_acronym("avt")
+#        self.assertEqual(group['id'], 941)
 
 if __name__ == '__main__':
     unittest.main()
