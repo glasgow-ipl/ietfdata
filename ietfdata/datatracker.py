@@ -134,6 +134,17 @@ class DTEmail:
         assert self.person_uri.startswith("/api/v1/person/person/")
 
 
+    def __str__(self) -> str:
+        return "DTEmail {\n" \
+             + "   email      = {}\n".format(self.email) \
+             + "   email_uri  = {}\n".format(self.email_uri) \
+             + "   person_uri = {}\n".format(self.person_uri) \
+             + "   origin     = {}\n".format(self.origin) \
+             + "   timestamp  = {}\n".format(self.timestamp) \
+             + "   active     = {}\n".format(self.active) \
+             + "   primary    = {}\n".format(self.primary) \
+             + "}\n"
+
 class DTDocument:
     document_uri       : str           # "/api/v1/doc/document/draft-ietf-avt-rtp-new/"
     document_type      : Optional[str] # "draft"
