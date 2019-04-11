@@ -113,7 +113,7 @@ class DTEmail:
     """
     email      : str   # "csp@csperkins.org"
     email_uri  : str   # "/api/v1/person/email/csp@csperkins.org/"
-    person_uri : str   # "/api/v1/person/person/20209/"
+    person_uri : str   # "/api/v1/person/person/20209/" - suitable for use with person()
     origin     : str   # "author: draft-ietf-mmusic-rfc4566bis"
     timestamp  : str   # "1970-01-01T23:59:59"
     active     : bool  # True
@@ -145,6 +145,7 @@ class DTEmail:
              + "   primary    = {}\n".format(self.primary) \
              + "}\n"
 
+
 class DTDocument:
     document_uri       : str           # "/api/v1/doc/document/draft-ietf-avt-rtp-new/"
     document_type      : Optional[str] # "draft"
@@ -158,7 +159,7 @@ class DTDocument:
     pages              : int           # 104
     order              : int           # 1
     tags               : List[str]     # ["/api/v1/name/doctagname/app-min/", "/api/v1/name/doctagname/errata/"]
-    area_director      : Optional[str] # "/api/v1/person/person/2515/"
+    area_director_uri  : Optional[str] # "/api/v1/person/person/2515/"
     shepherd           : Optional[str] # "/api/v1/person/email/..."? (see draft-ietf-roll-useofrplinfo)
     internal_comments  : str           # ""
     abstract           : str           # "This memorandum describes RTP, the real-time transport protocol..."
@@ -189,7 +190,7 @@ class DTDocument:
         self.pages              = json["pages"]
         self.order              = json["order"]
         self.tags               = json["tags"]
-        self.area_director      = json["ad"]
+        self.area_director_uri  = json["ad"]
         self.shepherd           = json["shepherd"]
         self.internal_comments  = json["internal_comments"]
         self.abstract           = json["abstract"]
@@ -251,6 +252,9 @@ class DTDocument:
             pass
         else:
             raise NotImplementedError
+
+        assert self.document_uri.startswith("/api/v1/doc/document/")
+        assert self.area_director_uri is None or self.area_director_uri.startswith("/api/v1/person/person")
 
 # =================================================================================================================================
 # A class to represent the datatracker:
@@ -335,6 +339,7 @@ class DataTracker:
 
         document_uri : a URI of the form "/api/v1/doc/document/draft-ietf-avt-rtp-new/"
         """
+        assert document_uri.startswith("/api/v1/doc/document/")
         url      = self.base_url + document_uri
         response = self.session.get(url, verify=True)
         if response.status_code == 200:
@@ -389,12 +394,13 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/doc/docalias/bcpXXXX/                - draft that became the given BCP
     #   https://datatracker.ietf.org/api/v1/doc/docalias/stdXXXX/                - RFC that is the given STD
 
-    def document_from_rfc(self, rfc) -> Optional[DTDocument]:
+    def document_for_rfc(self, rfc: str) -> Optional[DTDocument]:
         """
         Returns the document that became the specified RFC.
-        The rfc parameter is of the form "rfc3550".
+        The rfc parameter is of the form "rfc3550" or "RFC3550".
         """
-        url  = self.base_url + "/api/v1/doc/docalias/" + rfc + "/"
+        assert rfc.lower().startswith("rfc")
+        url  = self.base_url + "/api/v1/doc/docalias/" + rfc.lower() + "/"
         response = self.session.get(url, verify=True)
         if response.status_code == 200:
             return self.document(response.json()['document'])
@@ -618,14 +624,6 @@ class TestDatatracker(unittest.TestCase):
 #            print(person)
 
 
-
-
-
-
-
-
-
-
 #    def test_document(self):
 #        dt = DataTracker()
 #        d1 = dt.document("draft-ietf-avt-rtp-cnames")
@@ -634,9 +632,10 @@ class TestDatatracker(unittest.TestCase):
 #        dt = DataTracker()
 #        documents = list(dt.documents(since="2007-01-01T00:00:00", until="2007-12-31T23:59:59", doctype="draft", group="941"))
 
-#    def test_document_from_rfc(self):
-#        dt = DataTracker()
-#        d  = dt.document_from_rfc("rfc3550")
+    def test_document_for_rfc(self):
+        dt = DataTracker()
+        d  = dt.document_for_rfc("rfc3550")
+        self.assertEqual(d.document_uri, "/api/v1/doc/document/draft-ietf-avt-rtp-new/")
 
 #    def test_document_state(self):
 #        dt = DataTracker()
