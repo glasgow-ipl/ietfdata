@@ -115,7 +115,7 @@ class DTEmail:
     email_uri  : str   # "/api/v1/person/email/csp@csperkins.org/"
     person_uri : str   # "/api/v1/person/person/20209/"
     origin     : str   # "author: draft-ietf-mmusic-rfc4566bis"
-    time       : str   # "1970-01-01T23:59:59"
+    timestamp  : str   # "1970-01-01T23:59:59"
     active     : bool  # True
     primary    : bool  # True
 
@@ -127,7 +127,7 @@ class DTEmail:
         self.email_uri  = json["resource_uri"]
         self.person_uri = json["person"]
         self.origin     = json["origin"]
-        self.time       = json["time"]
+        self.timestamp  = json["time"]
         self.active     = json["active"]
         self.primary    = json["primary"]
         assert self. email_uri.startswith("/api/v1/person/email/")
@@ -596,7 +596,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(e.email_uri, "/api/v1/person/email/csp@csperkins.org/")
         self.assertEqual(e.person_uri,"/api/v1/person/person/20209/")
         self.assertEqual(e.origin,    "author: draft-ietf-mmusic-rfc4566bis")
-        self.assertEqual(e.time,      "1970-01-01T23:59:59")
+        self.assertEqual(e.timestamp, "1970-01-01T23:59:59")
         self.assertEqual(e.active,    True)
         self.assertEqual(e.primary,   True)
 
