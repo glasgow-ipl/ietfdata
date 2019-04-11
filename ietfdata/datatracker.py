@@ -52,7 +52,8 @@ import json
 import requests
 import unittest
 
-# =============================================================================
+# =================================================================================================================================
+# Classes representing objects in the datatracker:
 
 class DTPerson:
     """
@@ -240,7 +241,8 @@ class DTDocument:
         else:
             raise NotImplementedError
 
-# =============================================================================
+# =================================================================================================================================
+# A class to represent the datatracker:
 
 class DataTracker:
     """
@@ -566,7 +568,7 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/meeting/floorplan/14/                   - floor plan for a meeting venue
     #   ...
 
-# =============================================================================
+# =================================================================================================================================
 # Unit tests:
 
 class TestDatatracker(unittest.TestCase):
@@ -585,6 +587,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(p.photo_thumb,      "https://www.ietf.org/lib/dt/media/photo/Colin-Perkins-sm_PMIAhXi.jpg")
         self.assertEqual(p.biography,        "Colin Perkins is a Senior Lecturer (Associate Professor) in the School of Computing Science at the University of Glasgow. His research interests are on transport protocols for real-time and interactive multimedia, and on network protocol design, implementation, and specification. He’s been a participant in the IETF and IRTF since 1996, working primarily in the transport area where he co-chairs the RMCAT working group and is a past chair of the AVT and MMUSIC working groups, and in related IRTF research groups. He proposed and co-chaired the first Applied Networking Research Workshop (ANRW), and has been a long-term participant in the Applied Networking Research Prize (ANRP) awarding committee. He received his BEng in Electronic Engineering in 1992, and my PhD in 1996, both from the Department of Electronics at the University of York.")
         self.assertEqual(p.consent,          True)
+
 
     def test_email(self):
         dt = DataTracker()
@@ -688,4 +691,4 @@ class TestDatatracker(unittest.TestCase):
 if __name__ == '__main__':
     unittest.main()
 
-# =============================================================================
+# =================================================================================================================================
