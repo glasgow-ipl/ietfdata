@@ -51,6 +51,7 @@ import glob
 import json
 import requests
 import unittest
+import re
 
 # =================================================================================================================================
 # A class to represent the datatracker:
@@ -182,45 +183,41 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/doc/document/                        - list of documents
     # * https://datatracker.ietf.org/api/v1/doc/document/draft-ietf-avt-rtp-new/ - info about document
 
-    def _fix_external_url(self, doc):
+    def _derive_document_url(self, doc):
         if doc["type"] == "/api/v1/name/doctypename/agenda/":
+            # FIXME: This doesn't work for interim meetings
+            # FIXME: This doesn't work for PDF agenda files
             meeting = doc["name"].split("-")[1]
             if doc["external_url"].startswith("agenda-" + meeting + "-"):
-                doc["external_url"] = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + doc["external_url"]
+                doc["document_url"] = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + doc["uploaded_filename"]
             else:
-                doc["external_url"] = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + doc["name"]
+                doc["document_url"] = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + doc["name"]
         elif doc["type"] == "/api/v1/name/doctypename/minutes/":
             meeting = doc["name"].split("-")[1]
-            doc["external_url"] = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + doc["name"]
+            doc["document_url"] = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + doc["name"]
         elif doc["type"] == "/api/v1/name/doctypename/bluesheets/":
-            assert doc["external_url"] != ""
             meeting = doc["name"].split("-")[1]
-            doc["external_url"] = "https://www.ietf.org/proceedings/" + meeting + "/bluesheets/" + doc["external_url"]
+            doc["document_url"] = "https://www.ietf.org/proceedings/" + meeting + "/bluesheets/" + doc["external_url"]
         elif doc["type"] == "/api/v1/name/doctypename/charter/":
-            assert doc["external_url"] == "" # No external URL supplied, generate one
-            doc["external_url"] = "https://www.ietf.org/charter/"    + doc["name"] + "-" + doc["rev"] + ".txt"
+            doc["document_url"] = "https://www.ietf.org/charter/"    + doc["name"] + "-" + doc["rev"] + ".txt"
         elif doc["type"] == "/api/v1/name/doctypename/conflrev/":
-            assert doc["external_url"] == "" # No external URL supplied, generate one
-            doc["external_url"] = "https://www.ietf.org/cr/"         + doc["name"] + "-" + doc["rev"] + ".txt"
+            doc["document_url"] = "https://www.ietf.org/cr/"         + doc["name"] + "-" + doc["rev"] + ".txt"
         elif doc["type"] == "/api/v1/name/doctypename/draft/":
-            assert doc["external_url"] == "" # No external URL supplied, generate one
-            doc["external_url"] = "https://www.ietf.org/archive/id/" + doc["name"] + "-" + doc["rev"] + ".txt"
+            doc["document_url"] = "https://www.ietf.org/archive/id/" + doc["name"] + "-" + doc["rev"] + ".txt"
         elif doc["type"] == "/api/v1/name/doctypename/slides/":
-            assert doc["external_url"] == "" # No external URL supplied, generate one
-            doc["external_url"] = "https://www.ietf.org/archive/id/" + doc["name"] + "-" + doc["rev"] + ".txt"
+            doc["document_url"] = "https://www.ietf.org/archive/id/" + doc["name"] + "-" + doc["rev"] + ".txt"
         elif doc["type"] == "/api/v1/name/doctypename/statchg/":
-            assert doc["external_url"] == "" # No external URL supplied, generate one
-            doc["external_url"] = "https://www.ietf.org/sc/"         + doc["name"] + "-" + doc["rev"] + ".txt"
+            doc["document_url"] = "https://www.ietf.org/sc/"         + doc["name"] + "-" + doc["rev"] + ".txt"
         elif doc["type"] == "/api/v1/name/doctypename/liaison/":
-            doc["external_url"] = "https://www.ietf.org/lib/dt/documents/LIAISON/" + doc["external_url"]
+            doc["document_url"] = "https://www.ietf.org/lib/dt/documents/LIAISON/" + doc["external_url"]
         elif doc["type"] == "/api/v1/name/doctypename/liai-att/":
-            doc["external_url"] = "https://www.ietf.org/lib/dt/documents/LIAISON/" + doc["external_url"]
+            doc["document_url"] = "https://www.ietf.org/lib/dt/documents/LIAISON/" + doc["external_url"]
         elif doc["type"] == "/api/v1/name/doctypename/recording/":
-            pass
+            doc["document_url"] = doc["external_url"]
         elif doc["type"] == "/api/v1/name/doctypename/review/":
-            pass
+            doc["document_url"] = doc["external_url"]
         elif doc["type"] == "/api/v1/name/doctypename/shepwrit/":
-            pass
+            doc["document_url"] = doc["external_url"]
         else:
             raise NotImplementedError
 
@@ -270,7 +267,7 @@ class DataTracker:
             assert doc["resource_uri"].startswith("/api/v1/doc/document/")
             assert doc["ad"]       is None or doc["ad"].startswith("/api/v1/person/person")
             assert doc["shepherd"] is None or doc["shepherd"].startswith("/api/v1/person/email")
-            self._fix_external_url(doc)
+            self._derive_document_url(doc)
             return doc
         else:
             return None
@@ -313,12 +310,12 @@ class DataTracker:
             r = self.session.get(url, verify=True)
             meta = r.json()['meta']
             objs = r.json()['objects']
-            url  = meta['next']
+            url  = self.base_url + meta['next']
             for doc in objs:
                 assert doc["resource_uri"].startswith("/api/v1/doc/document/")
                 assert doc["ad"]       is None or doc["ad"].startswith("/api/v1/person/person")
                 assert doc["shepherd"] is None or doc["shepherd"].startswith("/api/v1/person/email")
-                self._fix_external_url(doc)
+                self._derive_document_url(doc)
                 yield doc
 
 
@@ -592,7 +589,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(d["intended_std_level"], "/api/v1/name/intendedstdlevelname/std/")
         self.assertEqual(d["resource_uri"], "/api/v1/doc/document/draft-ietf-avt-rtp-new/")
         self.assertEqual(d["std_level"], "/api/v1/name/stdlevelname/std/")
-        self.assertEqual(d["external_url"], "https://www.ietf.org/archive/id/draft-ietf-avt-rtp-new-12.txt")
+        self.assertEqual(d["external_url"], "")
         self.assertEqual(d["order"], 1)
         self.assertEqual(d["shepherd"], None)
         self.assertEqual(d["note"], "")
@@ -603,28 +600,29 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(d["pages"], 104)
         self.assertEqual(d["name"], "draft-ietf-avt-rtp-new")
         self.assertEqual(d["title"], "RTP: A Transport Protocol for Real-Time Applications")
-        self.assertEqual(dt.session.get(d["external_url"]).status_code, 200)
+        self.assertEqual(d["document_url"], "https://www.ietf.org/archive/id/draft-ietf-avt-rtp-new-12.txt")
+        self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
 
     def test_document_agenda(self):
         dt = DataTracker()
         d  = dt.document("/api/v1/doc/document/agenda-90-precis/")
         self.assertEqual(d["resource_uri"],      "/api/v1/doc/document/agenda-90-precis/")
-        self.assertEqual(d["external_url"],      "https://datatracker.ietf.org/meeting/90/materials/agenda-90-precis")
+        self.assertEqual(d["document_url"],      "https://datatracker.ietf.org/meeting/90/materials/agenda-90-precis")
         self.assertEqual(d["uploaded_filename"], "agenda-90-precis.txt")
-        self.assertEqual(dt.session.get(d["external_url"]).status_code, 200)
+        self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
 
     def test_document_minutes(self):
         dt = DataTracker()
         d  = dt.document("/api/v1/doc/document/minutes-89-cfrg/")
         self.assertEqual(d["resource_uri"],      "/api/v1/doc/document/minutes-89-cfrg/")
-        self.assertEqual(d["external_url"],      "https://datatracker.ietf.org/meeting/89/materials/minutes-89-cfrg")
-        self.assertEqual(dt.session.get(d["external_url"]).status_code, 200)
-
+        self.assertEqual(d["document_url"],      "https://datatracker.ietf.org/meeting/89/materials/minutes-89-cfrg")
+        self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
 
     def test_document_bluesheets(self):
-        dt = DataTracker()
-        for d in dt.documents(doctype="bluesheets"):
-            print(d)
+        #dt = DataTracker()
+        #for d in dt.documents(doctype="bluesheets"):
+        #    print(d)
+        pass
 
     def test_document_charter(self):
         pass
