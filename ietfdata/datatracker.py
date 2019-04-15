@@ -223,8 +223,13 @@ class DataTracker:
 
 
     def document(self, document_uri: str):
+        # FIXME: complete documentation
+        # FIXME: add method relating to std_level
+        # FIXME: add method relating to intended_std_level
+        # FIXME: add method relating to submissions
+        # FIXME: add method relating to tags
         """
-        Lookup a document in the datatracker.
+        Lookup metadata about a document in the datatracker.
 
         Parameters:
             document_uri : a URI of the form "/api/v1/doc/document/draft-ietf-avt-rtp-new/"
@@ -232,32 +237,32 @@ class DataTracker:
         Returns:
             A Dict containing the following fields:
                 "resource_uri"      -- A URI representing this resource
-                "time"              -- 
-                "notify"            -- List of email addresses to notify on updates or state changed
+                "name"              -- The document name
+                "title"             -- The document title
+                "pages"             -- The number of pages in the document
+                "words"             -- The number of words in the document
+                "time"              -- Last modified
+                "notify"            -- Email addresses to notify on update or state change
                 "expires"           -- Expiration time for the document
-                "type"              -- "/api/v1/name/doctypename/draft/")
+                "type"              -- A URI that can be passed to the document_type() method
                 "rev"               -- Revision number of the document
                 "abstract"          -- The abstract of the document, if present
-                "internal_comments" --
-                "states"            -- 
-                "ad"                -- The responsible area director; a URI suitable for use with the person() method
-                "group"             -- The responsible working group, if any
-                "stream"            -- 
-                "rfc"               -- 
-                "intended_std_level -- 
-                "resource_uri"      --
-                "std_level"         --
-                "external_url"      -- A URL from which the document can be fetched
+                "internal_comments" -- 
                 "order"             -- 
-                "shepherd"          -- The document shepherd; a URI suitable for use with the person() method
                 "note"              -- 
+                "states"            -- A list of URIs that can be passed to the document_state() method
+                "ad"                -- A URI that can be passed to the person() method; the responsible area director
+                "shepherd"          -- A URI suitable for use with the person() method; the document shepherd
+                "group"             -- A URI that can be passed to the group() method
+                "stream"            -- A URI that can be passed to the stream() method
+                "rfc"               -- RFC number, e.g., "3550", if the document has been published as an RFC
+                "std_level"         --
+                "intended_std_level -- 
                 "submissions"       --
                 "tags"              -- 
-                "words"             -- 
                 "uploaded_filename" -- 
-                "pages"             -- 
-                "name"              -- 
-                "title"             --
+                "external_url"      -- 
+                "document_url"      -- A URL to retrieve the document
         """
         assert document_uri.startswith("/api/v1/doc/document/")
         assert document_uri.endswith("/")
@@ -319,7 +324,7 @@ class DataTracker:
                 yield doc
 
 
-    # Datatracker API endpoints returning information about documents aliases:
+    # Datatracker API endpoints returning information about document aliases:
     # * https://datatracker.ietf.org/api/v1/doc/docalias/rfcXXXX/                - draft that became the given RFC
     #   https://datatracker.ietf.org/api/v1/doc/docalias/bcpXXXX/                - draft that became the given BCP
     #   https://datatracker.ietf.org/api/v1/doc/docalias/stdXXXX/                - RFC that is the given STD
@@ -343,73 +348,94 @@ class DataTracker:
             return None
 
 
+    def document_from_bcp(self, bcp: str):
+        # FIXME: implement this
+        raise NotImplementedError
+
+
+    def document_from_std(self, std: str):
+        # FIXME: implement this
+        raise NotImplementedError
+
+
+    # Datatracker API endpoints returning information about document states:
     # * https://datatracker.ietf.org/api/v1/doc/state/                           - Types of state a document can be in
     # * https://datatracker.ietf.org/api/v1/doc/statetype/                       - Possible types of state for a document
 
-#    def document_state(self, state):
-#        """
-#        Returns a JSON object representing the state of a document, for example:
-#            {
-#              'desc': 'The ID has been published as an RFC.', 
-#              'id': 7, 
-#              'name': 'RFC Published', 
-#              'next_states': ['8'], 
-#              'order': 32, 
-#              'resource_uri': '/api/v1/doc/state/7/', 
-#              'slug': 'pub', 
-#              'type': 'draft-iesg', 
-#              'used': True
-#            }
-#        The state parameter is one of the 'states' from a document object.
-#        """
-#        api_url  = "/api/v1/doc/state/" + state
-#        response = self.session.get(self.base_url + api_url, verify=True)
-#        if response.status_code == 200:
-#            resp = response.json()
-#            resp['next_states'] = list(map(lambda s : s.replace("/api/v1/doc/state/", "").rstrip('/'), resp['next_states']))
-#            resp['type']        = resp['type'].replace("/api/v1/doc/statetype/", "").rstrip('/')
-#            return resp
-#        else:
-#            return None
+    def document_state(self, state_uri: str):
+        """
+        Information about the state of a document.
+
+        Parameters:
+           state_uri -- A URI representing a document state, e.g., as returned
+                        in the states entry of the dict returned by document()
+
+        Returns:
+            A Dict containing the following fields:
+              id           -- An identifier for the state
+              resource_uri -- The URI representing this state
+              desc         -- A description of the state
+              name         -- The name of the state
+              next_states  -- A List of URIs representing possible next states for the document
+              order        -- 
+              slug         -- Short name
+              type         -- A URI as returned by document_state_types()
+              used         -- True if this state is used in the datatracker
+        """
+        assert state_uri.startswith("/api/v1/doc/state/") and state_uri.endswith("/")
+        response = self.session.get(self.base_url + state_uri, verify=True)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return None
 
 
-#    def document_states(self, statetype=""):
-#        """
-#        A generator returning the possible states a document can be in.
-#        Each element is a state, as returned by document_state(). 
-#        The statetype parameter allows subsetting of the possible states,
-#        for example specifying statetype="draft-rfceditor" returns the
-#        states a document can be in during RFC Editor processing.
-#        """
-#        api_url   = "/api/v1/doc/state/"
-#        if statetype != "":
-#            api_url = api_url + "?type=" + statetype
-#        while api_url != None:
-#            r = self.session.get(self.base_url + api_url, verify=True)
-#            meta = r.json()['meta']
-#            objs = r.json()['objects']
-#            api_url = meta['next']
-#            for obj in objs:
-#                obj['next_states'] = list(map(lambda s : s.replace("/api/v1/doc/state/", "").rstrip('/'), obj['next_states']))
-#                obj['type']        = obj['type'].replace("/api/v1/doc/statetype/", "").rstrip('/')
-#                yield obj
+    def document_states(self, statetype=None):
+        """
+        A generator returning the possible states a document can be in.
+
+        Parameters:
+           statetype -- The 'slug' field from one of the dicts returned by the
+                        document_state_types() method; constrains the results
+                        to that particular state type.
+
+        Returns:
+            A sequence of dicts, as returned by document_state()
+        """
+        api_url   = "/api/v1/doc/state/"
+        if statetype is not None:
+            api_url = api_url + "?type=" + statetype
+        while api_url != None:
+            r = self.session.get(self.base_url + api_url, verify=True)
+            meta = r.json()['meta']
+            objs = r.json()['objects']
+            api_url = meta['next']
+            for obj in objs:
+                yield obj
 
 
-#    def document_state_types(self):
-#        """
-#        A generator returning possible state types for a document.
-#        These are the possible values of the 'type' field in the 
-#        output of document_state(), or the statetype parameter to
-#        document_states().
-#        """
-#        api_url   = "/api/v1/doc/statetype/"
-#        while api_url != None:
-#            r = self.session.get(self.base_url + api_url, verify=True)
-#            meta = r.json()['meta']
-#            objs = r.json()['objects']
-#            api_url = meta['next']
-#            for obj in objs:
-#                yield obj['slug']
+    def document_state_types(self):
+        """
+        A generator returning possible state types for a document.
+        These are the possible values of the 'type' field in the 
+        output of document_state(), or the statetype parameter to
+        document_states().
+
+        Returns:
+           A Dict containing the following fields:
+              resource_uri -- The URI representing this state
+              label        -- A label for the state
+              slub         -- A short name for the state
+
+        """
+        api_url   = "/api/v1/doc/statetype/"
+        while api_url != None:
+            r = self.session.get(self.base_url + api_url, verify=True)
+            meta = r.json()['meta']
+            objs = r.json()['objects']
+            api_url = meta['next']
+            for obj in objs:
+                yield obj
 
 
     #   https://datatracker.ietf.org/api/v1/doc/docevent/                        - list of document events
@@ -442,19 +468,109 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/doc/addedmessageevent/
     #   https://datatracker.ietf.org/api/v1/doc/editedauthorsdocevent/
 
-#    def submission(self, submission):
-#        """
-#        Returns a JSON object giving information about a document submission.
-#        """
-#        api_url = "/api/v1/submit/submission/" + submission + "/"
-#        response = self.session.get(self.base_url + api_url, verify=True)
-#        if response.status_code == 200:
-#            resp = response.json()
-#            resp['group'] = resp['group'].replace("/api/v1/group/group/", "").rstrip('/')
-#            # FIXME: there is more tidying that can be done here
-#            return resp
-#        else:
-#            return None
+    def submission(self, submission):
+        # FIXME: add documentation
+        """
+        Returns a JSON object giving information about a document submission.
+        """
+        assert submission.startswith("/api/v1/doc/document/")
+        assert submission.endswith("/")
+        response = self.session.get(self.base_url + submission, verify=True)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return None
+
+    # Datatracker API endpoints returning information about names:
+    # * https://datatracker.ietf.org/api/v1/name/doctypename/
+    # * https://datatracker.ietf.org/api/v1/name/streamname/
+    #   https://datatracker.ietf.org/api/v1/name/dbtemplatetypename/
+    #   https://datatracker.ietf.org/api/v1/name/docrelationshipname/
+    #   https://datatracker.ietf.org/api/v1/name/doctagname/
+    #   https://datatracker.ietf.org/api/v1/name/docurltagname/
+    #   https://datatracker.ietf.org/api/v1/name/groupstatename/
+    #   https://datatracker.ietf.org/api/v1/name/formallanguagename/
+    #   https://datatracker.ietf.org/api/v1/name/timeslottypename/
+    #   https://datatracker.ietf.org/api/v1/name/liaisonstatementeventtypename/
+    #   https://datatracker.ietf.org/api/v1/name/stdlevelname/
+    #   https://datatracker.ietf.org/api/v1/name/ballotpositionname/
+    #   https://datatracker.ietf.org/api/v1/name/reviewrequeststatename/
+    #   https://datatracker.ietf.org/api/v1/name/groupmilestonestatename/
+    #   https://datatracker.ietf.org/api/v1/name/iprlicensetypename/
+    #   https://datatracker.ietf.org/api/v1/name/feedbacktypename/
+    #   https://datatracker.ietf.org/api/v1/name/reviewtypename/
+    #   https://datatracker.ietf.org/api/v1/name/iprdisclosurestatename/
+    #   https://datatracker.ietf.org/api/v1/name/reviewresultname/
+    #   https://datatracker.ietf.org/api/v1/name/liaisonstatementstate/
+    #   https://datatracker.ietf.org/api/v1/name/roomresourcename/
+    #   https://datatracker.ietf.org/api/v1/name/liaisonstatementtagname/
+    #   https://datatracker.ietf.org/api/v1/name/topicaudiencename/
+    #   https://datatracker.ietf.org/api/v1/name/continentname/
+    #   https://datatracker.ietf.org/api/v1/name/nomineepositionstatename/
+    #   https://datatracker.ietf.org/api/v1/name/importantdatename/
+    #   https://datatracker.ietf.org/api/v1/name/liaisonstatementpurposename/
+    #   https://datatracker.ietf.org/api/v1/name/constraintname/
+    #   https://datatracker.ietf.org/api/v1/name/sessionstatusname/
+    #   https://datatracker.ietf.org/api/v1/name/ipreventtypename/
+    #   https://datatracker.ietf.org/api/v1/name/agendatypename/
+    #   https://datatracker.ietf.org/api/v1/name/docremindertypename/
+    #   https://datatracker.ietf.org/api/v1/name/intendedstdlevelname/
+    #   https://datatracker.ietf.org/api/v1/name/countryname/
+    #   https://datatracker.ietf.org/api/v1/name/meetingtypename/
+    #   https://datatracker.ietf.org/api/v1/name/grouptypename/
+    #   https://datatracker.ietf.org/api/v1/name/draftsubmissionstatename/
+    #   https://datatracker.ietf.org/api/v1/name/rolename/
+
+
+    def document_type(self, doctype_uri: str):
+        # FIXME: add documentation
+        assert doctype_uri.startswith("/api/v1/name/doctypename/") and doctype_uri.endswith("/")
+        response = self.session.get(self.base_url + doctype_uri, verify=True)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return None
+
+
+    def document_types(self):
+        # FIXME: add documentation
+        """
+        A generator returning possible document types.
+        """
+        url = "/api/v1/name/doctypename/"
+        while url != None:
+            r = self.session.get(self.base_url + url, verify=True)
+            meta = r.json()['meta']
+            objs = r.json()['objects']
+            url  = meta['next']
+            for obj in objs:
+                yield obj
+
+
+    def stream(self, stream_uri: str):
+        # FIXME: add documentation
+        assert stream_uri.startswith("/api/v1/name/streamname/") and stream_uri.endswith("/")
+        response = self.session.get(self.base_url + stream_uri, verify=True)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return None
+
+
+    def streams(self):
+        # FIXME: add documentation
+        """
+        A generator returning possible document streams.
+        """
+        url = "/api/v1/name/streamname/"
+        while url != None:
+            r = self.session.get(self.base_url + url, verify=True)
+            meta = r.json()['meta']
+            objs = r.json()['objects']
+            url  = meta['next']
+            for obj in objs:
+                yield obj
+
 
     # Datatracker API endpoints returning information about working groups:
     #   https://datatracker.ietf.org/api/v1/group/group/                               - list of groups
@@ -474,37 +590,39 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/group/changestategroupevent/?group=2161    - Group state changes
     #   https://datatracker.ietf.org/api/v1/group/groupstatetransitions                - ???
 
-#    def group(self, group_id):
-#        # FIXME
-#        pass
+    def group(self, group_id):
+        # FIXME: implement this
+        raise NotImplementedError
 
-#    def group_from_acronym(self, acronym):
-#        api_url  = "/api/v1/group/group/?acronym=" + acronym
-#        response = self.session.get(self.base_url + api_url, verify=True)
-#        if response.status_code == 200:
-#            return response.json()["objects"][0]
-#        else:
-#            return None
+    def group_from_acronym(self, acronym):
+        # FIXME: add documentation
+        api_url  = "/api/v1/group/group/?acronym=" + acronym
+        response = self.session.get(self.base_url + api_url, verify=True)
+        if response.status_code == 200:
+            return response.json()["objects"][0]
+        else:
+            return None
 
-#    def groups(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07", name_contains=None):
-#        # FIXME: no tests for this
-#        """
-#        A generator that returns JSON objects representing all groups recorded
-#        in the datatracker. The since and until parameters can be used to contrain
-#        the output to only entries with timestamps in a particular time range.
-#        If provided, name_contains filters based on the whether the name field
-#        contains the specified value.
-#        """
-#        api_url = "/api/v1/group/group/?time__gt=" + since + "&time__lt=" + until
-#        if name_contains != None:
-#            api_url = api_url + "&name__contains=" + name_contains
-#        while api_url != None:
-#            r = self.session.get(self.base_url + api_url, verify=True)
-#            meta = r.json()['meta']
-#            objs = r.json()['objects']
-#            api_url = meta['next']
-#            for obj in objs:
-#                yield obj
+    def groups(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07", name_contains=None):
+        # FIXME: add documentation
+        # FIXME: no tests for this
+        """
+        A generator that returns JSON objects representing all groups recorded
+        in the datatracker. The since and until parameters can be used to contrain
+        the output to only entries with timestamps in a particular time range.
+        If provided, name_contains filters based on the whether the name field
+        contains the specified value.
+        """
+        api_url = "/api/v1/group/group/?time__gt=" + since + "&time__lt=" + until
+        if name_contains != None:
+            api_url = api_url + "&name__contains=" + name_contains
+        while api_url != None:
+            r = self.session.get(self.base_url + api_url, verify=True)
+            meta = r.json()['meta']
+            objs = r.json()['objects']
+            api_url = meta['next']
+            for obj in objs:
+                yield obj
 
     # Datatracker API endpoints returning information about meetings:
     #   https://datatracker.ietf.org/api/v1/meeting/meeting/                        - list of meetings
@@ -622,34 +740,44 @@ class TestDatatracker(unittest.TestCase):
         #dt = DataTracker()
         #for d in dt.documents(doctype="bluesheets"):
         #    print(d)
-        pass
+        # FIXME: implement tests
+        raise NotImplementedError
 
     def test_document_charter(self):
-        pass
+        # FIXME: implement tests
+        raise NotImplementedError
 
     def test_document_conflrev(self):
-        pass
+        # FIXME: implement tests
+        raise NotImplementedError
 
     def test_document_slides(self):
-        pass
+        # FIXME: implement tests
+        raise NotImplementedError
 
     def test_document_statchg(self):
-        pass
+        # FIXME: implement tests
+        raise NotImplementedError
 
     def test_document_liaison(self):
-        pass
+        # FIXME: implement tests
+        raise NotImplementedError
 
     def test_document_liai_att(self):
-        pass
+        # FIXME: implement tests
+        raise NotImplementedError
 
     def test_document_recording(self):
-        pass
+        # FIXME: implement tests
+        raise NotImplementedError
 
     def test_document_review(self):
-        pass
+        # FIXME: implement tests
+        raise NotImplementedError
 
     def test_document_shepwrit(self):
-        pass
+        # FIXME: implement tests
+        raise NotImplementedError
 
 #    def test_documents(self):
 #        dt = DataTracker()
@@ -660,76 +788,79 @@ class TestDatatracker(unittest.TestCase):
         d  = dt.document_from_rfc("rfc3550")
         self.assertEqual(d["resource_uri"], "/api/v1/doc/document/draft-ietf-avt-rtp-new/")
 
-#    def test_document_state(self):
-#        dt = DataTracker()
-#        s = dt.document_state('7')
-#        self.assertEqual(s['desc'], 'The ID has been published as an RFC.')
-#        self.assertEqual(s['id'], 7)
-#        self.assertEqual(s['name'], 'RFC Published')
-#        self.assertEqual(s['next_states'], ['8'])
-#        self.assertEqual(s['order'], 32)
-#        self.assertEqual(s['resource_uri'], '/api/v1/doc/state/7/')
-#        self.assertEqual(s['slug'], 'pub')
-#        self.assertEqual(s['type'], 'draft-iesg')
-#        self.assertEqual(s['used'], True)
+    def test_document_state(self):
+        dt = DataTracker()
+        s = dt.document_state('/api/v1/doc/state/7/')
+        self.assertEqual(s['desc'],         'The ID has been published as an RFC.')
+        self.assertEqual(s['id'],           7)
+        self.assertEqual(s['name'],         'RFC Published')
+        self.assertEqual(s['next_states'],  ['/api/v1/doc/state/8/'])
+        self.assertEqual(s['order'],        32)
+        self.assertEqual(s['resource_uri'], '/api/v1/doc/state/7/')
+        self.assertEqual(s['slug'],         'pub')
+        self.assertEqual(s['type'],         '/api/v1/doc/statetype/draft-iesg/')
+        self.assertEqual(s['used'],         True)
 
-#    def test_document_states(self):
-#        dt = DataTracker()
-#        states = list(dt.document_states(statetype="draft-rfceditor"))
-#        self.assertEqual(states[ 0]['name'], 'AUTH')
-#        self.assertEqual(states[ 1]['name'], 'AUTH48')
-#        self.assertEqual(states[ 2]['name'], 'EDIT')
-#        self.assertEqual(states[ 3]['name'], 'IANA')
-#        self.assertEqual(states[ 4]['name'], 'IESG')
-#        self.assertEqual(states[ 5]['name'], 'ISR')
-#        self.assertEqual(states[ 6]['name'], 'ISR-AUTH')
-#        self.assertEqual(states[ 7]['name'], 'REF')
-#        self.assertEqual(states[ 8]['name'], 'RFC-EDITOR')
-#        self.assertEqual(states[ 9]['name'], 'TO')
-#        self.assertEqual(states[10]['name'], 'MISSREF')
-#        self.assertEqual(states[11]['name'], 'AUTH48-DONE')
-#        self.assertEqual(states[12]['name'], 'AUTH48-DONE')
-#        self.assertEqual(states[13]['name'], 'EDIT')
-#        self.assertEqual(states[14]['name'], 'IANA')
-#        self.assertEqual(states[15]['name'], 'IESG')
-#        self.assertEqual(states[16]['name'], 'ISR-AUTH')
-#        self.assertEqual(states[17]['name'], 'Pending')
+    def test_document_states(self):
+        dt = DataTracker()
+        states = list(dt.document_states(statetype="draft-rfceditor"))
+        self.assertEqual(len(states), 18)
+        self.assertEqual(states[ 0]['name'], 'AUTH')
+        self.assertEqual(states[ 1]['name'], 'AUTH48')
+        self.assertEqual(states[ 2]['name'], 'EDIT')
+        self.assertEqual(states[ 3]['name'], 'IANA')
+        self.assertEqual(states[ 4]['name'], 'IESG')
+        self.assertEqual(states[ 5]['name'], 'ISR')
+        self.assertEqual(states[ 6]['name'], 'ISR-AUTH')
+        self.assertEqual(states[ 7]['name'], 'REF')
+        self.assertEqual(states[ 8]['name'], 'RFC-EDITOR')
+        self.assertEqual(states[ 9]['name'], 'TO')
+        self.assertEqual(states[10]['name'], 'MISSREF')
+        self.assertEqual(states[11]['name'], 'AUTH48-DONE')
+        self.assertEqual(states[12]['name'], 'AUTH48-DONE')
+        self.assertEqual(states[13]['name'], 'EDIT')
+        self.assertEqual(states[14]['name'], 'IANA')
+        self.assertEqual(states[15]['name'], 'IESG')
+        self.assertEqual(states[16]['name'], 'ISR-AUTH')
+        self.assertEqual(states[17]['name'], 'Pending')
 
-#    def test_document_state_types(self):
-#        dt = DataTracker()
-#        st = list(dt.document_state_types())
-#        self.assertEqual(st[ 0], 'draft')
-#        self.assertEqual(st[ 1], 'draft-iesg')
-#        self.assertEqual(st[ 2], 'draft-iana')
-#        self.assertEqual(st[ 3], 'draft-rfceditor')
-#        self.assertEqual(st[ 4], 'draft-stream-ietf')
-#        self.assertEqual(st[ 5], 'draft-stream-irtf')
-#        self.assertEqual(st[ 6], 'draft-stream-ise')
-#        self.assertEqual(st[ 7], 'draft-stream-iab')
-#        self.assertEqual(st[ 8], 'slides')
-#        self.assertEqual(st[ 9], 'minutes')
-#        self.assertEqual(st[10], 'agenda')
-#        self.assertEqual(st[11], 'liai-att')
-#        self.assertEqual(st[12], 'charter')
-#        self.assertEqual(st[13], 'conflrev')
-#        self.assertEqual(st[14], 'draft-iana-action')
-#        self.assertEqual(st[15], 'draft-iana-review')
-#        self.assertEqual(st[16], 'statchg')
-#        self.assertEqual(st[17], 'recording')
-#        self.assertEqual(st[18], 'bluesheets')
-#        self.assertEqual(st[19], 'reuse_policy')
-#        self.assertEqual(st[20], 'review')
-#        self.assertEqual(st[21], 'liaison')
-#        self.assertEqual(st[22], 'shepwrit')
+    def test_document_state_types(self):
+        dt = DataTracker()
+        st = list(dt.document_state_types())
+        self.assertEqual(len(st), 23)
+        self.assertEqual(st[ 0]["slug"], 'draft')
+        self.assertEqual(st[ 1]["slug"], 'draft-iesg')
+        self.assertEqual(st[ 2]["slug"], 'draft-iana')
+        self.assertEqual(st[ 3]["slug"], 'draft-rfceditor')
+        self.assertEqual(st[ 4]["slug"], 'draft-stream-ietf')
+        self.assertEqual(st[ 5]["slug"], 'draft-stream-irtf')
+        self.assertEqual(st[ 6]["slug"], 'draft-stream-ise')
+        self.assertEqual(st[ 7]["slug"], 'draft-stream-iab')
+        self.assertEqual(st[ 8]["slug"], 'slides')
+        self.assertEqual(st[ 9]["slug"], 'minutes')
+        self.assertEqual(st[10]["slug"], 'agenda')
+        self.assertEqual(st[11]["slug"], 'liai-att')
+        self.assertEqual(st[12]["slug"], 'charter')
+        self.assertEqual(st[13]["slug"], 'conflrev')
+        self.assertEqual(st[14]["slug"], 'draft-iana-action')
+        self.assertEqual(st[15]["slug"], 'draft-iana-review')
+        self.assertEqual(st[16]["slug"], 'statchg')
+        self.assertEqual(st[17]["slug"], 'recording')
+        self.assertEqual(st[18]["slug"], 'bluesheets')
+        self.assertEqual(st[19]["slug"], 'reuse_policy')
+        self.assertEqual(st[20]["slug"], 'review')
+        self.assertEqual(st[21]["slug"], 'liaison')
+        self.assertEqual(st[22]["slug"], 'shepwrit')
 
-#    def test_submission(self):
-#        dt = DataTracker()
-#        sub = dt.submission('24225')
+    def test_submission(self):
+        # FIXME: implement tests
+        raise NotImplementedError
 
-#    def test_group_from_acronym(self):
-#        dt = DataTracker()
-#        group = dt.group_from_acronym("avt")
-#        self.assertEqual(group['id'], 941)
+    def test_group_from_acronym(self):
+        dt = DataTracker()
+        group = dt.group_from_acronym("avt")
+        self.assertEqual(group['id'], 941)
+
 
 if __name__ == '__main__':
     unittest.main()
