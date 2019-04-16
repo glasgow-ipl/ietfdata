@@ -207,7 +207,7 @@ class DataTracker:
         elif doc["type"] == "/api/v1/name/doctypename/statchg/":
             doc["document_url"] = "https://www6.ietf.org/sc/"         + doc["name"] + "-" + doc["rev"] + ".txt"
         elif doc["type"] == "/api/v1/name/doctypename/liaison/":
-            doc["document_url"] = "https://www6.ietf.org/lib/dt/documents/LIAISON/" + doc["external_url"]
+            doc["document_url"] = "https://www6.ietf.org/lib/dt/documents/LIAISON/" + doc["uploaded_filename"]
         elif doc["type"] == "/api/v1/name/doctypename/liai-att/":
             doc["document_url"] = "https://www6.ietf.org/lib/dt/documents/LIAISON/" + doc["external_url"]
         elif doc["type"] == "/api/v1/name/doctypename/recording/":
@@ -776,11 +776,12 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
 
     def test_document_liaison(self):
-        #dt = DataTracker()
-        #for d in dt.documents(doctype="liaison"):
-        #    print(d)
-        # FIXME: implement tests
-        raise NotImplementedError
+        dt = DataTracker()
+        d  = dt.document("/api/v1/doc/document/liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1/")
+        self.assertEqual(d["resource_uri"],      "/api/v1/doc/document/liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1/")
+        self.assertEqual(d["document_url"],      "https://www6.ietf.org/lib/dt/documents/LIAISON/liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1.doc")
+        self.assertEqual(d["uploaded_filename"], "liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1.doc")
+        self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
 
     def test_document_liai_att(self):
         #dt = DataTracker()
