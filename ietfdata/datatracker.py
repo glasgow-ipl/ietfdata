@@ -278,28 +278,16 @@ class DataTracker:
 
     def documents(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07", doctype=None, group_uri=None):
         """
-        A generator that returns JSON objects representing all documents
-        recorded in the datatracker. As of 29 April 2018, approximately
-        84000 documents are recorded.
+        A generator that returns all documents recorded in the datatracker.
+        As of 29 April 2018, approximately 84000 documents are recorded.
 
         Parameters:
-            since     -- Only return people with timestamp after this
-            until     -- Only return people with timestamp before this
-            doctype   -- Constrain the results to be of type:
-                            "agenda"     - Agenda
-                            "bluesheets" - Bluesheets
-                            "charter"    - Charter
-                            "conflrev"   - Conflict Review
-                            "draft"      - Draft
-                            "liaison"    - Liaison
-                            "liai-att"   - Liaison Attachment
-                            "minutes"    - Minutes
-                            "recording"  - Recording
-                            "review"     - Review
-                            "shepwrit"   - Shepherd's writeup
-                            "slides"     - Slides
-                            "statchg"    - Status Change
-            group_uri -- Constrain the results to documents from the specified group.
+           since     -- Only return people with timestamp after this
+           until     -- Only return people with timestamp before this
+           doctype   -- The 'slug' field from one of the dicts returned by the
+                        document_types() method; constrains the results to that
+                        particular state type.
+           group_uri -- Constrain the results to documents from the specified group.
 
         Returns:
             An iterator, where each element is as returned by the document() method
