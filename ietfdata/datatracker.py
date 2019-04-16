@@ -200,7 +200,7 @@ class DataTracker:
         elif doc["type"] == "/api/v1/name/doctypename/conflrev/":
             doc["document_url"] = "https://www6.ietf.org/cr/"         + doc["name"] + "-" + doc["rev"] + ".txt"
         elif doc["type"] == "/api/v1/name/doctypename/draft/":
-            doc["document_url"] = "https://www6.ietf.org/archive/id/" + doc["name"] + "-" + doc["rev"] + ".txt"
+            doc["document_url"] = "https://www.ietf.org/archive/id/"  + doc["name"] + "-" + doc["rev"] + ".txt"
         elif doc["type"] == "/api/v1/name/doctypename/slides/":
             doc["document_url"] = "https://www6.ietf.org/archive/id/" + doc["name"] + "-" + doc["rev"] + ".txt"
         elif doc["type"] == "/api/v1/name/doctypename/statchg/":
