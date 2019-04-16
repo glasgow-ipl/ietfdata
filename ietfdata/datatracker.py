@@ -750,34 +750,58 @@ class TestDatatracker(unittest.TestCase):
         raise NotImplementedError
 
     def test_document_conflrev(self):
+        #dt = DataTracker()
+        #for d in dt.documents(doctype="bluesheets"):
+        #    print(d)
         # FIXME: implement tests
         raise NotImplementedError
 
     def test_document_slides(self):
+        #dt = DataTracker()
+        #for d in dt.documents(doctype="bluesheets"):
+        #    print(d)
         # FIXME: implement tests
         raise NotImplementedError
 
     def test_document_statchg(self):
+        #dt = DataTracker()
+        #for d in dt.documents(doctype="bluesheets"):
+        #    print(d)
         # FIXME: implement tests
         raise NotImplementedError
 
     def test_document_liaison(self):
+        #dt = DataTracker()
+        #for d in dt.documents(doctype="bluesheets"):
+        #    print(d)
         # FIXME: implement tests
         raise NotImplementedError
 
     def test_document_liai_att(self):
+        #dt = DataTracker()
+        #for d in dt.documents(doctype="bluesheets"):
+        #    print(d)
         # FIXME: implement tests
         raise NotImplementedError
 
     def test_document_recording(self):
+        #dt = DataTracker()
+        #for d in dt.documents(doctype="bluesheets"):
+        #    print(d)
         # FIXME: implement tests
         raise NotImplementedError
 
     def test_document_review(self):
+        #dt = DataTracker()
+        #for d in dt.documents(doctype="bluesheets"):
+        #    print(d)
         # FIXME: implement tests
         raise NotImplementedError
 
     def test_document_shepwrit(self):
+        #dt = DataTracker()
+        #for d in dt.documents(doctype="bluesheets"):
+        #    print(d)
         # FIXME: implement tests
         raise NotImplementedError
 
