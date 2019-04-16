@@ -211,7 +211,9 @@ class DataTracker:
         elif doc["type"] == "/api/v1/name/doctypename/liai-att/":
             doc["document_url"] = "https://www6.ietf.org/lib/dt/documents/LIAISON/" + doc["uploaded_filename"]
         elif doc["type"] == "/api/v1/name/doctypename/recording/":
-            doc["document_url"] = doc["external_url"]
+            # 2019-04-16: The external_url gives, e.g., https://www.ietf.org/audio/ietf94/ietf94-room304-20151103-1520.mp3,
+            # but that link is broken and we need to use http://www6.ietf.org/... instead.
+            doc["document_url"] = "https://www6.ietf.org/" + doc["external_url"][21:]
         elif doc["type"] == "/api/v1/name/doctypename/review/":
             doc["document_url"] = doc["external_url"]
         elif doc["type"] == "/api/v1/name/doctypename/shepwrit/":
@@ -780,11 +782,12 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
 
     def test_document_recording(self):
-        #dt = DataTracker()
-        #for d in dt.documents(doctype="recording"):
-        #    print(d)
-        # FIXME: implement tests
-        raise NotImplementedError
+        dt = DataTracker()
+        d  = dt.document("/api/v1/doc/document/recording-94-taps-1/")
+        self.assertEqual(d["resource_uri"],      "/api/v1/doc/document/recording-94-taps-1/")
+        self.assertEqual(d["document_url"],      "https://www6.ietf.org/audio/ietf94/ietf94-room304-20151103-1520.mp3")
+        self.assertEqual(d["uploaded_filename"], "")
+        self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
 
     def test_document_review(self):
         #dt = DataTracker()
