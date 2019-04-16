@@ -768,11 +768,12 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
 
     def test_document_statchg(self):
-        #dt = DataTracker()
-        #for d in dt.documents(doctype="statchg"):
-        #    print(d)
-        # FIXME: implement tests
-        raise NotImplementedError
+        dt = DataTracker()
+        d  = dt.document("/api/v1/doc/document/status-change-rfc3044-rfc3187-orig-urn-regs-to-historic/")
+        self.assertEqual(d["resource_uri"],      "/api/v1/doc/document/status-change-rfc3044-rfc3187-orig-urn-regs-to-historic/")
+        self.assertEqual(d["document_url"],      "https://www6.ietf.org/sc/status-change-rfc3044-rfc3187-orig-urn-regs-to-historic-00.txt")
+        self.assertEqual(d["uploaded_filename"], "")
+        self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
 
     def test_document_liaison(self):
         #dt = DataTracker()
