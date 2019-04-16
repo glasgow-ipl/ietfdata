@@ -744,63 +744,63 @@ class TestDatatracker(unittest.TestCase):
 
     def test_document_charter(self):
         #dt = DataTracker()
-        #for d in dt.documents(doctype="bluesheets"):
+        #for d in dt.documents(doctype="charter"):
         #    print(d)
         # FIXME: implement tests
         raise NotImplementedError
 
     def test_document_conflrev(self):
         #dt = DataTracker()
-        #for d in dt.documents(doctype="bluesheets"):
+        #for d in dt.documents(doctype="conflrev"):
         #    print(d)
         # FIXME: implement tests
         raise NotImplementedError
 
     def test_document_slides(self):
         #dt = DataTracker()
-        #for d in dt.documents(doctype="bluesheets"):
+        #for d in dt.documents(doctype="slides"):
         #    print(d)
         # FIXME: implement tests
         raise NotImplementedError
 
     def test_document_statchg(self):
         #dt = DataTracker()
-        #for d in dt.documents(doctype="bluesheets"):
+        #for d in dt.documents(doctype="statchg"):
         #    print(d)
         # FIXME: implement tests
         raise NotImplementedError
 
     def test_document_liaison(self):
         #dt = DataTracker()
-        #for d in dt.documents(doctype="bluesheets"):
+        #for d in dt.documents(doctype="liaison"):
         #    print(d)
         # FIXME: implement tests
         raise NotImplementedError
 
     def test_document_liai_att(self):
         #dt = DataTracker()
-        #for d in dt.documents(doctype="bluesheets"):
+        #for d in dt.documents(doctype="liai_att"):
         #    print(d)
         # FIXME: implement tests
         raise NotImplementedError
 
     def test_document_recording(self):
         #dt = DataTracker()
-        #for d in dt.documents(doctype="bluesheets"):
+        #for d in dt.documents(doctype="recording"):
         #    print(d)
         # FIXME: implement tests
         raise NotImplementedError
 
     def test_document_review(self):
         #dt = DataTracker()
-        #for d in dt.documents(doctype="bluesheets"):
+        #for d in dt.documents(doctype="review"):
         #    print(d)
         # FIXME: implement tests
         raise NotImplementedError
 
     def test_document_shepwrit(self):
         #dt = DataTracker()
-        #for d in dt.documents(doctype="bluesheets"):
+        #for d in dt.documents(doctype="shepwrit"):
         #    print(d)
         # FIXME: implement tests
         raise NotImplementedError
