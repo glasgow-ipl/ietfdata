@@ -188,16 +188,13 @@ class DataTracker:
             # FIXME: This doesn't work for interim meetings
             # FIXME: This doesn't work for PDF agenda files
             meeting = doc["name"].split("-")[1]
-            if doc["external_url"].startswith("agenda-" + meeting + "-"):
-                doc["document_url"] = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + doc["uploaded_filename"]
-            else:
-                doc["document_url"] = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + doc["name"]
+            doc["document_url"] = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + doc["uploaded_filename"]
         elif doc["type"] == "/api/v1/name/doctypename/minutes/":
             meeting = doc["name"].split("-")[1]
-            doc["document_url"] = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + doc["name"]
+            doc["document_url"] = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + doc["uploaded_filename"]
         elif doc["type"] == "/api/v1/name/doctypename/bluesheets/":
             meeting = doc["name"].split("-")[1]
-            doc["document_url"] = "https://www.ietf.org/proceedings/" + meeting + "/bluesheets/" + doc["external_url"]
+            doc["document_url"] = "https://www.ietf.org/proceedings/" + meeting + "/bluesheets/" + doc["uploaded_filename"]
         elif doc["type"] == "/api/v1/name/doctypename/charter/":
             doc["document_url"] = "https://www.ietf.org/charter/"    + doc["name"] + "-" + doc["rev"] + ".txt"
         elif doc["type"] == "/api/v1/name/doctypename/conflrev/":
@@ -725,7 +722,7 @@ class TestDatatracker(unittest.TestCase):
         dt = DataTracker()
         d  = dt.document("/api/v1/doc/document/agenda-90-precis/")
         self.assertEqual(d["resource_uri"],      "/api/v1/doc/document/agenda-90-precis/")
-        self.assertEqual(d["document_url"],      "https://datatracker.ietf.org/meeting/90/materials/agenda-90-precis")
+        self.assertEqual(d["document_url"],      "https://datatracker.ietf.org/meeting/90/materials/agenda-90-precis.txt")
         self.assertEqual(d["uploaded_filename"], "agenda-90-precis.txt")
         self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
 
@@ -733,17 +730,22 @@ class TestDatatracker(unittest.TestCase):
         dt = DataTracker()
         d  = dt.document("/api/v1/doc/document/minutes-89-cfrg/")
         self.assertEqual(d["resource_uri"],      "/api/v1/doc/document/minutes-89-cfrg/")
-        self.assertEqual(d["document_url"],      "https://datatracker.ietf.org/meeting/89/materials/minutes-89-cfrg")
+        self.assertEqual(d["document_url"],      "https://datatracker.ietf.org/meeting/89/materials/minutes-89-cfrg.txt")
+        self.assertEqual(d["uploaded_filename"], "minutes-89-cfrg.txt")
         self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
 
     def test_document_bluesheets(self):
+        dt = DataTracker()
+        d  = dt.document("/api/v1/doc/document/bluesheets-95-xrblock-01/")
+        self.assertEqual(d["resource_uri"],      "/api/v1/doc/document/bluesheets-95-xrblock-01/")
+        self.assertEqual(d["document_url"],      "https://www.ietf.org/proceedings/95/bluesheets/bluesheets-95-xrblock-01.pdf")
+        self.assertEqual(d["uploaded_filename"], "bluesheets-95-xrblock-01.pdf")
+        self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
+
+    def test_document_charter(self):
         #dt = DataTracker()
         #for d in dt.documents(doctype="bluesheets"):
         #    print(d)
-        # FIXME: implement tests
-        raise NotImplementedError
-
-    def test_document_charter(self):
         # FIXME: implement tests
         raise NotImplementedError
 
