@@ -196,19 +196,19 @@ class DataTracker:
             meeting = doc["name"].split("-")[1]
             doc["document_url"] = "https://www.ietf.org/proceedings/" + meeting + "/bluesheets/" + doc["uploaded_filename"]
         elif doc["type"] == "/api/v1/name/doctypename/charter/":
-            doc["document_url"] = "" # FIXME: implement this
+            doc["document_url"] = "https://www6.ietf.org/charter/"    + doc["name"] + "-" + doc["rev"] + ".txt"
         elif doc["type"] == "/api/v1/name/doctypename/conflrev/":
-            doc["document_url"] = "https://www.ietf.org/cr/"         + doc["name"] + "-" + doc["rev"] + ".txt"
+            doc["document_url"] = "https://www6.ietf.org/cr/"         + doc["name"] + "-" + doc["rev"] + ".txt"
         elif doc["type"] == "/api/v1/name/doctypename/draft/":
-            doc["document_url"] = "https://www.ietf.org/archive/id/" + doc["name"] + "-" + doc["rev"] + ".txt"
+            doc["document_url"] = "https://www6.ietf.org/archive/id/" + doc["name"] + "-" + doc["rev"] + ".txt"
         elif doc["type"] == "/api/v1/name/doctypename/slides/":
-            doc["document_url"] = "https://www.ietf.org/archive/id/" + doc["name"] + "-" + doc["rev"] + ".txt"
+            doc["document_url"] = "https://www6.ietf.org/archive/id/" + doc["name"] + "-" + doc["rev"] + ".txt"
         elif doc["type"] == "/api/v1/name/doctypename/statchg/":
-            doc["document_url"] = "https://www.ietf.org/sc/"         + doc["name"] + "-" + doc["rev"] + ".txt"
+            doc["document_url"] = "https://www6.ietf.org/sc/"         + doc["name"] + "-" + doc["rev"] + ".txt"
         elif doc["type"] == "/api/v1/name/doctypename/liaison/":
-            doc["document_url"] = "https://www.ietf.org/lib/dt/documents/LIAISON/" + doc["external_url"]
+            doc["document_url"] = "https://www6.ietf.org/lib/dt/documents/LIAISON/" + doc["external_url"]
         elif doc["type"] == "/api/v1/name/doctypename/liai-att/":
-            doc["document_url"] = "https://www.ietf.org/lib/dt/documents/LIAISON/" + doc["external_url"]
+            doc["document_url"] = "https://www6.ietf.org/lib/dt/documents/LIAISON/" + doc["external_url"]
         elif doc["type"] == "/api/v1/name/doctypename/recording/":
             doc["document_url"] = doc["external_url"]
         elif doc["type"] == "/api/v1/name/doctypename/review/":
@@ -743,20 +743,20 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
 
     def test_document_charter(self):
-        # FIXME: check the document_url
         dt = DataTracker()
         d  = dt.document("/api/v1/doc/document/charter-ietf-vgmib/")
         self.assertEqual(d["resource_uri"],      "/api/v1/doc/document/charter-ietf-vgmib/")
-        self.assertEqual(d["document_url"],      "")
+        self.assertEqual(d["document_url"],      "https://www6.ietf.org/charter/charter-ietf-vgmib-01.txt")
         self.assertEqual(d["uploaded_filename"], "")
-        #self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
+        self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
 
     def test_document_conflrev(self):
-        #dt = DataTracker()
-        #for d in dt.documents(doctype="conflrev"):
-        #    print(d)
-        # FIXME: implement tests
-        raise NotImplementedError
+        dt = DataTracker()
+        d  = dt.document("/api/v1/doc/document/conflict-review-kiyomoto-kcipher2/")
+        self.assertEqual(d["resource_uri"],      "/api/v1/doc/document/conflict-review-kiyomoto-kcipher2/")
+        self.assertEqual(d["document_url"],      "https://www6.ietf.org/cr/conflict-review-kiyomoto-kcipher2-00.txt")
+        self.assertEqual(d["uploaded_filename"], "")
+        self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
 
     def test_document_slides(self):
         #dt = DataTracker()
