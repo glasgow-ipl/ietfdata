@@ -787,6 +787,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(d["resource_uri"],      "/api/v1/doc/document/recording-94-taps-1/")
         self.assertEqual(d["document_url"],      "https://www6.ietf.org/audio/ietf94/ietf94-room304-20151103-1520.mp3")
         self.assertEqual(d["uploaded_filename"], "")
+        # FIXME: downloading the MP3 is expensive
         self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
 
     def test_document_review(self):
