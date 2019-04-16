@@ -202,7 +202,8 @@ class DataTracker:
         elif doc["type"] == "/api/v1/name/doctypename/draft/":
             doc["document_url"] = "https://www.ietf.org/archive/id/"  + doc["name"] + "-" + doc["rev"] + ".txt"
         elif doc["type"] == "/api/v1/name/doctypename/slides/":
-            doc["document_url"] = "https://www6.ietf.org/archive/id/" + doc["name"] + "-" + doc["rev"] + ".txt"
+            meeting = doc["name"].split("-")[1]
+            doc["document_url"] = "https://www.ietf.org/proceedings/" + meeting + "/slides/" + doc["uploaded_filename"]
         elif doc["type"] == "/api/v1/name/doctypename/statchg/":
             doc["document_url"] = "https://www6.ietf.org/sc/"         + doc["name"] + "-" + doc["rev"] + ".txt"
         elif doc["type"] == "/api/v1/name/doctypename/liaison/":
@@ -759,11 +760,12 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
 
     def test_document_slides(self):
-        #dt = DataTracker()
-        #for d in dt.documents(doctype="slides"):
-        #    print(d)
-        # FIXME: implement tests
-        raise NotImplementedError
+        dt = DataTracker()
+        d  = dt.document("/api/v1/doc/document/slides-65-l2vpn-4/")
+        self.assertEqual(d["resource_uri"],      "/api/v1/doc/document/slides-65-l2vpn-4/")
+        self.assertEqual(d["document_url"],      "https://www.ietf.org/proceedings/65/slides/l2vpn-4.pdf")
+        self.assertEqual(d["uploaded_filename"], "l2vpn-4.pdf")
+        self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
 
     def test_document_statchg(self):
         #dt = DataTracker()
