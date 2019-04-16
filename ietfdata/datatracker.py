@@ -209,7 +209,7 @@ class DataTracker:
         elif doc["type"] == "/api/v1/name/doctypename/liaison/":
             doc["document_url"] = "https://www6.ietf.org/lib/dt/documents/LIAISON/" + doc["uploaded_filename"]
         elif doc["type"] == "/api/v1/name/doctypename/liai-att/":
-            doc["document_url"] = "https://www6.ietf.org/lib/dt/documents/LIAISON/" + doc["external_url"]
+            doc["document_url"] = "https://www6.ietf.org/lib/dt/documents/LIAISON/" + doc["uploaded_filename"]
         elif doc["type"] == "/api/v1/name/doctypename/recording/":
             doc["document_url"] = doc["external_url"]
         elif doc["type"] == "/api/v1/name/doctypename/review/":
@@ -772,11 +772,12 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
 
     def test_document_liai_att(self):
-        #dt = DataTracker()
-        #for d in dt.documents(doctype="liai_att"):
-        #    print(d)
-        # FIXME: implement tests
-        raise NotImplementedError
+        dt = DataTracker()
+        d  = dt.document("/api/v1/doc/document/liaison-2004-08-23-itu-t-ietf-liaison-statement-to-ietf-and-itu-t-study-groups-countering-spam-pdf-version-attachment-1/")
+        self.assertEqual(d["resource_uri"],      "/api/v1/doc/document/liaison-2004-08-23-itu-t-ietf-liaison-statement-to-ietf-and-itu-t-study-groups-countering-spam-pdf-version-attachment-1/")
+        self.assertEqual(d["document_url"],      "https://www6.ietf.org/lib/dt/documents/LIAISON/file39.pdf")
+        self.assertEqual(d["uploaded_filename"], "file39.pdf")
+        self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
 
     def test_document_recording(self):
         #dt = DataTracker()
