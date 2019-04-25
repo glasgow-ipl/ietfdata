@@ -215,6 +215,7 @@ class DataTracker:
             # but that link is broken and we need to use http://www6.ietf.org/... instead.
             doc["document_url"] = "https://www6.ietf.org/" + doc["external_url"][21:]
         elif doc["type"] == "/api/v1/name/doctypename/review/":
+            # FIXME: This points to the formatted HTML page containing the message, but we really want the raw message
             doc["document_url"] = doc["external_url"]
         elif doc["type"] == "/api/v1/name/doctypename/shepwrit/":
             doc["document_url"] = doc["external_url"]
@@ -813,11 +814,13 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(dt.session.head(d["document_url"]).status_code, 200)
 
     def test_document_review(self):
-        #dt = DataTracker()
-        #for d in dt.documents(doctype="review"):
-        #    print(d)
-        # FIXME: implement tests
-        raise NotImplementedError
+        dt = DataTracker()
+        d  = dt.document("/api/v1/doc/document/review-bchv-rfc6890bis-04-genart-lc-kyzivat-2017-02-28/")
+        self.assertEqual(d["resource_uri"],      "/api/v1/doc/document/review-bchv-rfc6890bis-04-genart-lc-kyzivat-2017-02-28/")
+        self.assertEqual(d["document_url"],      "https://mailarchive.ietf.org/arch/msg/gen-art/KhDXZE9JE7jeMJ_cSAzYW6NGM00")
+        self.assertEqual(d["external_url"],      "https://mailarchive.ietf.org/arch/msg/gen-art/KhDXZE9JE7jeMJ_cSAzYW6NGM00")
+        self.assertEqual(d["uploaded_filename"], "")
+        self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
 
     def test_document_shepwrit(self):
         #dt = DataTracker()
