@@ -410,10 +410,10 @@ class DataTracker:
         document_states().
 
         Returns:
-           A Dict containing the following fields:
+           A sequence of dicts, each containing the following fields:
               resource_uri -- The URI representing this state
               label        -- A label for the state
-              slub         -- A short name for the state
+              slug         -- A short name for the state
 
         """
         api_url   = "/api/v1/doc/statetype/"
@@ -511,7 +511,24 @@ class DataTracker:
 
 
     def document_type(self, doctype_uri: str):
-        # FIXME: add documentation
+        """
+        Lookup information about a document type in the datatracker.
+
+        Parameters:
+            doctype_uri : a URI of the form, e.g., "/api/v1/name/doctypename/draft/",
+                          as returned by document_types() or the "type" field of the
+                          return from a call to document().
+
+        Returns:
+            A Dict containing the following fields:
+                "resource_uri" -- A URI representing this resource
+                "name"         -- The name of the document type
+                "used"         -- True is this document type is used
+                "prefix"       --
+                "slug"         --
+                "desc"         -- (unused)
+                "order"        -- (unused)
+        """
         assert doctype_uri.startswith("/api/v1/name/doctypename/") and doctype_uri.endswith("/")
         response = self.session.get(self.base_url + doctype_uri, verify=True)
         if response.status_code == 200:
@@ -521,9 +538,14 @@ class DataTracker:
 
 
     def document_types(self):
-        # FIXME: add documentation
         """
         A generator returning possible document types.
+
+        Parameters:
+            none
+
+        Returns:
+            A sequence of dicts, as returned by document_type()
         """
         url = "/api/v1/name/doctypename/"
         while url != None:
