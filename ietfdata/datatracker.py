@@ -828,9 +828,7 @@ class TestDatatracker(unittest.TestCase):
     def test_document_shepwrit(self):
         dt = DataTracker()
         for d in dt.documents(doctype="shepwrit"):
-            print(d)
-        # FIXME: implement tests
-        raise NotImplementedError
+            self.fail("shepwrit is not used, so this should return no documents")
 
 #    def test_documents(self):
 #        dt = DataTracker()
