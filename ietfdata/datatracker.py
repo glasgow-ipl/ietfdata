@@ -920,8 +920,22 @@ class TestDatatracker(unittest.TestCase):
         raise NotImplementedError
 
     def test_document_types(self):
-        # FIXME: implement tests
-        raise NotImplementedError
+        dt    = DataTracker()
+        types = list(dt.document_types())
+        self.assertEqual(len(types), 13)
+        self.assertEqual(types[ 0]["slug"], "agenda")
+        self.assertEqual(types[ 1]["slug"], "bluesheets")
+        self.assertEqual(types[ 2]["slug"], "charter")
+        self.assertEqual(types[ 3]["slug"], "conflrev")
+        self.assertEqual(types[ 4]["slug"], "draft")
+        self.assertEqual(types[ 5]["slug"], "liaison")
+        self.assertEqual(types[ 6]["slug"], "liai-att")
+        self.assertEqual(types[ 7]["slug"], "minutes")
+        self.assertEqual(types[ 8]["slug"], "recording")
+        self.assertEqual(types[ 9]["slug"], "review")
+        self.assertEqual(types[10]["slug"], "shepwrit")
+        self.assertEqual(types[11]["slug"], "slides")
+        self.assertEqual(types[12]["slug"], "statchg")
 
     def test_stream(self):
         # FIXME: implement tests
