@@ -301,6 +301,7 @@ class DataTracker:
         if group_uri != None:
             url = url + "&group=" + group_uri
         while url != None:
+            print(url)
             r = self.session.get(url, verify=True)
             meta = r.json()['meta']
             objs = r.json()['objects']
@@ -823,9 +824,9 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
 
     def test_document_shepwrit(self):
-        #dt = DataTracker()
-        #for d in dt.documents(doctype="shepwrit"):
-        #    print(d)
+        dt = DataTracker()
+        for d in dt.documents(doctype="shepwrit"):
+            print(d)
         # FIXME: implement tests
         raise NotImplementedError
 
@@ -837,6 +838,14 @@ class TestDatatracker(unittest.TestCase):
         dt = DataTracker()
         d  = dt.document_from_rfc("rfc3550")
         self.assertEqual(d["resource_uri"], "/api/v1/doc/document/draft-ietf-avt-rtp-new/")
+
+    def test_document_from_bcp(self):
+        # FIXME: implement tests
+        raise NotImplementedError
+
+    def test_document_from_std(self):
+        # FIXME: implement tests
+        raise NotImplementedError
 
     def test_document_state(self):
         dt = DataTracker()
@@ -906,11 +915,34 @@ class TestDatatracker(unittest.TestCase):
         # FIXME: implement tests
         raise NotImplementedError
 
+    def test_document_type(self):
+        # FIXME: implement tests
+        raise NotImplementedError
+
+    def test_document_types(self):
+        # FIXME: implement tests
+        raise NotImplementedError
+
+    def test_stream(self):
+        # FIXME: implement tests
+        raise NotImplementedError
+
+    def test_streams(self):
+        # FIXME: implement tests
+        raise NotImplementedError
+
+    def test_group(self):
+        # FIXME: implement tests
+        raise NotImplementedError
+
     def test_group_from_acronym(self):
         dt = DataTracker()
         group = dt.group_from_acronym("avt")
         self.assertEqual(group['id'], 941)
 
+    def test_groups(self):
+        # FIXME: implement tests
+        raise NotImplementedError
 
 if __name__ == '__main__':
     unittest.main()
