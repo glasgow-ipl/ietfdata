@@ -301,17 +301,19 @@ class DataTracker:
         if group_uri != None:
             url = url + "&group=" + group_uri
         while url != None:
-            print(url)
             r = self.session.get(url, verify=True)
-            meta = r.json()['meta']
             objs = r.json()['objects']
-            url  = self.base_url + meta['next']
             for doc in objs:
                 assert doc["resource_uri"].startswith("/api/v1/doc/document/")
-                assert doc["ad"]       is None or doc["ad"].startswith("/api/v1/person/person")
-                assert doc["shepherd"] is None or doc["shepherd"].startswith("/api/v1/person/email")
+                assert doc[      "ad"] is None or doc[      "ad"].startswith("/api/v1/person/person/")
+                assert doc["shepherd"] is None or doc["shepherd"].startswith("/api/v1/person/email/")
                 self._derive_document_url(doc)
                 yield doc
+            meta = r.json()['meta']
+            if meta['next'] == None:
+                url = None
+            else:
+                url  = self.base_url + meta['next']
 
 
     # Datatracker API endpoints returning information about document aliases:
