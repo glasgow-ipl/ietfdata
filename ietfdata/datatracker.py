@@ -562,7 +562,21 @@ class DataTracker:
 
 
     def stream(self, stream_uri: str):
-        # FIXME: add documentation
+        """
+        Lookup information about a document stream in the datatracker.
+
+        Parameters:
+            stream_uri : a URI of the form, e.g., "/api/v1/name/streamname/.../"
+
+        Returns:
+            A Dict containing the following fields:
+                "resource_uri" -- A URI representing this resource
+                "name"         -- The stream name
+                "desc"         -- A description of hte stream
+                "used"         -- True is this stream is used
+                "slug"         --
+                "order"        -- 
+        """
         assert stream_uri.startswith("/api/v1/name/streamname/") and stream_uri.endswith("/")
         response = self.session.get(self.base_url + stream_uri, verify=True)
         if response.status_code == 200:
@@ -572,9 +586,14 @@ class DataTracker:
 
 
     def streams(self):
-        # FIXME: add documentation
         """
         A generator returning possible document streams.
+
+        Parameters:
+            none
+
+        Returns:
+            A sequence of dicts, as returned by stream()
         """
         url = "/api/v1/name/streamname/"
         while url != None:
@@ -938,12 +957,24 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(types[12]["slug"], "statchg")
 
     def test_stream(self):
-        # FIXME: implement tests
-        raise NotImplementedError
+        dt     = DataTracker()
+        stream = dt.stream("/api/v1/name/streamname/irtf/")
+        self.assertEqual(stream["desc"],         "IRTF Stream")
+        self.assertEqual(stream["name"],         "IRTF")
+        self.assertEqual(stream["order"],        3)
+        self.assertEqual(stream["resource_uri"], "/api/v1/name/streamname/irtf/")
+        self.assertEqual(stream["slug"],         "irtf")
+        self.assertEqual(stream["used"],         True)
 
     def test_streams(self):
-        # FIXME: implement tests
-        raise NotImplementedError
+        dt      = DataTracker()
+        streams = list(dt.streams())
+        self.assertEqual(len(streams), 5)
+        self.assertEqual(streams[ 0]["slug"], "ietf")
+        self.assertEqual(streams[ 1]["slug"], "ise")
+        self.assertEqual(streams[ 2]["slug"], "irtf")
+        self.assertEqual(streams[ 3]["slug"], "iab")
+        self.assertEqual(streams[ 4]["slug"], "legacy")
 
     def test_group(self):
         # FIXME: implement tests
