@@ -196,24 +196,22 @@ class DataTracker:
             meeting = doc["name"].split("-")[1]
             doc["document_url"] = "https://www.ietf.org/proceedings/" + meeting + "/bluesheets/" + doc["uploaded_filename"]
         elif doc["type"] == "/api/v1/name/doctypename/charter/":
-            doc["document_url"] = "https://www6.ietf.org/charter/"    + doc["name"] + "-" + doc["rev"] + ".txt"
+            doc["document_url"] = "https://www.ietf.org/charter/"     + doc["name"] + "-" + doc["rev"] + ".txt"
         elif doc["type"] == "/api/v1/name/doctypename/conflrev/":
-            doc["document_url"] = "https://www6.ietf.org/cr/"         + doc["name"] + "-" + doc["rev"] + ".txt"
+            doc["document_url"] = "https://www.ietf.org/cr/"          + doc["name"] + "-" + doc["rev"] + ".txt"
         elif doc["type"] == "/api/v1/name/doctypename/draft/":
             doc["document_url"] = "https://www.ietf.org/archive/id/"  + doc["name"] + "-" + doc["rev"] + ".txt"
         elif doc["type"] == "/api/v1/name/doctypename/slides/":
             meeting = doc["name"].split("-")[1]
             doc["document_url"] = "https://www.ietf.org/proceedings/" + meeting + "/slides/" + doc["uploaded_filename"]
         elif doc["type"] == "/api/v1/name/doctypename/statchg/":
-            doc["document_url"] = "https://www6.ietf.org/sc/"         + doc["name"] + "-" + doc["rev"] + ".txt"
+            doc["document_url"] = "https://www.ietf.org/sc/"          + doc["name"] + "-" + doc["rev"] + ".txt"
         elif doc["type"] == "/api/v1/name/doctypename/liaison/":
-            doc["document_url"] = "https://www6.ietf.org/lib/dt/documents/LIAISON/" + doc["uploaded_filename"]
+            doc["document_url"] = "https://www.ietf.org/lib/dt/documents/LIAISON/" + doc["uploaded_filename"]
         elif doc["type"] == "/api/v1/name/doctypename/liai-att/":
-            doc["document_url"] = "https://www6.ietf.org/lib/dt/documents/LIAISON/" + doc["uploaded_filename"]
+            doc["document_url"] = "https://www.ietf.org/lib/dt/documents/LIAISON/" + doc["uploaded_filename"]
         elif doc["type"] == "/api/v1/name/doctypename/recording/":
-            # 2019-04-16: The external_url gives, e.g., https://www.ietf.org/audio/ietf94/ietf94-room304-20151103-1520.mp3,
-            # but that link is broken and we need to use http://www6.ietf.org/... instead.
-            doc["document_url"] = "https://www6.ietf.org/" + doc["external_url"][21:]
+            doc["document_url"] = doc["external_url"]
         elif doc["type"] == "/api/v1/name/doctypename/review/":
             # FIXME: This points to the formatted HTML page containing the message, but we really want the raw message
             doc["document_url"] = "https://datatracker.ietf.org/doc/" + doc["name"]
@@ -782,7 +780,7 @@ class TestDatatracker(unittest.TestCase):
         dt = DataTracker()
         d  = dt.document("/api/v1/doc/document/charter-ietf-vgmib/")
         self.assertEqual(d["resource_uri"],      "/api/v1/doc/document/charter-ietf-vgmib/")
-        self.assertEqual(d["document_url"],      "https://www6.ietf.org/charter/charter-ietf-vgmib-01.txt")
+        self.assertEqual(d["document_url"],      "https://www.ietf.org/charter/charter-ietf-vgmib-01.txt")
         self.assertEqual(d["uploaded_filename"], "")
         self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
 
@@ -790,7 +788,7 @@ class TestDatatracker(unittest.TestCase):
         dt = DataTracker()
         d  = dt.document("/api/v1/doc/document/conflict-review-kiyomoto-kcipher2/")
         self.assertEqual(d["resource_uri"],      "/api/v1/doc/document/conflict-review-kiyomoto-kcipher2/")
-        self.assertEqual(d["document_url"],      "https://www6.ietf.org/cr/conflict-review-kiyomoto-kcipher2-00.txt")
+        self.assertEqual(d["document_url"],      "https://www.ietf.org/cr/conflict-review-kiyomoto-kcipher2-00.txt")
         self.assertEqual(d["uploaded_filename"], "")
         self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
 
@@ -806,7 +804,7 @@ class TestDatatracker(unittest.TestCase):
         dt = DataTracker()
         d  = dt.document("/api/v1/doc/document/status-change-rfc3044-rfc3187-orig-urn-regs-to-historic/")
         self.assertEqual(d["resource_uri"],      "/api/v1/doc/document/status-change-rfc3044-rfc3187-orig-urn-regs-to-historic/")
-        self.assertEqual(d["document_url"],      "https://www6.ietf.org/sc/status-change-rfc3044-rfc3187-orig-urn-regs-to-historic-00.txt")
+        self.assertEqual(d["document_url"],      "https://www.ietf.org/sc/status-change-rfc3044-rfc3187-orig-urn-regs-to-historic-00.txt")
         self.assertEqual(d["uploaded_filename"], "")
         self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
 
@@ -814,7 +812,7 @@ class TestDatatracker(unittest.TestCase):
         dt = DataTracker()
         d  = dt.document("/api/v1/doc/document/liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1/")
         self.assertEqual(d["resource_uri"],      "/api/v1/doc/document/liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1/")
-        self.assertEqual(d["document_url"],      "https://www6.ietf.org/lib/dt/documents/LIAISON/liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1.doc")
+        self.assertEqual(d["document_url"],      "https://www.ietf.org/lib/dt/documents/LIAISON/liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1.doc")
         self.assertEqual(d["uploaded_filename"], "liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1.doc")
         self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
 
@@ -822,7 +820,7 @@ class TestDatatracker(unittest.TestCase):
         dt = DataTracker()
         d  = dt.document("/api/v1/doc/document/liaison-2004-08-23-itu-t-ietf-liaison-statement-to-ietf-and-itu-t-study-groups-countering-spam-pdf-version-attachment-1/")
         self.assertEqual(d["resource_uri"],      "/api/v1/doc/document/liaison-2004-08-23-itu-t-ietf-liaison-statement-to-ietf-and-itu-t-study-groups-countering-spam-pdf-version-attachment-1/")
-        self.assertEqual(d["document_url"],      "https://www6.ietf.org/lib/dt/documents/LIAISON/file39.pdf")
+        self.assertEqual(d["document_url"],      "https://www.ietf.org/lib/dt/documents/LIAISON/file39.pdf")
         self.assertEqual(d["uploaded_filename"], "file39.pdf")
         self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
 
@@ -830,7 +828,7 @@ class TestDatatracker(unittest.TestCase):
         dt = DataTracker()
         d  = dt.document("/api/v1/doc/document/recording-94-taps-1/")
         self.assertEqual(d["resource_uri"],      "/api/v1/doc/document/recording-94-taps-1/")
-        self.assertEqual(d["document_url"],      "https://www6.ietf.org/audio/ietf94/ietf94-room304-20151103-1520.mp3")
+        self.assertEqual(d["document_url"],      "https://www.ietf.org/audio/ietf94/ietf94-room304-20151103-1520.mp3")
         self.assertEqual(d["uploaded_filename"], "")
         # Downloading the MP3 is expensive, so check a HEAD request instead:
         self.assertEqual(dt.session.head(d["document_url"]).status_code, 200)
