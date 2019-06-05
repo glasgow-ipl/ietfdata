@@ -150,6 +150,17 @@ class Document:
             raise NotImplementedError
         return document_url
 
+@dataclass
+class State:
+    id           : int
+    resource_uri : str
+    desc         : str
+    name         : str
+    next_states  : List[str]
+    order        : int
+    slug         : str
+    type         : str
+    used         : bool
 
 # =================================================================================================================================
 # A class to represent the datatracker:
@@ -374,21 +385,12 @@ class DataTracker:
                         in the states entry of the dict returned by document()
 
         Returns:
-            A Dict containing the following fields:
-              id           -- An identifier for the state
-              resource_uri -- The URI representing this state
-              desc         -- A description of the state
-              name         -- The name of the state
-              next_states  -- A List of URIs representing possible next states for the document
-              order        -- 
-              slug         -- Short name
-              type         -- A URI as returned by document_state_types()
-              used         -- True if this state is used in the datatracker
+            A State object
         """
         assert state_uri.startswith("/api/v1/doc/state/") and state_uri.endswith("/")
         response = self.session.get(self.base_url + state_uri, verify=True)
         if response.status_code == 200:
-            return response.json()
+            return Pavlova().from_mapping(response.json(), State)
         else:
             return None
 
@@ -403,7 +405,7 @@ class DataTracker:
                         to that particular state type.
 
         Returns:
-            A sequence of dicts, as returned by document_state()
+            A sequence of Document objects, as returned by document_state()
         """
         api_url   = "/api/v1/doc/state/"
         if statetype is not None:
@@ -414,7 +416,7 @@ class DataTracker:
             objs = r.json()['objects']
             api_url = meta['next']
             for obj in objs:
-                yield obj
+                yield Pavlova().from_mapping(obj, State)
 
 
     def document_state_types(self):
@@ -880,38 +882,38 @@ class TestDatatracker(unittest.TestCase):
     def test_document_state(self):
         dt = DataTracker()
         s = dt.document_state('/api/v1/doc/state/7/')
-        self.assertEqual(s['desc'],         'The ID has been published as an RFC.')
-        self.assertEqual(s['id'],           7)
-        self.assertEqual(s['name'],         'RFC Published')
-        self.assertEqual(s['next_states'],  ['/api/v1/doc/state/8/'])
-        self.assertEqual(s['order'],        32)
-        self.assertEqual(s['resource_uri'], '/api/v1/doc/state/7/')
-        self.assertEqual(s['slug'],         'pub')
-        self.assertEqual(s['type'],         '/api/v1/doc/statetype/draft-iesg/')
-        self.assertEqual(s['used'],         True)
+        self.assertEqual(s.desc,         'The ID has been published as an RFC.')
+        self.assertEqual(s.id,           7)
+        self.assertEqual(s.name,         'RFC Published')
+        self.assertEqual(s.next_states,  ['/api/v1/doc/state/8/'])
+        self.assertEqual(s.order,        32)
+        self.assertEqual(s.resource_uri, '/api/v1/doc/state/7/')
+        self.assertEqual(s.slug,         'pub')
+        self.assertEqual(s.type,         '/api/v1/doc/statetype/draft-iesg/')
+        self.assertEqual(s.used,         True)
 
     def test_document_states(self):
         dt = DataTracker()
         states = list(dt.document_states(statetype="draft-rfceditor"))
         self.assertEqual(len(states), 18)
-        self.assertEqual(states[ 0]['name'], 'AUTH')
-        self.assertEqual(states[ 1]['name'], 'AUTH48')
-        self.assertEqual(states[ 2]['name'], 'EDIT')
-        self.assertEqual(states[ 3]['name'], 'IANA')
-        self.assertEqual(states[ 4]['name'], 'IESG')
-        self.assertEqual(states[ 5]['name'], 'ISR')
-        self.assertEqual(states[ 6]['name'], 'ISR-AUTH')
-        self.assertEqual(states[ 7]['name'], 'REF')
-        self.assertEqual(states[ 8]['name'], 'RFC-EDITOR')
-        self.assertEqual(states[ 9]['name'], 'TO')
-        self.assertEqual(states[10]['name'], 'MISSREF')
-        self.assertEqual(states[11]['name'], 'AUTH48-DONE')
-        self.assertEqual(states[12]['name'], 'AUTH48-DONE')
-        self.assertEqual(states[13]['name'], 'EDIT')
-        self.assertEqual(states[14]['name'], 'IANA')
-        self.assertEqual(states[15]['name'], 'IESG')
-        self.assertEqual(states[16]['name'], 'ISR-AUTH')
-        self.assertEqual(states[17]['name'], 'Pending')
+        self.assertEqual(states[ 0].name, 'AUTH')
+        self.assertEqual(states[ 1].name, 'AUTH48')
+        self.assertEqual(states[ 2].name, 'EDIT')
+        self.assertEqual(states[ 3].name, 'IANA')
+        self.assertEqual(states[ 4].name, 'IESG')
+        self.assertEqual(states[ 5].name, 'ISR')
+        self.assertEqual(states[ 6].name, 'ISR-AUTH')
+        self.assertEqual(states[ 7].name, 'REF')
+        self.assertEqual(states[ 8].name, 'RFC-EDITOR')
+        self.assertEqual(states[ 9].name, 'TO')
+        self.assertEqual(states[10].name, 'MISSREF')
+        self.assertEqual(states[11].name, 'AUTH48-DONE')
+        self.assertEqual(states[12].name, 'AUTH48-DONE')
+        self.assertEqual(states[13].name, 'EDIT')
+        self.assertEqual(states[14].name, 'IANA')
+        self.assertEqual(states[15].name, 'IESG')
+        self.assertEqual(states[16].name, 'ISR-AUTH')
+        self.assertEqual(states[17].name, 'Pending')
 
     def test_document_state_types(self):
         dt = DataTracker()
