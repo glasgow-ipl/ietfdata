@@ -162,6 +162,12 @@ class State:
     type         : str
     used         : bool
 
+@dataclass
+class StateType:
+    resource_uri : str
+    label        : str
+    slug         : str
+
 # =================================================================================================================================
 # A class to represent the datatracker:
 
@@ -440,7 +446,7 @@ class DataTracker:
             objs = r.json()['objects']
             api_url = meta['next']
             for obj in objs:
-                yield obj
+                yield Pavlova().from_mapping(obj, StateType)
 
 
     #   https://datatracker.ietf.org/api/v1/doc/docevent/                        - list of document events
@@ -919,29 +925,29 @@ class TestDatatracker(unittest.TestCase):
         dt = DataTracker()
         st = list(dt.document_state_types())
         self.assertEqual(len(st), 23)
-        self.assertEqual(st[ 0]["slug"], 'draft')
-        self.assertEqual(st[ 1]["slug"], 'draft-iesg')
-        self.assertEqual(st[ 2]["slug"], 'draft-iana')
-        self.assertEqual(st[ 3]["slug"], 'draft-rfceditor')
-        self.assertEqual(st[ 4]["slug"], 'draft-stream-ietf')
-        self.assertEqual(st[ 5]["slug"], 'draft-stream-irtf')
-        self.assertEqual(st[ 6]["slug"], 'draft-stream-ise')
-        self.assertEqual(st[ 7]["slug"], 'draft-stream-iab')
-        self.assertEqual(st[ 8]["slug"], 'slides')
-        self.assertEqual(st[ 9]["slug"], 'minutes')
-        self.assertEqual(st[10]["slug"], 'agenda')
-        self.assertEqual(st[11]["slug"], 'liai-att')
-        self.assertEqual(st[12]["slug"], 'charter')
-        self.assertEqual(st[13]["slug"], 'conflrev')
-        self.assertEqual(st[14]["slug"], 'draft-iana-action')
-        self.assertEqual(st[15]["slug"], 'draft-iana-review')
-        self.assertEqual(st[16]["slug"], 'statchg')
-        self.assertEqual(st[17]["slug"], 'recording')
-        self.assertEqual(st[18]["slug"], 'bluesheets')
-        self.assertEqual(st[19]["slug"], 'reuse_policy')
-        self.assertEqual(st[20]["slug"], 'review')
-        self.assertEqual(st[21]["slug"], 'liaison')
-        self.assertEqual(st[22]["slug"], 'shepwrit')
+        self.assertEqual(st[ 0].slug, 'draft')
+        self.assertEqual(st[ 1].slug, 'draft-iesg')
+        self.assertEqual(st[ 2].slug, 'draft-iana')
+        self.assertEqual(st[ 3].slug, 'draft-rfceditor')
+        self.assertEqual(st[ 4].slug, 'draft-stream-ietf')
+        self.assertEqual(st[ 5].slug, 'draft-stream-irtf')
+        self.assertEqual(st[ 6].slug, 'draft-stream-ise')
+        self.assertEqual(st[ 7].slug, 'draft-stream-iab')
+        self.assertEqual(st[ 8].slug, 'slides')
+        self.assertEqual(st[ 9].slug, 'minutes')
+        self.assertEqual(st[10].slug, 'agenda')
+        self.assertEqual(st[11].slug, 'liai-att')
+        self.assertEqual(st[12].slug, 'charter')
+        self.assertEqual(st[13].slug, 'conflrev')
+        self.assertEqual(st[14].slug, 'draft-iana-action')
+        self.assertEqual(st[15].slug, 'draft-iana-review')
+        self.assertEqual(st[16].slug, 'statchg')
+        self.assertEqual(st[17].slug, 'recording')
+        self.assertEqual(st[18].slug, 'bluesheets')
+        self.assertEqual(st[19].slug, 'reuse_policy')
+        self.assertEqual(st[20].slug, 'review')
+        self.assertEqual(st[21].slug, 'liaison')
+        self.assertEqual(st[22].slug, 'shepwrit')
 
     def test_submission(self):
         # FIXME: implement tests
