@@ -8,6 +8,7 @@ mypy = "*"
 
 [packages]
 requests = "*"
+pavlova = "*"
 
 [requires]
 python_version = "3.7"

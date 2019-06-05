@@ -44,7 +44,9 @@
 #   RFC 6359 "Datatracker Extensions to Include IANA and RFC Editor Processing Information"
 #   RFC 7760 "Statement of Work for Extensions to the IETF Datatracker for Author Statistics"
 
-from typing import List, Optional, Tuple, Dict, Iterator
+from typing      import List, Optional, Tuple, Dict, Iterator
+from dataclasses import dataclass
+from pavlova     import Pavlova
 
 import datetime
 import glob
@@ -52,6 +54,24 @@ import json
 import requests
 import unittest
 import re
+
+# =================================================================================================================================
+# A class to represent a Person:
+
+@dataclass
+class Person:
+    resource_uri    : str
+    id              : int
+    name            : str
+    name_from_draft : str
+    ascii           : str
+    ascii_short     : Optional[str]
+    user            : str
+    time            : str
+    photo           : str
+    photo_thumb     : str
+    biography       : str
+    consent         : bool
 
 # =================================================================================================================================
 # A class to represent the datatracker:
@@ -109,7 +129,7 @@ class DataTracker:
             email : the email address to lookup
 
         Returns:
-            A Dict containing the same fields as the person() method.
+            A Person object
         """
         return self.person("/api/v1/person/email/" + email + "/")
 
@@ -122,26 +142,14 @@ class DataTracker:
             person_uri : a URI of the form "/api/v1/person/person/20209/" or "api/v1/person/email/csp@csperkins.org/"
 
         Returns:
-            A Dict containing the following fields:
-                "resource_uri"    -- A URI representing this resource
-                "id"              -- A unique identifier for the person
-                "name"            -- 
-                "name_from_draft" -- 
-                "ascii"           -- 
-                "ascii_short"     -- 
-                "user"            -- 
-                "time"            -- 
-                "photo"           -- URL for a full size photo
-                "photo_thumb"     -- URL for a thumbnail photo
-                "biography"       -- Biography of the person
-                "consent"         -- 
+            A Person object
         """
         assert person_uri.startswith("/api/v1/person/")
         assert person_uri.endswith("/")
         if person_uri.startswith("/api/v1/person/person/"):
             response = self.session.get(self.base_url + person_uri, verify=True)
             if response.status_code == 200:
-                return response.json()
+                return Pavlova().from_mapping(response.json(), Person)
             else:
                 return None
         elif person_uri.startswith("/api/v1/person/email/"):
@@ -688,29 +696,29 @@ class TestDatatracker(unittest.TestCase):
     def test_person_from_email(self):
         dt = DataTracker()
         p  = dt.person_from_email("csp@csperkins.org")
-        self.assertEqual(p["resource_uri"], "/api/v1/person/person/20209/")
+        self.assertEqual(p.resource_uri, "/api/v1/person/person/20209/")
 
 
     def test_person_person(self):
         dt = DataTracker()
         p  = dt.person("/api/v1/person/person/20209/")
-        self.assertEqual(p["id"],              20209)
-        self.assertEqual(p["resource_uri"],    "/api/v1/person/person/20209/")
-        self.assertEqual(p["name"],            "Colin Perkins")
-        self.assertEqual(p["name_from_draft"], "Colin Perkins")
-        self.assertEqual(p["ascii"],           "Colin Perkins")
-        self.assertEqual(p["ascii_short"],     None)
-        self.assertEqual(p["user"],            "")
-        self.assertEqual(p["time"],            "2012-02-26T00:03:54")
-        self.assertEqual(p["photo"],           "https://www.ietf.org/lib/dt/media/photo/Colin-Perkins-sm.jpg")
-        self.assertEqual(p["photo_thumb"],     "https://www.ietf.org/lib/dt/media/photo/Colin-Perkins-sm_PMIAhXi.jpg")
-        self.assertEqual(p["biography"],       "Colin Perkins is a Senior Lecturer (Associate Professor) in the School of Computing Science at the University of Glasgow. His research interests are on transport protocols for real-time and interactive multimedia, and on network protocol design, implementation, and specification. He’s been a participant in the IETF and IRTF since 1996, working primarily in the transport area where he co-chairs the RMCAT working group and is a past chair of the AVT and MMUSIC working groups, and in related IRTF research groups. He proposed and co-chaired the first Applied Networking Research Workshop (ANRW), and has been a long-term participant in the Applied Networking Research Prize (ANRP) awarding committee. He received his BEng in Electronic Engineering in 1992, and my PhD in 1996, both from the Department of Electronics at the University of York.")
-        self.assertEqual(p["consent"],         True)
+        self.assertEqual(p.id,              20209)
+        self.assertEqual(p.resource_uri,    "/api/v1/person/person/20209/")
+        self.assertEqual(p.name,            "Colin Perkins")
+        self.assertEqual(p.name_from_draft, "Colin Perkins")
+        self.assertEqual(p.ascii,           "Colin Perkins")
+        self.assertEqual(p.ascii_short,     None)
+        self.assertEqual(p.user,            "")
+        self.assertEqual(p.time,            "2012-02-26T00:03:54")
+        self.assertEqual(p.photo,           "https://www.ietf.org/lib/dt/media/photo/Colin-Perkins-sm.jpg")
+        self.assertEqual(p.photo_thumb,     "https://www.ietf.org/lib/dt/media/photo/Colin-Perkins-sm_PMIAhXi.jpg")
+        self.assertEqual(p.biography,       "Colin Perkins is a Senior Lecturer (Associate Professor) in the School of Computing Science at the University of Glasgow. His research interests are on transport protocols for real-time and interactive multimedia, and on network protocol design, implementation, and specification. He’s been a participant in the IETF and IRTF since 1996, working primarily in the transport area where he co-chairs the RMCAT working group and is a past chair of the AVT and MMUSIC working groups, and in related IRTF research groups. He proposed and co-chaired the first Applied Networking Research Workshop (ANRW), and has been a long-term participant in the Applied Networking Research Prize (ANRP) awarding committee. He received his BEng in Electronic Engineering in 1992, and my PhD in 1996, both from the Department of Electronics at the University of York.")
+        self.assertEqual(p.consent,         True)
 
     def test_person_email(self):
         dt = DataTracker()
         p  = dt.person("/api/v1/person/email/csp@csperkins.org/")
-        self.assertEqual(p["resource_uri"],    "/api/v1/person/person/20209/")
+        self.assertEqual(p.resource_uri,    "/api/v1/person/person/20209/")
 
 
 #    def test_people(self):
