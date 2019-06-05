@@ -187,6 +187,26 @@ class Stream:
     slug         : str
     order        : int
 
+@dataclass
+class Group:
+    acronym        : str
+    ad             : Optional[str]
+    charter        : str
+    comments       : str
+    description    : str
+    id             : int
+    list_archive   : str
+    list_email     : str
+    list_subscribe : str
+    name           : str
+    parent         : str
+    resource_uri   : str
+    state          : str
+    time           : str
+    type           : str
+    unused_states  : List[str]
+    unused_tags    : List[str]
+
 # =================================================================================================================================
 # A class to represent the datatracker:
 
@@ -653,7 +673,7 @@ class DataTracker:
         api_url  = "/api/v1/group/group/?acronym=" + acronym
         response = self.session.get(self.base_url + api_url, verify=True)
         if response.status_code == 200:
-            return response.json()["objects"][0]
+            return Pavlova().from_mapping(response.json()["objects"][0], Group)
         else:
             return None
 
@@ -676,7 +696,7 @@ class DataTracker:
             objs = r.json()['objects']
             api_url = meta['next']
             for obj in objs:
-                yield obj
+                yield Pavlova().from_mapping(obj, Group)
 
     # Datatracker API endpoints returning information about meetings:
     #   https://datatracker.ietf.org/api/v1/meeting/meeting/                        - list of meetings
@@ -1004,7 +1024,7 @@ class TestDatatracker(unittest.TestCase):
     def test_group_from_acronym(self):
         dt = DataTracker()
         group = dt.group_from_acronym("avt")
-        self.assertEqual(group['id'], 941)
+        self.assertEqual(group.id, 941)
 
     def test_groups(self):
         # FIXME: implement tests
