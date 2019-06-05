@@ -74,6 +74,19 @@ class Person:
     consent         : bool
 
 # =================================================================================================================================
+# A class to represent an Email:
+
+@dataclass
+class Email:
+    resource_uri : str
+    address      : str
+    person       : str
+    time         : str
+    origin       : str
+    primary      : bool
+    active       : bool
+
+# =================================================================================================================================
 # A class to represent the datatracker:
 
 class DataTracker:
@@ -116,7 +129,7 @@ class DataTracker:
         """
         response = self.session.get(self.base_url + "/api/v1/person/email/" + email + "/", verify=True)
         if response.status_code == 200:
-            return response.json()
+            return Pavlova().from_mapping(response.json(), Email)
         else:
             return None
 
@@ -684,13 +697,13 @@ class TestDatatracker(unittest.TestCase):
     def test_email(self):
         dt = DataTracker()
         e  = dt.email("csp@csperkins.org")
-        self.assertEqual(e["resource_uri"], "/api/v1/person/email/csp@csperkins.org/")
-        self.assertEqual(e["address"],      "csp@csperkins.org")
-        self.assertEqual(e["person"],       "/api/v1/person/person/20209/")
-        self.assertEqual(e["time"],         "1970-01-01T23:59:59")
-        self.assertEqual(e["origin"],       "author: draft-ietf-tsvwg-transport-encrypt")
-        self.assertEqual(e["primary"],      True)
-        self.assertEqual(e["active"],       True)
+        self.assertEqual(e.resource_uri, "/api/v1/person/email/csp@csperkins.org/")
+        self.assertEqual(e.address,      "csp@csperkins.org")
+        self.assertEqual(e.person,       "/api/v1/person/person/20209/")
+        self.assertEqual(e.time,         "1970-01-01T23:59:59")
+        self.assertEqual(e.origin,       "author: draft-ietf-tsvwg-transport-encrypt")
+        self.assertEqual(e.primary,      True)
+        self.assertEqual(e.active,       True)
 
 
     def test_person_from_email(self):
