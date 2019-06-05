@@ -178,6 +178,15 @@ class DocumentType:
     desc         : str
     order        : int
 
+@dataclass
+class Stream:
+    resource_uri : str
+    name         : str
+    desc         : str
+    used         : bool
+    slug         : str
+    order        : int
+
 # =================================================================================================================================
 # A class to represent the datatracker:
 
@@ -587,18 +596,12 @@ class DataTracker:
             stream_uri : a URI of the form, e.g., "/api/v1/name/streamname/.../"
 
         Returns:
-            A Dict containing the following fields:
-                "resource_uri" -- A URI representing this resource
-                "name"         -- The stream name
-                "desc"         -- A description of hte stream
-                "used"         -- True is this stream is used
-                "slug"         --
-                "order"        -- 
+            A Stream object
         """
         assert stream_uri.startswith("/api/v1/name/streamname/") and stream_uri.endswith("/")
         response = self.session.get(self.base_url + stream_uri, verify=True)
         if response.status_code == 200:
-            return response.json()
+            return Pavlova().from_mapping(response.json(), Stream)
         else:
             return None
 
@@ -611,7 +614,7 @@ class DataTracker:
             none
 
         Returns:
-            A sequence of dicts, as returned by stream()
+            A sequence of Stream objects, as returned by stream()
         """
         url = "/api/v1/name/streamname/"
         while url != None:
@@ -620,7 +623,7 @@ class DataTracker:
             objs = r.json()['objects']
             url  = meta['next']
             for obj in objs:
-                yield obj
+                yield Pavlova().from_mapping(obj, Stream)
 
 
     # Datatracker API endpoints returning information about working groups:
@@ -977,22 +980,22 @@ class TestDatatracker(unittest.TestCase):
     def test_stream(self):
         dt     = DataTracker()
         stream = dt.stream("/api/v1/name/streamname/irtf/")
-        self.assertEqual(stream["desc"],         "IRTF Stream")
-        self.assertEqual(stream["name"],         "IRTF")
-        self.assertEqual(stream["order"],        3)
-        self.assertEqual(stream["resource_uri"], "/api/v1/name/streamname/irtf/")
-        self.assertEqual(stream["slug"],         "irtf")
-        self.assertEqual(stream["used"],         True)
+        self.assertEqual(stream.desc,         "IRTF Stream")
+        self.assertEqual(stream.name,         "IRTF")
+        self.assertEqual(stream.order,        3)
+        self.assertEqual(stream.resource_uri, "/api/v1/name/streamname/irtf/")
+        self.assertEqual(stream.slug,         "irtf")
+        self.assertEqual(stream.used,         True)
 
     def test_streams(self):
         dt      = DataTracker()
         streams = list(dt.streams())
         self.assertEqual(len(streams), 5)
-        self.assertEqual(streams[ 0]["slug"], "ietf")
-        self.assertEqual(streams[ 1]["slug"], "ise")
-        self.assertEqual(streams[ 2]["slug"], "irtf")
-        self.assertEqual(streams[ 3]["slug"], "iab")
-        self.assertEqual(streams[ 4]["slug"], "legacy")
+        self.assertEqual(streams[ 0].slug, "ietf")
+        self.assertEqual(streams[ 1].slug, "ise")
+        self.assertEqual(streams[ 2].slug, "irtf")
+        self.assertEqual(streams[ 3].slug, "iab")
+        self.assertEqual(streams[ 4].slug, "legacy")
 
     def test_group(self):
         # FIXME: implement tests
