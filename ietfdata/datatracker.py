@@ -168,6 +168,16 @@ class StateType:
     label        : str
     slug         : str
 
+@dataclass
+class DocumentType:
+    resource_uri : str
+    name         : str
+    used         : bool
+    prefix       : str
+    slug         : str
+    desc         : str
+    order        : int
+
 # =================================================================================================================================
 # A class to represent the datatracker:
 
@@ -539,19 +549,12 @@ class DataTracker:
                           return from a call to document().
 
         Returns:
-            A Dict containing the following fields:
-                "resource_uri" -- A URI representing this resource
-                "name"         -- The name of the document type
-                "used"         -- True is this document type is used
-                "prefix"       --
-                "slug"         --
-                "desc"         -- (unused)
-                "order"        -- (unused)
+            A DocumentType object
         """
         assert doctype_uri.startswith("/api/v1/name/doctypename/") and doctype_uri.endswith("/")
         response = self.session.get(self.base_url + doctype_uri, verify=True)
         if response.status_code == 200:
-            return response.json()
+            return Pavlova().from_mapping(response.json(), DocumentType)
         else:
             return None
 
@@ -564,7 +567,7 @@ class DataTracker:
             none
 
         Returns:
-            A sequence of dicts, as returned by document_type()
+            A sequence of DocumentType objects, as returned by document_type()
         """
         url = "/api/v1/name/doctypename/"
         while url != None:
@@ -573,7 +576,7 @@ class DataTracker:
             objs = r.json()['objects']
             url  = meta['next']
             for obj in objs:
-                yield obj
+                yield Pavlova().from_mapping(obj, DocumentType)
 
 
     def stream(self, stream_uri: str):
@@ -957,19 +960,19 @@ class TestDatatracker(unittest.TestCase):
         dt    = DataTracker()
         types = list(dt.document_types())
         self.assertEqual(len(types), 13)
-        self.assertEqual(types[ 0]["slug"], "agenda")
-        self.assertEqual(types[ 1]["slug"], "bluesheets")
-        self.assertEqual(types[ 2]["slug"], "charter")
-        self.assertEqual(types[ 3]["slug"], "conflrev")
-        self.assertEqual(types[ 4]["slug"], "draft")
-        self.assertEqual(types[ 5]["slug"], "liaison")
-        self.assertEqual(types[ 6]["slug"], "liai-att")
-        self.assertEqual(types[ 7]["slug"], "minutes")
-        self.assertEqual(types[ 8]["slug"], "recording")
-        self.assertEqual(types[ 9]["slug"], "review")
-        self.assertEqual(types[10]["slug"], "shepwrit")
-        self.assertEqual(types[11]["slug"], "slides")
-        self.assertEqual(types[12]["slug"], "statchg")
+        self.assertEqual(types[ 0].slug, "agenda")
+        self.assertEqual(types[ 1].slug, "bluesheets")
+        self.assertEqual(types[ 2].slug, "charter")
+        self.assertEqual(types[ 3].slug, "conflrev")
+        self.assertEqual(types[ 4].slug, "draft")
+        self.assertEqual(types[ 5].slug, "liaison")
+        self.assertEqual(types[ 6].slug, "liai-att")
+        self.assertEqual(types[ 7].slug, "minutes")
+        self.assertEqual(types[ 8].slug, "recording")
+        self.assertEqual(types[ 9].slug, "review")
+        self.assertEqual(types[10].slug, "shepwrit")
+        self.assertEqual(types[11].slug, "slides")
+        self.assertEqual(types[12].slug, "statchg")
 
     def test_stream(self):
         dt     = DataTracker()
