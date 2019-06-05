@@ -433,11 +433,7 @@ class DataTracker:
         document_states().
 
         Returns:
-           A sequence of dicts, each containing the following fields:
-              resource_uri -- The URI representing this state
-              label        -- A label for the state
-              slug         -- A short name for the state
-
+           A sequence of StateType objects
         """
         api_url   = "/api/v1/doc/statetype/"
         while api_url != None:
