@@ -681,7 +681,7 @@ class DataTracker:
         # FIXME: add documentation
         # FIXME: no tests for this
         """
-        A generator that returns JSON objects representing all groups recorded
+        A generator that returns Group objects representing all groups recorded
         in the datatracker. The since and until parameters can be used to contrain
         the output to only entries with timestamps in a particular time range.
         If provided, name_contains filters based on the whether the name field
