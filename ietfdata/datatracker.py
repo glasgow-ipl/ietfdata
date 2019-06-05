@@ -56,7 +56,7 @@ import unittest
 import re
 
 # =================================================================================================================================
-# A class to represent a Person:
+# Classes to represent the JSON-serialised objects returned by the Datatracker API:
 
 @dataclass
 class Person:
@@ -72,9 +72,6 @@ class Person:
     photo_thumb     : str
     biography       : str
     consent         : bool
-
-# =================================================================================================================================
-# A class to represent an Email:
 
 @dataclass
 class Email:
@@ -118,14 +115,7 @@ class DataTracker:
            email : the email address to lookup
 
         Returns:
-            A Dict containing the following fields:
-                "resource_uri" -- A URI representing this resource
-                "address"      -- The requested email address
-                "person"       -- A URI suitable for use with the person() method
-                "time"         -- 
-                "origin"       -- 
-                "primary"      -- True if this is the primary email address of the person
-                "active"       -- True if this is an active email address
+            An Email object
         """
         response = self.session.get(self.base_url + "/api/v1/person/email/" + email + "/", verify=True)
         if response.status_code == 200:
