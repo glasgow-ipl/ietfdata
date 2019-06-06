@@ -412,7 +412,7 @@ class DataTracker:
         Returns the document that became the specified BCP.
 
         Parameters:
-            rfc -- The RFC to lookup, in the form "bcp205" or "BCP205"
+            bcp -- The BCP to lookup, in the form "bcp205" or "BCP205"
 
         Returns:
             A Document object
