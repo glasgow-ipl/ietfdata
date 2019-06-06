@@ -408,8 +408,22 @@ class DataTracker:
 
 
     def document_from_bcp(self, bcp: str):
-        # FIXME: implement this
-        raise NotImplementedError
+        """
+        Returns the document that became the specified BCP.
+
+        Parameters:
+            rfc -- The RFC to lookup, in the form "bcp205" or "BCP205"
+
+        Returns:
+            A Document object
+        """
+        assert bcp.lower().startswith("bcp")
+        url  = self.base_url + "/api/v1/doc/docalias/" + bcp.lower() + "/"
+        response = self.session.get(url, verify=True)
+        if response.status_code == 200:
+            return self.document(response.json()['document'])
+        else:
+            return None
 
 
     def document_from_std(self, std: str):
@@ -900,8 +914,9 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(d.resource_uri, "/api/v1/doc/document/draft-ietf-avt-rtp-new/")
 
     def test_document_from_bcp(self):
-        # FIXME: implement tests
-        raise NotImplementedError
+        dt = DataTracker()
+        d  = dt.document_from_bcp("bcp205")
+        self.assertEqual(d.resource_uri, "/api/v1/doc/document/draft-sheffer-rfc6982bis/")
 
     def test_document_from_std(self):
         # FIXME: implement tests
