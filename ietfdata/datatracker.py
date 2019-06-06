@@ -207,6 +207,33 @@ class Group:
     unused_states  : List[str]
     unused_tags    : List[str]
 
+@dataclass
+class Submission:
+    abstract        : str
+    access_key      : str
+    auth_key        : str
+    authors         : str
+    checks          : List[str]
+    document_date   : str
+    draft           : str
+    file_size       : int
+    file_types      : str
+    first_two_pages : str
+    group           : str
+    id              : int
+    name            : str
+    note            : str
+    pages           : int
+    remote_ip       : str
+    replaces        : str
+    resource_uri    : str
+    rev             : str
+    state           : str
+    submission_date : str
+    submitter       : str
+    title           : str
+    words           : Optional[int]
+    
 # =================================================================================================================================
 # A class to represent the datatracker:
 
@@ -541,16 +568,22 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/doc/addedmessageevent/
     #   https://datatracker.ietf.org/api/v1/doc/editedauthorsdocevent/
 
-    def submission(self, submission):
-        # FIXME: add documentation
+    def submission(self, submission_uri):
         """
-        Returns a JSON object giving information about a document submission.
+        Information about a document submission.
+
+        Parameters:
+           submission_uri -- A submission URI of the form /api/v1/submit/submission/2402/                             
+
+        Returns:
+            A Submission object
         """
-        assert submission.startswith("/api/v1/doc/document/")
-        assert submission.endswith("/")
-        response = self.session.get(self.base_url + submission, verify=True)
+
+        assert submission_uri.startswith("/api/v1/submit/submission/")
+        assert submission_uri.endswith("/")
+        response = self.session.get(self.base_url + submission_uri, verify=True)
         if response.status_code == 200:
-            return response.json()
+            return Pavlova().from_mapping(response.json(), Submission)
         else:
             return None
 
@@ -1001,8 +1034,32 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(st[22].slug, 'shepwrit')
 
     def test_submission(self):
-        # FIXME: implement tests
-        raise NotImplementedError
+        dt = DataTracker()
+        s  = dt.submission("/api/v1/submit/submission/2402/")
+        self.assertEqual(s.abstract,        "Internet technical specifications often need to define a formal\nsyntax.  Over the years, a modified version of Backus-Naur Form\n(BNF), called Augmented BNF (ABNF), has been popular among many\nInternet specifications.  The current specification documents ABNF.\nIt balances compactness and simplicity, with reasonable\nrepresentational power.  The differences between standard BNF and\nABNF involve naming rules, repetition, alternatives, order-\nindependence, and value ranges.  This specification also supplies\nadditional rule definitions and encoding for a core lexical analyzer\nof the type common to several Internet specifications.")
+        self.assertEqual(s.access_key,      "f77d08da6da54f3cbecca13d31646be8")
+        self.assertEqual(s.auth_key,        "fMm6hur5dJ7gV58x5SE0vkHUoDOrSuSF")
+        self.assertEqual(s.authors,         "[{u'email': u'dcrocker@bbiw.net', u'name': u'Dave Crocker'}, {u'email': u'paul.overell@thus.net', u'name': u'Paul Overell'}]")
+        self.assertEqual(s.checks,          ["/api/v1/submit/submissioncheck/386/"])
+        self.assertEqual(s.document_date,   "2007-10-09")
+        self.assertEqual(s.draft,           "/api/v1/doc/document/draft-crocker-rfc4234bis/")
+        self.assertEqual(s.file_size,       27651)
+        self.assertEqual(s.file_types,      ".txt,.xml,.pdf")
+        self.assertEqual(s.first_two_pages, "\n\n\nNetwork Working Group                                    D. Crocker, Ed.\nInternet-Draft                               Brandenburg InternetWorking\nObsoletes: 4234 (if approved)                                 P. Overell\nIntended status: Standards Track                               THUS plc.\nExpires: April 11, 2008                                  October 9, 2007\n\n\n             Augmented BNF for Syntax Specifications: ABNF\n                      draft-crocker-rfc4234bis-01\n\nStatus of this Memo\n\n   By submitting this Internet-Draft, each author represents that any\n   applicable patent or other IPR claims of which he or she is aware\n   have been or will be disclosed, and any of which he or she becomes\n   aware will be disclosed, in accordance with Section 6 of BCP 79.\n\n   Internet-Drafts are working documents of the Internet Engineering\n   Task Force (IETF), its areas, and its working groups.  Note that\n   other groups may also distribute working documents as Internet-\n   Drafts.\n\n   Internet-Drafts are draft documents valid for a maximum of six months\n   and may be updated, replaced, or obsoleted by other documents at any\n   time.  It is inappropriate to use Internet-Drafts as reference\n   material or to cite them other than as \"work in progress.\"\n\n   The list of current Internet-Drafts can be accessed at\n   http://www.ietf.org/ietf/1id-abstracts.txt.\n\n   The list of Internet-Draft Shadow Directories can be accessed at\n   http://www.ietf.org/shadow.html.\n\n   This Internet-Draft will expire on April 11, 2008.\n\nCopyright Notice\n\n   Copyright (C) The IETF Trust (2007).\n\nAbstract\n\n   Internet technical specifications often need to define a formal\n   syntax.  Over the years, a modified version of Backus-Naur Form\n   (BNF), called Augmented BNF (ABNF), has been popular among many\n   Internet specifications.  The current specification documents ABNF.\n   It balances compactness and simplicity, with reasonable\n   representational power.  The differences between standard BNF and\n   ABNF involve naming rules, repetition, alternatives, order-\n\n\n\nCrocker & Overell        Expires April 11, 2008                 [page 1]\n\nInternet-Draft                    ABNF                      October 2007\n\n\n   independence, and value ranges.  This specification also supplies\n   additional rule definitions and encoding for a core lexical analyzer\n   of the type common to several Internet specifications.\n\n\nTable of Contents\n\n   1.  INTRODUCTION . . . . . . . . . . . . . . . . . . . . . . . . .  3\n   2.  RULE DEFINITION  . . . . . . . . . . . . . . . . . . . . . . .  3\n     2.1.  Rule Naming  . . . . . . . . . . . . . . . . . . . . . . .  3\n     2.2.  Rule Form  . . . . . . . . . . . . . . . . . . . . . . . .  4\n     2.3.  Terminal Values  . . . . . . . . . . . . . . . . . . . . .  4\n     2.4.  External Encodings . . . . . . . . . . . . . . . . . . . .  5\n   3.  OPERATORS  . . . . . . . . . . . . . . . . . . . . . . . . . .  6\n     3.1.  Concatenation:  Rule1 Rule2  . . . . . . . . . . . . . . .  6\n     3.2.  Alternatives:  Rule1 / Rule2 . . . . . . . . . . . . . . .  6\n     3.3.  Incremental Alternatives: Rule1 =/ Rule2 . . . . . . . . .  7\n     3.4.  Value Range Alternatives:  %c##-## . . . . . . . . . . . .  7\n     3.5.  Sequence Group:  (Rule1 Rule2) . . . . . . . . . . . . . .  8\n     3.6.  Variable Repetition:  *Rule  . . . . . . . . . . . . . . .  8\n     3.7.  Specific Repetition:  nRule  . . . . . . . . . . . . . . .  9\n     3.8.  Optional Sequence:  [RULE] . . . . . . . . . . . . . . . .  9\n     3.9.  Comment:  ; Comment  . . . . . . . . . . . . . . . . . . .  9\n     3.10. Operator Precedence  . . . . . . . . . . . . . . . . . . .  9\n   4.  ABNF DEFINITION OF ABNF  . . . . . . . . . . . . . . . . . . . 10\n   5.  SECURITY CONSIDERATIONS  . . . . . . . . . . . . . . . . . . . 11\n   6.  References . . . . . . . . . . . . . . . . . . . . . . . . . . 11\n     6.1.  Normative References . . . . . . . . . . . . . . . . . . . 11\n     6.2.  Informative References . . . . . . . . . . . . . . . . . . 12\n   Appendix A.  ACKNOWLEDGEMENTS  . . . . . . . . . . . . . . . . . . 12\n   Appendix B.  CORE ABNF OF ABNF . . . . . . . . . . . . . . . . . . 13\n     B.1.  Core Rules . . . . . . . . . . . . . . . . . . . . . . . . 13\n     B.2.  Common Encoding  . . . . . . . . . . . . . . . . . . . . . 14\n   Authors' Addresses . . . . . . . . . . . . . . . . . . . . . . . . 14\n   Intellectual Property and Copyright Statements . . . . . . . . . . 16\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nCrocker & Overell        Expires April 11, 2008                 [page 2]")
+        self.assertEqual(s.group,           "/api/v1/group/group/1027/")
+        self.assertEqual(s.id,              2402)
+        self.assertEqual(s.name,            "draft-crocker-rfc4234bis")
+        self.assertEqual(s.note,            "")
+        self.assertEqual(s.pages,           13)
+        self.assertEqual(s.remote_ip,       "72.255.3.179")
+        self.assertEqual(s.replaces,        "")
+        self.assertEqual(s.resource_uri,    "/api/v1/submit/submission/2402/")
+        self.assertEqual(s.rev,             "01")
+        self.assertEqual(s.state,           "/api/v1/name/draftsubmissionstatename/posted/")
+        self.assertEqual(s.submission_date, "2007-10-09")
+        self.assertEqual(s.submitter,       "Dave Crocker")
+        self.assertEqual(s.title,           "Augmented BNF for Syntax Specifications: ABNF")
+        self.assertEqual(s.words,           None)
 
     def test_document_type(self):
         dt      = DataTracker()
