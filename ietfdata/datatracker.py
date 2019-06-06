@@ -744,7 +744,6 @@ class DataTracker:
 
     def groups(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07", name_contains=None):
         # FIXME: add documentation
-        # FIXME: no tests for this
         """
         A generator that returns Group objects representing all groups recorded
         in the datatracker. The since and until parameters can be used to contrain
@@ -1142,11 +1141,14 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(group.id, 941)
 
     def test_groups(self):
-        # FIXME: implement tests
-        raise NotImplementedError
+        dt = DataTracker()
+        # FIXME: split into two tests? _timerange, and _namecontains -- testing without parameters not practical
+        groups = list(dt.groups(since="2019-01-01T00:00:00", until="2019-01-31T23:59:59"))
+        self.assertEqual(len(groups),  2)
+        self.assertEqual(groups[0].id, 1897)
+        self.assertEqual(groups[1].id, 2220)
 
 if __name__ == '__main__':
-    #TestDatatracker().test_group()
     unittest.main()
 
 # =================================================================================================================================
