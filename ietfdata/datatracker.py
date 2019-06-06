@@ -427,9 +427,22 @@ class DataTracker:
 
 
     def document_from_std(self, std: str):
-        # FIXME: implement this
-        raise NotImplementedError
+        """
+        Returns the document that became the specified STD.
 
+        Parameters:
+            std -- The STD to lookup, in the form "std68" or "STD68"
+
+        Returns:
+            A Document object
+        """
+        assert std.lower().startswith("std")
+        url  = self.base_url + "/api/v1/doc/docalias/" + std.lower() + "/"
+        response = self.session.get(url, verify=True)
+        if response.status_code == 200:
+            return self.document(response.json()['document'])
+        else:
+            return None
 
     # Datatracker API endpoints returning information about document states:
     # * https://datatracker.ietf.org/api/v1/doc/state/                           - Types of state a document can be in
@@ -919,8 +932,9 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(d.resource_uri, "/api/v1/doc/document/draft-sheffer-rfc6982bis/")
 
     def test_document_from_std(self):
-        # FIXME: implement tests
-        raise NotImplementedError
+        dt = DataTracker()
+        d  = dt.document_from_std("std68")
+        self.assertEqual(d.resource_uri, "/api/v1/doc/document/draft-crocker-rfc4234bis/")
 
     def test_document_state(self):
         dt = DataTracker()
