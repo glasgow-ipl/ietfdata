@@ -1005,8 +1005,15 @@ class TestDatatracker(unittest.TestCase):
         raise NotImplementedError
 
     def test_document_type(self):
-        # FIXME: implement tests
-        raise NotImplementedError
+        dt      = DataTracker()
+        doctype = dt.document_type("/api/v1/name/doctypename/draft/")
+        self.assertEqual(doctype.resource_uri, "/api/v1/name/doctypename/draft/")
+        self.assertEqual(doctype.name,         "Draft")
+        self.assertEqual(doctype.used,         True)
+        self.assertEqual(doctype.prefix,       "draft")
+        self.assertEqual(doctype.slug,         "draft")
+        self.assertEqual(doctype.desc,         "")
+        self.assertEqual(doctype.order,        0)
 
     def test_document_types(self):
         dt    = DataTracker()
