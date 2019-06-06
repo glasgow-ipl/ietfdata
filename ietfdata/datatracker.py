@@ -44,7 +44,9 @@
 #   RFC 6359 "Datatracker Extensions to Include IANA and RFC Editor Processing Information"
 #   RFC 7760 "Statement of Work for Extensions to the IETF Datatracker for Author Statistics"
 
-from typing import List, Optional, Tuple, Dict, Iterator
+from typing      import List, Optional, Tuple, Dict, Iterator
+from dataclasses import dataclass
+from pavlova     import Pavlova
 
 import datetime
 import glob
@@ -53,6 +55,185 @@ import requests
 import unittest
 import re
 
+# =================================================================================================================================
+# Classes to represent the JSON-serialised objects returned by the Datatracker API:
+
+@dataclass
+class Person:
+    resource_uri    : str
+    id              : int
+    name            : str
+    name_from_draft : str
+    ascii           : str
+    ascii_short     : Optional[str]
+    user            : str
+    time            : str
+    photo           : str
+    photo_thumb     : str
+    biography       : str
+    consent         : bool
+
+@dataclass
+class Email:
+    resource_uri : str
+    address      : str
+    person       : str
+    time         : str
+    origin       : str
+    primary      : bool
+    active       : bool
+
+@dataclass
+class Document:
+    resource_uri       : str
+    name               : str
+    title              : str
+    pages              : Optional[int]
+    words              : Optional[int]
+    time               : str
+    notify             : str
+    expires            : Optional[str]
+    type               : str
+    rev                : str
+    abstract           : str
+    internal_comments  : str
+    order              : int
+    note               : str
+    states             : List[str]
+    ad                 : Optional[str]
+    shepherd           : Optional[str]
+    group              : Optional[str]
+    stream             : Optional[str]
+    rfc                : Optional[int]
+    std_level          : Optional[str]
+    intended_std_level : Optional[str]
+    submissions        : List[str]
+    tags               : List[str]
+    uploaded_filename  : str
+    external_url       : str
+    
+    def derive_document_url(self) -> str:
+        if self.type == "/api/v1/name/doctypename/agenda/":
+            # FIXME: This doesn't work for interim meetings
+            # FIXME: This doesn't work for PDF agenda files
+            meeting = self.name.split("-")[1]
+            document_url = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + self.uploaded_filename
+        elif self.type == "/api/v1/name/doctypename/minutes/":
+            meeting = self.name.split("-")[1]
+            document_url = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + self.uploaded_filename
+        elif self.type == "/api/v1/name/doctypename/bluesheets/":
+            meeting = self.name.split("-")[1]
+            document_url = "https://www.ietf.org/proceedings/" + meeting + "/bluesheets/" + self.uploaded_filename
+        elif self.type == "/api/v1/name/doctypename/charter/":
+            document_url = "https://www.ietf.org/charter/"     + self.name + "-" + self.rev + ".txt"
+        elif self.type == "/api/v1/name/doctypename/conflrev/":
+            document_url = "https://www.ietf.org/cr/"          + self.name + "-" + self.rev + ".txt"
+        elif self.type == "/api/v1/name/doctypename/draft/":
+            document_url = "https://www.ietf.org/archive/id/"  + self.name + "-" + self.rev + ".txt"
+        elif self.type == "/api/v1/name/doctypename/slides/":
+            meeting = self.name.split("-")[1]
+            document_url = "https://www.ietf.org/proceedings/" + meeting + "/slides/" + self.uploaded_filename
+        elif self.type == "/api/v1/name/doctypename/statchg/":
+            document_url = "https://www.ietf.org/sc/"          + self.name + "-" + self.rev + ".txt"
+        elif self.type == "/api/v1/name/doctypename/liaison/":
+            document_url = "https://www.ietf.org/lib/dt/documents/LIAISON/" + self.uploaded_filename
+        elif self.type == "/api/v1/name/doctypename/liai-att/":
+            document_url = "https://www.ietf.org/lib/dt/documents/LIAISON/" + self.uploaded_filename
+        elif self.type == "/api/v1/name/doctypename/recording/":
+            document_url = self.external_url
+        elif self.type == "/api/v1/name/doctypename/review/":
+            # FIXME: This points to the formatted HTML page containing the message, but we really want the raw message
+            document_url = "https://datatracker.ietf.org/doc/" + self.name
+        elif self.type == "/api/v1/name/doctypename/shepwrit/":
+            document_url = self.external_url
+        else:
+            raise NotImplementedError
+        return document_url
+
+@dataclass
+class State:
+    id           : int
+    resource_uri : str
+    desc         : str
+    name         : str
+    next_states  : List[str]
+    order        : int
+    slug         : str
+    type         : str
+    used         : bool
+
+@dataclass
+class StateType:
+    resource_uri : str
+    label        : str
+    slug         : str
+
+@dataclass
+class DocumentType:
+    resource_uri : str
+    name         : str
+    used         : bool
+    prefix       : str
+    slug         : str
+    desc         : str
+    order        : int
+
+@dataclass
+class Stream:
+    resource_uri : str
+    name         : str
+    desc         : str
+    used         : bool
+    slug         : str
+    order        : int
+
+@dataclass
+class Group:
+    acronym        : str
+    ad             : Optional[str]
+    charter        : str
+    comments       : str
+    description    : str
+    id             : int
+    list_archive   : str
+    list_email     : str
+    list_subscribe : str
+    name           : str
+    parent         : str
+    resource_uri   : str
+    state          : str
+    time           : str
+    type           : str
+    unused_states  : List[str]
+    unused_tags    : List[str]
+
+@dataclass
+class Submission:
+    abstract        : str
+    access_key      : str
+    auth_key        : str
+    authors         : str
+    checks          : List[str]
+    document_date   : str
+    draft           : str
+    file_size       : int
+    file_types      : str
+    first_two_pages : str
+    group           : str
+    id              : int
+    name            : str
+    note            : str
+    pages           : int
+    remote_ip       : str
+    replaces        : str
+    resource_uri    : str
+    rev             : str
+    state           : str
+    submission_date : str
+    submitter       : str
+    title           : str
+    words           : Optional[int]
+    
 # =================================================================================================================================
 # A class to represent the datatracker:
 
@@ -85,18 +266,11 @@ class DataTracker:
            email : the email address to lookup
 
         Returns:
-            A Dict containing the following fields:
-                "resource_uri" -- A URI representing this resource
-                "address"      -- The requested email address
-                "person"       -- A URI suitable for use with the person() method
-                "time"         -- 
-                "origin"       -- 
-                "primary"      -- True if this is the primary email address of the person
-                "active"       -- True if this is an active email address
+            An Email object
         """
         response = self.session.get(self.base_url + "/api/v1/person/email/" + email + "/", verify=True)
         if response.status_code == 200:
-            return response.json()
+            return Pavlova().from_mapping(response.json(), Email)
         else:
             return None
 
@@ -109,7 +283,7 @@ class DataTracker:
             email : the email address to lookup
 
         Returns:
-            A Dict containing the same fields as the person() method.
+            A Person object
         """
         return self.person("/api/v1/person/email/" + email + "/")
 
@@ -122,26 +296,14 @@ class DataTracker:
             person_uri : a URI of the form "/api/v1/person/person/20209/" or "api/v1/person/email/csp@csperkins.org/"
 
         Returns:
-            A Dict containing the following fields:
-                "resource_uri"    -- A URI representing this resource
-                "id"              -- A unique identifier for the person
-                "name"            -- 
-                "name_from_draft" -- 
-                "ascii"           -- 
-                "ascii_short"     -- 
-                "user"            -- 
-                "time"            -- 
-                "photo"           -- URL for a full size photo
-                "photo_thumb"     -- URL for a thumbnail photo
-                "biography"       -- Biography of the person
-                "consent"         -- 
+            A Person object
         """
         assert person_uri.startswith("/api/v1/person/")
         assert person_uri.endswith("/")
         if person_uri.startswith("/api/v1/person/person/"):
             response = self.session.get(self.base_url + person_uri, verify=True)
             if response.status_code == 200:
-                return response.json()
+                return Pavlova().from_mapping(response.json(), Person)
             else:
                 return None
         elif person_uri.startswith("/api/v1/person/email/"):
@@ -183,44 +345,6 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/doc/document/                        - list of documents
     # * https://datatracker.ietf.org/api/v1/doc/document/draft-ietf-avt-rtp-new/ - info about document
 
-    def _derive_document_url(self, doc):
-        if doc["type"] == "/api/v1/name/doctypename/agenda/":
-            # FIXME: This doesn't work for interim meetings
-            # FIXME: This doesn't work for PDF agenda files
-            meeting = doc["name"].split("-")[1]
-            doc["document_url"] = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + doc["uploaded_filename"]
-        elif doc["type"] == "/api/v1/name/doctypename/minutes/":
-            meeting = doc["name"].split("-")[1]
-            doc["document_url"] = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + doc["uploaded_filename"]
-        elif doc["type"] == "/api/v1/name/doctypename/bluesheets/":
-            meeting = doc["name"].split("-")[1]
-            doc["document_url"] = "https://www.ietf.org/proceedings/" + meeting + "/bluesheets/" + doc["uploaded_filename"]
-        elif doc["type"] == "/api/v1/name/doctypename/charter/":
-            doc["document_url"] = "https://www.ietf.org/charter/"     + doc["name"] + "-" + doc["rev"] + ".txt"
-        elif doc["type"] == "/api/v1/name/doctypename/conflrev/":
-            doc["document_url"] = "https://www.ietf.org/cr/"          + doc["name"] + "-" + doc["rev"] + ".txt"
-        elif doc["type"] == "/api/v1/name/doctypename/draft/":
-            doc["document_url"] = "https://www.ietf.org/archive/id/"  + doc["name"] + "-" + doc["rev"] + ".txt"
-        elif doc["type"] == "/api/v1/name/doctypename/slides/":
-            meeting = doc["name"].split("-")[1]
-            doc["document_url"] = "https://www.ietf.org/proceedings/" + meeting + "/slides/" + doc["uploaded_filename"]
-        elif doc["type"] == "/api/v1/name/doctypename/statchg/":
-            doc["document_url"] = "https://www.ietf.org/sc/"          + doc["name"] + "-" + doc["rev"] + ".txt"
-        elif doc["type"] == "/api/v1/name/doctypename/liaison/":
-            doc["document_url"] = "https://www.ietf.org/lib/dt/documents/LIAISON/" + doc["uploaded_filename"]
-        elif doc["type"] == "/api/v1/name/doctypename/liai-att/":
-            doc["document_url"] = "https://www.ietf.org/lib/dt/documents/LIAISON/" + doc["uploaded_filename"]
-        elif doc["type"] == "/api/v1/name/doctypename/recording/":
-            doc["document_url"] = doc["external_url"]
-        elif doc["type"] == "/api/v1/name/doctypename/review/":
-            # FIXME: This points to the formatted HTML page containing the message, but we really want the raw message
-            doc["document_url"] = "https://datatracker.ietf.org/doc/" + doc["name"]
-        elif doc["type"] == "/api/v1/name/doctypename/shepwrit/":
-            doc["document_url"] = doc["external_url"]
-        else:
-            raise NotImplementedError
-
-
     def document(self, document_uri: str):
         # FIXME: complete documentation
         # FIXME: add method relating to std_level
@@ -234,44 +358,16 @@ class DataTracker:
             document_uri : a URI of the form "/api/v1/doc/document/draft-ietf-avt-rtp-new/"
 
         Returns:
-            A Dict containing the following fields:
-                "resource_uri"      -- A URI representing this resource
-                "name"              -- The document name
-                "title"             -- The document title
-                "pages"             -- The number of pages in the document
-                "words"             -- The number of words in the document
-                "time"              -- Last modified
-                "notify"            -- Email addresses to notify on update or state change
-                "expires"           -- Expiration time for the document
-                "type"              -- A URI that can be passed to the document_type() method
-                "rev"               -- Revision number of the document
-                "abstract"          -- The abstract of the document, if present
-                "internal_comments" -- 
-                "order"             -- 
-                "note"              -- 
-                "states"            -- A list of URIs that can be passed to the document_state() method
-                "ad"                -- A URI that can be passed to the person() method; the responsible area director
-                "shepherd"          -- A URI suitable for use with the person() method; the document shepherd
-                "group"             -- A URI that can be passed to the group() method
-                "stream"            -- A URI that can be passed to the stream() method
-                "rfc"               -- RFC number, e.g., "3550", if the document has been published as an RFC
-                "std_level"         --
-                "intended_std_level -- 
-                "submissions"       --
-                "tags"              -- 
-                "uploaded_filename" -- 
-                "external_url"      -- 
-                "document_url"      -- A URL to retrieve the document
+            A Document object
         """
         assert document_uri.startswith("/api/v1/doc/document/")
         assert document_uri.endswith("/")
         response = self.session.get(self.base_url + document_uri, verify=True)
         if response.status_code == 200:
-            doc = response.json()
-            assert doc["resource_uri"].startswith("/api/v1/doc/document/")
-            assert doc["ad"]       is None or doc["ad"].startswith("/api/v1/person/person")
-            assert doc["shepherd"] is None or doc["shepherd"].startswith("/api/v1/person/email")
-            self._derive_document_url(doc)
+            doc = Pavlova().from_mapping(response.json(), Document)
+            assert doc.resource_uri.startswith("/api/v1/doc/document/")
+            assert doc.ad       is None or doc.ad.startswith("/api/v1/person/person")
+            assert doc.shepherd is None or doc.shepherd.startswith("/api/v1/person/email")
             return doc
         else:
             return None
@@ -327,7 +423,7 @@ class DataTracker:
             rfc -- The RFC to lookup, in the form "rfc3550" or "RFC3550"
 
         Returns:
-            A Dict containing the same fields as the document() method.
+            A Document object
         """
         assert rfc.lower().startswith("rfc")
         url  = self.base_url + "/api/v1/doc/docalias/" + rfc.lower() + "/"
@@ -339,14 +435,41 @@ class DataTracker:
 
 
     def document_from_bcp(self, bcp: str):
-        # FIXME: implement this
-        raise NotImplementedError
+        """
+        Returns the document that became the specified BCP.
+
+        Parameters:
+            bcp -- The BCP to lookup, in the form "bcp205" or "BCP205"
+
+        Returns:
+            A Document object
+        """
+        assert bcp.lower().startswith("bcp")
+        url  = self.base_url + "/api/v1/doc/docalias/" + bcp.lower() + "/"
+        response = self.session.get(url, verify=True)
+        if response.status_code == 200:
+            return self.document(response.json()['document'])
+        else:
+            return None
 
 
     def document_from_std(self, std: str):
-        # FIXME: implement this
-        raise NotImplementedError
+        """
+        Returns the document that became the specified STD.
 
+        Parameters:
+            std -- The STD to lookup, in the form "std68" or "STD68"
+
+        Returns:
+            A Document object
+        """
+        assert std.lower().startswith("std")
+        url  = self.base_url + "/api/v1/doc/docalias/" + std.lower() + "/"
+        response = self.session.get(url, verify=True)
+        if response.status_code == 200:
+            return self.document(response.json()['document'])
+        else:
+            return None
 
     # Datatracker API endpoints returning information about document states:
     # * https://datatracker.ietf.org/api/v1/doc/state/                           - Types of state a document can be in
@@ -361,21 +484,12 @@ class DataTracker:
                         in the states entry of the dict returned by document()
 
         Returns:
-            A Dict containing the following fields:
-              id           -- An identifier for the state
-              resource_uri -- The URI representing this state
-              desc         -- A description of the state
-              name         -- The name of the state
-              next_states  -- A List of URIs representing possible next states for the document
-              order        -- 
-              slug         -- Short name
-              type         -- A URI as returned by document_state_types()
-              used         -- True if this state is used in the datatracker
+            A State object
         """
         assert state_uri.startswith("/api/v1/doc/state/") and state_uri.endswith("/")
         response = self.session.get(self.base_url + state_uri, verify=True)
         if response.status_code == 200:
-            return response.json()
+            return Pavlova().from_mapping(response.json(), State)
         else:
             return None
 
@@ -390,7 +504,7 @@ class DataTracker:
                         to that particular state type.
 
         Returns:
-            A sequence of dicts, as returned by document_state()
+            A sequence of Document objects, as returned by document_state()
         """
         api_url   = "/api/v1/doc/state/"
         if statetype is not None:
@@ -401,7 +515,7 @@ class DataTracker:
             objs = r.json()['objects']
             api_url = meta['next']
             for obj in objs:
-                yield obj
+                yield Pavlova().from_mapping(obj, State)
 
 
     def document_state_types(self):
@@ -412,11 +526,7 @@ class DataTracker:
         document_states().
 
         Returns:
-           A sequence of dicts, each containing the following fields:
-              resource_uri -- The URI representing this state
-              label        -- A label for the state
-              slug         -- A short name for the state
-
+           A sequence of StateType objects
         """
         api_url   = "/api/v1/doc/statetype/"
         while api_url != None:
@@ -425,7 +535,7 @@ class DataTracker:
             objs = r.json()['objects']
             api_url = meta['next']
             for obj in objs:
-                yield obj
+                yield Pavlova().from_mapping(obj, StateType)
 
 
     #   https://datatracker.ietf.org/api/v1/doc/docevent/                        - list of document events
@@ -458,16 +568,22 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/doc/addedmessageevent/
     #   https://datatracker.ietf.org/api/v1/doc/editedauthorsdocevent/
 
-    def submission(self, submission):
-        # FIXME: add documentation
+    def submission(self, submission_uri):
         """
-        Returns a JSON object giving information about a document submission.
+        Information about a document submission.
+
+        Parameters:
+           submission_uri -- A submission URI of the form /api/v1/submit/submission/2402/                             
+
+        Returns:
+            A Submission object
         """
-        assert submission.startswith("/api/v1/doc/document/")
-        assert submission.endswith("/")
-        response = self.session.get(self.base_url + submission, verify=True)
+
+        assert submission_uri.startswith("/api/v1/submit/submission/")
+        assert submission_uri.endswith("/")
+        response = self.session.get(self.base_url + submission_uri, verify=True)
         if response.status_code == 200:
-            return response.json()
+            return Pavlova().from_mapping(response.json(), Submission)
         else:
             return None
 
@@ -522,19 +638,12 @@ class DataTracker:
                           return from a call to document().
 
         Returns:
-            A Dict containing the following fields:
-                "resource_uri" -- A URI representing this resource
-                "name"         -- The name of the document type
-                "used"         -- True is this document type is used
-                "prefix"       --
-                "slug"         --
-                "desc"         -- (unused)
-                "order"        -- (unused)
+            A DocumentType object
         """
         assert doctype_uri.startswith("/api/v1/name/doctypename/") and doctype_uri.endswith("/")
         response = self.session.get(self.base_url + doctype_uri, verify=True)
         if response.status_code == 200:
-            return response.json()
+            return Pavlova().from_mapping(response.json(), DocumentType)
         else:
             return None
 
@@ -547,7 +656,7 @@ class DataTracker:
             none
 
         Returns:
-            A sequence of dicts, as returned by document_type()
+            A sequence of DocumentType objects, as returned by document_type()
         """
         url = "/api/v1/name/doctypename/"
         while url != None:
@@ -556,7 +665,7 @@ class DataTracker:
             objs = r.json()['objects']
             url  = meta['next']
             for obj in objs:
-                yield obj
+                yield Pavlova().from_mapping(obj, DocumentType)
 
 
     def stream(self, stream_uri: str):
@@ -567,18 +676,12 @@ class DataTracker:
             stream_uri : a URI of the form, e.g., "/api/v1/name/streamname/.../"
 
         Returns:
-            A Dict containing the following fields:
-                "resource_uri" -- A URI representing this resource
-                "name"         -- The stream name
-                "desc"         -- A description of hte stream
-                "used"         -- True is this stream is used
-                "slug"         --
-                "order"        -- 
+            A Stream object
         """
         assert stream_uri.startswith("/api/v1/name/streamname/") and stream_uri.endswith("/")
         response = self.session.get(self.base_url + stream_uri, verify=True)
         if response.status_code == 200:
-            return response.json()
+            return Pavlova().from_mapping(response.json(), Stream)
         else:
             return None
 
@@ -591,7 +694,7 @@ class DataTracker:
             none
 
         Returns:
-            A sequence of dicts, as returned by stream()
+            A sequence of Stream objects, as returned by stream()
         """
         url = "/api/v1/name/streamname/"
         while url != None:
@@ -600,7 +703,7 @@ class DataTracker:
             objs = r.json()['objects']
             url  = meta['next']
             for obj in objs:
-                yield obj
+                yield Pavlova().from_mapping(obj, Stream)
 
 
     # Datatracker API endpoints returning information about working groups:
@@ -622,23 +725,27 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/group/groupstatetransitions                - ???
 
     def group(self, group_id):
-        # FIXME: implement this
-        raise NotImplementedError
+        # FIXME: add documentation
+        api_url  = "/api/v1/group/group/%d/" % (group_id) 
+        response = self.session.get(self.base_url + api_url, verify=True)
+        if response.status_code == 200:
+            return Pavlova().from_mapping(response.json(), Group)
+        else:
+            return None
 
     def group_from_acronym(self, acronym):
         # FIXME: add documentation
         api_url  = "/api/v1/group/group/?acronym=" + acronym
         response = self.session.get(self.base_url + api_url, verify=True)
         if response.status_code == 200:
-            return response.json()["objects"][0]
+            return Pavlova().from_mapping(response.json()["objects"][0], Group)
         else:
             return None
 
     def groups(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07", name_contains=None):
         # FIXME: add documentation
-        # FIXME: no tests for this
         """
-        A generator that returns JSON objects representing all groups recorded
+        A generator that returns Group objects representing all groups recorded
         in the datatracker. The since and until parameters can be used to contrain
         the output to only entries with timestamps in a particular time range.
         If provided, name_contains filters based on the whether the name field
@@ -653,7 +760,7 @@ class DataTracker:
             objs = r.json()['objects']
             api_url = meta['next']
             for obj in objs:
-                yield obj
+                yield Pavlova().from_mapping(obj, Group)
 
     # Datatracker API endpoints returning information about meetings:
     #   https://datatracker.ietf.org/api/v1/meeting/meeting/                        - list of meetings
@@ -676,41 +783,41 @@ class TestDatatracker(unittest.TestCase):
     def test_email(self):
         dt = DataTracker()
         e  = dt.email("csp@csperkins.org")
-        self.assertEqual(e["resource_uri"], "/api/v1/person/email/csp@csperkins.org/")
-        self.assertEqual(e["address"],      "csp@csperkins.org")
-        self.assertEqual(e["person"],       "/api/v1/person/person/20209/")
-        self.assertEqual(e["time"],         "1970-01-01T23:59:59")
-        self.assertEqual(e["origin"],       "author: draft-ietf-tsvwg-transport-encrypt")
-        self.assertEqual(e["primary"],      True)
-        self.assertEqual(e["active"],       True)
+        self.assertEqual(e.resource_uri, "/api/v1/person/email/csp@csperkins.org/")
+        self.assertEqual(e.address,      "csp@csperkins.org")
+        self.assertEqual(e.person,       "/api/v1/person/person/20209/")
+        self.assertEqual(e.time,         "1970-01-01T23:59:59")
+        self.assertEqual(e.origin,       "author: draft-ietf-tsvwg-transport-encrypt")
+        self.assertEqual(e.primary,      True)
+        self.assertEqual(e.active,       True)
 
 
     def test_person_from_email(self):
         dt = DataTracker()
         p  = dt.person_from_email("csp@csperkins.org")
-        self.assertEqual(p["resource_uri"], "/api/v1/person/person/20209/")
+        self.assertEqual(p.resource_uri, "/api/v1/person/person/20209/")
 
 
     def test_person_person(self):
         dt = DataTracker()
         p  = dt.person("/api/v1/person/person/20209/")
-        self.assertEqual(p["id"],              20209)
-        self.assertEqual(p["resource_uri"],    "/api/v1/person/person/20209/")
-        self.assertEqual(p["name"],            "Colin Perkins")
-        self.assertEqual(p["name_from_draft"], "Colin Perkins")
-        self.assertEqual(p["ascii"],           "Colin Perkins")
-        self.assertEqual(p["ascii_short"],     None)
-        self.assertEqual(p["user"],            "")
-        self.assertEqual(p["time"],            "2012-02-26T00:03:54")
-        self.assertEqual(p["photo"],           "https://www.ietf.org/lib/dt/media/photo/Colin-Perkins-sm.jpg")
-        self.assertEqual(p["photo_thumb"],     "https://www.ietf.org/lib/dt/media/photo/Colin-Perkins-sm_PMIAhXi.jpg")
-        self.assertEqual(p["biography"],       "Colin Perkins is a Senior Lecturer (Associate Professor) in the School of Computing Science at the University of Glasgow. His research interests are on transport protocols for real-time and interactive multimedia, and on network protocol design, implementation, and specification. He’s been a participant in the IETF and IRTF since 1996, working primarily in the transport area where he co-chairs the RMCAT working group and is a past chair of the AVT and MMUSIC working groups, and in related IRTF research groups. He proposed and co-chaired the first Applied Networking Research Workshop (ANRW), and has been a long-term participant in the Applied Networking Research Prize (ANRP) awarding committee. He received his BEng in Electronic Engineering in 1992, and my PhD in 1996, both from the Department of Electronics at the University of York.")
-        self.assertEqual(p["consent"],         True)
+        self.assertEqual(p.id,              20209)
+        self.assertEqual(p.resource_uri,    "/api/v1/person/person/20209/")
+        self.assertEqual(p.name,            "Colin Perkins")
+        self.assertEqual(p.name_from_draft, "Colin Perkins")
+        self.assertEqual(p.ascii,           "Colin Perkins")
+        self.assertEqual(p.ascii_short,     None)
+        self.assertEqual(p.user,            "")
+        self.assertEqual(p.time,            "2012-02-26T00:03:54")
+        self.assertEqual(p.photo,           "https://www.ietf.org/lib/dt/media/photo/Colin-Perkins-sm.jpg")
+        self.assertEqual(p.photo_thumb,     "https://www.ietf.org/lib/dt/media/photo/Colin-Perkins-sm_PMIAhXi.jpg")
+        self.assertEqual(p.biography,       "Colin Perkins is a Senior Lecturer (Associate Professor) in the School of Computing Science at the University of Glasgow. His research interests are on transport protocols for real-time and interactive multimedia, and on network protocol design, implementation, and specification. He’s been a participant in the IETF and IRTF since 1996, working primarily in the transport area where he co-chairs the RMCAT working group and is a past chair of the AVT and MMUSIC working groups, and in related IRTF research groups. He proposed and co-chaired the first Applied Networking Research Workshop (ANRW), and has been a long-term participant in the Applied Networking Research Prize (ANRP) awarding committee. He received his BEng in Electronic Engineering in 1992, and my PhD in 1996, both from the Department of Electronics at the University of York.")
+        self.assertEqual(p.consent,         True)
 
     def test_person_email(self):
         dt = DataTracker()
         p  = dt.person("/api/v1/person/email/csp@csperkins.org/")
-        self.assertEqual(p["resource_uri"],    "/api/v1/person/person/20209/")
+        self.assertEqual(p.resource_uri,    "/api/v1/person/person/20209/")
 
 
 #    def test_people(self):
@@ -722,125 +829,125 @@ class TestDatatracker(unittest.TestCase):
     def test_document_draft(self):
         dt = DataTracker()
         d  = dt.document("/api/v1/doc/document/draft-ietf-avt-rtp-new/")
-        self.assertEqual(d["resource_uri"], "/api/v1/doc/document/draft-ietf-avt-rtp-new/")
-        self.assertEqual(d["time"], "2015-10-14T13:49:52")
-        self.assertEqual(d["notify"], "magnus.westerlund@ericsson.com, csp@csperkins.org")
-        self.assertEqual(d["expires"], "2003-09-08T00:00:12")
-        self.assertEqual(d["type"], "/api/v1/name/doctypename/draft/")
-        self.assertEqual(d["rev"], "12")
-        self.assertEqual(d["abstract"], "This memorandum describes RTP, the real-time transport protocol.  RTP provides end-to-end network transport functions suitable for applications transmitting real-time data, such as audio, video or simulation data, over multicast or unicast network services.  RTP does not address resource reservation and does not guarantee quality-of- service for real-time services.  The data transport is augmented by a control protocol (RTCP) to allow monitoring of the data delivery in a manner scalable to large multicast networks, and to provide minimal control and identification functionality.  RTP and RTCP are designed to be independent of the underlying transport and network layers.  The protocol supports the use of RTP-level translators and mixers.  Most of the text in this memorandum is identical to RFC 1889 which it obsoletes.  There are no changes in the packet formats on the wire, only changes to the rules and algorithms governing how the protocol is used.  The biggest change is an enhancement to the scalable timer algorithm for calculating when to send RTCP packets in order to minimize transmission in excess of the intended rate when many participants join a session simultaneously. [STANDARDS-TRACK]")
-        self.assertEqual(d["internal_comments"], "")
-        self.assertEqual(d["states"], ["/api/v1/doc/state/3/", "/api/v1/doc/state/7/"])
-        self.assertEqual(d["ad"], "/api/v1/person/person/2515/")
-        self.assertEqual(d["group"], "/api/v1/group/group/941/")
-        self.assertEqual(d["stream"], "/api/v1/name/streamname/ietf/")
-        self.assertEqual(d["rfc"], "3550")
-        self.assertEqual(d["intended_std_level"], "/api/v1/name/intendedstdlevelname/std/")
-        self.assertEqual(d["resource_uri"], "/api/v1/doc/document/draft-ietf-avt-rtp-new/")
-        self.assertEqual(d["std_level"], "/api/v1/name/stdlevelname/std/")
-        self.assertEqual(d["external_url"], "")
-        self.assertEqual(d["order"], 1)
-        self.assertEqual(d["shepherd"], None)
-        self.assertEqual(d["note"], "")
-        self.assertEqual(d["submissions"], [])
-        self.assertEqual(d["tags"], ["/api/v1/name/doctagname/app-min/", "/api/v1/name/doctagname/errata/"])
-        self.assertEqual(d["words"], 34861)
-        self.assertEqual(d["uploaded_filename"], "")
-        self.assertEqual(d["pages"], 104)
-        self.assertEqual(d["name"], "draft-ietf-avt-rtp-new")
-        self.assertEqual(d["title"], "RTP: A Transport Protocol for Real-Time Applications")
-        self.assertEqual(d["document_url"], "https://www.ietf.org/archive/id/draft-ietf-avt-rtp-new-12.txt")
-        self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
+        self.assertEqual(d.resource_uri, "/api/v1/doc/document/draft-ietf-avt-rtp-new/")
+        self.assertEqual(d.time, "2015-10-14T13:49:52")
+        self.assertEqual(d.notify, "magnus.westerlund@ericsson.com, csp@csperkins.org")
+        self.assertEqual(d.expires, "2003-09-08T00:00:12")
+        self.assertEqual(d.type, "/api/v1/name/doctypename/draft/")
+        self.assertEqual(d.rev, "12")
+        self.assertEqual(d.abstract, "This memorandum describes RTP, the real-time transport protocol.  RTP provides end-to-end network transport functions suitable for applications transmitting real-time data, such as audio, video or simulation data, over multicast or unicast network services.  RTP does not address resource reservation and does not guarantee quality-of- service for real-time services.  The data transport is augmented by a control protocol (RTCP) to allow monitoring of the data delivery in a manner scalable to large multicast networks, and to provide minimal control and identification functionality.  RTP and RTCP are designed to be independent of the underlying transport and network layers.  The protocol supports the use of RTP-level translators and mixers.  Most of the text in this memorandum is identical to RFC 1889 which it obsoletes.  There are no changes in the packet formats on the wire, only changes to the rules and algorithms governing how the protocol is used.  The biggest change is an enhancement to the scalable timer algorithm for calculating when to send RTCP packets in order to minimize transmission in excess of the intended rate when many participants join a session simultaneously. [STANDARDS-TRACK]")
+        self.assertEqual(d.internal_comments, "")
+        self.assertEqual(d.states, ["/api/v1/doc/state/3/", "/api/v1/doc/state/7/"])
+        self.assertEqual(d.ad, "/api/v1/person/person/2515/")
+        self.assertEqual(d.group, "/api/v1/group/group/941/")
+        self.assertEqual(d.stream, "/api/v1/name/streamname/ietf/")
+        self.assertEqual(d.rfc, 3550)
+        self.assertEqual(d.intended_std_level, "/api/v1/name/intendedstdlevelname/std/")
+        self.assertEqual(d.resource_uri, "/api/v1/doc/document/draft-ietf-avt-rtp-new/")
+        self.assertEqual(d.std_level, "/api/v1/name/stdlevelname/std/")
+        self.assertEqual(d.external_url, "")
+        self.assertEqual(d.order, 1)
+        self.assertEqual(d.shepherd, None)
+        self.assertEqual(d.note, "")
+        self.assertEqual(d.submissions, [])
+        self.assertEqual(d.tags, ["/api/v1/name/doctagname/app-min/", "/api/v1/name/doctagname/errata/"])
+        self.assertEqual(d.words, 34861)
+        self.assertEqual(d.uploaded_filename, "")
+        self.assertEqual(d.pages, 104)
+        self.assertEqual(d.name, "draft-ietf-avt-rtp-new")
+        self.assertEqual(d.title, "RTP: A Transport Protocol for Real-Time Applications")
+        self.assertEqual(d.derive_document_url(), "https://www.ietf.org/archive/id/draft-ietf-avt-rtp-new-12.txt")
+        self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_agenda(self):
         dt = DataTracker()
         d  = dt.document("/api/v1/doc/document/agenda-90-precis/")
-        self.assertEqual(d["resource_uri"],      "/api/v1/doc/document/agenda-90-precis/")
-        self.assertEqual(d["document_url"],      "https://datatracker.ietf.org/meeting/90/materials/agenda-90-precis.txt")
-        self.assertEqual(d["uploaded_filename"], "agenda-90-precis.txt")
-        self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
+        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/agenda-90-precis/")
+        self.assertEqual(d.derive_document_url(), "https://datatracker.ietf.org/meeting/90/materials/agenda-90-precis.txt")
+        self.assertEqual(d.uploaded_filename,     "agenda-90-precis.txt")
+        self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_minutes(self):
         dt = DataTracker()
         d  = dt.document("/api/v1/doc/document/minutes-89-cfrg/")
-        self.assertEqual(d["resource_uri"],      "/api/v1/doc/document/minutes-89-cfrg/")
-        self.assertEqual(d["document_url"],      "https://datatracker.ietf.org/meeting/89/materials/minutes-89-cfrg.txt")
-        self.assertEqual(d["uploaded_filename"], "minutes-89-cfrg.txt")
-        self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
+        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/minutes-89-cfrg/")
+        self.assertEqual(d.derive_document_url(), "https://datatracker.ietf.org/meeting/89/materials/minutes-89-cfrg.txt")
+        self.assertEqual(d.uploaded_filename,     "minutes-89-cfrg.txt")
+        self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_bluesheets(self):
         dt = DataTracker()
         d  = dt.document("/api/v1/doc/document/bluesheets-95-xrblock-01/")
-        self.assertEqual(d["resource_uri"],      "/api/v1/doc/document/bluesheets-95-xrblock-01/")
-        self.assertEqual(d["document_url"],      "https://www.ietf.org/proceedings/95/bluesheets/bluesheets-95-xrblock-01.pdf")
-        self.assertEqual(d["uploaded_filename"], "bluesheets-95-xrblock-01.pdf")
-        self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
+        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/bluesheets-95-xrblock-01/")
+        self.assertEqual(d.derive_document_url(), "https://www.ietf.org/proceedings/95/bluesheets/bluesheets-95-xrblock-01.pdf")
+        self.assertEqual(d.uploaded_filename,     "bluesheets-95-xrblock-01.pdf")
+        self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_charter(self):
         dt = DataTracker()
         d  = dt.document("/api/v1/doc/document/charter-ietf-vgmib/")
-        self.assertEqual(d["resource_uri"],      "/api/v1/doc/document/charter-ietf-vgmib/")
-        self.assertEqual(d["document_url"],      "https://www.ietf.org/charter/charter-ietf-vgmib-01.txt")
-        self.assertEqual(d["uploaded_filename"], "")
-        self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
+        self.assertEqual(d.resource_uri,           "/api/v1/doc/document/charter-ietf-vgmib/")
+        self.assertEqual(d.derive_document_url(), "https://www.ietf.org/charter/charter-ietf-vgmib-01.txt")
+        self.assertEqual(d.uploaded_filename,     "")
+        self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_conflrev(self):
         dt = DataTracker()
         d  = dt.document("/api/v1/doc/document/conflict-review-kiyomoto-kcipher2/")
-        self.assertEqual(d["resource_uri"],      "/api/v1/doc/document/conflict-review-kiyomoto-kcipher2/")
-        self.assertEqual(d["document_url"],      "https://www.ietf.org/cr/conflict-review-kiyomoto-kcipher2-00.txt")
-        self.assertEqual(d["uploaded_filename"], "")
-        self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
+        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/conflict-review-kiyomoto-kcipher2/")
+        self.assertEqual(d.derive_document_url(), "https://www.ietf.org/cr/conflict-review-kiyomoto-kcipher2-00.txt")
+        self.assertEqual(d.uploaded_filename,     "")
+        self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_slides(self):
         dt = DataTracker()
         d  = dt.document("/api/v1/doc/document/slides-65-l2vpn-4/")
-        self.assertEqual(d["resource_uri"],      "/api/v1/doc/document/slides-65-l2vpn-4/")
-        self.assertEqual(d["document_url"],      "https://www.ietf.org/proceedings/65/slides/l2vpn-4.pdf")
-        self.assertEqual(d["uploaded_filename"], "l2vpn-4.pdf")
-        self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
+        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/slides-65-l2vpn-4/")
+        self.assertEqual(d.derive_document_url(), "https://www.ietf.org/proceedings/65/slides/l2vpn-4.pdf")
+        self.assertEqual(d.uploaded_filename,     "l2vpn-4.pdf")
+        self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_statchg(self):
         dt = DataTracker()
         d  = dt.document("/api/v1/doc/document/status-change-rfc3044-rfc3187-orig-urn-regs-to-historic/")
-        self.assertEqual(d["resource_uri"],      "/api/v1/doc/document/status-change-rfc3044-rfc3187-orig-urn-regs-to-historic/")
-        self.assertEqual(d["document_url"],      "https://www.ietf.org/sc/status-change-rfc3044-rfc3187-orig-urn-regs-to-historic-00.txt")
-        self.assertEqual(d["uploaded_filename"], "")
-        self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
+        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/status-change-rfc3044-rfc3187-orig-urn-regs-to-historic/")
+        self.assertEqual(d.derive_document_url(), "https://www.ietf.org/sc/status-change-rfc3044-rfc3187-orig-urn-regs-to-historic-00.txt")
+        self.assertEqual(d.uploaded_filename,     "")
+        self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_liaison(self):
         dt = DataTracker()
         d  = dt.document("/api/v1/doc/document/liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1/")
-        self.assertEqual(d["resource_uri"],      "/api/v1/doc/document/liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1/")
-        self.assertEqual(d["document_url"],      "https://www.ietf.org/lib/dt/documents/LIAISON/liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1.doc")
-        self.assertEqual(d["uploaded_filename"], "liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1.doc")
-        self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
+        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1/")
+        self.assertEqual(d.derive_document_url(), "https://www.ietf.org/lib/dt/documents/LIAISON/liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1.doc")
+        self.assertEqual(d.uploaded_filename,     "liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1.doc")
+        self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_liai_att(self):
         dt = DataTracker()
         d  = dt.document("/api/v1/doc/document/liaison-2004-08-23-itu-t-ietf-liaison-statement-to-ietf-and-itu-t-study-groups-countering-spam-pdf-version-attachment-1/")
-        self.assertEqual(d["resource_uri"],      "/api/v1/doc/document/liaison-2004-08-23-itu-t-ietf-liaison-statement-to-ietf-and-itu-t-study-groups-countering-spam-pdf-version-attachment-1/")
-        self.assertEqual(d["document_url"],      "https://www.ietf.org/lib/dt/documents/LIAISON/file39.pdf")
-        self.assertEqual(d["uploaded_filename"], "file39.pdf")
-        self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
+        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/liaison-2004-08-23-itu-t-ietf-liaison-statement-to-ietf-and-itu-t-study-groups-countering-spam-pdf-version-attachment-1/")
+        self.assertEqual(d.derive_document_url(), "https://www.ietf.org/lib/dt/documents/LIAISON/file39.pdf")
+        self.assertEqual(d.uploaded_filename,     "file39.pdf")
+        self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_recording(self):
         dt = DataTracker()
         d  = dt.document("/api/v1/doc/document/recording-94-taps-1/")
-        self.assertEqual(d["resource_uri"],      "/api/v1/doc/document/recording-94-taps-1/")
-        self.assertEqual(d["document_url"],      "https://www.ietf.org/audio/ietf94/ietf94-room304-20151103-1520.mp3")
-        self.assertEqual(d["uploaded_filename"], "")
+        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/recording-94-taps-1/")
+        self.assertEqual(d.derive_document_url(), "https://www.ietf.org/audio/ietf94/ietf94-room304-20151103-1520.mp3")
+        self.assertEqual(d.uploaded_filename,     "")
         # Downloading the MP3 is expensive, so check a HEAD request instead:
-        self.assertEqual(dt.session.head(d["document_url"]).status_code, 200)
+        self.assertEqual(dt.session.head(d.derive_document_url()).status_code, 200)
 
     def test_document_review(self):
         dt = DataTracker()
         d  = dt.document("/api/v1/doc/document/review-bchv-rfc6890bis-04-genart-lc-kyzivat-2017-02-28/")
-        self.assertEqual(d["resource_uri"],      "/api/v1/doc/document/review-bchv-rfc6890bis-04-genart-lc-kyzivat-2017-02-28/")
-        self.assertEqual(d["document_url"],      "https://datatracker.ietf.org/doc/review-bchv-rfc6890bis-04-genart-lc-kyzivat-2017-02-28")
-        self.assertEqual(d["external_url"],      "")
-        self.assertEqual(d["uploaded_filename"], "")
-        self.assertEqual(dt.session.get(d["document_url"]).status_code, 200)
+        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/review-bchv-rfc6890bis-04-genart-lc-kyzivat-2017-02-28/")
+        self.assertEqual(d.derive_document_url(), "https://datatracker.ietf.org/doc/review-bchv-rfc6890bis-04-genart-lc-kyzivat-2017-02-28")
+        self.assertEqual(d.external_url,          "")
+        self.assertEqual(d.uploaded_filename,     "")
+        self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_shepwrit(self):
         dt = DataTracker()
@@ -854,138 +961,192 @@ class TestDatatracker(unittest.TestCase):
     def test_document_from_rfc(self):
         dt = DataTracker()
         d  = dt.document_from_rfc("rfc3550")
-        self.assertEqual(d["resource_uri"], "/api/v1/doc/document/draft-ietf-avt-rtp-new/")
+        self.assertEqual(d.resource_uri, "/api/v1/doc/document/draft-ietf-avt-rtp-new/")
 
     def test_document_from_bcp(self):
-        # FIXME: implement tests
-        raise NotImplementedError
+        dt = DataTracker()
+        d  = dt.document_from_bcp("bcp205")
+        self.assertEqual(d.resource_uri, "/api/v1/doc/document/draft-sheffer-rfc6982bis/")
 
     def test_document_from_std(self):
-        # FIXME: implement tests
-        raise NotImplementedError
+        dt = DataTracker()
+        d  = dt.document_from_std("std68")
+        self.assertEqual(d.resource_uri, "/api/v1/doc/document/draft-crocker-rfc4234bis/")
 
     def test_document_state(self):
         dt = DataTracker()
         s = dt.document_state('/api/v1/doc/state/7/')
-        self.assertEqual(s['desc'],         'The ID has been published as an RFC.')
-        self.assertEqual(s['id'],           7)
-        self.assertEqual(s['name'],         'RFC Published')
-        self.assertEqual(s['next_states'],  ['/api/v1/doc/state/8/'])
-        self.assertEqual(s['order'],        32)
-        self.assertEqual(s['resource_uri'], '/api/v1/doc/state/7/')
-        self.assertEqual(s['slug'],         'pub')
-        self.assertEqual(s['type'],         '/api/v1/doc/statetype/draft-iesg/')
-        self.assertEqual(s['used'],         True)
+        self.assertEqual(s.desc,         'The ID has been published as an RFC.')
+        self.assertEqual(s.id,           7)
+        self.assertEqual(s.name,         'RFC Published')
+        self.assertEqual(s.next_states,  ['/api/v1/doc/state/8/'])
+        self.assertEqual(s.order,        32)
+        self.assertEqual(s.resource_uri, '/api/v1/doc/state/7/')
+        self.assertEqual(s.slug,         'pub')
+        self.assertEqual(s.type,         '/api/v1/doc/statetype/draft-iesg/')
+        self.assertEqual(s.used,         True)
 
     def test_document_states(self):
         dt = DataTracker()
         states = list(dt.document_states(statetype="draft-rfceditor"))
         self.assertEqual(len(states), 18)
-        self.assertEqual(states[ 0]['name'], 'AUTH')
-        self.assertEqual(states[ 1]['name'], 'AUTH48')
-        self.assertEqual(states[ 2]['name'], 'EDIT')
-        self.assertEqual(states[ 3]['name'], 'IANA')
-        self.assertEqual(states[ 4]['name'], 'IESG')
-        self.assertEqual(states[ 5]['name'], 'ISR')
-        self.assertEqual(states[ 6]['name'], 'ISR-AUTH')
-        self.assertEqual(states[ 7]['name'], 'REF')
-        self.assertEqual(states[ 8]['name'], 'RFC-EDITOR')
-        self.assertEqual(states[ 9]['name'], 'TO')
-        self.assertEqual(states[10]['name'], 'MISSREF')
-        self.assertEqual(states[11]['name'], 'AUTH48-DONE')
-        self.assertEqual(states[12]['name'], 'AUTH48-DONE')
-        self.assertEqual(states[13]['name'], 'EDIT')
-        self.assertEqual(states[14]['name'], 'IANA')
-        self.assertEqual(states[15]['name'], 'IESG')
-        self.assertEqual(states[16]['name'], 'ISR-AUTH')
-        self.assertEqual(states[17]['name'], 'Pending')
+        self.assertEqual(states[ 0].name, 'AUTH')
+        self.assertEqual(states[ 1].name, 'AUTH48')
+        self.assertEqual(states[ 2].name, 'EDIT')
+        self.assertEqual(states[ 3].name, 'IANA')
+        self.assertEqual(states[ 4].name, 'IESG')
+        self.assertEqual(states[ 5].name, 'ISR')
+        self.assertEqual(states[ 6].name, 'ISR-AUTH')
+        self.assertEqual(states[ 7].name, 'REF')
+        self.assertEqual(states[ 8].name, 'RFC-EDITOR')
+        self.assertEqual(states[ 9].name, 'TO')
+        self.assertEqual(states[10].name, 'MISSREF')
+        self.assertEqual(states[11].name, 'AUTH48-DONE')
+        self.assertEqual(states[12].name, 'AUTH48-DONE')
+        self.assertEqual(states[13].name, 'EDIT')
+        self.assertEqual(states[14].name, 'IANA')
+        self.assertEqual(states[15].name, 'IESG')
+        self.assertEqual(states[16].name, 'ISR-AUTH')
+        self.assertEqual(states[17].name, 'Pending')
 
     def test_document_state_types(self):
         dt = DataTracker()
         st = list(dt.document_state_types())
         self.assertEqual(len(st), 23)
-        self.assertEqual(st[ 0]["slug"], 'draft')
-        self.assertEqual(st[ 1]["slug"], 'draft-iesg')
-        self.assertEqual(st[ 2]["slug"], 'draft-iana')
-        self.assertEqual(st[ 3]["slug"], 'draft-rfceditor')
-        self.assertEqual(st[ 4]["slug"], 'draft-stream-ietf')
-        self.assertEqual(st[ 5]["slug"], 'draft-stream-irtf')
-        self.assertEqual(st[ 6]["slug"], 'draft-stream-ise')
-        self.assertEqual(st[ 7]["slug"], 'draft-stream-iab')
-        self.assertEqual(st[ 8]["slug"], 'slides')
-        self.assertEqual(st[ 9]["slug"], 'minutes')
-        self.assertEqual(st[10]["slug"], 'agenda')
-        self.assertEqual(st[11]["slug"], 'liai-att')
-        self.assertEqual(st[12]["slug"], 'charter')
-        self.assertEqual(st[13]["slug"], 'conflrev')
-        self.assertEqual(st[14]["slug"], 'draft-iana-action')
-        self.assertEqual(st[15]["slug"], 'draft-iana-review')
-        self.assertEqual(st[16]["slug"], 'statchg')
-        self.assertEqual(st[17]["slug"], 'recording')
-        self.assertEqual(st[18]["slug"], 'bluesheets')
-        self.assertEqual(st[19]["slug"], 'reuse_policy')
-        self.assertEqual(st[20]["slug"], 'review')
-        self.assertEqual(st[21]["slug"], 'liaison')
-        self.assertEqual(st[22]["slug"], 'shepwrit')
+        self.assertEqual(st[ 0].slug, 'draft')
+        self.assertEqual(st[ 1].slug, 'draft-iesg')
+        self.assertEqual(st[ 2].slug, 'draft-iana')
+        self.assertEqual(st[ 3].slug, 'draft-rfceditor')
+        self.assertEqual(st[ 4].slug, 'draft-stream-ietf')
+        self.assertEqual(st[ 5].slug, 'draft-stream-irtf')
+        self.assertEqual(st[ 6].slug, 'draft-stream-ise')
+        self.assertEqual(st[ 7].slug, 'draft-stream-iab')
+        self.assertEqual(st[ 8].slug, 'slides')
+        self.assertEqual(st[ 9].slug, 'minutes')
+        self.assertEqual(st[10].slug, 'agenda')
+        self.assertEqual(st[11].slug, 'liai-att')
+        self.assertEqual(st[12].slug, 'charter')
+        self.assertEqual(st[13].slug, 'conflrev')
+        self.assertEqual(st[14].slug, 'draft-iana-action')
+        self.assertEqual(st[15].slug, 'draft-iana-review')
+        self.assertEqual(st[16].slug, 'statchg')
+        self.assertEqual(st[17].slug, 'recording')
+        self.assertEqual(st[18].slug, 'bluesheets')
+        self.assertEqual(st[19].slug, 'reuse_policy')
+        self.assertEqual(st[20].slug, 'review')
+        self.assertEqual(st[21].slug, 'liaison')
+        self.assertEqual(st[22].slug, 'shepwrit')
 
     def test_submission(self):
-        # FIXME: implement tests
-        raise NotImplementedError
+        dt = DataTracker()
+        s  = dt.submission("/api/v1/submit/submission/2402/")
+        self.assertEqual(s.abstract,        "Internet technical specifications often need to define a formal\nsyntax.  Over the years, a modified version of Backus-Naur Form\n(BNF), called Augmented BNF (ABNF), has been popular among many\nInternet specifications.  The current specification documents ABNF.\nIt balances compactness and simplicity, with reasonable\nrepresentational power.  The differences between standard BNF and\nABNF involve naming rules, repetition, alternatives, order-\nindependence, and value ranges.  This specification also supplies\nadditional rule definitions and encoding for a core lexical analyzer\nof the type common to several Internet specifications.")
+        self.assertEqual(s.access_key,      "f77d08da6da54f3cbecca13d31646be8")
+        self.assertEqual(s.auth_key,        "fMm6hur5dJ7gV58x5SE0vkHUoDOrSuSF")
+        self.assertEqual(s.authors,         "[{u'email': u'dcrocker@bbiw.net', u'name': u'Dave Crocker'}, {u'email': u'paul.overell@thus.net', u'name': u'Paul Overell'}]")
+        self.assertEqual(s.checks,          ["/api/v1/submit/submissioncheck/386/"])
+        self.assertEqual(s.document_date,   "2007-10-09")
+        self.assertEqual(s.draft,           "/api/v1/doc/document/draft-crocker-rfc4234bis/")
+        self.assertEqual(s.file_size,       27651)
+        self.assertEqual(s.file_types,      ".txt,.xml,.pdf")
+        self.assertEqual(s.first_two_pages, "\n\n\nNetwork Working Group                                    D. Crocker, Ed.\nInternet-Draft                               Brandenburg InternetWorking\nObsoletes: 4234 (if approved)                                 P. Overell\nIntended status: Standards Track                               THUS plc.\nExpires: April 11, 2008                                  October 9, 2007\n\n\n             Augmented BNF for Syntax Specifications: ABNF\n                      draft-crocker-rfc4234bis-01\n\nStatus of this Memo\n\n   By submitting this Internet-Draft, each author represents that any\n   applicable patent or other IPR claims of which he or she is aware\n   have been or will be disclosed, and any of which he or she becomes\n   aware will be disclosed, in accordance with Section 6 of BCP 79.\n\n   Internet-Drafts are working documents of the Internet Engineering\n   Task Force (IETF), its areas, and its working groups.  Note that\n   other groups may also distribute working documents as Internet-\n   Drafts.\n\n   Internet-Drafts are draft documents valid for a maximum of six months\n   and may be updated, replaced, or obsoleted by other documents at any\n   time.  It is inappropriate to use Internet-Drafts as reference\n   material or to cite them other than as \"work in progress.\"\n\n   The list of current Internet-Drafts can be accessed at\n   http://www.ietf.org/ietf/1id-abstracts.txt.\n\n   The list of Internet-Draft Shadow Directories can be accessed at\n   http://www.ietf.org/shadow.html.\n\n   This Internet-Draft will expire on April 11, 2008.\n\nCopyright Notice\n\n   Copyright (C) The IETF Trust (2007).\n\nAbstract\n\n   Internet technical specifications often need to define a formal\n   syntax.  Over the years, a modified version of Backus-Naur Form\n   (BNF), called Augmented BNF (ABNF), has been popular among many\n   Internet specifications.  The current specification documents ABNF.\n   It balances compactness and simplicity, with reasonable\n   representational power.  The differences between standard BNF and\n   ABNF involve naming rules, repetition, alternatives, order-\n\n\n\nCrocker & Overell        Expires April 11, 2008                 [page 1]\n\nInternet-Draft                    ABNF                      October 2007\n\n\n   independence, and value ranges.  This specification also supplies\n   additional rule definitions and encoding for a core lexical analyzer\n   of the type common to several Internet specifications.\n\n\nTable of Contents\n\n   1.  INTRODUCTION . . . . . . . . . . . . . . . . . . . . . . . . .  3\n   2.  RULE DEFINITION  . . . . . . . . . . . . . . . . . . . . . . .  3\n     2.1.  Rule Naming  . . . . . . . . . . . . . . . . . . . . . . .  3\n     2.2.  Rule Form  . . . . . . . . . . . . . . . . . . . . . . . .  4\n     2.3.  Terminal Values  . . . . . . . . . . . . . . . . . . . . .  4\n     2.4.  External Encodings . . . . . . . . . . . . . . . . . . . .  5\n   3.  OPERATORS  . . . . . . . . . . . . . . . . . . . . . . . . . .  6\n     3.1.  Concatenation:  Rule1 Rule2  . . . . . . . . . . . . . . .  6\n     3.2.  Alternatives:  Rule1 / Rule2 . . . . . . . . . . . . . . .  6\n     3.3.  Incremental Alternatives: Rule1 =/ Rule2 . . . . . . . . .  7\n     3.4.  Value Range Alternatives:  %c##-## . . . . . . . . . . . .  7\n     3.5.  Sequence Group:  (Rule1 Rule2) . . . . . . . . . . . . . .  8\n     3.6.  Variable Repetition:  *Rule  . . . . . . . . . . . . . . .  8\n     3.7.  Specific Repetition:  nRule  . . . . . . . . . . . . . . .  9\n     3.8.  Optional Sequence:  [RULE] . . . . . . . . . . . . . . . .  9\n     3.9.  Comment:  ; Comment  . . . . . . . . . . . . . . . . . . .  9\n     3.10. Operator Precedence  . . . . . . . . . . . . . . . . . . .  9\n   4.  ABNF DEFINITION OF ABNF  . . . . . . . . . . . . . . . . . . . 10\n   5.  SECURITY CONSIDERATIONS  . . . . . . . . . . . . . . . . . . . 11\n   6.  References . . . . . . . . . . . . . . . . . . . . . . . . . . 11\n     6.1.  Normative References . . . . . . . . . . . . . . . . . . . 11\n     6.2.  Informative References . . . . . . . . . . . . . . . . . . 12\n   Appendix A.  ACKNOWLEDGEMENTS  . . . . . . . . . . . . . . . . . . 12\n   Appendix B.  CORE ABNF OF ABNF . . . . . . . . . . . . . . . . . . 13\n     B.1.  Core Rules . . . . . . . . . . . . . . . . . . . . . . . . 13\n     B.2.  Common Encoding  . . . . . . . . . . . . . . . . . . . . . 14\n   Authors' Addresses . . . . . . . . . . . . . . . . . . . . . . . . 14\n   Intellectual Property and Copyright Statements . . . . . . . . . . 16\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nCrocker & Overell        Expires April 11, 2008                 [page 2]")
+        self.assertEqual(s.group,           "/api/v1/group/group/1027/")
+        self.assertEqual(s.id,              2402)
+        self.assertEqual(s.name,            "draft-crocker-rfc4234bis")
+        self.assertEqual(s.note,            "")
+        self.assertEqual(s.pages,           13)
+        self.assertEqual(s.remote_ip,       "72.255.3.179")
+        self.assertEqual(s.replaces,        "")
+        self.assertEqual(s.resource_uri,    "/api/v1/submit/submission/2402/")
+        self.assertEqual(s.rev,             "01")
+        self.assertEqual(s.state,           "/api/v1/name/draftsubmissionstatename/posted/")
+        self.assertEqual(s.submission_date, "2007-10-09")
+        self.assertEqual(s.submitter,       "Dave Crocker")
+        self.assertEqual(s.title,           "Augmented BNF for Syntax Specifications: ABNF")
+        self.assertEqual(s.words,           None)
 
     def test_document_type(self):
-        # FIXME: implement tests
-        raise NotImplementedError
+        dt      = DataTracker()
+        doctype = dt.document_type("/api/v1/name/doctypename/draft/")
+        self.assertEqual(doctype.resource_uri, "/api/v1/name/doctypename/draft/")
+        self.assertEqual(doctype.name,         "Draft")
+        self.assertEqual(doctype.used,         True)
+        self.assertEqual(doctype.prefix,       "draft")
+        self.assertEqual(doctype.slug,         "draft")
+        self.assertEqual(doctype.desc,         "")
+        self.assertEqual(doctype.order,        0)
 
     def test_document_types(self):
         dt    = DataTracker()
         types = list(dt.document_types())
         self.assertEqual(len(types), 13)
-        self.assertEqual(types[ 0]["slug"], "agenda")
-        self.assertEqual(types[ 1]["slug"], "bluesheets")
-        self.assertEqual(types[ 2]["slug"], "charter")
-        self.assertEqual(types[ 3]["slug"], "conflrev")
-        self.assertEqual(types[ 4]["slug"], "draft")
-        self.assertEqual(types[ 5]["slug"], "liaison")
-        self.assertEqual(types[ 6]["slug"], "liai-att")
-        self.assertEqual(types[ 7]["slug"], "minutes")
-        self.assertEqual(types[ 8]["slug"], "recording")
-        self.assertEqual(types[ 9]["slug"], "review")
-        self.assertEqual(types[10]["slug"], "shepwrit")
-        self.assertEqual(types[11]["slug"], "slides")
-        self.assertEqual(types[12]["slug"], "statchg")
+        self.assertEqual(types[ 0].slug, "agenda")
+        self.assertEqual(types[ 1].slug, "bluesheets")
+        self.assertEqual(types[ 2].slug, "charter")
+        self.assertEqual(types[ 3].slug, "conflrev")
+        self.assertEqual(types[ 4].slug, "draft")
+        self.assertEqual(types[ 5].slug, "liaison")
+        self.assertEqual(types[ 6].slug, "liai-att")
+        self.assertEqual(types[ 7].slug, "minutes")
+        self.assertEqual(types[ 8].slug, "recording")
+        self.assertEqual(types[ 9].slug, "review")
+        self.assertEqual(types[10].slug, "shepwrit")
+        self.assertEqual(types[11].slug, "slides")
+        self.assertEqual(types[12].slug, "statchg")
 
     def test_stream(self):
         dt     = DataTracker()
         stream = dt.stream("/api/v1/name/streamname/irtf/")
-        self.assertEqual(stream["desc"],         "IRTF Stream")
-        self.assertEqual(stream["name"],         "IRTF")
-        self.assertEqual(stream["order"],        3)
-        self.assertEqual(stream["resource_uri"], "/api/v1/name/streamname/irtf/")
-        self.assertEqual(stream["slug"],         "irtf")
-        self.assertEqual(stream["used"],         True)
+        self.assertEqual(stream.desc,         "IRTF Stream")
+        self.assertEqual(stream.name,         "IRTF")
+        self.assertEqual(stream.order,        3)
+        self.assertEqual(stream.resource_uri, "/api/v1/name/streamname/irtf/")
+        self.assertEqual(stream.slug,         "irtf")
+        self.assertEqual(stream.used,         True)
 
     def test_streams(self):
         dt      = DataTracker()
         streams = list(dt.streams())
         self.assertEqual(len(streams), 5)
-        self.assertEqual(streams[ 0]["slug"], "ietf")
-        self.assertEqual(streams[ 1]["slug"], "ise")
-        self.assertEqual(streams[ 2]["slug"], "irtf")
-        self.assertEqual(streams[ 3]["slug"], "iab")
-        self.assertEqual(streams[ 4]["slug"], "legacy")
+        self.assertEqual(streams[ 0].slug, "ietf")
+        self.assertEqual(streams[ 1].slug, "ise")
+        self.assertEqual(streams[ 2].slug, "irtf")
+        self.assertEqual(streams[ 3].slug, "iab")
+        self.assertEqual(streams[ 4].slug, "legacy")
 
     def test_group(self):
-        # FIXME: implement tests
-        raise NotImplementedError
+        dt = DataTracker()
+        group = dt.group(941)
+        self.assertEqual(group.acronym,        "avt")
+        self.assertEqual(group.ad,             None)
+        self.assertEqual(group.charter,        "/api/v1/doc/document/charter-ietf-avt/")
+        self.assertEqual(group.comments,       "")
+        self.assertEqual(group.description,    "\n  The Audio/Video Transport Working Group was formed to specify a protocol \n  for real-time transmission of audio and video over unicast and multicast \n  UDP/IP. This is the Real-time Transport Protocol, RTP, along with its \n  associated profiles and payload formats.")
+        self.assertEqual(group.id,             941)
+        self.assertEqual(group.list_archive,   "https://mailarchive.ietf.org/arch/search/?email_list=avt")
+        self.assertEqual(group.list_email,     "avt@ietf.org")
+        self.assertEqual(group.list_subscribe, "https://www.ietf.org/mailman/listinfo/avt")
+        self.assertEqual(group.name,           "Audio/Video Transport")
+        self.assertEqual(group.parent,         "/api/v1/group/group/1683/")
+        self.assertEqual(group.resource_uri,   "/api/v1/group/group/941/")
+        self.assertEqual(group.state,          "/api/v1/name/groupstatename/conclude/")
+        self.assertEqual(group.time,           "2011-12-09T12:00:00")
+        self.assertEqual(group.type,           "/api/v1/name/grouptypename/wg/")
+        self.assertEqual(group.unused_states,  [])
+        self.assertEqual(group.unused_tags,    [])
 
     def test_group_from_acronym(self):
         dt = DataTracker()
         group = dt.group_from_acronym("avt")
-        self.assertEqual(group['id'], 941)
+        self.assertEqual(group.id, 941)
 
     def test_groups(self):
-        # FIXME: implement tests
-        raise NotImplementedError
+        dt = DataTracker()
+        # FIXME: split into two tests? _timerange, and _namecontains -- testing without parameters not practical
+        groups = list(dt.groups(since="2019-01-01T00:00:00", until="2019-01-31T23:59:59"))
+        self.assertEqual(len(groups),  2)
+        self.assertEqual(groups[0].id, 1897)
+        self.assertEqual(groups[1].id, 2220)
 
 if __name__ == '__main__':
     unittest.main()
