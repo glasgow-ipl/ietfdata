@@ -725,8 +725,13 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/group/groupstatetransitions                - ???
 
     def group(self, group_id):
-        # FIXME: implement this
-        raise NotImplementedError
+        # FIXME: add documentation
+        api_url  = "/api/v1/group/group/%d/" % (group_id) 
+        response = self.session.get(self.base_url + api_url, verify=True)
+        if response.status_code == 200:
+            return Pavlova().from_mapping(response.json(), Group)
+        else:
+            return None
 
     def group_from_acronym(self, acronym):
         # FIXME: add documentation
@@ -1111,8 +1116,25 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(streams[ 4].slug, "legacy")
 
     def test_group(self):
-        # FIXME: implement tests
-        raise NotImplementedError
+        dt = DataTracker()
+        group = dt.group(941)
+        self.assertEqual(group.acronym,        "avt")
+        self.assertEqual(group.ad,             None)
+        self.assertEqual(group.charter,        "/api/v1/doc/document/charter-ietf-avt/")
+        self.assertEqual(group.comments,       "")
+        self.assertEqual(group.description,    "\n  The Audio/Video Transport Working Group was formed to specify a protocol \n  for real-time transmission of audio and video over unicast and multicast \n  UDP/IP. This is the Real-time Transport Protocol, RTP, along with its \n  associated profiles and payload formats.")
+        self.assertEqual(group.id,             941)
+        self.assertEqual(group.list_archive,   "https://mailarchive.ietf.org/arch/search/?email_list=avt")
+        self.assertEqual(group.list_email,     "avt@ietf.org")
+        self.assertEqual(group.list_subscribe, "https://www.ietf.org/mailman/listinfo/avt")
+        self.assertEqual(group.name,           "Audio/Video Transport")
+        self.assertEqual(group.parent,         "/api/v1/group/group/1683/")
+        self.assertEqual(group.resource_uri,   "/api/v1/group/group/941/")
+        self.assertEqual(group.state,          "/api/v1/name/groupstatename/conclude/")
+        self.assertEqual(group.time,           "2011-12-09T12:00:00")
+        self.assertEqual(group.type,           "/api/v1/name/grouptypename/wg/")
+        self.assertEqual(group.unused_states,  [])
+        self.assertEqual(group.unused_tags,    [])
 
     def test_group_from_acronym(self):
         dt = DataTracker()
@@ -1124,6 +1146,7 @@ class TestDatatracker(unittest.TestCase):
         raise NotImplementedError
 
 if __name__ == '__main__':
+    #TestDatatracker().test_group()
     unittest.main()
 
 # =================================================================================================================================
