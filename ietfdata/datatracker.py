@@ -396,7 +396,7 @@ class DataTracker:
             rfc -- The RFC to lookup, in the form "rfc3550" or "RFC3550"
 
         Returns:
-            A Dict containing the same fields as the document() method.
+            A Document object
         """
         assert rfc.lower().startswith("rfc")
         url  = self.base_url + "/api/v1/doc/docalias/" + rfc.lower() + "/"
