@@ -409,7 +409,7 @@ class DataTracker:
             else:
                 url  = self.base_url + meta['next']
 
-    def document_from_name(self, name: str):
+    def document_from_draft(self, name: str):
         """
         Returns the document with the specified name.
         
@@ -970,9 +970,9 @@ class TestDatatracker(unittest.TestCase):
 #        dt = DataTracker()
 #        documents = list(dt.documents(since="2007-01-01T00:00:00", until="2007-12-31T23:59:59", doctype="draft", group="941"))
 
-    def test_document_from_name(self):
+    def test_document_from_draft(self):
         dt = DataTracker()
-        d  = dt.document_from_name("draft-ietf-avt-rtp-new")
+        d  = dt.document_from_draft("draft-ietf-avt-rtp-new")
         self.assertEqual(d.resource_uri, "/api/v1/doc/document/draft-ietf-avt-rtp-new/")
 
     def test_document_from_rfc(self):
