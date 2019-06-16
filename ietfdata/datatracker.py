@@ -419,6 +419,7 @@ class DataTracker:
         Returns:
             A Document object
         """
+        assert name.startswith("draft-")
         document_uri = "/api/v1/doc/document/" + name + "/"
         return self.document(document_uri)
 
