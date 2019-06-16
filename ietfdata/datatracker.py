@@ -409,6 +409,18 @@ class DataTracker:
             else:
                 url  = self.base_url + meta['next']
 
+    def document_from_draft(self, name: str):
+        """
+        Returns the document with the specified name.
+        
+        Parameters:
+            name -- The name of the document to lookup (e.g, draft-ietf-avt-rtp-new)
+        
+        Returns:
+            A Document object
+        """
+        document_uri = "/api/v1/doc/document/" + name + "/"
+        return self.document(document_uri)
 
     # Datatracker API endpoints returning information about document aliases:
     # * https://datatracker.ietf.org/api/v1/doc/docalias/rfcXXXX/                - draft that became the given RFC
@@ -957,6 +969,11 @@ class TestDatatracker(unittest.TestCase):
 #    def test_documents(self):
 #        dt = DataTracker()
 #        documents = list(dt.documents(since="2007-01-01T00:00:00", until="2007-12-31T23:59:59", doctype="draft", group="941"))
+
+    def test_document_from_draft(self):
+        dt = DataTracker()
+        d  = dt.document_from_draft("draft-ietf-avt-rtp-new")
+        self.assertEqual(d.resource_uri, "/api/v1/doc/document/draft-ietf-avt-rtp-new/")
 
     def test_document_from_rfc(self):
         dt = DataTracker()
