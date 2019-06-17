@@ -409,7 +409,23 @@ class DataTracker:
             else:
                 url  = self.base_url + meta['next']
 
-    def document_from_name(self, name: str):
+    # Datatracker API endpoints returning information about document aliases:
+    # * https://datatracker.ietf.org/api/v1/doc/docalias/?name=/                 - draft that became the given RFC
+
+    def documents_from_alias(self, alias: str):
+        """
+        Returns the documents that correspond to the specified alias.
+
+        Parameters:
+            alias -- The alias to lookup, for example "rfc3550", "std68", "bcp25", "draft-ietf-quic-transport"
+
+        Returns:
+            A list of Document objects
+        """
+        raise NotImplementedError
+
+
+    def document_from_draft(self, draft: str):
         """
         Returns the document with the specified name.
         
@@ -419,13 +435,9 @@ class DataTracker:
         Returns:
             A Document object
         """
-        document_uri = "/api/v1/doc/document/?name=" + name
-        return self.document(document_uri)
+        assert deaft.startswith("draft-")
+        raise NotImplementedError
 
-    # Datatracker API endpoints returning information about document aliases:
-    # * https://datatracker.ietf.org/api/v1/doc/docalias/rfcXXXX/                - draft that became the given RFC
-    #   https://datatracker.ietf.org/api/v1/doc/docalias/bcpXXXX/                - draft that became the given BCP
-    #   https://datatracker.ietf.org/api/v1/doc/docalias/stdXXXX/                - RFC that is the given STD
 
     def document_from_rfc(self, rfc: str):
         """
@@ -438,12 +450,7 @@ class DataTracker:
             A Document object
         """
         assert rfc.lower().startswith("rfc")
-        url  = self.base_url + "/api/v1/doc/docalias/" + rfc.lower() + "/"
-        response = self.session.get(url, verify=True)
-        if response.status_code == 200:
-            return self.document(response.json()['document'])
-        else:
-            return None
+        raise NotImplementedError
 
 
     def document_from_bcp(self, bcp: str):
@@ -457,12 +464,7 @@ class DataTracker:
             A Document object
         """
         assert bcp.lower().startswith("bcp")
-        url  = self.base_url + "/api/v1/doc/docalias/" + bcp.lower() + "/"
-        response = self.session.get(url, verify=True)
-        if response.status_code == 200:
-            return self.document(response.json()['document'])
-        else:
-            return None
+        raise NotImplementedError
 
 
     def document_from_std(self, std: str):
@@ -476,12 +478,7 @@ class DataTracker:
             A Document object
         """
         assert std.lower().startswith("std")
-        url  = self.base_url + "/api/v1/doc/docalias/" + std.lower() + "/"
-        response = self.session.get(url, verify=True)
-        if response.status_code == 200:
-            return self.document(response.json()['document'])
-        else:
-            return None
+        raise NotImplementedError
 
     # Datatracker API endpoints returning information about document states:
     # * https://datatracker.ietf.org/api/v1/doc/state/                           - Types of state a document can be in
@@ -873,80 +870,80 @@ class TestDatatracker(unittest.TestCase):
 
     def test_document_agenda(self):
         dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/agenda-90-precis/")
-        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/agenda-90-precis/")
+        d  = dt.document("/api/v1/doc/document/218/")
+        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/218/")
         self.assertEqual(d.derive_document_url(), "https://datatracker.ietf.org/meeting/90/materials/agenda-90-precis.txt")
         self.assertEqual(d.uploaded_filename,     "agenda-90-precis.txt")
         self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_minutes(self):
         dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/minutes-89-cfrg/")
-        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/minutes-89-cfrg/")
+        d  = dt.document("/api/v1/doc/document/272/")
+        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/272/")
         self.assertEqual(d.derive_document_url(), "https://datatracker.ietf.org/meeting/89/materials/minutes-89-cfrg.txt")
         self.assertEqual(d.uploaded_filename,     "minutes-89-cfrg.txt")
         self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_bluesheets(self):
         dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/bluesheets-95-xrblock-01/")
-        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/bluesheets-95-xrblock-01/")
+        d  = dt.document("/api/v1/doc/document/68163/")
+        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/68163/")
         self.assertEqual(d.derive_document_url(), "https://www.ietf.org/proceedings/95/bluesheets/bluesheets-95-xrblock-01.pdf")
         self.assertEqual(d.uploaded_filename,     "bluesheets-95-xrblock-01.pdf")
         self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_charter(self):
         dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/charter-ietf-vgmib/")
-        self.assertEqual(d.resource_uri,           "/api/v1/doc/document/charter-ietf-vgmib/")
+        d  = dt.document("/api/v1/doc/document/1/")
+        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/1/")
         self.assertEqual(d.derive_document_url(), "https://www.ietf.org/charter/charter-ietf-vgmib-01.txt")
         self.assertEqual(d.uploaded_filename,     "")
         self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_conflrev(self):
         dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/conflict-review-kiyomoto-kcipher2/")
-        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/conflict-review-kiyomoto-kcipher2/")
+        d  = dt.document("/api/v1/doc/document/17898/")
+        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/17898/")
         self.assertEqual(d.derive_document_url(), "https://www.ietf.org/cr/conflict-review-kiyomoto-kcipher2-00.txt")
         self.assertEqual(d.uploaded_filename,     "")
         self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_slides(self):
         dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/slides-65-l2vpn-4/")
-        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/slides-65-l2vpn-4/")
+        d  = dt.document("/api/v1/doc/document/736/")
+        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/736/")
         self.assertEqual(d.derive_document_url(), "https://www.ietf.org/proceedings/65/slides/l2vpn-4.pdf")
         self.assertEqual(d.uploaded_filename,     "l2vpn-4.pdf")
         self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_statchg(self):
         dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/status-change-rfc3044-rfc3187-orig-urn-regs-to-historic/")
-        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/status-change-rfc3044-rfc3187-orig-urn-regs-to-historic/")
+        d  = dt.document("/api/v1/doc/document/78306/")
+        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/78306/")
         self.assertEqual(d.derive_document_url(), "https://www.ietf.org/sc/status-change-rfc3044-rfc3187-orig-urn-regs-to-historic-00.txt")
         self.assertEqual(d.uploaded_filename,     "")
         self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_liaison(self):
         dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1/")
-        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1/")
+        d  = dt.document("/api/v1/doc/document/46457/")
+        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/46457/")
         self.assertEqual(d.derive_document_url(), "https://www.ietf.org/lib/dt/documents/LIAISON/liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1.doc")
         self.assertEqual(d.uploaded_filename,     "liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1.doc")
         self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_liai_att(self):
         dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/liaison-2004-08-23-itu-t-ietf-liaison-statement-to-ietf-and-itu-t-study-groups-countering-spam-pdf-version-attachment-1/")
-        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/liaison-2004-08-23-itu-t-ietf-liaison-statement-to-ietf-and-itu-t-study-groups-countering-spam-pdf-version-attachment-1/")
+        d  = dt.document("/api/v1/doc/document/43519/")
+        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/43519/")
         self.assertEqual(d.derive_document_url(), "https://www.ietf.org/lib/dt/documents/LIAISON/file39.pdf")
         self.assertEqual(d.uploaded_filename,     "file39.pdf")
         self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_recording(self):
         dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/recording-94-taps-1/")
-        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/recording-94-taps-1/")
+        d  = dt.document("/api/v1/doc/document/49624/")
+        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/49624/")
         self.assertEqual(d.derive_document_url(), "https://www.ietf.org/audio/ietf94/ietf94-room304-20151103-1520.mp3")
         self.assertEqual(d.uploaded_filename,     "")
         # Downloading the MP3 is expensive, so check a HEAD request instead:
@@ -954,8 +951,8 @@ class TestDatatracker(unittest.TestCase):
 
     def test_document_review(self):
         dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/review-bchv-rfc6890bis-04-genart-lc-kyzivat-2017-02-28/")
-        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/review-bchv-rfc6890bis-04-genart-lc-kyzivat-2017-02-28/")
+        d  = dt.document("/api/v1/doc/document/69082/")
+        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/69082/")
         self.assertEqual(d.derive_document_url(), "https://datatracker.ietf.org/doc/review-bchv-rfc6890bis-04-genart-lc-kyzivat-2017-02-28")
         self.assertEqual(d.external_url,          "")
         self.assertEqual(d.uploaded_filename,     "")
@@ -973,22 +970,22 @@ class TestDatatracker(unittest.TestCase):
     def test_document_from_draft(self):
         dt = DataTracker()
         d  = dt.document_from_draft("draft-ietf-avt-rtp-new")
-        self.assertEqual(d.resource_uri, "/api/v1/doc/document/draft-ietf-avt-rtp-new/")
+        self.assertEqual(d.resource_uri, "/api/v1/doc/document/19971/")
 
     def test_document_from_rfc(self):
         dt = DataTracker()
         d  = dt.document_from_rfc("rfc3550")
-        self.assertEqual(d.resource_uri, "/api/v1/doc/document/draft-ietf-avt-rtp-new/")
+        self.assertEqual(d.resource_uri, "/api/v1/doc/document/19971/")
 
     def test_document_from_bcp(self):
         dt = DataTracker()
         d  = dt.document_from_bcp("bcp205")
-        self.assertEqual(d.resource_uri, "/api/v1/doc/document/draft-sheffer-rfc6982bis/")
+        self.assertEqual(d.resource_uri, "/api/v1/doc/document/65950/")
 
     def test_document_from_std(self):
         dt = DataTracker()
         d  = dt.document_from_std("std68")
-        self.assertEqual(d.resource_uri, "/api/v1/doc/document/draft-crocker-rfc4234bis/")
+        self.assertEqual(d.resource_uri, "/api/v1/doc/document/34169/")
 
     def test_document_state(self):
         dt = DataTracker()
