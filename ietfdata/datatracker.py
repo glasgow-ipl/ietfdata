@@ -409,7 +409,7 @@ class DataTracker:
             else:
                 url  = self.base_url + meta['next']
 
-    def document_from_draft(self, name: str):
+    def document_from_name(self, name: str):
         """
         Returns the document with the specified name.
         
@@ -419,8 +419,7 @@ class DataTracker:
         Returns:
             A Document object
         """
-        assert name.startswith("draft-")
-        document_uri = "/api/v1/doc/document/" + name + "/"
+        document_uri = "/api/v1/doc/document/?name=" + name
         return self.document(document_uri)
 
     # Datatracker API endpoints returning information about document aliases:
