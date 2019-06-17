@@ -412,7 +412,7 @@ class DataTracker:
     # Datatracker API endpoints returning information about document aliases:
     # * https://datatracker.ietf.org/api/v1/doc/docalias/?name=/                 - draft that became the given RFC
 
-    def documents_from_alias(self, alias: str):
+    def documents_from_alias(self, alias: str) -> Iterator[Document]:
         """
         Returns the documents that correspond to the specified alias.
 
@@ -422,63 +422,88 @@ class DataTracker:
         Returns:
             A list of Document objects
         """
-        raise NotImplementedError
+        url = self.base_url + "/api/v1/doc/docalias/?name=" + alias
+        while url != None:
+            r = self.session.get(url, verify=True)
+            objs = r.json()['objects']
+            for doc in objs:
+                assert doc["resource_uri"].startswith("/api/v1/doc/docalias/")
+                assert doc[    "document"].startswith("/api/v1/doc/document/")
+                yield self.document(doc["document"])
+            meta = r.json()['meta']
+            if meta['next'] == None:
+                url = None
+            else:
+                url  = self.base_url + meta['next']
 
 
-    def document_from_draft(self, draft: str):
+    def document_from_draft(self, draft: str) -> Optional[Document]:
         """
         Returns the document with the specified name.
         
         Parameters:
-            name -- The name of the document to lookup (e.g, draft-ietf-avt-rtp-new)
+            name -- The name of the document to lookup (e.g, "draft-ietf-avt-rtp-new")
         
         Returns:
             A Document object
         """
-        assert deaft.startswith("draft-")
-        raise NotImplementedError
+        assert draft.startswith("draft-")
+        docs = list(self.documents_from_alias(draft))
+        if len(docs) == 0:
+            return None
+        elif len(docs) == 1:
+            return docs[0]
+        else:
+            raise RuntimeError
 
 
-    def document_from_rfc(self, rfc: str):
+    def document_from_rfc(self, rfc: str) -> Optional[Document]:
         """
         Returns the document that became the specified RFC.
 
         Parameters:
-            rfc -- The RFC to lookup, in the form "rfc3550" or "RFC3550"
+            rfc -- The RFC to lookup (e.g., "rfc3550" or "RFC3550")
 
         Returns:
             A Document object
         """
         assert rfc.lower().startswith("rfc")
-        raise NotImplementedError
+        docs = list(self.documents_from_alias(rfc.lower()))
+        if len(docs) == 0:
+            return None
+        elif len(docs) == 1:
+            return docs[0]
+        else:
+            raise RuntimeError
 
 
-    def document_from_bcp(self, bcp: str):
+    def documents_from_bcp(self, bcp: str) -> List[Document]:
         """
         Returns the document that became the specified BCP.
 
         Parameters:
-            bcp -- The BCP to lookup, in the form "bcp205" or "BCP205"
+            bcp -- The BCP to lookup (e.g., "bcp205" or "BCP205")
 
         Returns:
-            A Document object
+            A list of Document objects
         """
         assert bcp.lower().startswith("bcp")
-        raise NotImplementedError
+        return list(self.documents_from_alias(bcp.lower()))
 
 
-    def document_from_std(self, std: str):
+    def documents_from_std(self, std: str) -> List[Document]:
         """
         Returns the document that became the specified STD.
 
         Parameters:
-            std -- The STD to lookup, in the form "std68" or "STD68"
+            std -- The STD to lookup (e.g., "std68" or "STD68")
 
         Returns:
-            A Document object
+            A list of Document objects
         """
         assert std.lower().startswith("std")
-        raise NotImplementedError
+        return list(self.documents_from_alias(std.lower()))
+
 
     # Datatracker API endpoints returning information about document states:
     # * https://datatracker.ietf.org/api/v1/doc/state/                           - Types of state a document can be in
@@ -837,8 +862,8 @@ class TestDatatracker(unittest.TestCase):
 
     def test_document_draft(self):
         dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/draft-ietf-avt-rtp-new/")
-        self.assertEqual(d.resource_uri, "/api/v1/doc/document/draft-ietf-avt-rtp-new/")
+        d  = dt.document("/api/v1/doc/document/19971/")
+        self.assertEqual(d.resource_uri, "/api/v1/doc/document/19971/")
         self.assertEqual(d.time, "2015-10-14T13:49:52")
         self.assertEqual(d.notify, "magnus.westerlund@ericsson.com, csp@csperkins.org")
         self.assertEqual(d.expires, "2003-09-08T00:00:12")
@@ -852,7 +877,6 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(d.stream, "/api/v1/name/streamname/ietf/")
         self.assertEqual(d.rfc, 3550)
         self.assertEqual(d.intended_std_level, "/api/v1/name/intendedstdlevelname/std/")
-        self.assertEqual(d.resource_uri, "/api/v1/doc/document/draft-ietf-avt-rtp-new/")
         self.assertEqual(d.std_level, "/api/v1/name/stdlevelname/std/")
         self.assertEqual(d.external_url, "")
         self.assertEqual(d.order, 1)
@@ -977,15 +1001,17 @@ class TestDatatracker(unittest.TestCase):
         d  = dt.document_from_rfc("rfc3550")
         self.assertEqual(d.resource_uri, "/api/v1/doc/document/19971/")
 
-    def test_document_from_bcp(self):
+    def test_documents_from_bcp(self):
         dt = DataTracker()
-        d  = dt.document_from_bcp("bcp205")
-        self.assertEqual(d.resource_uri, "/api/v1/doc/document/65950/")
+        d  = dt.documents_from_bcp("bcp205")
+        self.assertEqual(len(d), 1)
+        self.assertEqual(d[0].resource_uri, "/api/v1/doc/document/65950/")
 
-    def test_document_from_std(self):
+    def test_documents_from_std(self):
         dt = DataTracker()
-        d  = dt.document_from_std("std68")
-        self.assertEqual(d.resource_uri, "/api/v1/doc/document/34169/")
+        d  = dt.documents_from_std("std68")
+        self.assertEqual(len(d), 1)
+        self.assertEqual(d[0].resource_uri, "/api/v1/doc/document/34169/")
 
     def test_document_state(self):
         dt = DataTracker()
