@@ -821,7 +821,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(e.address,      "csp@csperkins.org")
         self.assertEqual(e.person,       "/api/v1/person/person/20209/")
         self.assertEqual(e.time,         "1970-01-01T23:59:59")
-        self.assertEqual(e.origin,       "author: draft-ietf-tsvwg-transport-encrypt")
+        self.assertEqual(e.origin,       "author: draft-ietf-mmusic-rfc4566bis")
         self.assertEqual(e.primary,      True)
         self.assertEqual(e.active,       True)
 
@@ -862,8 +862,8 @@ class TestDatatracker(unittest.TestCase):
 
     def test_document_draft(self):
         dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/19971/")
-        self.assertEqual(d.resource_uri, "/api/v1/doc/document/19971/")
+        d  = dt.document("/api/v1/doc/document/draft-ietf-avt-rtp-new/")
+        self.assertEqual(d.resource_uri, "/api/v1/doc/document/draft-ietf-avt-rtp-new/")
         self.assertEqual(d.time, "2015-10-14T13:49:52")
         self.assertEqual(d.notify, "magnus.westerlund@ericsson.com, csp@csperkins.org")
         self.assertEqual(d.expires, "2003-09-08T00:00:12")
@@ -894,80 +894,80 @@ class TestDatatracker(unittest.TestCase):
 
     def test_document_agenda(self):
         dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/218/")
-        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/218/")
+        d  = dt.document("/api/v1/doc/document/agenda-90-precis/")
+        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/agenda-90-precis/")
         self.assertEqual(d.derive_document_url(), "https://datatracker.ietf.org/meeting/90/materials/agenda-90-precis.txt")
         self.assertEqual(d.uploaded_filename,     "agenda-90-precis.txt")
         self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_minutes(self):
         dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/272/")
-        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/272/")
+        d  = dt.document("/api/v1/doc/document/minutes-89-cfrg/")
+        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/minutes-89-cfrg/")
         self.assertEqual(d.derive_document_url(), "https://datatracker.ietf.org/meeting/89/materials/minutes-89-cfrg.txt")
         self.assertEqual(d.uploaded_filename,     "minutes-89-cfrg.txt")
         self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_bluesheets(self):
         dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/68163/")
-        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/68163/")
+        d  = dt.document("/api/v1/doc/document/bluesheets-95-xrblock-01/")
+        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/bluesheets-95-xrblock-01/")
         self.assertEqual(d.derive_document_url(), "https://www.ietf.org/proceedings/95/bluesheets/bluesheets-95-xrblock-01.pdf")
         self.assertEqual(d.uploaded_filename,     "bluesheets-95-xrblock-01.pdf")
         self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_charter(self):
         dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/1/")
-        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/1/")
+        d  = dt.document("/api/v1/doc/document/charter-ietf-vgmib/")
+        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/charter-ietf-vgmib/")
         self.assertEqual(d.derive_document_url(), "https://www.ietf.org/charter/charter-ietf-vgmib-01.txt")
         self.assertEqual(d.uploaded_filename,     "")
         self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_conflrev(self):
         dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/17898/")
-        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/17898/")
+        d  = dt.document("/api/v1/doc/document/conflict-review-kiyomoto-kcipher2/")
+        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/conflict-review-kiyomoto-kcipher2/")
         self.assertEqual(d.derive_document_url(), "https://www.ietf.org/cr/conflict-review-kiyomoto-kcipher2-00.txt")
         self.assertEqual(d.uploaded_filename,     "")
         self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_slides(self):
         dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/736/")
-        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/736/")
+        d  = dt.document("/api/v1/doc/document/slides-65-l2vpn-4/")
+        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/slides-65-l2vpn-4/")
         self.assertEqual(d.derive_document_url(), "https://www.ietf.org/proceedings/65/slides/l2vpn-4.pdf")
         self.assertEqual(d.uploaded_filename,     "l2vpn-4.pdf")
         self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_statchg(self):
         dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/78306/")
-        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/78306/")
+        d  = dt.document("/api/v1/doc/document/status-change-rfc3044-rfc3187-orig-urn-regs-to-historic/")
+        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/status-change-rfc3044-rfc3187-orig-urn-regs-to-historic/")
         self.assertEqual(d.derive_document_url(), "https://www.ietf.org/sc/status-change-rfc3044-rfc3187-orig-urn-regs-to-historic-00.txt")
         self.assertEqual(d.uploaded_filename,     "")
         self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_liaison(self):
         dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/46457/")
-        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/46457/")
+        d  = dt.document("/api/v1/doc/document/liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1/")
+        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1/")
         self.assertEqual(d.derive_document_url(), "https://www.ietf.org/lib/dt/documents/LIAISON/liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1.doc")
         self.assertEqual(d.uploaded_filename,     "liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1.doc")
         self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_liai_att(self):
         dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/43519/")
-        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/43519/")
+        d  = dt.document("/api/v1/doc/document/liaison-2004-08-23-itu-t-ietf-liaison-statement-to-ietf-and-itu-t-study-groups-countering-spam-pdf-version-attachment-1/")
+        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/liaison-2004-08-23-itu-t-ietf-liaison-statement-to-ietf-and-itu-t-study-groups-countering-spam-pdf-version-attachment-1/")
         self.assertEqual(d.derive_document_url(), "https://www.ietf.org/lib/dt/documents/LIAISON/file39.pdf")
         self.assertEqual(d.uploaded_filename,     "file39.pdf")
         self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_recording(self):
         dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/49624/")
-        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/49624/")
+        d  = dt.document("/api/v1/doc/document/recording-94-taps-1/")
+        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/recording-94-taps-1/")
         self.assertEqual(d.derive_document_url(), "https://www.ietf.org/audio/ietf94/ietf94-room304-20151103-1520.mp3")
         self.assertEqual(d.uploaded_filename,     "")
         # Downloading the MP3 is expensive, so check a HEAD request instead:
@@ -975,8 +975,8 @@ class TestDatatracker(unittest.TestCase):
 
     def test_document_review(self):
         dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/69082/")
-        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/69082/")
+        d  = dt.document("/api/v1/doc/document/review-bchv-rfc6890bis-04-genart-lc-kyzivat-2017-02-28/")
+        self.assertEqual(d.resource_uri,          "/api/v1/doc/document/review-bchv-rfc6890bis-04-genart-lc-kyzivat-2017-02-28/")
         self.assertEqual(d.derive_document_url(), "https://datatracker.ietf.org/doc/review-bchv-rfc6890bis-04-genart-lc-kyzivat-2017-02-28")
         self.assertEqual(d.external_url,          "")
         self.assertEqual(d.uploaded_filename,     "")
@@ -994,24 +994,24 @@ class TestDatatracker(unittest.TestCase):
     def test_document_from_draft(self):
         dt = DataTracker()
         d  = dt.document_from_draft("draft-ietf-avt-rtp-new")
-        self.assertEqual(d.resource_uri, "/api/v1/doc/document/19971/")
+        self.assertEqual(d.resource_uri, "/api/v1/doc/document/draft-ietf-avt-rtp-new/")
 
     def test_document_from_rfc(self):
         dt = DataTracker()
         d  = dt.document_from_rfc("rfc3550")
-        self.assertEqual(d.resource_uri, "/api/v1/doc/document/19971/")
+        self.assertEqual(d.resource_uri, "/api/v1/doc/document/draft-ietf-avt-rtp-new/")
 
     def test_documents_from_bcp(self):
         dt = DataTracker()
         d  = dt.documents_from_bcp("bcp205")
         self.assertEqual(len(d), 1)
-        self.assertEqual(d[0].resource_uri, "/api/v1/doc/document/65950/")
+        self.assertEqual(d[0].resource_uri, "/api/v1/doc/document/draft-sheffer-rfc6982bis/")
 
     def test_documents_from_std(self):
         dt = DataTracker()
         d  = dt.documents_from_std("std68")
         self.assertEqual(len(d), 1)
-        self.assertEqual(d[0].resource_uri, "/api/v1/doc/document/34169/")
+        self.assertEqual(d[0].resource_uri, "/api/v1/doc/document/draft-crocker-rfc4234bis/")
 
     def test_document_state(self):
         dt = DataTracker()
@@ -1086,7 +1086,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(s.authors,         "[{u'email': u'dcrocker@bbiw.net', u'name': u'Dave Crocker'}, {u'email': u'paul.overell@thus.net', u'name': u'Paul Overell'}]")
         self.assertEqual(s.checks,          ["/api/v1/submit/submissioncheck/386/"])
         self.assertEqual(s.document_date,   "2007-10-09")
-        self.assertEqual(s.draft,           "/api/v1/doc/document/34169/")
+        self.assertEqual(s.draft,           "/api/v1/doc/document/draft-crocker-rfc4234bis/")
         self.assertEqual(s.file_size,       27651)
         self.assertEqual(s.file_types,      ".txt,.xml,.pdf")
         self.assertEqual(s.first_two_pages, "\n\n\nNetwork Working Group                                    D. Crocker, Ed.\nInternet-Draft                               Brandenburg InternetWorking\nObsoletes: 4234 (if approved)                                 P. Overell\nIntended status: Standards Track                               THUS plc.\nExpires: April 11, 2008                                  October 9, 2007\n\n\n             Augmented BNF for Syntax Specifications: ABNF\n                      draft-crocker-rfc4234bis-01\n\nStatus of this Memo\n\n   By submitting this Internet-Draft, each author represents that any\n   applicable patent or other IPR claims of which he or she is aware\n   have been or will be disclosed, and any of which he or she becomes\n   aware will be disclosed, in accordance with Section 6 of BCP 79.\n\n   Internet-Drafts are working documents of the Internet Engineering\n   Task Force (IETF), its areas, and its working groups.  Note that\n   other groups may also distribute working documents as Internet-\n   Drafts.\n\n   Internet-Drafts are draft documents valid for a maximum of six months\n   and may be updated, replaced, or obsoleted by other documents at any\n   time.  It is inappropriate to use Internet-Drafts as reference\n   material or to cite them other than as \"work in progress.\"\n\n   The list of current Internet-Drafts can be accessed at\n   http://www.ietf.org/ietf/1id-abstracts.txt.\n\n   The list of Internet-Draft Shadow Directories can be accessed at\n   http://www.ietf.org/shadow.html.\n\n   This Internet-Draft will expire on April 11, 2008.\n\nCopyright Notice\n\n   Copyright (C) The IETF Trust (2007).\n\nAbstract\n\n   Internet technical specifications often need to define a formal\n   syntax.  Over the years, a modified version of Backus-Naur Form\n   (BNF), called Augmented BNF (ABNF), has been popular among many\n   Internet specifications.  The current specification documents ABNF.\n   It balances compactness and simplicity, with reasonable\n   representational power.  The differences between standard BNF and\n   ABNF involve naming rules, repetition, alternatives, order-\n\n\n\nCrocker & Overell        Expires April 11, 2008                 [page 1]\n\nInternet-Draft                    ABNF                      October 2007\n\n\n   independence, and value ranges.  This specification also supplies\n   additional rule definitions and encoding for a core lexical analyzer\n   of the type common to several Internet specifications.\n\n\nTable of Contents\n\n   1.  INTRODUCTION . . . . . . . . . . . . . . . . . . . . . . . . .  3\n   2.  RULE DEFINITION  . . . . . . . . . . . . . . . . . . . . . . .  3\n     2.1.  Rule Naming  . . . . . . . . . . . . . . . . . . . . . . .  3\n     2.2.  Rule Form  . . . . . . . . . . . . . . . . . . . . . . . .  4\n     2.3.  Terminal Values  . . . . . . . . . . . . . . . . . . . . .  4\n     2.4.  External Encodings . . . . . . . . . . . . . . . . . . . .  5\n   3.  OPERATORS  . . . . . . . . . . . . . . . . . . . . . . . . . .  6\n     3.1.  Concatenation:  Rule1 Rule2  . . . . . . . . . . . . . . .  6\n     3.2.  Alternatives:  Rule1 / Rule2 . . . . . . . . . . . . . . .  6\n     3.3.  Incremental Alternatives: Rule1 =/ Rule2 . . . . . . . . .  7\n     3.4.  Value Range Alternatives:  %c##-## . . . . . . . . . . . .  7\n     3.5.  Sequence Group:  (Rule1 Rule2) . . . . . . . . . . . . . .  8\n     3.6.  Variable Repetition:  *Rule  . . . . . . . . . . . . . . .  8\n     3.7.  Specific Repetition:  nRule  . . . . . . . . . . . . . . .  9\n     3.8.  Optional Sequence:  [RULE] . . . . . . . . . . . . . . . .  9\n     3.9.  Comment:  ; Comment  . . . . . . . . . . . . . . . . . . .  9\n     3.10. Operator Precedence  . . . . . . . . . . . . . . . . . . .  9\n   4.  ABNF DEFINITION OF ABNF  . . . . . . . . . . . . . . . . . . . 10\n   5.  SECURITY CONSIDERATIONS  . . . . . . . . . . . . . . . . . . . 11\n   6.  References . . . . . . . . . . . . . . . . . . . . . . . . . . 11\n     6.1.  Normative References . . . . . . . . . . . . . . . . . . . 11\n     6.2.  Informative References . . . . . . . . . . . . . . . . . . 12\n   Appendix A.  ACKNOWLEDGEMENTS  . . . . . . . . . . . . . . . . . . 12\n   Appendix B.  CORE ABNF OF ABNF . . . . . . . . . . . . . . . . . . 13\n     B.1.  Core Rules . . . . . . . . . . . . . . . . . . . . . . . . 13\n     B.2.  Common Encoding  . . . . . . . . . . . . . . . . . . . . . 14\n   Authors' Addresses . . . . . . . . . . . . . . . . . . . . . . . . 14\n   Intellectual Property and Copyright Statements . . . . . . . . . . 16\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nCrocker & Overell        Expires April 11, 2008                 [page 2]")
@@ -1159,7 +1159,7 @@ class TestDatatracker(unittest.TestCase):
         group = dt.group(941)
         self.assertEqual(group.acronym,        "avt")
         self.assertEqual(group.ad,             None)
-        self.assertEqual(group.charter,        "/api/v1/doc/document/16/")
+        self.assertEqual(group.charter,        "/api/v1/doc/document/charter-ietf-avt/")
         self.assertEqual(group.comments,       "")
         self.assertEqual(group.description,    "\n  The Audio/Video Transport Working Group was formed to specify a protocol \n  for real-time transmission of audio and video over unicast and multicast \n  UDP/IP. This is the Real-time Transport Protocol, RTP, along with its \n  associated profiles and payload formats.")
         self.assertEqual(group.id,             941)
