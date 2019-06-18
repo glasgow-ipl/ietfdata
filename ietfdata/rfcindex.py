@@ -466,7 +466,7 @@ class TestRFCIndex(unittest.TestCase):
         self.assertEqual(index.rfc["RFC3550"].day,          None)
         self.assertEqual(index.rfc["RFC3550"].month,        "July")
         self.assertEqual(index.rfc["RFC3550"].year,         2003)
-        self.assertEqual(index.rfc["RFC3550"].formats,      [("ASCII", 259985, 104), ("PS", 630740, None), ("PDF", 504117, None)])
+        self.assertEqual(index.rfc["RFC3550"].formats,      [("ASCII", 259985, 104), ("PS", 630740, None), ("PDF", 504117, None), ("HTML", None, None)])
         self.assertEqual(index.rfc["RFC3550"].draft,        "draft-ietf-avt-rtp-new-12")
         self.assertEqual(index.rfc["RFC3550"].keywords,     ["RTP", "end-to-end", "network", "audio", "video", "RTCP"])
         self.assertEqual(index.rfc["RFC3550"].updates,      [])
