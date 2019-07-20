@@ -208,6 +208,15 @@ class Group:
     unused_tags    : List[str]
 
 @dataclass
+class GroupState:
+    resource_uri   : str
+    slug           : str
+    desc           : str
+    name           : str
+    used           : bool
+    order          : int
+
+@dataclass
 class Submission:
     abstract        : str
     access_key      : str
@@ -783,7 +792,8 @@ class DataTracker:
         the output to only entries with timestamps in a particular time range.
         If provided, name_contains filters based on the whether the name field
         contains the specified value.
-        If provided, state filters based on group state.
+        If provided, state filters based on group state (i.e., the values in the
+        slug field of GroupState objects).
         """
         api_url = "/api/v1/group/group/?time__gt=" + since + "&time__lt=" + until
         if name_contains != None:
@@ -797,6 +807,28 @@ class DataTracker:
             api_url = meta['next']
             for obj in objs:
                 yield Pavlova().from_mapping(obj, Group)
+
+
+
+    def group_states(self) -> Iterator[GroupState]:
+        """
+        A generator returning possible group states.
+
+        Parameters:
+            none
+
+        Returns:
+            A sequence of Stream objects, as returned by stream()
+        """
+        url = "/api/v1/name/groupstatename/"
+        while url != None:
+            r = self.session.get(self.base_url + url, verify=True)
+            meta = r.json()['meta']
+            objs = r.json()['objects']
+            url  = meta['next']
+            for obj in objs:
+                yield Pavlova().from_mapping(obj, GroupState)
+        
 
     # Datatracker API endpoints returning information about meetings:
     #   https://datatracker.ietf.org/api/v1/meeting/meeting/                        - list of meetings
@@ -1189,6 +1221,21 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(len(groups),  2)
         self.assertEqual(groups[0].id, 1897)
         self.assertEqual(groups[1].id, 2220)
+
+    def test_group_states(self):
+        dt = DataTracker()
+        states = list(dt.group_states())
+        self.assertEqual(len(states),  9)
+        self.assertEqual(states[0].slug, "abandon")
+        self.assertEqual(states[1].slug, "active")
+        self.assertEqual(states[2].slug, "bof")
+        self.assertEqual(states[3].slug, "bof-conc")
+        self.assertEqual(states[4].slug, "conclude")
+        self.assertEqual(states[5].slug, "dormant")
+        self.assertEqual(states[6].slug, "proposed")
+        self.assertEqual(states[7].slug, "replaced")
+        self.assertEqual(states[8].slug, "unknown")
+
 
 if __name__ == '__main__':
     unittest.main()
