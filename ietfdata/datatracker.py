@@ -258,7 +258,7 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/person/historicalemail/         - ???
     #   https://datatracker.ietf.org/api/v1/person/alias/                   - ???
 
-    def email(self, email: str):
+    def email(self, email: str) -> Optional[Email]:
         """
         Lookup information about an email address in the datatracker.
 
@@ -275,7 +275,7 @@ class DataTracker:
             return None
 
 
-    def person_from_email(self, email: str):
+    def person_from_email(self, email: str) -> Optional[Person]:
         """
         Lookup a person in the datatracker based on their email address.
 
@@ -288,7 +288,7 @@ class DataTracker:
         return self.person("/api/v1/person/email/" + email + "/")
 
 
-    def person(self, person_uri: str):
+    def person(self, person_uri: str) -> Optional[Person]:
         """
         Lookup a Person in the datatracker.
 
@@ -316,7 +316,7 @@ class DataTracker:
             raise RuntimeError
 
 
-    def people(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07", name_contains=None):
+    def people(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07", name_contains=None) -> Iterator[Person]:
         """
         A generator that returns people recorded in the datatracker. As of April
         2018, there are approximately 21500 people recorded.
@@ -345,7 +345,7 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/doc/document/                        - list of documents
     # * https://datatracker.ietf.org/api/v1/doc/document/draft-ietf-avt-rtp-new/ - info about document
 
-    def document(self, document_uri: str):
+    def document(self, document_uri: str) -> Optional[Document]:
         # FIXME: complete documentation
         # FIXME: add method relating to std_level
         # FIXME: add method relating to intended_std_level
@@ -373,7 +373,7 @@ class DataTracker:
             return None
 
 
-    def documents(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07", doctype=None, group_uri=None):
+    def documents(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07", doctype=None, group_uri=None) -> Iterator[Document]:
         """
         A generator that returns all documents recorded in the datatracker.
         As of 29 April 2018, approximately 84000 documents are recorded.
@@ -821,7 +821,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(e.address,      "csp@csperkins.org")
         self.assertEqual(e.person,       "/api/v1/person/person/20209/")
         self.assertEqual(e.time,         "1970-01-01T23:59:59")
-        self.assertEqual(e.origin,       "author: draft-ietf-mmusic-rfc4566bis")
+        self.assertEqual(e.origin,       "author: draft-ietf-avtcore-cc-feedback-message")
         self.assertEqual(e.primary,      True)
         self.assertEqual(e.active,       True)
 
