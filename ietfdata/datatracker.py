@@ -776,7 +776,7 @@ class DataTracker:
         else:
             return None
 
-    def group_from_acronym(self, acronym):
+    def group_from_acronym(self, acronym) -> Group:
         # FIXME: add documentation
         api_url  = "/api/v1/group/group/?acronym=" + acronym
         response = self.session.get(self.base_url + api_url, verify=True)
