@@ -785,21 +785,29 @@ class DataTracker:
         else:
             return None
 
-    def groups(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07", name_contains=None, state=None) -> Iterator[Group]:
+    def groups(self, since="1970-01-01T00:00:00",
+                     until="2038-01-19T03:14:07",
+                     name_contains=None,
+                     state=None,
+                     parent:Group=None) -> Iterator[Group]:
         """
         A generator that returns Group objects representing all groups recorded
-        in the datatracker. The since and until parameters can be used to contrain
-        the output to only entries with timestamps in a particular time range.
-        If provided, name_contains filters based on the whether the name field
+        in the datatracker. The 'since' and 'until' parameters can be used to
+        contrain the output to only entries with timestamps in a particular
+        time range.
+        If provided, 'name_contains' filters based on the whether the name field
         contains the specified value.
-        If provided, state filters based on group state (i.e., the values in the
+        If provided, 'state' filters based on group state (i.e., the values in the
         slug field of GroupState objects).
+        if provided, 'parent' finds all groups that have the specified parent group.
         """
         api_url = "/api/v1/group/group/?time__gt=" + since + "&time__lt=" + until
         if name_contains != None:
             api_url = api_url + "&name__contains=" + name_contains
         if state != None:
             api_url = api_url + "&state=" + state
+        if parent != None:
+            api_url = api_url + "&parent=" + str(parent.id)
         while api_url != None:
             r = self.session.get(self.base_url + api_url, verify=True)
             meta = r.json()['meta']
