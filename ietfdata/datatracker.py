@@ -410,7 +410,7 @@ class DataTracker:
                 assert doc["resource_uri"].startswith("/api/v1/doc/document/")
                 assert doc[      "ad"] is None or doc[      "ad"].startswith("/api/v1/person/person/")
                 assert doc["shepherd"] is None or doc["shepherd"].startswith("/api/v1/person/email/")
-                self._derive_document_url(doc)
+                #self._derive_document_url(doc)
                 yield doc
             meta = r.json()['meta']
             if meta['next'] == None:
