@@ -863,7 +863,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(e.address,      "csp@csperkins.org")
         self.assertEqual(e.person,       "/api/v1/person/person/20209/")
         self.assertEqual(e.time,         "1970-01-01T23:59:59")
-        self.assertEqual(e.origin,       "author: draft-ietf-avtcore-cc-feedback-message")
+        self.assertEqual(e.origin,       "author: draft-ietf-taps-transport-security")
         self.assertEqual(e.primary,      True)
         self.assertEqual(e.active,       True)
 
