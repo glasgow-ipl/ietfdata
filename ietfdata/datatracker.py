@@ -699,7 +699,6 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/name/docremindertypename/
     #   https://datatracker.ietf.org/api/v1/name/intendedstdlevelname/
     #   https://datatracker.ietf.org/api/v1/name/countryname/
-    #   https://datatracker.ietf.org/api/v1/name/meetingtypename/
     #   https://datatracker.ietf.org/api/v1/name/grouptypename/
     #   https://datatracker.ietf.org/api/v1/name/draftsubmissionstatename/
     #   https://datatracker.ietf.org/api/v1/name/rolename/
@@ -884,7 +883,7 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/meeting/schedule/791/                   - a draft of the meeting agenda
     #   https://datatracker.ietf.org/api/v1/meeting/room/537/                       - a room at a meeting
     #   https://datatracker.ietf.org/api/v1/meeting/floorplan/14/                   - floor plan for a meeting venue
-    #   ...
+    # * https://datatracker.ietf.org/api/v1/name/meetingtypename/
 
     def meetings(self,
             since        : str = "1970-01-01",
@@ -913,6 +912,24 @@ class DataTracker:
                 yield Pavlova().from_mapping(obj, Meeting)
 
 
+    def meeting_type(self, meeting_type: str) -> MeetingType:
+        """
+        Get a MeetingType from a string
+
+        Parameters:
+           meeting_type -- The meeting type, as returned in the 'slug' of a MeetingType
+                           object. Valid meeting types include "ietf" and "interim".
+
+        Returns:
+            A MeetingType object
+        """
+        url  = "/api/v1/name/meetingtypename/" + meeting_type + "/"
+        response = self.session.get(self.base_url + url, verify=True)
+        if response.status_code == 200:
+            return Pavlova().from_mapping(response.json(), MeetingType)
+        else:
+            return None
+
 
     def meeting_types(self) -> Iterator[MeetingType]:
         """
@@ -933,24 +950,6 @@ class DataTracker:
             for obj in objs:
                 yield Pavlova().from_mapping(obj, MeetingType)
 
-
-    def meeting_type(self, meeting_type: str) -> MeetingType:
-        """
-        Get a MeetingType from a string
-
-        Parameters:
-           meeting_type -- the 'slug' from a MeetingType object. As of August 2019,
-                           valid 'meeting_type' values are "ietf" and "interim".
-
-        Returns:
-            A MeetingType object
-        """
-        url  = "/api/v1/name/meetingtypename/" + meeting_type + "/"
-        response = self.session.get(self.base_url + url, verify=True)
-        if response.status_code == 200:
-            return Pavlova().from_mapping(response.json(), MeetingType)
-        else:
-            return None
 
 # =================================================================================================================================
 # Unit tests:
