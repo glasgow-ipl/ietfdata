@@ -1,16 +1,16 @@
 # Copyright (C) 2017-2019 University of Glasgow
-# 
+#
 # Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions 
+# modification, are permitted provided that the following conditions
 # are met:
-# 
+#
 # 1. Redistributions of source code must retain the above copyright notice,
 #    this list of conditions and the following disclaimer.
-# 
+#
 # 2. Redistributions in binary form must reproduce the above copyright
 #    notice, this list of conditions and the following disclaimer in the
 #    documentation and/or other materials provided with the distribution.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 # AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 # IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -111,7 +111,7 @@ class Document:
     tags               : List[str]
     uploaded_filename  : str
     external_url       : str
-    
+
     def derive_document_url(self) -> str:
         if self.type == "/api/v1/name/doctypename/agenda/":
             # FIXME: This doesn't work for interim meetings
@@ -481,10 +481,10 @@ class DataTracker:
     def document_from_draft(self, draft: str) -> Optional[Document]:
         """
         Returns the document with the specified name.
-        
+
         Parameters:
             name -- The name of the document to lookup (e.g, "draft-ietf-avt-rtp-new")
-        
+
         Returns:
             A Document object
         """
@@ -648,7 +648,7 @@ class DataTracker:
         Information about a document submission.
 
         Parameters:
-           submission_uri -- A submission URI of the form /api/v1/submit/submission/2402/                             
+           submission_uri -- A submission URI of the form /api/v1/submit/submission/2402/
 
         Returns:
             A Submission object
@@ -868,7 +868,7 @@ class DataTracker:
             url  = meta['next']
             for obj in objs:
                 yield Pavlova().from_mapping(obj, GroupState)
-        
+
 
     # Datatracker API endpoints returning information about meetings:
     # * https://datatracker.ietf.org/api/v1/meeting/meeting/                        - list of meetings
@@ -895,7 +895,7 @@ class DataTracker:
         Returns:
             An iterator of Meeting objects
         """
-        url = "/api/v1/meeting/meeting/?time__gt=" + since + "&time__lt=" + until 
+        url = "/api/v1/meeting/meeting/?time__gt=" + since + "&time__lt=" + until
         while url != None:
             r = self.session.get(self.base_url + url, verify=True)
             meta = r.json()['meta']
