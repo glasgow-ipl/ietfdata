@@ -242,7 +242,39 @@ class Submission:
     submitter       : str
     title           : str
     words           : Optional[int]
-    
+
+@dataclass
+class Meeting:
+    resource_uri                     : str
+    id                               : int
+    type                             : str
+    venue_name                       : str
+    venue_addr                       : str
+    reg_area                         : str
+    time_zone                        : str
+    acknowledgements                 : str
+    agenda_info_note                 : str
+    agenda_warning_note              : str
+    updated                          : str
+    idsubmit_cutoff_warning_days     : str
+    idsubmit_cutoff_time_utc         : str
+    idsubmit_cutoff_day_offset_00    : int
+    idsubmit_cutoff_day_offset_01    : int
+    submission_start_day_offset      : int
+    submission_cutoff_day_offset     : int
+    submission_correction_day_offset : int
+    country                          : str
+    city                             : str
+    agenda                           : str
+    number                           : str
+    session_request_lock_message     : str
+    break_area                       : str
+    proceedings_final                : bool
+    show_important_dates             : bool
+    attendees                        : Optional[str]
+    date                             : str
+    days                             : int
+
 # =================================================================================================================================
 # A class to represent the datatracker:
 
@@ -839,7 +871,7 @@ class DataTracker:
         
 
     # Datatracker API endpoints returning information about meetings:
-    #   https://datatracker.ietf.org/api/v1/meeting/meeting/                        - list of meetings
+    # * https://datatracker.ietf.org/api/v1/meeting/meeting/                        - list of meetings
     #   https://datatracker.ietf.org/api/v1/meeting/meeting/747/                    - information about meeting number 747
     #   https://datatracker.ietf.org/api/v1/meeting/session/                        - list of all sessions in meetings
     #   https://datatracker.ietf.org/api/v1/meeting/session/25886/                  - a session in a meeting
@@ -851,6 +883,26 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/meeting/room/537/                       - a room at a meeting
     #   https://datatracker.ietf.org/api/v1/meeting/floorplan/14/                   - floor plan for a meeting venue
     #   ...
+
+    def meetings(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07") -> Iterator[Meeting]:
+        """
+        A generator returning information about meetings.
+
+        Parameters:
+           since     -- Only return meetings with timestamp after this
+           until     -- Only return meetings with timestamp before this
+
+        Returns:
+            An iterator of Meeting objects
+        """
+        url = "/api/v1/meeting/meeting/?time__gt=" + since + "&time__lt=" + until 
+        while url != None:
+            r = self.session.get(self.base_url + url, verify=True)
+            meta = r.json()['meta']
+            objs = r.json()['objects']
+            url  = meta['next']
+            for obj in objs:
+                yield Pavlova().from_mapping(obj, Meeting)
 
 # =================================================================================================================================
 # Unit tests:
@@ -1243,6 +1295,11 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(states[6].slug, "proposed")
         self.assertEqual(states[7].slug, "replaced")
         self.assertEqual(states[8].slug, "unknown")
+
+    def test_meetings(self):
+        dt = DataTracker()
+        for meeting in dt.meetings():
+            print(meeting)
 
 
 if __name__ == '__main__':
