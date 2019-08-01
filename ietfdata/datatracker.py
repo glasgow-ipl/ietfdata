@@ -275,6 +275,15 @@ class Meeting:
     date                             : str
     days                             : int
 
+@dataclass
+class MeetingType:
+    name         : str
+    order        : int
+    resource_uri : str
+    slug         : str
+    desc         : str
+    used         : bool
+
 # =================================================================================================================================
 # A class to represent the datatracker:
 
@@ -877,18 +886,24 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/meeting/floorplan/14/                   - floor plan for a meeting venue
     #   ...
 
-    def meetings(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07") -> Iterator[Meeting]:
+    def meetings(self,
+            since        : str = "1970-01-01",
+            until        : str = "2038-01-19",
+            meeting_type : Optional[MeetingType] = None) -> Iterator[Meeting]:
         """
         A generator returning information about meetings.
 
         Parameters:
-           since     -- Only return meetings with timestamp after this
-           until     -- Only return meetings with timestamp before this
+           since        -- Only return meetings with date after this
+           until        -- Only return meetings with date before this
+           meeting_type -- If not None, constrain results to the specified MeetingType
 
         Returns:
             An iterator of Meeting objects
         """
-        url = "/api/v1/meeting/meeting/?time__gt=" + since + "&time__lt=" + until
+        url = "/api/v1/meeting/meeting/?date__gt=" + since + "&date__lt=" + until
+        if meeting_type != None:
+            url = url + "&type=" + meeting_type.slug
         while url != None:
             r = self.session.get(self.base_url + url, verify=True)
             meta = r.json()['meta']
@@ -896,6 +911,46 @@ class DataTracker:
             url  = meta['next']
             for obj in objs:
                 yield Pavlova().from_mapping(obj, Meeting)
+
+
+
+    def meeting_types(self) -> Iterator[MeetingType]:
+        """
+        A generator returning the possible meeting types
+
+        Parameters:
+           None
+
+        Returns:
+            An iterator of MeetingType objects
+        """
+        url = "/api/v1/name/meetingtypename/"
+        while url != None:
+            r = self.session.get(self.base_url + url, verify=True)
+            meta = r.json()['meta']
+            objs = r.json()['objects']
+            url  = meta['next']
+            for obj in objs:
+                yield Pavlova().from_mapping(obj, MeetingType)
+
+
+    def meeting_type(self, meeting_type: str) -> MeetingType:
+        """
+        Get a MeetingType from a string
+
+        Parameters:
+           meeting_type -- the 'slug' from a MeetingType object. As of August 2019,
+                           valid 'meeting_type' values are "ietf" and "interim".
+
+        Returns:
+            A MeetingType object
+        """
+        url  = "/api/v1/name/meetingtypename/" + meeting_type + "/"
+        response = self.session.get(self.base_url + url, verify=True)
+        if response.status_code == 200:
+            return Pavlova().from_mapping(response.json(), MeetingType)
+        else:
+            return None
 
 # =================================================================================================================================
 # Unit tests:
@@ -1291,8 +1346,18 @@ class TestDatatracker(unittest.TestCase):
 
     def test_meetings(self):
         dt = DataTracker()
-        for meeting in dt.meetings():
-            print(meeting)
+        meetings = list(dt.meetings(since="2019-01-01", until="2019-12-31", meeting_type=dt.meeting_type("ietf")))
+        self.assertEqual(len(meetings),  3)
+        self.assertEqual(meetings[0].city, "Singapore")
+        self.assertEqual(meetings[1].city, "Montreal")
+        self.assertEqual(meetings[2].city, "Prague")
+
+    def test_meeting_types(self):
+        dt = DataTracker()
+        types = list(dt.meeting_types())
+        self.assertEqual(len(types),  2)
+        self.assertEqual(types[0].slug, "ietf")
+        self.assertEqual(types[1].slug, "interim")
 
 
 if __name__ == '__main__':
