@@ -423,7 +423,11 @@ class DataTracker:
             return None
 
 
-    def documents(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07", doctype=None, group_uri=None) -> Iterator[Document]:
+    def documents(self,
+            since     : str           = "1970-01-01T00:00:00",
+            until     : str           = "2038-01-19T03:14:07",
+            doctype   : Optional[str] = None,
+            group_uri : Optional[str] = None) -> Iterator[Document]:
         """
         A generator that returns all documents recorded in the datatracker.
         As of 29 April 2018, approximately 84000 documents are recorded.
@@ -440,11 +444,11 @@ class DataTracker:
             An iterator of Document objects
         """
         url = "/api/v1/doc/document/?time__gt=" + since + "&time__lt=" + until
-        if doctype != None:
+        if doctype is not None:
             url = url + "&type=" + doctype
-        if group_uri != None:
+        if group_uri is not None:
             url = url + "&group=" + group_uri
-        while url != None:
+        while url is not None:
             r = self.session.get(self.base_url + url, verify=True)
             meta = r.json()['meta']
             objs = r.json()['objects']
@@ -469,15 +473,17 @@ class DataTracker:
             A list of Document objects
         """
         url = "/api/v1/doc/docalias/?name=" + alias
-        while url != None:
+        while url is not None:
             r = self.session.get(self.base_url + url, verify=True)
             objs = r.json()['objects']
             meta = r.json()['meta']
             url  = meta['next']
-            for doc in objs:
-                assert doc["resource_uri"].startswith("/api/v1/doc/docalias/")
-                assert doc[    "document"].startswith("/api/v1/doc/document/")
-                yield self.document(doc["document"])
+            for docalias in objs:
+                assert docalias["resource_uri"].startswith("/api/v1/doc/docalias/")
+                assert docalias[    "document"].startswith("/api/v1/doc/document/")
+                doc = self.document(docalias["document"])
+                if doc is not None:
+                    yield doc
 
 
     def document_from_draft(self, draft: str) -> Optional[Document]:
@@ -586,7 +592,7 @@ class DataTracker:
         url   = "/api/v1/doc/state/"
         if statetype is not None:
             url = url + "?type=" + statetype
-        while url != None:
+        while url is not None:
             r = self.session.get(self.base_url + url, verify=True)
             meta = r.json()['meta']
             objs = r.json()['objects']
@@ -606,7 +612,7 @@ class DataTracker:
            A sequence of StateType objects
         """
         url   = "/api/v1/doc/statetype/"
-        while url != None:
+        while url is not None:
             r = self.session.get(self.base_url + url, verify=True)
             meta = r.json()['meta']
             objs = r.json()['objects']
@@ -735,7 +741,7 @@ class DataTracker:
             A sequence of DocumentType objects, as returned by document_type()
         """
         url = "/api/v1/name/doctypename/"
-        while url != None:
+        while url is not None:
             r = self.session.get(self.base_url + url, verify=True)
             meta = r.json()['meta']
             objs = r.json()['objects']
@@ -773,7 +779,7 @@ class DataTracker:
             A sequence of Stream objects, as returned by stream()
         """
         url = "/api/v1/name/streamname/"
-        while url != None:
+        while url is not None:
             r = self.session.get(self.base_url + url, verify=True)
             meta = r.json()['meta']
             objs = r.json()['objects']
@@ -809,7 +815,7 @@ class DataTracker:
         else:
             return None
 
-    def group_from_acronym(self, acronym) -> Group:
+    def group_from_acronym(self, acronym) -> Optional[Group]:
         # FIXME: add documentation
         url  = "/api/v1/group/group/?acronym=" + acronym
         response = self.session.get(self.base_url + url, verify=True)
@@ -818,11 +824,12 @@ class DataTracker:
         else:
             return None
 
-    def groups(self, since="1970-01-01T00:00:00",
-                     until="2038-01-19T03:14:07",
-                     name_contains=None,
-                     state=None,
-                     parent:Group=None) -> Iterator[Group]:
+    def groups(self,
+            since         : str                  = "1970-01-01T00:00:00",
+            until         : str                  = "2038-01-19T03:14:07",
+            name_contains : Optional[str]        = None,
+            state         : Optional[GroupState] = None,
+            parent        : Optional[Group]      = None) -> Iterator[Group]:
         """
         A generator that returns Group objects representing all groups recorded
         in the datatracker. The 'since' and 'until' parameters can be used to
@@ -835,13 +842,13 @@ class DataTracker:
         if provided, 'parent' finds all groups that have the specified parent group.
         """
         url = "/api/v1/group/group/?time__gt=" + since + "&time__lt=" + until
-        if name_contains != None:
+        if name_contains is not None:
             url = url + "&name__contains=" + name_contains
-        if state != None:
-            url = url + "&state=" + state
-        if parent != None:
+        if state is not None:
+            url = url + "&state=" + state.slug
+        if parent is not None:
             url = url + "&parent=" + str(parent.id)
-        while url != None:
+        while url is not None:
             r = self.session.get(self.base_url + url, verify=True)
             meta = r.json()['meta']
             objs = r.json()['objects']
@@ -849,6 +856,26 @@ class DataTracker:
             for obj in objs:
                 yield Pavlova().from_mapping(obj, Group)
 
+
+    def group_state(self, group_state : str) -> Optional[GroupState]:
+        """
+        Retrieve a GroupState
+
+        Parameters:
+           group_state -- The group state, as returned in the 'slug' of a GroupState
+                           object. Valid group states include "abandon", "active",
+                           "bof", "bof-conc", "conclude", "dormant", "proposed",
+                           "replaced", and "unknown".
+
+        Returns:
+            A GroupState object
+        """
+        url  = "/api/v1/name/groupstatename/" + group_state + "/"
+        response = self.session.get(self.base_url + url, verify=True)
+        if response.status_code == 200:
+            return Pavlova().from_mapping(response.json(), GroupState)
+        else:
+            return None
 
 
     def group_states(self) -> Iterator[GroupState]:
@@ -862,7 +889,7 @@ class DataTracker:
             A sequence of Stream objects, as returned by stream()
         """
         url = "/api/v1/name/groupstatename/"
-        while url != None:
+        while url is not None:
             r = self.session.get(self.base_url + url, verify=True)
             meta = r.json()['meta']
             objs = r.json()['objects']
@@ -901,9 +928,9 @@ class DataTracker:
             An iterator of Meeting objects
         """
         url = "/api/v1/meeting/meeting/?date__gt=" + since + "&date__lt=" + until
-        if meeting_type != None:
+        if meeting_type is not None:
             url = url + "&type=" + meeting_type.slug
-        while url != None:
+        while url is not None:
             r = self.session.get(self.base_url + url, verify=True)
             meta = r.json()['meta']
             objs = r.json()['objects']
@@ -912,9 +939,9 @@ class DataTracker:
                 yield Pavlova().from_mapping(obj, Meeting)
 
 
-    def meeting_type(self, meeting_type: str) -> MeetingType:
+    def meeting_type(self, meeting_type: str) -> Optional[MeetingType]:
         """
-        Get a MeetingType from a string
+        Retrieve a MeetingType
 
         Parameters:
            meeting_type -- The meeting type, as returned in the 'slug' of a MeetingType
@@ -942,7 +969,7 @@ class DataTracker:
             An iterator of MeetingType objects
         """
         url = "/api/v1/name/meetingtypename/"
-        while url != None:
+        while url is not None:
             r = self.session.get(self.base_url + url, verify=True)
             meta = r.json()['meta']
             objs = r.json()['objects']
