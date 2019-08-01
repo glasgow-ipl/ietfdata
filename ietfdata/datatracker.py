@@ -420,35 +420,31 @@ class DataTracker:
         As of 29 April 2018, approximately 84000 documents are recorded.
 
         Parameters:
-           since     -- Only return people with timestamp after this
-           until     -- Only return people with timestamp before this
+           since     -- Only return documents with timestamp after this
+           until     -- Only return documents with timestamp before this
            doctype   -- The 'slug' field from one of the dicts returned by the
                         document_types() method; constrains the results to that
                         particular state type.
            group_uri -- Constrain the results to documents from the specified group.
 
         Returns:
-            An iterator, where each element is as returned by the document() method
+            An iterator of Document objects
         """
-        url = self.base_url + "/api/v1/doc/document/?time__gt=" + since + "&time__lt=" + until 
+        url = "/api/v1/doc/document/?time__gt=" + since + "&time__lt=" + until
         if doctype != None:
             url = url + "&type=" + doctype
         if group_uri != None:
             url = url + "&group=" + group_uri
         while url != None:
-            r = self.session.get(url, verify=True)
+            r = self.session.get(self.base_url + url, verify=True)
+            meta = r.json()['meta']
             objs = r.json()['objects']
+            url  = meta['next']
             for doc in objs:
                 assert doc["resource_uri"].startswith("/api/v1/doc/document/")
                 assert doc[      "ad"] is None or doc[      "ad"].startswith("/api/v1/person/person/")
                 assert doc["shepherd"] is None or doc["shepherd"].startswith("/api/v1/person/email/")
-                #self._derive_document_url(doc)
                 yield doc
-            meta = r.json()['meta']
-            if meta['next'] == None:
-                url = None
-            else:
-                url  = self.base_url + meta['next']
 
     # Datatracker API endpoints returning information about document aliases:
     # * https://datatracker.ietf.org/api/v1/doc/docalias/?name=/                 - draft that became the given RFC
@@ -463,19 +459,16 @@ class DataTracker:
         Returns:
             A list of Document objects
         """
-        url = self.base_url + "/api/v1/doc/docalias/?name=" + alias
+        url = "/api/v1/doc/docalias/?name=" + alias
         while url != None:
-            r = self.session.get(url, verify=True)
+            r = self.session.get(self.base_url + url, verify=True)
             objs = r.json()['objects']
+            meta = r.json()['meta']
+            url  = meta['next']
             for doc in objs:
                 assert doc["resource_uri"].startswith("/api/v1/doc/docalias/")
                 assert doc[    "document"].startswith("/api/v1/doc/document/")
                 yield self.document(doc["document"])
-            meta = r.json()['meta']
-            if meta['next'] == None:
-                url = None
-            else:
-                url  = self.base_url + meta['next']
 
 
     def document_from_draft(self, draft: str) -> Optional[Document]:
@@ -581,14 +574,14 @@ class DataTracker:
         Returns:
             A sequence of Document objects, as returned by document_state()
         """
-        api_url   = "/api/v1/doc/state/"
+        url   = "/api/v1/doc/state/"
         if statetype is not None:
-            api_url = api_url + "?type=" + statetype
-        while api_url != None:
-            r = self.session.get(self.base_url + api_url, verify=True)
+            url = url + "?type=" + statetype
+        while url != None:
+            r = self.session.get(self.base_url + url, verify=True)
             meta = r.json()['meta']
             objs = r.json()['objects']
-            api_url = meta['next']
+            url = meta['next']
             for obj in objs:
                 yield Pavlova().from_mapping(obj, State)
 
@@ -596,19 +589,19 @@ class DataTracker:
     def document_state_types(self):
         """
         A generator returning possible state types for a document.
-        These are the possible values of the 'type' field in the 
+        These are the possible values of the 'type' field in the
         output of document_state(), or the statetype parameter to
         document_states().
 
         Returns:
            A sequence of StateType objects
         """
-        api_url   = "/api/v1/doc/statetype/"
-        while api_url != None:
-            r = self.session.get(self.base_url + api_url, verify=True)
+        url   = "/api/v1/doc/statetype/"
+        while url != None:
+            r = self.session.get(self.base_url + url, verify=True)
             meta = r.json()['meta']
             objs = r.json()['objects']
-            api_url = meta['next']
+            url = meta['next']
             for obj in objs:
                 yield Pavlova().from_mapping(obj, StateType)
 
@@ -801,8 +794,8 @@ class DataTracker:
 
     def group(self, group_id):
         # FIXME: add documentation
-        api_url  = "/api/v1/group/group/%d/" % (group_id) 
-        response = self.session.get(self.base_url + api_url, verify=True)
+        url  = "/api/v1/group/group/%d/" % (group_id)
+        response = self.session.get(self.base_url + url, verify=True)
         if response.status_code == 200:
             return Pavlova().from_mapping(response.json(), Group)
         else:
@@ -810,8 +803,8 @@ class DataTracker:
 
     def group_from_acronym(self, acronym) -> Group:
         # FIXME: add documentation
-        api_url  = "/api/v1/group/group/?acronym=" + acronym
-        response = self.session.get(self.base_url + api_url, verify=True)
+        url  = "/api/v1/group/group/?acronym=" + acronym
+        response = self.session.get(self.base_url + url, verify=True)
         if response.status_code == 200:
             return Pavlova().from_mapping(response.json()["objects"][0], Group)
         else:
@@ -833,18 +826,18 @@ class DataTracker:
         slug field of GroupState objects).
         if provided, 'parent' finds all groups that have the specified parent group.
         """
-        api_url = "/api/v1/group/group/?time__gt=" + since + "&time__lt=" + until
+        url = "/api/v1/group/group/?time__gt=" + since + "&time__lt=" + until
         if name_contains != None:
-            api_url = api_url + "&name__contains=" + name_contains
+            url = url + "&name__contains=" + name_contains
         if state != None:
-            api_url = api_url + "&state=" + state
+            url = url + "&state=" + state
         if parent != None:
-            api_url = api_url + "&parent=" + str(parent.id)
-        while api_url != None:
-            r = self.session.get(self.base_url + api_url, verify=True)
+            url = url + "&parent=" + str(parent.id)
+        while url != None:
+            r = self.session.get(self.base_url + url, verify=True)
             meta = r.json()['meta']
             objs = r.json()['objects']
-            api_url = meta['next']
+            url  = meta['next']
             for obj in objs:
                 yield Pavlova().from_mapping(obj, Group)
 
