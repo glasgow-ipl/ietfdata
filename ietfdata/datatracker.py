@@ -283,6 +283,22 @@ class MeetingType:
     slug         : str
     desc         : str
     used         : bool
+        
+@dataclass
+class MeetingRoom:
+    capacity        :int
+    floorplan       :str
+    functional_name :str
+    id              :int
+    modified        :str
+    name            :str
+    resource_uri    :str
+    session_types   :List[str]
+    resources       :List[str]
+    x1              :int
+    x2              :int
+    y1              :int
+    y2              :int
 
 # =================================================================================================================================
 # A class to represent the datatracker:
@@ -976,6 +992,21 @@ class DataTracker:
             url  = meta['next']
             for obj in objs:
                 yield Pavlova().from_mapping(obj, MeetingType)
+                
+     def meeting_room_details(self,id) ->Optional[id]:
+        """
+        Retrieves the details of the MeetingRoom
+        Parameters:
+           id: The meeting id to get the details 
+        Returns:
+            A MeetingRoom object
+        """
+        url  = "/api/v1/meeting/room/%d/"%id
+        response = self.session.get(self.base_url + url, verify=True)
+        if response.status_code == 200:
+            return Pavlova().from_mapping(response.json(), MeetingRoom)
+        else:
+            return None
 
 
 # =================================================================================================================================
