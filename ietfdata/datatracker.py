@@ -454,9 +454,10 @@ class DataTracker:
             objs = r.json()['objects']
             url  = meta['next']
             for doc in objs:
-                assert doc["resource_uri"].startswith("/api/v1/doc/document/")
-                assert doc[      "ad"] is None or doc[      "ad"].startswith("/api/v1/person/person/")
-                assert doc["shepherd"] is None or doc["shepherd"].startswith("/api/v1/person/email/")
+                doc = Pavlova().from_mapping(doc, Document)
+                assert doc.resource_uri.startswith("/api/v1/doc/document/")
+                assert doc.ad       is None or doc.ad.startswith("/api/v1/person/person/")
+                assert doc.shepherd is None or doc.shepherd.startswith("/api/v1/person/email/")
                 yield doc
 
     # Datatracker API endpoints returning information about document aliases:
