@@ -44,9 +44,11 @@
 #   RFC 6359 "Datatracker Extensions to Include IANA and RFC Editor Processing Information"
 #   RFC 7760 "Statement of Work for Extensions to the IETF Datatracker for Author Statistics"
 
-from typing      import List, Optional, Tuple, Dict, Iterator
+from typing      import List, Optional, Tuple, Dict, Iterator, Type, TypeVar
 from dataclasses import dataclass
 from pavlova     import Pavlova
+
+T = TypeVar('T')
 
 import datetime
 import glob
@@ -322,22 +324,31 @@ class DataTracker:
     A class for interacting with the IETF DataTracker.
     """
     def __init__(self):
-        self.session      = requests.Session()
-        self.base_url     = "https://datatracker.ietf.org"
+        self.session  = requests.Session()
+        self.base_url = "https://datatracker.ietf.org"
 
 
     def __del__(self):
         self.session.close()
 
 
-    def _paginated_list(self, url: str, obj_type):
-        while url is not None:
-            r = self.session.get(self.base_url + url, verify=True)
+    def _retrieve(self, uri: str, obj_type: Type[T]) -> Optional[T]:
+        response = self.session.get(self.base_url + uri, verify=True)
+        if response.status_code == 200:
+            return Pavlova().from_mapping(response.json(), obj_type)
+        else:
+            return None
+
+
+    def _retrieve_multi(self, uri: str, obj_type: Type[T]) -> Iterator[T]:
+        while uri is not None:
+            r = self.session.get(self.base_url + uri, verify=True)
             meta = r.json()['meta']
             objs = r.json()['objects']
-            url  = meta['next']
+            uri  = meta['next']
             for obj in objs:
                 yield Pavlova().from_mapping(obj, obj_type)
+
 
     # Datatracker API endpoints returning information about people:
     # * https://datatracker.ietf.org/api/v1/person/person/                  - list of people
@@ -357,58 +368,31 @@ class DataTracker:
         Returns:
             An Email object
         """
-        response = self.session.get(self.base_url + "/api/v1/person/email/" + email + "/", verify=True)
-        if response.status_code == 200:
-            return Pavlova().from_mapping(response.json(), Email)
-        else:
-            return None
+        url = "/api/v1/person/email/" + email + "/"
+        return self._retrieve(url, Email)
 
 
     def email_history_for_address(self, email: str) -> Iterator[HistoricalEmail]:
         url = "/api/v1/person/historicalemail/?address=" + email
-        return self._paginated_list(url, HistoricalEmail)
+        return self._retrieve_multi(url, HistoricalEmail)
 
 
     def email_history_for_person(self, person: Person) -> Iterator[HistoricalEmail]:
         url = "/api/v1/person/historicalemail/?person=" + str(person.id)
-        return self._paginated_list(url, HistoricalEmail)
+        return self._retrieve_multi(url, HistoricalEmail)
 
 
     def person_from_email(self, email: str) -> Optional[Person]:
-        """
-        Lookup a person in the datatracker based on their email address.
-
-        Parameters:
-            email : the email address to lookup
-
-        Returns:
-            A Person object
-        """
         return self.person("/api/v1/person/email/" + email + "/")
 
 
     def person(self, person_uri: str) -> Optional[Person]:
-        """
-        Lookup a Person in the datatracker.
-
-        Parameters:
-            person_uri : a URI of the form "/api/v1/person/person/20209/" or "api/v1/person/email/csp@csperkins.org/"
-
-        Returns:
-            A Person object
-        """
-        assert person_uri.startswith("/api/v1/person/")
-        assert person_uri.endswith("/")
-        if person_uri.startswith("/api/v1/person/person/"):
-            response = self.session.get(self.base_url + person_uri, verify=True)
-            if response.status_code == 200:
-                return Pavlova().from_mapping(response.json(), Person)
-            else:
-                return None
+        if   person_uri.startswith("/api/v1/person/person/"):
+            return self._retrieve(person_uri, Person)
         elif person_uri.startswith("/api/v1/person/email/"):
-            response = self.session.get(self.base_url + person_uri, verify=True)
-            if response.status_code == 200:
-                return self.person(response.json()["person"])
+            email = self._retrieve(person_uri, Email)
+            if email is not None:
+                return self._retrieve(email.person, Person)
             else:
                 return None
         else:
@@ -417,12 +401,12 @@ class DataTracker:
 
     def person_history(self, person: Person) -> Iterator[HistoricalPerson]:
         url = "/api/v1/person/historicalperson/?id=" + str(person.id)
-        return self._paginated_list(url, HistoricalPerson)
+        return self._retrieve_multi(url, HistoricalPerson)
 
 
     def person_aliases(self, person: Person) -> Iterator[PersonAlias]:
         url = "/api/v1/person/alias/?person=" + str(person.id)
-        return self._paginated_list(url, PersonAlias)
+        return self._retrieve_multi(url, PersonAlias)
 
 
     def people(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07", name_contains=None) -> Iterator[Person]:
@@ -441,7 +425,7 @@ class DataTracker:
         url = "/api/v1/person/person/?time__gt=" + since + "&time__lt=" + until
         if name_contains is not None:
             url = url + "&name__contains=" + name_contains
-        return self._paginated_list(url, Person)
+        return self._retrieve_multi(url, Person)
 
 
     # Datatracker API endpoints returning information about documents:
@@ -449,31 +433,8 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/doc/document/draft-ietf-avt-rtp-new/ - info about document
 
     def document(self, document_uri: str) -> Optional[Document]:
-        # FIXME: complete documentation
-        # FIXME: add method relating to std_level
-        # FIXME: add method relating to intended_std_level
-        # FIXME: add method relating to submissions
-        # FIXME: add method relating to tags
-        """
-        Lookup metadata about a document in the datatracker.
-
-        Parameters:
-            document_uri : a URI of the form "/api/v1/doc/document/draft-ietf-avt-rtp-new/"
-
-        Returns:
-            A Document object
-        """
         assert document_uri.startswith("/api/v1/doc/document/")
-        assert document_uri.endswith("/")
-        response = self.session.get(self.base_url + document_uri, verify=True)
-        if response.status_code == 200:
-            doc = Pavlova().from_mapping(response.json(), Document)
-            assert doc.resource_uri.startswith("/api/v1/doc/document/")
-            assert doc.ad       is None or doc.ad.startswith("/api/v1/person/person")
-            assert doc.shepherd is None or doc.shepherd.startswith("/api/v1/person/email")
-            return doc
-        else:
-            return None
+        return self._retrieve(document_uri, Document)
 
 
     def documents(self,
@@ -501,7 +462,7 @@ class DataTracker:
             url = url + "&type=" + doctype
         if group_uri is not None:
             url = url + "&group=" + group_uri
-        return self._paginated_list(url, Document)
+        return self._retrieve_multi(url, Document)
 
 
     # Datatracker API endpoints returning information about document aliases:
@@ -518,7 +479,7 @@ class DataTracker:
             A list of Document objects
         """
         url = "/api/v1/doc/docalias/?name=" + alias
-        return self._paginated_list(url, DocumentAlias)
+        return self._retrieve_multi(url, DocumentAlias)
 
 
     def document_from_draft(self, draft: str) -> Optional[Document]:
@@ -599,7 +560,7 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/doc/state/                           - Types of state a document can be in
     # * https://datatracker.ietf.org/api/v1/doc/statetype/                       - Possible types of state for a document
 
-    def document_state(self, state_uri: str):
+    def document_state(self, state_uri: str) -> Optional[State]:
         """
         Information about the state of a document.
 
@@ -611,14 +572,10 @@ class DataTracker:
             A State object
         """
         assert state_uri.startswith("/api/v1/doc/state/") and state_uri.endswith("/")
-        response = self.session.get(self.base_url + state_uri, verify=True)
-        if response.status_code == 200:
-            return Pavlova().from_mapping(response.json(), State)
-        else:
-            return None
+        return self._retrieve(state_uri, State)
 
 
-    def document_states(self, statetype=None):
+    def document_states(self, statetype=None) -> Iterator[State]:
         """
         A generator returning the possible states a document can be in.
 
@@ -633,16 +590,10 @@ class DataTracker:
         url   = "/api/v1/doc/state/"
         if statetype is not None:
             url = url + "?type=" + statetype
-        while url is not None:
-            r = self.session.get(self.base_url + url, verify=True)
-            meta = r.json()['meta']
-            objs = r.json()['objects']
-            url = meta['next']
-            for obj in objs:
-                yield Pavlova().from_mapping(obj, State)
+        return self._retrieve_multi(url, State)
 
 
-    def document_state_types(self):
+    def document_state_types(self) -> Iterator[StateType]:
         """
         A generator returning possible state types for a document.
         These are the possible values of the 'type' field in the
@@ -652,14 +603,7 @@ class DataTracker:
         Returns:
            A sequence of StateType objects
         """
-        url   = "/api/v1/doc/statetype/"
-        while url is not None:
-            r = self.session.get(self.base_url + url, verify=True)
-            meta = r.json()['meta']
-            objs = r.json()['objects']
-            url = meta['next']
-            for obj in objs:
-                yield Pavlova().from_mapping(obj, StateType)
+        return self._retrieve_multi("/api/v1/doc/statetype/", StateType)
 
 
     #   https://datatracker.ietf.org/api/v1/doc/docevent/                        - list of document events
@@ -692,7 +636,7 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/doc/addedmessageevent/
     #   https://datatracker.ietf.org/api/v1/doc/editedauthorsdocevent/
 
-    def submission(self, submission_uri):
+    def submission(self, submission_uri: str) -> Optional[Submission]:
         """
         Information about a document submission.
 
@@ -704,12 +648,7 @@ class DataTracker:
         """
 
         assert submission_uri.startswith("/api/v1/submit/submission/")
-        assert submission_uri.endswith("/")
-        response = self.session.get(self.base_url + submission_uri, verify=True)
-        if response.status_code == 200:
-            return Pavlova().from_mapping(response.json(), Submission)
-        else:
-            return None
+        return self._retrieve(submission_uri, Submission)
 
     # Datatracker API endpoints returning information about names:
     # * https://datatracker.ietf.org/api/v1/name/doctypename/
@@ -751,7 +690,7 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/name/rolename/
 
 
-    def document_type(self, doctype_uri: str):
+    def document_type(self, doctype_uri: str) -> Optional[DocumentType]:
         """
         Lookup information about a document type in the datatracker.
 
@@ -764,14 +703,10 @@ class DataTracker:
             A DocumentType object
         """
         assert doctype_uri.startswith("/api/v1/name/doctypename/") and doctype_uri.endswith("/")
-        response = self.session.get(self.base_url + doctype_uri, verify=True)
-        if response.status_code == 200:
-            return Pavlova().from_mapping(response.json(), DocumentType)
-        else:
-            return None
+        return self._retrieve(doctype_uri, DocumentType)
 
 
-    def document_types(self):
+    def document_types(self) -> Iterator[DocumentType]:
         """
         A generator returning possible document types.
 
@@ -781,17 +716,10 @@ class DataTracker:
         Returns:
             A sequence of DocumentType objects, as returned by document_type()
         """
-        url = "/api/v1/name/doctypename/"
-        while url is not None:
-            r = self.session.get(self.base_url + url, verify=True)
-            meta = r.json()['meta']
-            objs = r.json()['objects']
-            url  = meta['next']
-            for obj in objs:
-                yield Pavlova().from_mapping(obj, DocumentType)
+        return self._retrieve_multi("/api/v1/name/doctypename/", DocumentType)
 
 
-    def stream(self, stream_uri: str):
+    def stream(self, stream_uri: str) -> Optional[Stream]:
         """
         Lookup information about a document stream in the datatracker.
 
@@ -802,14 +730,10 @@ class DataTracker:
             A Stream object
         """
         assert stream_uri.startswith("/api/v1/name/streamname/") and stream_uri.endswith("/")
-        response = self.session.get(self.base_url + stream_uri, verify=True)
-        if response.status_code == 200:
-            return Pavlova().from_mapping(response.json(), Stream)
-        else:
-            return None
+        return self._retrieve(stream_uri, Stream)
 
 
-    def streams(self):
+    def streams(self) -> Iterator[Stream]:
         """
         A generator returning possible document streams.
 
@@ -819,14 +743,7 @@ class DataTracker:
         Returns:
             A sequence of Stream objects, as returned by stream()
         """
-        url = "/api/v1/name/streamname/"
-        while url is not None:
-            r = self.session.get(self.base_url + url, verify=True)
-            meta = r.json()['meta']
-            objs = r.json()['objects']
-            url  = meta['next']
-            for obj in objs:
-                yield Pavlova().from_mapping(obj, Stream)
+        return self._retrieve_multi("/api/v1/name/streamname/", Stream)
 
 
     # Datatracker API endpoints returning information about working groups:
@@ -847,23 +764,21 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/group/changestategroupevent/?group=2161    - Group state changes
     #   https://datatracker.ietf.org/api/v1/group/groupstatetransitions                - ???
 
-    def group(self, group_id):
-        # FIXME: add documentation
+    def group(self, group_id: int) -> Optional[Group]:
         url  = "/api/v1/group/group/%d/" % (group_id)
-        response = self.session.get(self.base_url + url, verify=True)
-        if response.status_code == 200:
-            return Pavlova().from_mapping(response.json(), Group)
-        else:
-            return None
+        return self._retrieve(url, Group)
 
-    def group_from_acronym(self, acronym) -> Optional[Group]:
-        # FIXME: add documentation
-        url  = "/api/v1/group/group/?acronym=" + acronym
-        response = self.session.get(self.base_url + url, verify=True)
-        if response.status_code == 200:
-            return Pavlova().from_mapping(response.json()["objects"][0], Group)
-        else:
+
+    def group_from_acronym(self, acronym: str) -> Optional[Group]:
+        url    = "/api/v1/group/group/?acronym=" + acronym
+        groups = list(self._retrieve_multi(url, Group))
+        if len(groups) == 0:
             return None
+        elif len(groups) == 1:
+            return groups[0]
+        else:
+            raise RuntimeError
+
 
     def groups(self,
             since         : str                  = "1970-01-01T00:00:00",
@@ -889,13 +804,7 @@ class DataTracker:
             url = url + "&state=" + state.slug
         if parent is not None:
             url = url + "&parent=" + str(parent.id)
-        while url is not None:
-            r = self.session.get(self.base_url + url, verify=True)
-            meta = r.json()['meta']
-            objs = r.json()['objects']
-            url  = meta['next']
-            for obj in objs:
-                yield Pavlova().from_mapping(obj, Group)
+        return self._retrieve_multi(url, Group)
 
 
     def group_state(self, group_state : str) -> Optional[GroupState]:
@@ -912,11 +821,7 @@ class DataTracker:
             A GroupState object
         """
         url  = "/api/v1/name/groupstatename/" + group_state + "/"
-        response = self.session.get(self.base_url + url, verify=True)
-        if response.status_code == 200:
-            return Pavlova().from_mapping(response.json(), GroupState)
-        else:
-            return None
+        return self._retrieve(url, GroupState)
 
 
     def group_states(self) -> Iterator[GroupState]:
@@ -930,7 +835,7 @@ class DataTracker:
             A sequence of Stream objects, as returned by stream()
         """
         url = "/api/v1/name/groupstatename/"
-        return self._paginated_list(url, GroupState)
+        return self._retrieve_multi(url, GroupState)
 
 
     # Datatracker API endpoints returning information about meetings:
@@ -965,7 +870,7 @@ class DataTracker:
         url = "/api/v1/meeting/meeting/?date__gt=" + since + "&date__lt=" + until
         if meeting_type is not None:
             url = url + "&type=" + meeting_type.slug
-        return self._paginated_list(url, Meeting)
+        return self._retrieve_multi(url, Meeting)
 
 
     def meeting_type(self, meeting_type: str) -> Optional[MeetingType]:
@@ -980,11 +885,7 @@ class DataTracker:
             A MeetingType object
         """
         url  = "/api/v1/name/meetingtypename/" + meeting_type + "/"
-        response = self.session.get(self.base_url + url, verify=True)
-        if response.status_code == 200:
-            return Pavlova().from_mapping(response.json(), MeetingType)
-        else:
-            return None
+        return self._retrieve(url, MeetingType)
 
 
     def meeting_types(self) -> Iterator[MeetingType]:
@@ -997,8 +898,7 @@ class DataTracker:
         Returns:
             An iterator of MeetingType objects
         """
-        url = "/api/v1/name/meetingtypename/"
-        return self._paginated_list(url, MeetingType)
+        return self._retrieve_multi("/api/v1/name/meetingtypename/", MeetingType)
 
 
 # =================================================================================================================================
