@@ -174,6 +174,13 @@ class Document:
         return document_url
 
 @dataclass
+class DocumentAlias:
+    id           : int
+    name         : str
+    resource_uri : str
+    document     : str
+
+@dataclass
 class State:
     id           : int
     resource_uri : str
@@ -323,6 +330,15 @@ class DataTracker:
         self.session.close()
 
 
+    def _paginated_list(self, url: str, obj_type):
+        while url is not None:
+            r = self.session.get(self.base_url + url, verify=True)
+            meta = r.json()['meta']
+            objs = r.json()['objects']
+            url  = meta['next']
+            for obj in objs:
+                yield Pavlova().from_mapping(obj, obj_type)
+
     # Datatracker API endpoints returning information about people:
     # * https://datatracker.ietf.org/api/v1/person/person/                  - list of people
     # * https://datatracker.ietf.org/api/v1/person/person/20209/            - info about person 20209
@@ -350,24 +366,12 @@ class DataTracker:
 
     def email_history_for_address(self, email: str) -> Iterator[HistoricalEmail]:
         url = "/api/v1/person/historicalemail/?address=" + email
-        while url is not None:
-            r = self.session.get(self.base_url + url, verify=True)
-            meta = r.json()['meta']
-            objs = r.json()['objects']
-            url  = meta['next']
-            for obj in objs:
-                yield Pavlova().from_mapping(obj, HistoricalEmail)
+        return self._paginated_list(url, HistoricalEmail)
 
 
-    def email_history_for_person(self, person: str) -> Iterator[HistoricalEmail]:
-        url = "/api/v1/person/historicalemail/?person=" + person
-        while url is not None:
-            r = self.session.get(self.base_url + url, verify=True)
-            meta = r.json()['meta']
-            objs = r.json()['objects']
-            url  = meta['next']
-            for obj in objs:
-                yield Pavlova().from_mapping(obj, HistoricalEmail)
+    def email_history_for_person(self, person: Person) -> Iterator[HistoricalEmail]:
+        url = "/api/v1/person/historicalemail/?person=" + str(person.id)
+        return self._paginated_list(url, HistoricalEmail)
 
 
     def person_from_email(self, email: str) -> Optional[Person]:
@@ -413,24 +417,12 @@ class DataTracker:
 
     def person_history(self, person: Person) -> Iterator[HistoricalPerson]:
         url = "/api/v1/person/historicalperson/?id=" + str(person.id)
-        while url is not None:
-            r = self.session.get(self.base_url + url, verify=True)
-            meta = r.json()['meta']
-            objs = r.json()['objects']
-            url  = meta['next']
-            for obj in objs:
-                yield Pavlova().from_mapping(obj, HistoricalPerson)
+        return self._paginated_list(url, HistoricalPerson)
 
 
     def person_aliases(self, person: Person) -> Iterator[PersonAlias]:
         url = "/api/v1/person/alias/?person=" + str(person.id)
-        while url is not None:
-            r = self.session.get(self.base_url + url, verify=True)
-            meta = r.json()['meta']
-            objs = r.json()['objects']
-            url  = meta['next']
-            for obj in objs:
-                yield Pavlova().from_mapping(obj, PersonAlias)
+        return self._paginated_list(url, PersonAlias)
 
 
     def people(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07", name_contains=None) -> Iterator[Person]:
@@ -449,13 +441,7 @@ class DataTracker:
         url = "/api/v1/person/person/?time__gt=" + since + "&time__lt=" + until
         if name_contains is not None:
             url = url + "&name__contains=" + name_contains
-        while url is not None:
-            r = self.session.get(self.base_url + url, verify=True)
-            meta = r.json()['meta']
-            objs = r.json()['objects']
-            url  = meta['next']
-            for obj in objs:
-                yield obj
+        return self._paginated_list(url, Person)
 
 
     # Datatracker API endpoints returning information about documents:
@@ -515,22 +501,13 @@ class DataTracker:
             url = url + "&type=" + doctype
         if group_uri is not None:
             url = url + "&group=" + group_uri
-        while url is not None:
-            r = self.session.get(self.base_url + url, verify=True)
-            meta = r.json()['meta']
-            objs = r.json()['objects']
-            url  = meta['next']
-            for doc in objs:
-                doc = Pavlova().from_mapping(doc, Document)
-                assert doc.resource_uri.startswith("/api/v1/doc/document/")
-                assert doc.ad       is None or doc.ad.startswith("/api/v1/person/person/")
-                assert doc.shepherd is None or doc.shepherd.startswith("/api/v1/person/email/")
-                yield doc
+        return self._paginated_list(url, Document)
+
 
     # Datatracker API endpoints returning information about document aliases:
     # * https://datatracker.ietf.org/api/v1/doc/docalias/?name=/                 - draft that became the given RFC
 
-    def documents_from_alias(self, alias: str) -> Iterator[Document]:
+    def documents_from_alias(self, alias: str) -> Iterator[DocumentAlias]:
         """
         Returns the documents that correspond to the specified alias.
 
@@ -541,17 +518,7 @@ class DataTracker:
             A list of Document objects
         """
         url = "/api/v1/doc/docalias/?name=" + alias
-        while url is not None:
-            r = self.session.get(self.base_url + url, verify=True)
-            objs = r.json()['objects']
-            meta = r.json()['meta']
-            url  = meta['next']
-            for docalias in objs:
-                assert docalias["resource_uri"].startswith("/api/v1/doc/docalias/")
-                assert docalias[    "document"].startswith("/api/v1/doc/document/")
-                doc = self.document(docalias["document"])
-                if doc is not None:
-                    yield doc
+        return self._paginated_list(url, DocumentAlias)
 
 
     def document_from_draft(self, draft: str) -> Optional[Document]:
@@ -569,7 +536,7 @@ class DataTracker:
         if len(docs) == 0:
             return None
         elif len(docs) == 1:
-            return docs[0]
+            return self.document(docs[0].document)
         else:
             raise RuntimeError
 
@@ -589,12 +556,12 @@ class DataTracker:
         if len(docs) == 0:
             return None
         elif len(docs) == 1:
-            return docs[0]
+            return self.document(docs[0].document)
         else:
             raise RuntimeError
 
 
-    def documents_from_bcp(self, bcp: str) -> List[Document]:
+    def documents_from_bcp(self, bcp: str) -> Iterator[Document]:
         """
         Returns the document that became the specified BCP.
 
@@ -605,10 +572,13 @@ class DataTracker:
             A list of Document objects
         """
         assert bcp.lower().startswith("bcp")
-        return list(self.documents_from_alias(bcp.lower()))
+        for alias in self.documents_from_alias(bcp.lower()):
+            doc = self.document(alias.document)
+            if doc is not None:
+                yield doc
 
 
-    def documents_from_std(self, std: str) -> List[Document]:
+    def documents_from_std(self, std: str) -> Iterator[Document]:
         """
         Returns the document that became the specified STD.
 
@@ -619,7 +589,10 @@ class DataTracker:
             A list of Document objects
         """
         assert std.lower().startswith("std")
-        return list(self.documents_from_alias(std.lower()))
+        for alias in self.documents_from_alias(std.lower()):
+            doc = self.document(alias.document)
+            if doc is not None:
+                yield doc
 
 
     # Datatracker API endpoints returning information about document states:
@@ -957,13 +930,7 @@ class DataTracker:
             A sequence of Stream objects, as returned by stream()
         """
         url = "/api/v1/name/groupstatename/"
-        while url is not None:
-            r = self.session.get(self.base_url + url, verify=True)
-            meta = r.json()['meta']
-            objs = r.json()['objects']
-            url  = meta['next']
-            for obj in objs:
-                yield Pavlova().from_mapping(obj, GroupState)
+        return self._paginated_list(url, GroupState)
 
 
     # Datatracker API endpoints returning information about meetings:
@@ -998,13 +965,7 @@ class DataTracker:
         url = "/api/v1/meeting/meeting/?date__gt=" + since + "&date__lt=" + until
         if meeting_type is not None:
             url = url + "&type=" + meeting_type.slug
-        while url is not None:
-            r = self.session.get(self.base_url + url, verify=True)
-            meta = r.json()['meta']
-            objs = r.json()['objects']
-            url  = meta['next']
-            for obj in objs:
-                yield Pavlova().from_mapping(obj, Meeting)
+        return self._paginated_list(url, Meeting)
 
 
     def meeting_type(self, meeting_type: str) -> Optional[MeetingType]:
@@ -1037,13 +998,7 @@ class DataTracker:
             An iterator of MeetingType objects
         """
         url = "/api/v1/name/meetingtypename/"
-        while url is not None:
-            r = self.session.get(self.base_url + url, verify=True)
-            meta = r.json()['meta']
-            objs = r.json()['objects']
-            url  = meta['next']
-            for obj in objs:
-                yield Pavlova().from_mapping(obj, MeetingType)
+        return self._paginated_list(url, MeetingType)
 
 
 # =================================================================================================================================
@@ -1264,13 +1219,13 @@ class TestDatatracker(unittest.TestCase):
 
     def test_documents_from_bcp(self):
         dt = DataTracker()
-        d  = dt.documents_from_bcp("bcp205")
+        d  = list(dt.documents_from_bcp("bcp205"))
         self.assertEqual(len(d), 1)
         self.assertEqual(d[0].resource_uri, "/api/v1/doc/document/draft-sheffer-rfc6982bis/")
 
     def test_documents_from_std(self):
         dt = DataTracker()
-        d  = dt.documents_from_std("std68")
+        d  = list(dt.documents_from_std("std68"))
         self.assertEqual(len(d), 1)
         self.assertEqual(d[0].resource_uri, "/api/v1/doc/document/draft-crocker-rfc4234bis/")
 
