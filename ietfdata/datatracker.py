@@ -69,6 +69,14 @@ class Email:
     active       : bool
 
 @dataclass
+class HistoricalEmail(Email):
+    history_change_reason : Optional[str]
+    history_user          : Optional[str]
+    history_id            : int
+    history_type          : str
+    history_date          : str
+
+@dataclass
 class Person:
     resource_uri    : str
     id              : int
@@ -82,6 +90,21 @@ class Person:
     photo_thumb     : str
     biography       : str
     consent         : bool
+
+@dataclass
+class HistoricalPerson(Person):
+    history_change_reason : Optional[str]
+    history_user          : Optional[str]
+    history_id            : int
+    history_type          : str
+    history_date          : str
+
+@dataclass
+class PersonAlias:
+    id                 : int
+    resource_uri       : str
+    person             : str
+    name               : str
 
 @dataclass
 class Document:
@@ -325,6 +348,28 @@ class DataTracker:
             return None
 
 
+    def email_history_for_address(self, email: str) -> Iterator[HistoricalEmail]:
+        url = "/api/v1/person/historicalemail/?address=" + email
+        while url is not None:
+            r = self.session.get(self.base_url + url, verify=True)
+            meta = r.json()['meta']
+            objs = r.json()['objects']
+            url  = meta['next']
+            for obj in objs:
+                yield Pavlova().from_mapping(obj, HistoricalEmail)
+
+
+    def email_history_for_person(self, person: str) -> Iterator[HistoricalEmail]:
+        url = "/api/v1/person/historicalemail/?person=" + person
+        while url is not None:
+            r = self.session.get(self.base_url + url, verify=True)
+            meta = r.json()['meta']
+            objs = r.json()['objects']
+            url  = meta['next']
+            for obj in objs:
+                yield Pavlova().from_mapping(obj, HistoricalEmail)
+
+
     def person_from_email(self, email: str) -> Optional[Person]:
         """
         Lookup a person in the datatracker based on their email address.
@@ -366,6 +411,28 @@ class DataTracker:
             raise RuntimeError
 
 
+    def person_history(self, person: Person) -> Iterator[HistoricalPerson]:
+        url = "/api/v1/person/historicalperson/?id=" + str(person.id)
+        while url is not None:
+            r = self.session.get(self.base_url + url, verify=True)
+            meta = r.json()['meta']
+            objs = r.json()['objects']
+            url  = meta['next']
+            for obj in objs:
+                yield Pavlova().from_mapping(obj, HistoricalPerson)
+
+
+    def person_aliases(self, person: Person) -> Iterator[PersonAlias]:
+        url = "/api/v1/person/alias/?person=" + str(person.id)
+        while url is not None:
+            r = self.session.get(self.base_url + url, verify=True)
+            meta = r.json()['meta']
+            objs = r.json()['objects']
+            url  = meta['next']
+            for obj in objs:
+                yield Pavlova().from_mapping(obj, PersonAlias)
+
+
     def people(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07", name_contains=None) -> Iterator[Person]:
         """
         A generator that returns people recorded in the datatracker. As of April
@@ -379,11 +446,11 @@ class DataTracker:
         Returns:
             An iterator, where each element is as returned by the person() method
         """
-        url = self.base_url + "/api/v1/person/person/?time__gt=" + since + "&time__lt=" + until
+        url = "/api/v1/person/person/?time__gt=" + since + "&time__lt=" + until
         if name_contains is not None:
             url = url + "&name__contains=" + name_contains
         while url is not None:
-            r = self.session.get(url, verify=True)
+            r = self.session.get(self.base_url + url, verify=True)
             meta = r.json()['meta']
             objs = r.json()['objects']
             url  = meta['next']
@@ -995,6 +1062,14 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(e.active,       True)
 
 
+    def test_email_history_for_address(self):
+        dt = DataTracker()
+        h  = list(dt.email_history_for_address("csp@isi.edu"))
+        self.assertEqual(len(h), 1)
+        self.assertEqual(h[0].address, "csp@isi.edu")
+        self.assertEqual(h[0].person,  "/api/v1/person/person/20209/")
+
+
     def test_person_from_email(self):
         dt = DataTracker()
         p  = dt.person_from_email("csp@csperkins.org")
@@ -1021,6 +1096,23 @@ class TestDatatracker(unittest.TestCase):
         dt = DataTracker()
         p  = dt.person("/api/v1/person/email/csp@csperkins.org/")
         self.assertEqual(p.resource_uri,    "/api/v1/person/person/20209/")
+
+
+    def test_person_history(self):
+        dt = DataTracker()
+        p  = dt.person("/api/v1/person/email/csp@csperkins.org/")
+        h  = list(dt.person_history(p))
+        # As of 2019-08-18, there are two history items for csp@csperkins.org
+        self.assertEqual(len(h), 2)
+
+
+    def test_person_aliases(self):
+        dt = DataTracker()
+        p  = dt.person("/api/v1/person/email/csp@csperkins.org/")
+        a  = list(dt.person_aliases(p))
+        self.assertEqual(len(a), 2)
+        self.assertEqual(a[0].name, "Dr. Colin Perkins")
+        self.assertEqual(a[1].name, "Colin Perkins")
 
 
 #    def test_people(self):
