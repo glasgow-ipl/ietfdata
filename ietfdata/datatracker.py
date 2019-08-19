@@ -350,40 +350,31 @@ class DataTracker:
                 yield Pavlova().from_mapping(obj, obj_type)
 
 
-    # Datatracker API endpoints returning information about people:
-    # * https://datatracker.ietf.org/api/v1/person/person/                  - list of people
-    # * https://datatracker.ietf.org/api/v1/person/person/20209/            - info about person 20209
-    # * https://datatracker.ietf.org/api/v1/person/email/csp@csperkins.org/ - map from email address to person
-    #   https://datatracker.ietf.org/api/v1/person/historicalperson/        - ???
-    #   https://datatracker.ietf.org/api/v1/person/historicalemail/         - ???
-    #   https://datatracker.ietf.org/api/v1/person/alias/                   - ???
+    # ----------------------------------------------------------------------------------------------------------------------------
+    # Datatracker API endpoints returning information about email addresses:
+    # * https://datatracker.ietf.org/api/v1/person/email/csp@csperkins.org/
+    # * https://datatracker.ietf.org/api/v1/person/historicalemail/
 
     def email(self, email: str) -> Optional[Email]:
-        """
-        Lookup information about an email address in the datatracker.
-
-        Parameters:
-           email : the email address to lookup
-
-        Returns:
-            An Email object
-        """
-        url = "/api/v1/person/email/" + email + "/"
-        return self._retrieve(url, Email)
+        uri = "/api/v1/person/email/" + email + "/"
+        return self._retrieve(uri, Email)
 
 
     def email_history_for_address(self, email: str) -> Iterator[HistoricalEmail]:
-        url = "/api/v1/person/historicalemail/?address=" + email
-        return self._retrieve_multi(url, HistoricalEmail)
+        uri = "/api/v1/person/historicalemail/?address=" + email
+        return self._retrieve_multi(uri, HistoricalEmail)
 
 
     def email_history_for_person(self, person: Person) -> Iterator[HistoricalEmail]:
-        url = "/api/v1/person/historicalemail/?person=" + str(person.id)
-        return self._retrieve_multi(url, HistoricalEmail)
+        uri = "/api/v1/person/historicalemail/?person=" + str(person.id)
+        return self._retrieve_multi(uri, HistoricalEmail)
 
-
-    def person_from_email(self, email: str) -> Optional[Person]:
-        return self.person("/api/v1/person/email/" + email + "/")
+    # ----------------------------------------------------------------------------------------------------------------------------
+    # Datatracker API endpoints returning information about people:
+    # * https://datatracker.ietf.org/api/v1/person/person/
+    # * https://datatracker.ietf.org/api/v1/person/person/20209/
+    # * https://datatracker.ietf.org/api/v1/person/historicalperson/
+    # * https://datatracker.ietf.org/api/v1/person/alias/
 
 
     def person(self, person_uri: str) -> Optional[Person]:
@@ -399,14 +390,18 @@ class DataTracker:
             raise RuntimeError
 
 
-    def person_history(self, person: Person) -> Iterator[HistoricalPerson]:
-        url = "/api/v1/person/historicalperson/?id=" + str(person.id)
-        return self._retrieve_multi(url, HistoricalPerson)
+    def person_from_email(self, email: str) -> Optional[Person]:
+        return self.person("/api/v1/person/email/" + email + "/")
 
 
     def person_aliases(self, person: Person) -> Iterator[PersonAlias]:
         url = "/api/v1/person/alias/?person=" + str(person.id)
         return self._retrieve_multi(url, PersonAlias)
+
+
+    def person_history(self, person: Person) -> Iterator[HistoricalPerson]:
+        url = "/api/v1/person/historicalperson/?id=" + str(person.id)
+        return self._retrieve_multi(url, HistoricalPerson)
 
 
     def people(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07", name_contains=None) -> Iterator[Person]:
@@ -422,7 +417,7 @@ class DataTracker:
         Returns:
             An iterator, where each element is as returned by the person() method
         """
-        url = "/api/v1/person/person/?time__gt=" + since + "&time__lt=" + until
+        url = "/api/v1/person/person/?time__gte=" + since + "&time__lt=" + until
         if name_contains is not None:
             url = url + "&name__contains=" + name_contains
         return self._retrieve_multi(url, Person)
