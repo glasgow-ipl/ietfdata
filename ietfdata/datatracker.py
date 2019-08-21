@@ -522,22 +522,7 @@ class DataTracker:
             since   : str = "1970-01-01T00:00:00",
             until   : str = "2038-01-19T03:14:07",
             doctype : Optional[DocumentType] = None,
-            group   : Optional[Group] = None) -> Iterator[Document]:
-        """
-        A generator that returns all documents recorded in the datatracker.
-        As of 29 April 2018, approximately 84000 documents are recorded.
-
-        Parameters:
-           since   -- Only return documents with timestamp after this
-           until   -- Only return documents with timestamp before this
-           doctype -- The 'slug' field from one of the dicts returned by the
-                      document_types() method; constrains the results to that
-                      particular state type.
-           group   -- Constrain the results to documents from the specified group.
-
-        Returns:
-            An iterator of Document objects
-        """
+            group   : Optional[Group]        = None) -> Iterator[Document]:
         url = "/api/v1/doc/document/?time__gt=" + since + "&time__lt=" + until
         if doctype is not None:
             url = url + "&type=" + doctype.slug
