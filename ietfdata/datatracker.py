@@ -148,7 +148,7 @@ class Document:
     time               : str
     notify             : str
     expires            : Optional[str]
-    type               : str
+    type               : str           # Suitable for use with DataTracker::document_type()
     rev                : str
     abstract           : str
     internal_comments  : str
@@ -756,19 +756,21 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/name/rolename/
 
 
-    def document_type(self, doctype_uri: str) -> Optional[DocumentType]:
+    def document_type(self, doctype: str) -> Optional[DocumentType]:
         """
         Lookup information about a document type in the datatracker.
 
         Parameters:
-            doctype_uri : a URI of the form, e.g., "/api/v1/name/doctypename/draft/",
-                          as returned by document_types() or the "type" field of the
-                          return from a call to document().
+            doctype : Either a full document type URI (e.g., "/api/v1/name/doctypename/draft/")
+                      or a document type slug (e.g., "draft").
 
         Returns:
             A DocumentType object
         """
-        assert doctype_uri.startswith("/api/v1/name/doctypename/") and doctype_uri.endswith("/")
+        if doctype.startswith("/api/v1/name/doctypename/") and doctype.endswith("/"):
+            doctype_uri = doctype
+        else:
+            doctype_uri = "/api/v1/name/doctypename/" + doctype + "/"
         return self._retrieve(doctype_uri, DocumentType)
 
 
@@ -1166,7 +1168,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_document_shepwrit(self):
         dt = DataTracker()
-        for d in dt.documents(doctype=dt.document_type("/api/v1/name/doctypename/shepwrit/")):
+        for d in dt.documents(doctype=dt.document_type("shepwrit")):
             self.fail("shepwrit is not used, so this should return no documents")
 
 #    def test_documents(self):
