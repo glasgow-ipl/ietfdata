@@ -1181,7 +1181,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_document_shepwrit(self):
         dt = DataTracker()
-        for d in dt.documents("1970-01-01T00:00:00", "2038-01-19T03:14:07", dt.document_type("/api/v1/name/doctypename/shepwrit/")):
+        for d in dt.documents(doctype=dt.document_type("/api/v1/name/doctypename/shepwrit/")):
             self.fail("shepwrit is not used, so this should return no documents")
 
 #    def test_documents(self):
