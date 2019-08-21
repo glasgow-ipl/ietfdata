@@ -437,19 +437,20 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/person/email/csp@csperkins.org/
     # * https://datatracker.ietf.org/api/v1/person/historicalemail/
 
-    def email(self, email: str) -> Optional[Email]:
-        uri = "/api/v1/person/email/" + email + "/"
+    def email(self, email_addr: str) -> Optional[Email]:
+        uri = "/api/v1/person/email/" + email_addr + "/"
         return self._retrieve(uri, Email)
 
 
-    def email_history_for_address(self, email: str) -> Iterator[HistoricalEmail]:
-        uri = "/api/v1/person/historicalemail/?address=" + email
+    def email_history_for_address(self, email_addr: str) -> Iterator[HistoricalEmail]:
+        uri = "/api/v1/person/historicalemail/?address=" + email_addr
         return self._retrieve_multi(uri, HistoricalEmail)
 
 
     def email_history_for_person(self, person: Person) -> Iterator[HistoricalEmail]:
         uri = "/api/v1/person/historicalemail/?person=" + str(person.id)
         return self._retrieve_multi(uri, HistoricalEmail)
+
 
     # ----------------------------------------------------------------------------------------------------------------------------
     # Datatracker API endpoints returning information about people:
@@ -472,8 +473,8 @@ class DataTracker:
             raise RuntimeError
 
 
-    def person_from_email(self, email: str) -> Optional[Person]:
-        return self.person("/api/v1/person/email/" + email + "/")
+    def person_from_email(self, email_addr: str) -> Optional[Person]:
+        return self.person("/api/v1/person/email/" + email_addr + "/")
 
 
     def person_aliases(self, person: Person) -> Iterator[PersonAlias]:
@@ -486,7 +487,10 @@ class DataTracker:
         return self._retrieve_multi(url, HistoricalPerson)
 
 
-    def people(self, since="1970-01-01T00:00:00", until="2038-01-19T03:14:07", name_contains=None) -> Iterator[Person]:
+    def people(self, 
+            since : str ="1970-01-01T00:00:00", 
+            until : str ="2038-01-19T03:14:07", 
+            name_contains : Optional[str] =None) -> Iterator[Person]:
         """
         A generator that returns people recorded in the datatracker. As of April
         2018, there are approximately 21500 people recorded.
@@ -515,30 +519,30 @@ class DataTracker:
 
 
     def documents(self,
-            since     : str           = "1970-01-01T00:00:00",
-            until     : str           = "2038-01-19T03:14:07",
-            doctype   : Optional[str] = None,
-            group_uri : Optional[str] = None) -> Iterator[Document]:
+            since   : str = "1970-01-01T00:00:00",
+            until   : str = "2038-01-19T03:14:07",
+            doctype : Optional[DocumentType] = None,
+            group   : Optional[Group] = None) -> Iterator[Document]:
         """
         A generator that returns all documents recorded in the datatracker.
         As of 29 April 2018, approximately 84000 documents are recorded.
 
         Parameters:
-           since     -- Only return documents with timestamp after this
-           until     -- Only return documents with timestamp before this
-           doctype   -- The 'slug' field from one of the dicts returned by the
-                        document_types() method; constrains the results to that
-                        particular state type.
-           group_uri -- Constrain the results to documents from the specified group.
+           since   -- Only return documents with timestamp after this
+           until   -- Only return documents with timestamp before this
+           doctype -- The 'slug' field from one of the dicts returned by the
+                      document_types() method; constrains the results to that
+                      particular state type.
+           group   -- Constrain the results to documents from the specified group.
 
         Returns:
             An iterator of Document objects
         """
         url = "/api/v1/doc/document/?time__gt=" + since + "&time__lt=" + until
         if doctype is not None:
-            url = url + "&type=" + doctype
-        if group_uri is not None:
-            url = url + "&group=" + group_uri
+            url = url + "&type=" + doctype.slug
+        if group is not None:
+            url = url + "&group=" + group.resource_uri
         return self._retrieve_multi(url, Document)
 
 
@@ -1177,7 +1181,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_document_shepwrit(self):
         dt = DataTracker()
-        for d in dt.documents(doctype="shepwrit"):
+        for d in dt.documents("1970-01-01T00:00:00", "2038-01-19T03:14:07", dt.document_type("/api/v1/name/doctypename/shepwrit/")):
             self.fail("shepwrit is not used, so this should return no documents")
 
 #    def test_documents(self):
