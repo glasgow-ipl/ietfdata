@@ -60,7 +60,10 @@ import re
 # =================================================================================================================================
 # Classes to represent the JSON-serialised objects returned by the Datatracker API:
 
-@dataclass
+# ---------------------------------------------------------------------------------------------------------------------------------
+# Types relating to email addresses:
+
+@dataclass(frozen=True)
 class Email:
     resource_uri : str
     address      : str
@@ -70,7 +73,12 @@ class Email:
     primary      : bool
     active       : bool
 
-@dataclass
+    def __post_init__(self):
+        assert self.resource_uri.startswith("/api/v1/person/email/")
+        assert self.person.startswith("/api/v1/person/person/")
+
+
+@dataclass(frozen=True)
 class HistoricalEmail(Email):
     history_change_reason : Optional[str]
     history_user          : Optional[str]
@@ -78,7 +86,13 @@ class HistoricalEmail(Email):
     history_type          : str
     history_date          : str
 
-@dataclass
+    def __post_init__(self):
+        assert self.resource_uri.startswith("/api/v1/person/historicalemail/")
+
+# ---------------------------------------------------------------------------------------------------------------------------------
+# Types relating to people:
+
+@dataclass(frozen=True)
 class Person:
     resource_uri    : str
     id              : int
@@ -93,7 +107,11 @@ class Person:
     biography       : str
     consent         : bool
 
-@dataclass
+    def __post_init__(self):
+        assert self.resource_uri.startswith("/api/v1/person/person/")
+
+
+@dataclass(frozen=True)
 class HistoricalPerson(Person):
     history_change_reason : Optional[str]
     history_user          : Optional[str]
@@ -101,14 +119,26 @@ class HistoricalPerson(Person):
     history_type          : str
     history_date          : str
 
-@dataclass
+    def __post_init__(self):
+        assert self.resource_uri.startswith("/api/v1/person/historicalperson/")
+
+
+@dataclass(frozen=True)
 class PersonAlias:
     id                 : int
     resource_uri       : str
     person             : str
     name               : str
 
-@dataclass
+    def __post_init__(self):
+        assert self.resource_uri.startswith("/api/v1/person/alias/")
+        assert self.person.startswith("/api/v1/person/person/")
+
+
+# ---------------------------------------------------------------------------------------------------------------------------------
+# Types relating to documents:
+
+@dataclass(frozen=True)
 class Document:
     resource_uri       : str
     name               : str
@@ -136,6 +166,16 @@ class Document:
     tags               : List[str]
     uploaded_filename  : str
     external_url       : str
+
+    def __post_init__(self):
+        assert self.resource_uri.startswith("/api/v1/doc/document/")
+        assert self.type.startswith("/api/v1/name/doctypename/")
+        assert self.stream is None or self.stream.startswith("/api/v1/name/streamname/")
+        assert self.group  is None or self.group.startswith("/api/v1/group/group/")
+        for state in self.states:
+            assert state.startswith("/api/v1/doc/state/")
+        for submit in self.submissions:
+            assert submit.startswith("/api/v1/submit/submission/")
 
     def derive_document_url(self) -> str:
         if self.type == "/api/v1/name/doctypename/agenda/":
@@ -175,14 +215,20 @@ class Document:
             raise NotImplementedError
         return document_url
 
-@dataclass
+
+@dataclass(frozen=True)
 class DocumentAlias:
     id           : int
     name         : str
     resource_uri : str
     document     : str
 
-@dataclass
+    def __post_init__(self):
+        assert self.resource_uri.startswith("/api/v1/doc/docalias/")
+        assert self.document.startswith("/api/v1/doc/document/")
+
+
+@dataclass(frozen=True)
 class State:
     id           : int
     resource_uri : str
@@ -194,13 +240,24 @@ class State:
     type         : str
     used         : bool
 
-@dataclass
+    def __post_init__(self):
+        assert self.resource_uri.startswith("/api/v1/doc/state/")
+        assert self.type.startswith("/api/v1/doc/statetype/")
+        for state in self.next_states:
+            assert state.startswith("/api/v1/doc/state/")
+
+
+@dataclass(frozen=True)
 class StateType:
     resource_uri : str
     label        : str
     slug         : str
 
-@dataclass
+    def __post_init__(self):
+        assert self.resource_uri.startswith("/api/v1/doc/statetype/")
+
+
+@dataclass(frozen=True)
 class DocumentType:
     resource_uri : str
     name         : str
@@ -210,7 +267,11 @@ class DocumentType:
     desc         : str
     order        : int
 
-@dataclass
+    def __post_init__(self):
+        assert self.resource_uri.startswith("/api/v1/name/doctypename/")
+
+
+@dataclass(frozen=True)
 class Stream:
     resource_uri : str
     name         : str
@@ -219,36 +280,11 @@ class Stream:
     slug         : str
     order        : int
 
-@dataclass
-class Group:
-    acronym        : str
-    ad             : Optional[str]
-    charter        : str
-    comments       : str
-    description    : str
-    id             : int
-    list_archive   : str
-    list_email     : str
-    list_subscribe : str
-    name           : str
-    parent         : str
-    resource_uri   : str
-    state          : str
-    time           : str
-    type           : str
-    unused_states  : List[str]
-    unused_tags    : List[str]
+    def __post_init__(self):
+        assert self.resource_uri.startswith("/api/v1/name/streamname/")
 
-@dataclass
-class GroupState:
-    resource_uri   : str
-    slug           : str
-    desc           : str
-    name           : str
-    used           : bool
-    order          : int
 
-@dataclass
+@dataclass(frozen=True)
 class Submission:
     abstract        : str
     access_key      : str
@@ -274,6 +310,50 @@ class Submission:
     submitter       : str
     title           : str
     words           : Optional[int]
+
+    def __post_init__(self):
+        assert self.resource_uri.startswith("/api/v1/submit/submission/")
+        assert self.state.startswith("/api/v1/name/draftsubmissionstatename/")
+        assert self.group.startswith("/api/v1/group/group/")
+        assert self.draft.startswith("/api/v1/doc/document/draft-")
+
+
+# ---------------------------------------------------------------------------------------------------------------------------------
+# Types relating to groups:
+
+@dataclass(frozen=True)
+class Group:
+    acronym        : str
+    ad             : Optional[str]
+    charter        : str
+    comments       : str
+    description    : str
+    id             : int
+    list_archive   : str
+    list_email     : str
+    list_subscribe : str
+    name           : str
+    parent         : str
+    resource_uri   : str
+    state          : str
+    time           : str
+    type           : str
+    unused_states  : List[str]
+    unused_tags    : List[str]
+
+
+@dataclass(frozen=True)
+class GroupState:
+    resource_uri   : str
+    slug           : str
+    desc           : str
+    name           : str
+    used           : bool
+    order          : int
+
+
+# ---------------------------------------------------------------------------------------------------------------------------------
+# Types relating to meetings:
 
 @dataclass
 class Meeting:
@@ -307,6 +387,7 @@ class Meeting:
     date                             : str
     days                             : int
 
+
 @dataclass
 class MeetingType:
     name         : str
@@ -315,6 +396,7 @@ class MeetingType:
     slug         : str
     desc         : str
     used         : bool
+
 
 # =================================================================================================================================
 # A class to represent the datatracker:
