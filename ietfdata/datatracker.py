@@ -973,31 +973,63 @@ class DataTracker:
 # Unit tests:
 
 class TestDatatracker(unittest.TestCase):
-    def test_email(self):
+    # ----------------------------------------------------------------------------------------------------------------------------
+    # Tests relating to email addresses:
+
+    def test_email(self) -> None:
         dt = DataTracker()
         e  = dt.email("csp@csperkins.org")
-        self.assertEqual(e.resource_uri, "/api/v1/person/email/csp@csperkins.org/")
-        self.assertEqual(e.address,      "csp@csperkins.org")
-        self.assertEqual(e.person,       "/api/v1/person/person/20209/")
-        self.assertEqual(e.time,         "1970-01-01T23:59:59")
-        self.assertEqual(e.origin,       "author: draft-ietf-mmusic-rfc4566bis")
-        self.assertEqual(e.primary,      True)
-        self.assertEqual(e.active,       True)
+        if e is not None:
+            self.assertEqual(e.resource_uri, "/api/v1/person/email/csp@csperkins.org/")
+            self.assertEqual(e.address,      "csp@csperkins.org")
+            self.assertEqual(e.person,       "/api/v1/person/person/20209/")
+            self.assertEqual(e.time,         "1970-01-01T23:59:59")
+            # self.assertEqual(e.origin,     "author: draft-ietf-mmusic-rfc4566bis")
+            self.assertEqual(e.primary,      True)
+            self.assertEqual(e.active,       True)
+        else:
+            self.fail("Cannot find email address")
 
 
-    def test_email_history_for_address(self):
+    def test_email_history_for_address(self) -> None:
         dt = DataTracker()
         h  = list(dt.email_history_for_address("csp@isi.edu"))
         self.assertEqual(len(h), 1)
-        self.assertEqual(h[0].address, "csp@isi.edu")
-        self.assertEqual(h[0].person,  "/api/v1/person/person/20209/")
+        self.assertEqual(h[0].resource_uri, "/api/v1/person/historicalemail/2090/")
+        self.assertEqual(h[0].address,      "csp@isi.edu")
+        self.assertEqual(h[0].person,       "/api/v1/person/person/20209/")
+        self.assertEqual(h[0].origin,       "author: draft-ietf-avt-rtptest")
+        self.assertEqual(h[0].time,         "2012-02-26T00:46:44")
+        self.assertEqual(h[0].active,       False)
+        self.assertEqual(h[0].primary,      False)
+        self.assertEqual(h[0].history_id,   2090)
+        self.assertEqual(h[0].history_date, "2018-06-19T15:39:40.008875")
+        self.assertEqual(h[0].history_type, "~")
+        self.assertEqual(h[0].history_user, "")
+        self.assertEqual(h[0].history_change_reason, None)
 
+
+    def test_email_history_for_person(self) -> None:
+        dt = DataTracker()
+        p  = dt.person_from_email("casner@acm.org")
+        if p is not None:
+            h = list(dt.email_history_for_person(p))
+            self.assertEqual(len(h), 4)
+            self.assertEqual(h[0].address, "casner@packetdesign.com")
+            self.assertEqual(h[1].address, "casner@acm.org")
+            self.assertEqual(h[2].address, "casner@cisco.com")
+            self.assertEqual(h[3].address, "casner@precept.com")
+        else:
+            self.fail("Cannot find person")
+
+
+    # ----------------------------------------------------------------------------------------------------------------------------
+    # Tests relating to email people:
 
     def test_person_from_email(self):
         dt = DataTracker()
         p  = dt.person_from_email("csp@csperkins.org")
         self.assertEqual(p.resource_uri, "/api/v1/person/person/20209/")
-
 
     def test_person_person(self):
         dt = DataTracker()
