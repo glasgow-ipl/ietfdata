@@ -72,7 +72,7 @@ class Email:
     primary      : bool
     active       : bool
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         assert self.resource_uri.startswith("/api/v1/person/email/")
         assert self.person.startswith("/api/v1/person/person/")
 
@@ -85,7 +85,7 @@ class HistoricalEmail(Email):
     history_type          : str
     history_date          : str
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         assert self.resource_uri.startswith("/api/v1/person/historicalemail/")
 
 # ---------------------------------------------------------------------------------------------------------------------------------
@@ -106,7 +106,7 @@ class Person:
     biography       : str
     consent         : bool
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         assert self.resource_uri.startswith("/api/v1/person/person/")
 
 
@@ -118,7 +118,7 @@ class HistoricalPerson(Person):
     history_type          : str
     history_date          : str
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         assert self.resource_uri.startswith("/api/v1/person/historicalperson/")
 
 
@@ -129,7 +129,7 @@ class PersonAlias:
     person             : str
     name               : str
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         assert self.resource_uri.startswith("/api/v1/person/alias/")
         assert self.person.startswith("/api/v1/person/person/")
 
@@ -166,7 +166,7 @@ class Document:
     uploaded_filename  : str
     external_url       : str
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         assert self.resource_uri.startswith("/api/v1/doc/document/")
         assert self.type.startswith("/api/v1/name/doctypename/")
         assert self.stream is None or self.stream.startswith("/api/v1/name/streamname/")
@@ -222,7 +222,7 @@ class DocumentAlias:
     resource_uri : str
     document     : str
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         assert self.resource_uri.startswith("/api/v1/doc/docalias/")
         assert self.document.startswith("/api/v1/doc/document/")
 
@@ -239,7 +239,7 @@ class State:
     type         : str
     used         : bool
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         assert self.resource_uri.startswith("/api/v1/doc/state/")
         assert self.type.startswith("/api/v1/doc/statetype/")
         for state in self.next_states:
@@ -252,7 +252,7 @@ class StateType:
     label        : str
     slug         : str
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         assert self.resource_uri.startswith("/api/v1/doc/statetype/")
 
 
@@ -266,7 +266,7 @@ class DocumentType:
     desc         : str
     order        : int
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         assert self.resource_uri.startswith("/api/v1/name/doctypename/")
 
 
@@ -279,7 +279,7 @@ class Stream:
     slug         : str
     order        : int
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         assert self.resource_uri.startswith("/api/v1/name/streamname/")
 
 
@@ -310,7 +310,7 @@ class Submission:
     title           : str
     words           : Optional[int]
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         assert self.resource_uri.startswith("/api/v1/submit/submission/")
         assert self.state.startswith("/api/v1/name/draftsubmissionstatename/")
         assert self.group.startswith("/api/v1/group/group/")
@@ -507,7 +507,7 @@ class DataTracker:
             url = url + "&name__contains=" + name_contains
         return self._retrieve_multi(url, Person)
 
-
+    # ----------------------------------------------------------------------------------------------------------------------------
     # Datatracker API endpoints returning information about documents:
     # * https://datatracker.ietf.org/api/v1/doc/document/                        - list of documents
     # * https://datatracker.ietf.org/api/v1/doc/document/draft-ietf-avt-rtp-new/ - info about document
