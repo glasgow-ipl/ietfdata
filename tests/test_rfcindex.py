@@ -35,6 +35,8 @@ from ietfdata.rfcindex import *
 # Unit tests:
 
 class TestRFCIndex(unittest.TestCase):
+    index : RFCIndex
+
     @classmethod
     def setUpClass(self) -> None:
         self.index = RFCIndex()
