@@ -1024,57 +1024,156 @@ class TestDatatracker(unittest.TestCase):
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
-    # Tests relating to email people:
+    # Tests relating to people:
 
-    def test_person_from_email(self):
+    def test_person_from_email(self) -> None:
         dt = DataTracker()
         p  = dt.person_from_email("csp@csperkins.org")
-        self.assertEqual(p.resource_uri, "/api/v1/person/person/20209/")
+        if p is not None:
+            self.assertEqual(p.id,              20209)
+            self.assertEqual(p.resource_uri,    "/api/v1/person/person/20209/")
+            self.assertEqual(p.name,            "Colin Perkins")
+            self.assertEqual(p.name_from_draft, "Colin Perkins")
+            self.assertEqual(p.ascii,           "Colin Perkins")
+            self.assertEqual(p.ascii_short,     None)
+            self.assertEqual(p.user,            "")
+            self.assertEqual(p.time,            "2012-02-26T00:03:54")
+            self.assertEqual(p.photo,           "https://www.ietf.org/lib/dt/media/photo/Colin-Perkins-sm.jpg")
+            self.assertEqual(p.photo_thumb,     "https://www.ietf.org/lib/dt/media/photo/Colin-Perkins-sm_PMIAhXi.jpg")
+            # self.assertEqual(p.biography,     "Colin Perkins is a ...")
+            self.assertEqual(p.consent,         True)
+        else:
+            self.fail("Cannot find person")
 
-    def test_person_person(self):
+    def test_person_person(self) -> None:
         dt = DataTracker()
         p  = dt.person("/api/v1/person/person/20209/")
-        self.assertEqual(p.id,              20209)
-        self.assertEqual(p.resource_uri,    "/api/v1/person/person/20209/")
-        self.assertEqual(p.name,            "Colin Perkins")
-        self.assertEqual(p.name_from_draft, "Colin Perkins")
-        self.assertEqual(p.ascii,           "Colin Perkins")
-        self.assertEqual(p.ascii_short,     None)
-        self.assertEqual(p.user,            "")
-        self.assertEqual(p.time,            "2012-02-26T00:03:54")
-        self.assertEqual(p.photo,           "https://www.ietf.org/lib/dt/media/photo/Colin-Perkins-sm.jpg")
-        self.assertEqual(p.photo_thumb,     "https://www.ietf.org/lib/dt/media/photo/Colin-Perkins-sm_PMIAhXi.jpg")
-        self.assertEqual(p.biography,       "Colin Perkins is a Senior Lecturer (Associate Professor) in the School of Computing Science at the University of Glasgow. His research interests are on transport protocols for real-time and interactive multimedia, and on network protocol design, implementation, and specification. He’s been a participant in the IETF and IRTF since 1996, working primarily in the transport area where he co-chairs the RMCAT working group and is a past chair of the AVT and MMUSIC working groups, and in related IRTF research groups. He proposed and co-chaired the first Applied Networking Research Workshop (ANRW), and has been a long-term participant in the Applied Networking Research Prize (ANRP) awarding committee. He received his BEng in Electronic Engineering in 1992, and my PhD in 1996, both from the Department of Electronics at the University of York.")
-        self.assertEqual(p.consent,         True)
+        if p is not None:
+            self.assertEqual(p.id,              20209)
+            self.assertEqual(p.resource_uri,    "/api/v1/person/person/20209/")
+            self.assertEqual(p.name,            "Colin Perkins")
+            self.assertEqual(p.name_from_draft, "Colin Perkins")
+            self.assertEqual(p.ascii,           "Colin Perkins")
+            self.assertEqual(p.ascii_short,     None)
+            self.assertEqual(p.user,            "")
+            self.assertEqual(p.time,            "2012-02-26T00:03:54")
+            self.assertEqual(p.photo,           "https://www.ietf.org/lib/dt/media/photo/Colin-Perkins-sm.jpg")
+            self.assertEqual(p.photo_thumb,     "https://www.ietf.org/lib/dt/media/photo/Colin-Perkins-sm_PMIAhXi.jpg")
+            # self.assertEqual(p.biography,     "Colin Perkins is a ...")
+            self.assertEqual(p.consent,         True)
+        else:
+            self.fail("Cannot find person")
 
-    def test_person_email(self):
+    def test_person_email(self) -> None:
         dt = DataTracker()
         p  = dt.person("/api/v1/person/email/csp@csperkins.org/")
-        self.assertEqual(p.resource_uri,    "/api/v1/person/person/20209/")
+        if p is not None:
+            self.assertEqual(p.id,              20209)
+            self.assertEqual(p.resource_uri,    "/api/v1/person/person/20209/")
+            self.assertEqual(p.name,            "Colin Perkins")
+            self.assertEqual(p.name_from_draft, "Colin Perkins")
+            self.assertEqual(p.ascii,           "Colin Perkins")
+            self.assertEqual(p.ascii_short,     None)
+            self.assertEqual(p.user,            "")
+            self.assertEqual(p.time,            "2012-02-26T00:03:54")
+            self.assertEqual(p.photo,           "https://www.ietf.org/lib/dt/media/photo/Colin-Perkins-sm.jpg")
+            self.assertEqual(p.photo_thumb,     "https://www.ietf.org/lib/dt/media/photo/Colin-Perkins-sm_PMIAhXi.jpg")
+            # self.assertEqual(p.biography,     "Colin Perkins is a ...")
+            self.assertEqual(p.consent,         True)
+        else:
+            self.fail("Cannot find person")
 
 
-    def test_person_history(self):
+    def test_person_history(self) -> None:
         dt = DataTracker()
         p  = dt.person("/api/v1/person/email/csp@csperkins.org/")
-        h  = list(dt.person_history(p))
-        # As of 2019-08-18, there are two history items for csp@csperkins.org
-        self.assertEqual(len(h), 2)
+        if p is not None:
+            h  = list(dt.person_history(p))
+            # As of 2019-08-18, there are two history items for csp@csperkins.org
+            self.assertEqual(len(h), 2)
+
+            self.assertEqual(h[0].id,              20209)
+            self.assertEqual(h[0].resource_uri,    "/api/v1/person/historicalperson/10878/")
+            self.assertEqual(h[0].name,            "Colin Perkins")
+            self.assertEqual(h[0].name_from_draft, "Colin Perkins")
+            self.assertEqual(h[0].ascii,           "Colin Perkins")
+            self.assertEqual(h[0].ascii_short,     None)
+            self.assertEqual(h[0].user,            "")
+            self.assertEqual(h[0].time,            "2012-02-26T00:03:54")
+            self.assertEqual(h[0].photo,           "photo/Colin-Perkins-sm.jpg")
+            self.assertEqual(h[0].photo_thumb,     "photo/Colin-Perkins-sm_PMIAhXi.jpg")
+            # self.assertEqual(h[0].biography,     "Colin Perkins is a ...")
+            self.assertEqual(h[0].consent,         True)
+            self.assertEqual(h[0].history_change_reason, None)
+            self.assertEqual(h[0].history_user,    "")
+            self.assertEqual(h[0].history_id,      10878)
+            self.assertEqual(h[0].history_type,    "~")
+            self.assertEqual(h[0].history_date,    "2019-03-29T02:44:28.426049")
+
+            self.assertEqual(h[1].id,              20209)
+            self.assertEqual(h[1].resource_uri, "/api/v1/person/historicalperson/127/")
+            self.assertEqual(h[1].name,            "Colin Perkins")
+            self.assertEqual(h[1].name_from_draft, "Colin Perkins")
+            self.assertEqual(h[1].ascii,           "Colin Perkins")
+            self.assertEqual(h[1].ascii_short,     "")
+            self.assertEqual(h[1].user,            "")
+            self.assertEqual(h[1].time,            "2012-02-26T00:03:54")
+            self.assertEqual(h[1].photo,           "")
+            self.assertEqual(h[1].photo_thumb,     "")
+            self.assertEqual(h[1].biography,       "")
+            self.assertEqual(h[1].consent,         True)
+            self.assertEqual(h[1].history_change_reason, None)
+            self.assertEqual(h[1].history_user,    "")
+            self.assertEqual(h[1].history_id,      127)
+            self.assertEqual(h[1].history_type,    "~")
+            self.assertEqual(h[1].history_date,    "2018-06-19T15:39:39.929158")
+        else:
+            self.fail("Cannot find person")
 
 
-    def test_person_aliases(self):
+    def test_person_aliases(self) -> None:
         dt = DataTracker()
         p  = dt.person("/api/v1/person/email/csp@csperkins.org/")
-        a  = list(dt.person_aliases(p))
-        self.assertEqual(len(a), 2)
-        self.assertEqual(a[0].name, "Dr. Colin Perkins")
-        self.assertEqual(a[1].name, "Colin Perkins")
+        if p is not None:
+            aliases  = list(dt.person_aliases(p))
+            self.assertEqual(len(aliases), 2)
+            self.assertEqual(aliases[0].id,           62)
+            self.assertEqual(aliases[0].resource_uri, "/api/v1/person/alias/62/")
+            self.assertEqual(aliases[0].person,       "/api/v1/person/person/20209/")
+            self.assertEqual(aliases[0].name,         "Dr. Colin Perkins")
+            self.assertEqual(aliases[1].id,           22620)
+            self.assertEqual(aliases[1].resource_uri, "/api/v1/person/alias/22620/")
+            self.assertEqual(aliases[1].person,       "/api/v1/person/person/20209/")
+            self.assertEqual(aliases[1].name,         "Colin Perkins")
+        else:
+            self.fail("Cannot find person")
 
 
-#    def test_people(self):
-#        dt = DataTracker()
-#        for person in list(dt.people(since="2018-04-01T00:00:00", until="2018-04-30T23:59:59")):
-#            print(person["resource_uri"])
+    def test_people(self) -> None:
+        dt = DataTracker()
+        p  = list(dt.people(since="2018-04-01T00:00:00", until="2018-04-30T23:59:59"))
+        self.assertEqual(len(p), 17)
+        self.assertEqual(p[ 0].resource_uri, "/api/v1/person/person/124773/")
+        self.assertEqual(p[ 1].resource_uri, "/api/v1/person/person/124759/")
+        self.assertEqual(p[ 2].resource_uri, "/api/v1/person/person/124760/")
+        self.assertEqual(p[ 3].resource_uri, "/api/v1/person/person/124763/")
+        self.assertEqual(p[ 4].resource_uri, "/api/v1/person/person/124765/")
+        self.assertEqual(p[ 5].resource_uri, "/api/v1/person/person/124766/")
+        self.assertEqual(p[ 6].resource_uri, "/api/v1/person/person/124767/")
+        self.assertEqual(p[ 7].resource_uri, "/api/v1/person/person/124768/")
+        self.assertEqual(p[ 8].resource_uri, "/api/v1/person/person/124769/")
+        self.assertEqual(p[ 9].resource_uri, "/api/v1/person/person/124770/")
+        self.assertEqual(p[10].resource_uri, "/api/v1/person/person/124771/")
+        self.assertEqual(p[11].resource_uri, "/api/v1/person/person/124772/")
+        self.assertEqual(p[12].resource_uri, "/api/v1/person/person/124774/")
+        self.assertEqual(p[13].resource_uri, "/api/v1/person/person/124775/")
+        self.assertEqual(p[14].resource_uri, "/api/v1/person/person/124776/")
+        self.assertEqual(p[15].resource_uri, "/api/v1/person/person/124779/")
+        self.assertEqual(p[16].resource_uri, "/api/v1/person/person/124780/")
 
+
+    # ----------------------------------------------------------------------------------------------------------------------------
+    # Tests relating to documents:
 
     def test_document_draft(self):
         dt = DataTracker()
