@@ -38,9 +38,12 @@ class TestDatatracker(unittest.TestCase):
     # ----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to email addresses:
 
+    @classmethod
+    def setUpClass(self) -> None:
+        self.dt = DataTracker()
+
     def test_email(self) -> None:
-        dt = DataTracker()
-        e  = dt.email("csp@csperkins.org")
+        e  = self.dt.email("csp@csperkins.org")
         if e is not None:
             self.assertEqual(e.resource_uri, "/api/v1/person/email/csp@csperkins.org/")
             self.assertEqual(e.address,      "csp@csperkins.org")
@@ -54,8 +57,7 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_email_history_for_address(self) -> None:
-        dt = DataTracker()
-        h  = list(dt.email_history_for_address("csp@isi.edu"))
+        h  = list(self.dt.email_history_for_address("csp@isi.edu"))
         self.assertEqual(len(h), 1)
         self.assertEqual(h[0].resource_uri, "/api/v1/person/historicalemail/2090/")
         self.assertEqual(h[0].address,      "csp@isi.edu")
@@ -72,10 +74,9 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_email_history_for_person(self) -> None:
-        dt = DataTracker()
-        p  = dt.person_from_email("casner@acm.org")
+        p  = self.dt.person_from_email("casner@acm.org")
         if p is not None:
-            h = list(dt.email_history_for_person(p))
+            h = list(self.dt.email_history_for_person(p))
             self.assertEqual(len(h), 4)
             self.assertEqual(h[0].address, "casner@packetdesign.com")
             self.assertEqual(h[1].address, "casner@acm.org")
@@ -89,8 +90,7 @@ class TestDatatracker(unittest.TestCase):
     # Tests relating to people:
 
     def test_person_from_email(self) -> None:
-        dt = DataTracker()
-        p  = dt.person_from_email("csp@csperkins.org")
+        p  = self.dt.person_from_email("csp@csperkins.org")
         if p is not None:
             self.assertEqual(p.id,              20209)
             self.assertEqual(p.resource_uri,    "/api/v1/person/person/20209/")
@@ -108,8 +108,7 @@ class TestDatatracker(unittest.TestCase):
             self.fail("Cannot find person")
 
     def test_person_person(self) -> None:
-        dt = DataTracker()
-        p  = dt.person("/api/v1/person/person/20209/")
+        p  = self.dt.person("/api/v1/person/person/20209/")
         if p is not None:
             self.assertEqual(p.id,              20209)
             self.assertEqual(p.resource_uri,    "/api/v1/person/person/20209/")
@@ -127,8 +126,7 @@ class TestDatatracker(unittest.TestCase):
             self.fail("Cannot find person")
 
     def test_person_email(self) -> None:
-        dt = DataTracker()
-        p  = dt.person("/api/v1/person/email/csp@csperkins.org/")
+        p  = self.dt.person("/api/v1/person/email/csp@csperkins.org/")
         if p is not None:
             self.assertEqual(p.id,              20209)
             self.assertEqual(p.resource_uri,    "/api/v1/person/person/20209/")
@@ -147,10 +145,9 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_person_history(self) -> None:
-        dt = DataTracker()
-        p  = dt.person("/api/v1/person/email/csp@csperkins.org/")
+        p  = self.dt.person("/api/v1/person/email/csp@csperkins.org/")
         if p is not None:
-            h  = list(dt.person_history(p))
+            h  = list(self.dt.person_history(p))
             # As of 2019-08-18, there are two history items for csp@csperkins.org
             self.assertEqual(len(h), 2)
 
@@ -194,10 +191,9 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_person_aliases(self) -> None:
-        dt = DataTracker()
-        p  = dt.person("/api/v1/person/email/csp@csperkins.org/")
+        p  = self.dt.person("/api/v1/person/email/csp@csperkins.org/")
         if p is not None:
-            aliases  = list(dt.person_aliases(p))
+            aliases  = list(self.dt.person_aliases(p))
             self.assertEqual(len(aliases), 2)
             self.assertEqual(aliases[0].id,           62)
             self.assertEqual(aliases[0].resource_uri, "/api/v1/person/alias/62/")
@@ -212,8 +208,7 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_people(self) -> None:
-        dt = DataTracker()
-        p  = list(dt.people(since="2018-04-01T00:00:00", until="2018-04-30T23:59:59"))
+        p  = list(self.dt.people(since="2018-04-01T00:00:00", until="2018-04-30T23:59:59"))
         self.assertEqual(len(p), 17)
         self.assertEqual(p[ 0].resource_uri, "/api/v1/person/person/124773/")
         self.assertEqual(p[ 1].resource_uri, "/api/v1/person/person/124759/")
@@ -238,8 +233,7 @@ class TestDatatracker(unittest.TestCase):
     # Tests relating to documents:
 
     def test_document_draft(self):
-        dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/draft-ietf-avt-rtp-new/")
+        d  = self.dt.document("/api/v1/doc/document/draft-ietf-avt-rtp-new/")
         self.assertEqual(d.resource_uri, "/api/v1/doc/document/draft-ietf-avt-rtp-new/")
         self.assertEqual(d.time, "2015-10-14T13:49:52")
         self.assertEqual(d.notify, "magnus.westerlund@ericsson.com, csp@csperkins.org")
@@ -267,132 +261,114 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(d.name, "draft-ietf-avt-rtp-new")
         self.assertEqual(d.title, "RTP: A Transport Protocol for Real-Time Applications")
         self.assertEqual(d.derive_document_url(), "https://www.ietf.org/archive/id/draft-ietf-avt-rtp-new-12.txt")
-        self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
+        self.assertEqual(self.dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_agenda(self):
-        dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/agenda-90-precis/")
+        d  = self.dt.document("/api/v1/doc/document/agenda-90-precis/")
         self.assertEqual(d.resource_uri,          "/api/v1/doc/document/agenda-90-precis/")
         self.assertEqual(d.derive_document_url(), "https://datatracker.ietf.org/meeting/90/materials/agenda-90-precis.txt")
         self.assertEqual(d.uploaded_filename,     "agenda-90-precis.txt")
-        self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
+        self.assertEqual(self.dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_minutes(self):
-        dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/minutes-89-cfrg/")
+        d  = self.dt.document("/api/v1/doc/document/minutes-89-cfrg/")
         self.assertEqual(d.resource_uri,          "/api/v1/doc/document/minutes-89-cfrg/")
         self.assertEqual(d.derive_document_url(), "https://datatracker.ietf.org/meeting/89/materials/minutes-89-cfrg.txt")
         self.assertEqual(d.uploaded_filename,     "minutes-89-cfrg.txt")
-        self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
+        self.assertEqual(self.dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_bluesheets(self):
-        dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/bluesheets-95-xrblock-01/")
+        d  = self.dt.document("/api/v1/doc/document/bluesheets-95-xrblock-01/")
         self.assertEqual(d.resource_uri,          "/api/v1/doc/document/bluesheets-95-xrblock-01/")
         self.assertEqual(d.derive_document_url(), "https://www.ietf.org/proceedings/95/bluesheets/bluesheets-95-xrblock-01.pdf")
         self.assertEqual(d.uploaded_filename,     "bluesheets-95-xrblock-01.pdf")
-        self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
+        self.assertEqual(self.dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_charter(self):
-        dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/charter-ietf-vgmib/")
+        d  = self.dt.document("/api/v1/doc/document/charter-ietf-vgmib/")
         self.assertEqual(d.resource_uri,          "/api/v1/doc/document/charter-ietf-vgmib/")
         self.assertEqual(d.derive_document_url(), "https://www.ietf.org/charter/charter-ietf-vgmib-01.txt")
         self.assertEqual(d.uploaded_filename,     "")
-        self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
+        self.assertEqual(self.dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_conflrev(self):
-        dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/conflict-review-kiyomoto-kcipher2/")
+        d  = self.dt.document("/api/v1/doc/document/conflict-review-kiyomoto-kcipher2/")
         self.assertEqual(d.resource_uri,          "/api/v1/doc/document/conflict-review-kiyomoto-kcipher2/")
         self.assertEqual(d.derive_document_url(), "https://www.ietf.org/cr/conflict-review-kiyomoto-kcipher2-00.txt")
         self.assertEqual(d.uploaded_filename,     "")
-        self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
+        self.assertEqual(self.dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_slides(self):
-        dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/slides-65-l2vpn-4/")
+        d  = self.dt.document("/api/v1/doc/document/slides-65-l2vpn-4/")
         self.assertEqual(d.resource_uri,          "/api/v1/doc/document/slides-65-l2vpn-4/")
         self.assertEqual(d.derive_document_url(), "https://www.ietf.org/proceedings/65/slides/l2vpn-4.pdf")
         self.assertEqual(d.uploaded_filename,     "l2vpn-4.pdf")
-        self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
+        self.assertEqual(self.dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_statchg(self):
-        dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/status-change-rfc3044-rfc3187-orig-urn-regs-to-historic/")
+        d  = self.dt.document("/api/v1/doc/document/status-change-rfc3044-rfc3187-orig-urn-regs-to-historic/")
         self.assertEqual(d.resource_uri,          "/api/v1/doc/document/status-change-rfc3044-rfc3187-orig-urn-regs-to-historic/")
         self.assertEqual(d.derive_document_url(), "https://www.ietf.org/sc/status-change-rfc3044-rfc3187-orig-urn-regs-to-historic-00.txt")
         self.assertEqual(d.uploaded_filename,     "")
-        self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
+        self.assertEqual(self.dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_liaison(self):
-        dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1/")
+        d  = self.dt.document("/api/v1/doc/document/liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1/")
         self.assertEqual(d.resource_uri,          "/api/v1/doc/document/liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1/")
         self.assertEqual(d.derive_document_url(), "https://www.ietf.org/lib/dt/documents/LIAISON/liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1.doc")
         self.assertEqual(d.uploaded_filename,     "liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1.doc")
-        self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
+        self.assertEqual(self.dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_liai_att(self):
-        dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/liaison-2004-08-23-itu-t-ietf-liaison-statement-to-ietf-and-itu-t-study-groups-countering-spam-pdf-version-attachment-1/")
+        d  = self.dt.document("/api/v1/doc/document/liaison-2004-08-23-itu-t-ietf-liaison-statement-to-ietf-and-itu-t-study-groups-countering-spam-pdf-version-attachment-1/")
         self.assertEqual(d.resource_uri,          "/api/v1/doc/document/liaison-2004-08-23-itu-t-ietf-liaison-statement-to-ietf-and-itu-t-study-groups-countering-spam-pdf-version-attachment-1/")
         self.assertEqual(d.derive_document_url(), "https://www.ietf.org/lib/dt/documents/LIAISON/file39.pdf")
         self.assertEqual(d.uploaded_filename,     "file39.pdf")
-        self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
+        self.assertEqual(self.dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_recording(self):
-        dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/recording-94-taps-1/")
+        d  = self.dt.document("/api/v1/doc/document/recording-94-taps-1/")
         self.assertEqual(d.resource_uri,          "/api/v1/doc/document/recording-94-taps-1/")
         self.assertEqual(d.derive_document_url(), "https://www.ietf.org/audio/ietf94/ietf94-room304-20151103-1520.mp3")
         self.assertEqual(d.uploaded_filename,     "")
         # Downloading the MP3 is expensive, so check a HEAD request instead:
-        self.assertEqual(dt.session.head(d.derive_document_url()).status_code, 200)
+        self.assertEqual(self.dt.session.head(d.derive_document_url()).status_code, 200)
 
     def test_document_review(self):
-        dt = DataTracker()
-        d  = dt.document("/api/v1/doc/document/review-bchv-rfc6890bis-04-genart-lc-kyzivat-2017-02-28/")
+        d  = self.dt.document("/api/v1/doc/document/review-bchv-rfc6890bis-04-genart-lc-kyzivat-2017-02-28/")
         self.assertEqual(d.resource_uri,          "/api/v1/doc/document/review-bchv-rfc6890bis-04-genart-lc-kyzivat-2017-02-28/")
         self.assertEqual(d.derive_document_url(), "https://datatracker.ietf.org/doc/review-bchv-rfc6890bis-04-genart-lc-kyzivat-2017-02-28")
         self.assertEqual(d.external_url,          "")
         self.assertEqual(d.uploaded_filename,     "")
-        self.assertEqual(dt.session.get(d.derive_document_url()).status_code, 200)
+        self.assertEqual(self.dt.session.get(d.derive_document_url()).status_code, 200)
 
     def test_document_shepwrit(self):
-        dt = DataTracker()
-        for d in dt.documents(doctype=dt.document_type("shepwrit")):
+        for d in self.dt.documents(doctype=self.dt.document_type("shepwrit")):
             self.fail("shepwrit is not used, so this should return no documents")
 
 #    def test_documents(self):
-#        dt = DataTracker()
-#        documents = list(dt.documents(since="2007-01-01T00:00:00", until="2007-12-31T23:59:59", doctype="draft", group="941"))
+#        documents = list(self.dt.documents(since="2007-01-01T00:00:00", until="2007-12-31T23:59:59", doctype="draft", group="941"))
 
     def test_document_from_draft(self):
-        dt = DataTracker()
-        d  = dt.document_from_draft("draft-ietf-avt-rtp-new")
+        d  = self.dt.document_from_draft("draft-ietf-avt-rtp-new")
         self.assertEqual(d.resource_uri, "/api/v1/doc/document/draft-ietf-avt-rtp-new/")
 
     def test_document_from_rfc(self):
-        dt = DataTracker()
-        d  = dt.document_from_rfc("rfc3550")
+        d  = self.dt.document_from_rfc("rfc3550")
         self.assertEqual(d.resource_uri, "/api/v1/doc/document/draft-ietf-avt-rtp-new/")
 
     def test_documents_from_bcp(self):
-        dt = DataTracker()
-        d  = list(dt.documents_from_bcp("bcp205"))
+        d  = list(self.dt.documents_from_bcp("bcp205"))
         self.assertEqual(len(d), 1)
         self.assertEqual(d[0].resource_uri, "/api/v1/doc/document/draft-sheffer-rfc6982bis/")
 
     def test_documents_from_std(self):
-        dt = DataTracker()
-        d  = list(dt.documents_from_std("std68"))
+        d  = list(self.dt.documents_from_std("std68"))
         self.assertEqual(len(d), 1)
         self.assertEqual(d[0].resource_uri, "/api/v1/doc/document/draft-crocker-rfc4234bis/")
 
     def test_document_state(self):
-        dt = DataTracker()
-        s = dt.document_state('/api/v1/doc/state/7/')
+        s = self.dt.document_state('/api/v1/doc/state/7/')
         self.assertEqual(s.desc,         'The ID has been published as an RFC.')
         self.assertEqual(s.id,           7)
         self.assertEqual(s.name,         'RFC Published')
@@ -404,8 +380,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(s.used,         True)
 
     def test_document_states(self):
-        dt = DataTracker()
-        states = list(dt.document_states(statetype="draft-rfceditor"))
+        states = list(self.dt.document_states(statetype="draft-rfceditor"))
         self.assertEqual(len(states), 18)
         self.assertEqual(states[ 0].name, 'AUTH')
         self.assertEqual(states[ 1].name, 'AUTH48')
@@ -427,8 +402,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(states[17].name, 'Pending')
 
     def test_document_state_types(self):
-        dt = DataTracker()
-        st = list(dt.document_state_types())
+        st = list(self.dt.document_state_types())
         self.assertEqual(len(st), 23)
         self.assertEqual(st[ 0].slug, 'draft')
         self.assertEqual(st[ 1].slug, 'draft-iesg')
@@ -455,8 +429,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(st[22].slug, 'shepwrit')
 
     def test_submission(self):
-        dt = DataTracker()
-        s  = dt.submission("/api/v1/submit/submission/2402/")
+        s  = self.dt.submission("/api/v1/submit/submission/2402/")
         self.assertEqual(s.abstract,        "Internet technical specifications often need to define a formal\nsyntax.  Over the years, a modified version of Backus-Naur Form\n(BNF), called Augmented BNF (ABNF), has been popular among many\nInternet specifications.  The current specification documents ABNF.\nIt balances compactness and simplicity, with reasonable\nrepresentational power.  The differences between standard BNF and\nABNF involve naming rules, repetition, alternatives, order-\nindependence, and value ranges.  This specification also supplies\nadditional rule definitions and encoding for a core lexical analyzer\nof the type common to several Internet specifications.")
         self.assertEqual(s.access_key,      "f77d08da6da54f3cbecca13d31646be8")
         self.assertEqual(s.auth_key,        "fMm6hur5dJ7gV58x5SE0vkHUoDOrSuSF")
@@ -483,8 +456,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(s.words,           None)
 
     def test_document_type(self):
-        dt      = DataTracker()
-        doctype = dt.document_type("/api/v1/name/doctypename/draft/")
+        doctype = self.dt.document_type("/api/v1/name/doctypename/draft/")
         self.assertEqual(doctype.resource_uri, "/api/v1/name/doctypename/draft/")
         self.assertEqual(doctype.name,         "Draft")
         self.assertEqual(doctype.used,         True)
@@ -494,8 +466,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(doctype.order,        0)
 
     def test_document_types(self):
-        dt    = DataTracker()
-        types = list(dt.document_types())
+        types = list(self.dt.document_types())
         self.assertEqual(len(types), 13)
         self.assertEqual(types[ 0].slug, "agenda")
         self.assertEqual(types[ 1].slug, "bluesheets")
@@ -512,8 +483,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(types[12].slug, "statchg")
 
     def test_stream(self):
-        dt     = DataTracker()
-        stream = dt.stream("/api/v1/name/streamname/irtf/")
+        stream = self.dt.stream("/api/v1/name/streamname/irtf/")
         self.assertEqual(stream.desc,         "IRTF Stream")
         self.assertEqual(stream.name,         "IRTF")
         self.assertEqual(stream.order,        3)
@@ -522,8 +492,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(stream.used,         True)
 
     def test_streams(self):
-        dt      = DataTracker()
-        streams = list(dt.streams())
+        streams = list(self.dt.streams())
         self.assertEqual(len(streams), 5)
         self.assertEqual(streams[ 0].slug, "ietf")
         self.assertEqual(streams[ 1].slug, "ise")
@@ -532,8 +501,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(streams[ 4].slug, "legacy")
 
     def test_group(self):
-        dt = DataTracker()
-        group = dt.group(941)
+        group = self.dt.group(941)
         self.assertEqual(group.acronym,        "avt")
         self.assertEqual(group.ad,             None)
         self.assertEqual(group.charter,        "/api/v1/doc/document/charter-ietf-avt/")
@@ -553,21 +521,18 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(group.unused_tags,    [])
 
     def test_group_from_acronym(self):
-        dt = DataTracker()
-        group = dt.group_from_acronym("avt")
+        group = self.dt.group_from_acronym("avt")
         self.assertEqual(group.id, 941)
 
     def test_groups(self):
-        dt = DataTracker()
         # FIXME: split into two tests? _timerange, and _namecontains -- testing without parameters not practical
-        groups = list(dt.groups(since="2019-01-01T00:00:00", until="2019-01-31T23:59:59"))
+        groups = list(self.dt.groups(since="2019-01-01T00:00:00", until="2019-01-31T23:59:59"))
         self.assertEqual(len(groups),  2)
         self.assertEqual(groups[0].id, 1897)
         self.assertEqual(groups[1].id, 2220)
 
     def test_group_states(self):
-        dt = DataTracker()
-        states = list(dt.group_states())
+        states = list(self.dt.group_states())
         self.assertEqual(len(states),  9)
         self.assertEqual(states[0].slug, "abandon")
         self.assertEqual(states[1].slug, "active")
@@ -580,16 +545,14 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(states[8].slug, "unknown")
 
     def test_meetings(self):
-        dt = DataTracker()
-        meetings = list(dt.meetings(since="2019-01-01", until="2019-12-31", meeting_type=dt.meeting_type("ietf")))
+        meetings = list(self.dt.meetings(since="2019-01-01", until="2019-12-31", meeting_type=self.dt.meeting_type("ietf")))
         self.assertEqual(len(meetings),  3)
         self.assertEqual(meetings[0].city, "Singapore")
         self.assertEqual(meetings[1].city, "Montreal")
         self.assertEqual(meetings[2].city, "Prague")
 
     def test_meeting_types(self):
-        dt = DataTracker()
-        types = list(dt.meeting_types())
+        types = list(self.dt.meeting_types())
         self.assertEqual(len(types),  2)
         self.assertEqual(types[0].slug, "ietf")
         self.assertEqual(types[1].slug, "interim")
