@@ -234,6 +234,109 @@ class TestDatatracker(unittest.TestCase):
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to documents:
 
+    # There is one test_document_*() method for each document type
+
+    def test_document_agenda(self) -> None:
+        d  = self.dt.document("/api/v1/doc/document/agenda-90-precis/")
+        if d is not None:
+            self.assertEqual(d.expires,            None)
+            self.assertEqual(d.order,              1)
+            self.assertEqual(d.intended_std_level, None)
+            self.assertEqual(d.uploaded_filename,  "agenda-90-precis.txt")
+            self.assertEqual(d.states,             ["/api/v1/doc/state/81/"])
+            self.assertEqual(d.abstract,           "")
+            self.assertEqual(d.notify,             "")
+            self.assertEqual(d.type,               "/api/v1/name/doctypename/agenda/")
+            self.assertEqual(d.rev,                "2")
+            self.assertEqual(d.internal_comments,  "")
+            self.assertEqual(d.id,                 218)
+            self.assertEqual(d.std_level,          None)
+            self.assertEqual(d.ad,                 None)
+            self.assertEqual(d.time,               "2014-07-21T11:14:17")
+            self.assertEqual(d.title,              "Agenda for PRECIS at IETF-90")
+            self.assertEqual(d.shepherd,           None)
+            self.assertEqual(d.pages,              None)
+            self.assertEqual(d.tags,               [])
+            self.assertEqual(d.resource_uri,       "/api/v1/doc/document/agenda-90-precis/")
+            self.assertEqual(d.rfc,                None)
+            self.assertEqual(d.words,              None)
+            self.assertEqual(d.submissions,        [])
+            self.assertEqual(d.name,               "agenda-90-precis")
+            self.assertEqual(d.stream,             None)
+            self.assertEqual(d.group,              "/api/v1/group/group/1798/")
+            self.assertEqual(d.note,               "")
+            self.assertEqual(d.external_url,       "")
+
+            url = d.document_url()
+            self.assertEqual(url, "https://datatracker.ietf.org/meeting/90/materials/agenda-90-precis.txt")
+            self.assertEqual(self.dt.session.get(url).status_code, 200)
+        else:
+            self.fail("Cannot find document")
+
+
+    def test_document_bluesheets(self) -> None:
+        d  = self.dt.document("/api/v1/doc/document/bluesheets-95-xrblock-01/")
+        if d is not None:
+            self.assertEqual(d.internal_comments,  "")
+            self.assertEqual(d.id,                 68163)
+            self.assertEqual(d.name,               "bluesheets-95-xrblock-01")
+            self.assertEqual(d.notify,             "")
+            self.assertEqual(d.order,              1)
+            self.assertEqual(d.rev,                "00")
+            self.assertEqual(d.external_url,       "")
+            self.assertEqual(d.expires,            None)
+            self.assertEqual(d.type,               "/api/v1/name/doctypename/bluesheets/")
+            self.assertEqual(d.group,              "/api/v1/group/group/1815/")
+            self.assertEqual(d.resource_uri,       "/api/v1/doc/document/bluesheets-95-xrblock-01/")
+            self.assertEqual(d.title,              "Bluesheets IETF95 : xrblock : Wed 16:20")
+            self.assertEqual(d.abstract,           "")
+            self.assertEqual(d.uploaded_filename,  "bluesheets-95-xrblock-01.pdf")
+            self.assertEqual(d.rfc,                None)
+            self.assertEqual(d.shepherd,           None)
+            self.assertEqual(d.submissions,        [])
+            self.assertEqual(d.intended_std_level, None)
+            self.assertEqual(d.ad,                 None)
+            self.assertEqual(d.note,               "")
+            self.assertEqual(d.words,              None)
+            self.assertEqual(d.tags,               [])
+            self.assertEqual(d.time,               "2016-08-22T05:39:08")
+            self.assertEqual(d.pages,              None)
+            self.assertEqual(d.stream,             None)
+            self.assertEqual(d.std_level,          None)
+            self.assertEqual(d.states,             ["/api/v1/doc/state/139/"])
+
+            url = d.document_url()
+            self.assertEqual(url, "https://www.ietf.org/proceedings/95/bluesheets/bluesheets-95-xrblock-01.pdf")
+            self.assertEqual(self.dt.session.get(url).status_code, 200)
+        else:
+            self.fail("Cannot find document")
+
+
+    # FIXME: this needs to be updated
+    def test_document_charter(self) -> None:
+        d  = self.dt.document("/api/v1/doc/document/charter-ietf-vgmib/")
+        if d is not None:
+            self.assertEqual(d.resource_uri,          "/api/v1/doc/document/charter-ietf-vgmib/")
+            self.assertEqual(d.document_url(), "https://www.ietf.org/charter/charter-ietf-vgmib-01.txt")
+            self.assertEqual(d.uploaded_filename,     "")
+            self.assertEqual(self.dt.session.get(d.document_url()).status_code, 200)
+        else:
+            self.fail("Cannot find document")
+
+
+    # FIXME: this needs to be updated
+    def test_document_conflrev(self) -> None:
+        d  = self.dt.document("/api/v1/doc/document/conflict-review-kiyomoto-kcipher2/")
+        if d is not None:
+            self.assertEqual(d.resource_uri,          "/api/v1/doc/document/conflict-review-kiyomoto-kcipher2/")
+            self.assertEqual(d.document_url(), "https://www.ietf.org/cr/conflict-review-kiyomoto-kcipher2-00.txt")
+            self.assertEqual(d.uploaded_filename,     "")
+            self.assertEqual(self.dt.session.get(d.document_url()).status_code, 200)
+        else:
+            self.fail("Cannot find document")
+
+
+    # FIXME: this needs to be updated
     def test_document_draft(self) -> None:
         d  = self.dt.document("/api/v1/doc/document/draft-ietf-avt-rtp-new/")
         if d is not None:
@@ -263,130 +366,111 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.pages, 104)
             self.assertEqual(d.name, "draft-ietf-avt-rtp-new")
             self.assertEqual(d.title, "RTP: A Transport Protocol for Real-Time Applications")
-            self.assertEqual(d.derive_document_url(), "https://www.ietf.org/archive/id/draft-ietf-avt-rtp-new-12.txt")
-            self.assertEqual(self.dt.session.get(d.derive_document_url()).status_code, 200)
+            self.assertEqual(d.document_url(), "https://www.ietf.org/archive/id/draft-ietf-avt-rtp-new-12.txt")
+            self.assertEqual(self.dt.session.get(d.document_url()).status_code, 200)
         else:
             self.fail("Cannot find document")
 
-    def test_document_agenda(self) -> None:
-        d  = self.dt.document("/api/v1/doc/document/agenda-90-precis/")
-        if d is not None:
-            self.assertEqual(d.resource_uri,          "/api/v1/doc/document/agenda-90-precis/")
-            self.assertEqual(d.derive_document_url(), "https://datatracker.ietf.org/meeting/90/materials/agenda-90-precis.txt")
-            self.assertEqual(d.uploaded_filename,     "agenda-90-precis.txt")
-            self.assertEqual(self.dt.session.get(d.derive_document_url()).status_code, 200)
-        else:
-            self.fail("Cannot find document")
 
-    def test_document_minutes(self) -> None:
-        d  = self.dt.document("/api/v1/doc/document/minutes-89-cfrg/")
-        if d is not None:
-            self.assertEqual(d.resource_uri,          "/api/v1/doc/document/minutes-89-cfrg/")
-            self.assertEqual(d.derive_document_url(), "https://datatracker.ietf.org/meeting/89/materials/minutes-89-cfrg.txt")
-            self.assertEqual(d.uploaded_filename,     "minutes-89-cfrg.txt")
-            self.assertEqual(self.dt.session.get(d.derive_document_url()).status_code, 200)
-        else:
-            self.fail("Cannot find document")
-
-    def test_document_bluesheets(self) -> None:
-        d  = self.dt.document("/api/v1/doc/document/bluesheets-95-xrblock-01/")
-        if d is not None:
-            self.assertEqual(d.resource_uri,          "/api/v1/doc/document/bluesheets-95-xrblock-01/")
-            self.assertEqual(d.derive_document_url(), "https://www.ietf.org/proceedings/95/bluesheets/bluesheets-95-xrblock-01.pdf")
-            self.assertEqual(d.uploaded_filename,     "bluesheets-95-xrblock-01.pdf")
-            self.assertEqual(self.dt.session.get(d.derive_document_url()).status_code, 200)
-        else:
-            self.fail("Cannot find document")
-
-    def test_document_charter(self) -> None:
-        d  = self.dt.document("/api/v1/doc/document/charter-ietf-vgmib/")
-        if d is not None:
-            self.assertEqual(d.resource_uri,          "/api/v1/doc/document/charter-ietf-vgmib/")
-            self.assertEqual(d.derive_document_url(), "https://www.ietf.org/charter/charter-ietf-vgmib-01.txt")
-            self.assertEqual(d.uploaded_filename,     "")
-            self.assertEqual(self.dt.session.get(d.derive_document_url()).status_code, 200)
-        else:
-            self.fail("Cannot find document")
-
-    def test_document_conflrev(self) -> None:
-        d  = self.dt.document("/api/v1/doc/document/conflict-review-kiyomoto-kcipher2/")
-        if d is not None:
-            self.assertEqual(d.resource_uri,          "/api/v1/doc/document/conflict-review-kiyomoto-kcipher2/")
-            self.assertEqual(d.derive_document_url(), "https://www.ietf.org/cr/conflict-review-kiyomoto-kcipher2-00.txt")
-            self.assertEqual(d.uploaded_filename,     "")
-            self.assertEqual(self.dt.session.get(d.derive_document_url()).status_code, 200)
-        else:
-            self.fail("Cannot find document")
-
-    def test_document_slides(self) -> None:
-        d  = self.dt.document("/api/v1/doc/document/slides-65-l2vpn-4/")
-        if d is not None:
-            self.assertEqual(d.resource_uri,          "/api/v1/doc/document/slides-65-l2vpn-4/")
-            self.assertEqual(d.derive_document_url(), "https://www.ietf.org/proceedings/65/slides/l2vpn-4.pdf")
-            self.assertEqual(d.uploaded_filename,     "l2vpn-4.pdf")
-            self.assertEqual(self.dt.session.get(d.derive_document_url()).status_code, 200)
-        else:
-            self.fail("Cannot find document")
-
-    def test_document_statchg(self) -> None:
-        d  = self.dt.document("/api/v1/doc/document/status-change-rfc3044-rfc3187-orig-urn-regs-to-historic/")
-        if d is not None:
-            self.assertEqual(d.resource_uri,          "/api/v1/doc/document/status-change-rfc3044-rfc3187-orig-urn-regs-to-historic/")
-            self.assertEqual(d.derive_document_url(), "https://www.ietf.org/sc/status-change-rfc3044-rfc3187-orig-urn-regs-to-historic-00.txt")
-            self.assertEqual(d.uploaded_filename,     "")
-            self.assertEqual(self.dt.session.get(d.derive_document_url()).status_code, 200)
-        else:
-            self.fail("Cannot find document")
-
+    # FIXME: this needs to be updated
     def test_document_liaison(self) -> None:
         d  = self.dt.document("/api/v1/doc/document/liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1/")
         if d is not None:
             self.assertEqual(d.resource_uri,          "/api/v1/doc/document/liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1/")
-            self.assertEqual(d.derive_document_url(), "https://www.ietf.org/lib/dt/documents/LIAISON/liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1.doc")
+            self.assertEqual(d.document_url(), "https://www.ietf.org/lib/dt/documents/LIAISON/liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1.doc")
             self.assertEqual(d.uploaded_filename,     "liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1.doc")
-            self.assertEqual(self.dt.session.get(d.derive_document_url()).status_code, 200)
+            self.assertEqual(self.dt.session.get(d.document_url()).status_code, 200)
         else:
             self.fail("Cannot find document")
 
+
+    # FIXME: this needs to be updated
     def test_document_liai_att(self) -> None:
         d  = self.dt.document("/api/v1/doc/document/liaison-2004-08-23-itu-t-ietf-liaison-statement-to-ietf-and-itu-t-study-groups-countering-spam-pdf-version-attachment-1/")
         if d is not None:
             self.assertEqual(d.resource_uri,          "/api/v1/doc/document/liaison-2004-08-23-itu-t-ietf-liaison-statement-to-ietf-and-itu-t-study-groups-countering-spam-pdf-version-attachment-1/")
-            self.assertEqual(d.derive_document_url(), "https://www.ietf.org/lib/dt/documents/LIAISON/file39.pdf")
+            self.assertEqual(d.document_url(), "https://www.ietf.org/lib/dt/documents/LIAISON/file39.pdf")
             self.assertEqual(d.uploaded_filename,     "file39.pdf")
-            self.assertEqual(self.dt.session.get(d.derive_document_url()).status_code, 200)
+            self.assertEqual(self.dt.session.get(d.document_url()).status_code, 200)
         else:
             self.fail("Cannot find document")
 
+
+    # FIXME: this needs to be updated
+    def test_document_minutes(self) -> None:
+        d  = self.dt.document("/api/v1/doc/document/minutes-89-cfrg/")
+        if d is not None:
+            self.assertEqual(d.resource_uri,          "/api/v1/doc/document/minutes-89-cfrg/")
+            self.assertEqual(d.document_url(), "https://datatracker.ietf.org/meeting/89/materials/minutes-89-cfrg.txt")
+            self.assertEqual(d.uploaded_filename,     "minutes-89-cfrg.txt")
+            self.assertEqual(self.dt.session.get(d.document_url()).status_code, 200)
+        else:
+            self.fail("Cannot find document")
+
+
+    # FIXME: this needs to be updated
     def test_document_recording(self) -> None:
         d  = self.dt.document("/api/v1/doc/document/recording-94-taps-1/")
         if d is not None:
             self.assertEqual(d.resource_uri,          "/api/v1/doc/document/recording-94-taps-1/")
-            self.assertEqual(d.derive_document_url(), "https://www.ietf.org/audio/ietf94/ietf94-room304-20151103-1520.mp3")
+            self.assertEqual(d.document_url(), "https://www.ietf.org/audio/ietf94/ietf94-room304-20151103-1520.mp3")
             self.assertEqual(d.uploaded_filename,     "")
             # Downloading the MP3 is expensive, so check a HEAD request instead:
-            self.assertEqual(self.dt.session.head(d.derive_document_url()).status_code, 200)
+            self.assertEqual(self.dt.session.head(d.document_url()).status_code, 200)
         else:
             self.fail("Cannot find document")
 
+
+    # FIXME: this needs to be updated
     def test_document_review(self) -> None:
         d  = self.dt.document("/api/v1/doc/document/review-bchv-rfc6890bis-04-genart-lc-kyzivat-2017-02-28/")
         if d is not None:
             self.assertEqual(d.resource_uri,          "/api/v1/doc/document/review-bchv-rfc6890bis-04-genart-lc-kyzivat-2017-02-28/")
-            self.assertEqual(d.derive_document_url(), "https://datatracker.ietf.org/doc/review-bchv-rfc6890bis-04-genart-lc-kyzivat-2017-02-28")
+            self.assertEqual(d.document_url(), "https://datatracker.ietf.org/doc/review-bchv-rfc6890bis-04-genart-lc-kyzivat-2017-02-28")
             self.assertEqual(d.external_url,          "")
             self.assertEqual(d.uploaded_filename,     "")
-            self.assertEqual(self.dt.session.get(d.derive_document_url()).status_code, 200)
+            self.assertEqual(self.dt.session.get(d.document_url()).status_code, 200)
         else:
             self.fail("Cannot find document")
 
+
+    # FIXME: this needs to be updated
     def test_document_shepwrit(self) -> None:
         for d in self.dt.documents(doctype=self.dt.document_type("shepwrit")):
             self.fail("shepwrit is not used, so this should return no documents")
 
+
+    # FIXME: this needs to be updated
+    def test_document_slides(self) -> None:
+        d  = self.dt.document("/api/v1/doc/document/slides-65-l2vpn-4/")
+        if d is not None:
+            self.assertEqual(d.resource_uri,          "/api/v1/doc/document/slides-65-l2vpn-4/")
+            self.assertEqual(d.document_url(), "https://www.ietf.org/proceedings/65/slides/l2vpn-4.pdf")
+            self.assertEqual(d.uploaded_filename,     "l2vpn-4.pdf")
+            self.assertEqual(self.dt.session.get(d.document_url()).status_code, 200)
+        else:
+            self.fail("Cannot find document")
+
+
+    # FIXME: this needs to be updated
+    def test_document_statchg(self) -> None:
+        d  = self.dt.document("/api/v1/doc/document/status-change-rfc3044-rfc3187-orig-urn-regs-to-historic/")
+        if d is not None:
+            self.assertEqual(d.resource_uri,          "/api/v1/doc/document/status-change-rfc3044-rfc3187-orig-urn-regs-to-historic/")
+            self.assertEqual(d.document_url(), "https://www.ietf.org/sc/status-change-rfc3044-rfc3187-orig-urn-regs-to-historic-00.txt")
+            self.assertEqual(d.uploaded_filename,     "")
+            self.assertEqual(self.dt.session.get(d.document_url()).status_code, 200)
+        else:
+            self.fail("Cannot find document")
+
+
+
+    # FIXME: this needs to be updated
 #    def test_documents(self):
 #        documents = list(self.dt.documents(since="2007-01-01T00:00:00", until="2007-12-31T23:59:59", doctype="draft", group="941"))
 
+
+    # FIXME: this needs to be updated
     def test_document_from_draft(self) -> None:
         d  = self.dt.document_from_draft("draft-ietf-avt-rtp-new")
         if d is not None:
@@ -394,6 +478,7 @@ class TestDatatracker(unittest.TestCase):
         else:
             self.fail("Cannot find document")
 
+    # FIXME: this needs to be updated
     def test_document_from_rfc(self) -> None:
         d  = self.dt.document_from_rfc("rfc3550")
         if d is not None:
@@ -401,6 +486,7 @@ class TestDatatracker(unittest.TestCase):
         else:
             self.fail("Cannot find document")
 
+    # FIXME: this needs to be updated
     def test_documents_from_bcp(self) -> None:
         d  = list(self.dt.documents_from_bcp("bcp205"))
         if d is not None:
@@ -409,11 +495,13 @@ class TestDatatracker(unittest.TestCase):
         else:
             self.fail("Cannot find document")
 
+    # FIXME: this needs to be updated
     def test_documents_from_std(self) -> None:
         d  = list(self.dt.documents_from_std("std68"))
         self.assertEqual(len(d), 1)
         self.assertEqual(d[0].resource_uri, "/api/v1/doc/document/draft-crocker-rfc4234bis/")
 
+    # FIXME: this needs to be updated
     def test_document_state(self) -> None:
         s = self.dt.document_state('/api/v1/doc/state/7/')
         if s is not None:
@@ -429,6 +517,7 @@ class TestDatatracker(unittest.TestCase):
         else:
             self.fail("Cannot find state")
 
+    # FIXME: this needs to be updated
     def test_document_states(self) -> None:
         states = list(self.dt.document_states(statetype="draft-rfceditor"))
         self.assertEqual(len(states), 18)
@@ -451,6 +540,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(states[16].name, 'ISR-AUTH')
         self.assertEqual(states[17].name, 'Pending')
 
+    # FIXME: this needs to be updated
     def test_document_state_types(self) -> None:
         st = list(self.dt.document_state_types())
         self.assertEqual(len(st), 23)
@@ -478,10 +568,11 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(st[21].slug, 'liaison')
         self.assertEqual(st[22].slug, 'shepwrit')
 
+    # FIXME: this needs to be updated
     def test_submission(self) -> None:
         s  = self.dt.submission("/api/v1/submit/submission/2402/")
         if s is not None:
-            self.assertEqual(s.abstract,        "Internet technical specifications often need to define a formal\nsyntax.  Over the years, a modified version of Backus-Naur Form\n(BNF), called Augmented BNF (ABNF), has been popular among many\nInternet specifications.  The current specification documents ABNF.\nIt balances compactness and simplicity, with reasonable\nrepresentational power.  The differences between standard BNF and\nABNF involve naming rules, repetition, alternatives, order-\nindependence, and value ranges.  This specification also supplies\nadditional rule definitions and encoding for a core lexical analyzer\nof the type common to several Internet specifications.")
+            #self.assertEqual(s.abstract,        "Internet technical specifications often need to...")
             self.assertEqual(s.access_key,      "f77d08da6da54f3cbecca13d31646be8")
             self.assertEqual(s.auth_key,        "fMm6hur5dJ7gV58x5SE0vkHUoDOrSuSF")
             self.assertEqual(s.authors,         "[{u'email': u'dcrocker@bbiw.net', u'name': u'Dave Crocker'}, {u'email': u'paul.overell@thus.net', u'name': u'Paul Overell'}]")
@@ -490,7 +581,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(s.draft,           "/api/v1/doc/document/draft-crocker-rfc4234bis/")
             self.assertEqual(s.file_size,       27651)
             self.assertEqual(s.file_types,      ".txt,.xml,.pdf")
-            self.assertEqual(s.first_two_pages, "\n\n\nNetwork Working Group                                    D. Crocker, Ed.\nInternet-Draft                               Brandenburg InternetWorking\nObsoletes: 4234 (if approved)                                 P. Overell\nIntended status: Standards Track                               THUS plc.\nExpires: April 11, 2008                                  October 9, 2007\n\n\n             Augmented BNF for Syntax Specifications: ABNF\n                      draft-crocker-rfc4234bis-01\n\nStatus of this Memo\n\n   By submitting this Internet-Draft, each author represents that any\n   applicable patent or other IPR claims of which he or she is aware\n   have been or will be disclosed, and any of which he or she becomes\n   aware will be disclosed, in accordance with Section 6 of BCP 79.\n\n   Internet-Drafts are working documents of the Internet Engineering\n   Task Force (IETF), its areas, and its working groups.  Note that\n   other groups may also distribute working documents as Internet-\n   Drafts.\n\n   Internet-Drafts are draft documents valid for a maximum of six months\n   and may be updated, replaced, or obsoleted by other documents at any\n   time.  It is inappropriate to use Internet-Drafts as reference\n   material or to cite them other than as \"work in progress.\"\n\n   The list of current Internet-Drafts can be accessed at\n   http://www.ietf.org/ietf/1id-abstracts.txt.\n\n   The list of Internet-Draft Shadow Directories can be accessed at\n   http://www.ietf.org/shadow.html.\n\n   This Internet-Draft will expire on April 11, 2008.\n\nCopyright Notice\n\n   Copyright (C) The IETF Trust (2007).\n\nAbstract\n\n   Internet technical specifications often need to define a formal\n   syntax.  Over the years, a modified version of Backus-Naur Form\n   (BNF), called Augmented BNF (ABNF), has been popular among many\n   Internet specifications.  The current specification documents ABNF.\n   It balances compactness and simplicity, with reasonable\n   representational power.  The differences between standard BNF and\n   ABNF involve naming rules, repetition, alternatives, order-\n\n\n\nCrocker & Overell        Expires April 11, 2008                 [page 1]\n\nInternet-Draft                    ABNF                      October 2007\n\n\n   independence, and value ranges.  This specification also supplies\n   additional rule definitions and encoding for a core lexical analyzer\n   of the type common to several Internet specifications.\n\n\nTable of Contents\n\n   1.  INTRODUCTION . . . . . . . . . . . . . . . . . . . . . . . . .  3\n   2.  RULE DEFINITION  . . . . . . . . . . . . . . . . . . . . . . .  3\n     2.1.  Rule Naming  . . . . . . . . . . . . . . . . . . . . . . .  3\n     2.2.  Rule Form  . . . . . . . . . . . . . . . . . . . . . . . .  4\n     2.3.  Terminal Values  . . . . . . . . . . . . . . . . . . . . .  4\n     2.4.  External Encodings . . . . . . . . . . . . . . . . . . . .  5\n   3.  OPERATORS  . . . . . . . . . . . . . . . . . . . . . . . . . .  6\n     3.1.  Concatenation:  Rule1 Rule2  . . . . . . . . . . . . . . .  6\n     3.2.  Alternatives:  Rule1 / Rule2 . . . . . . . . . . . . . . .  6\n     3.3.  Incremental Alternatives: Rule1 =/ Rule2 . . . . . . . . .  7\n     3.4.  Value Range Alternatives:  %c##-## . . . . . . . . . . . .  7\n     3.5.  Sequence Group:  (Rule1 Rule2) . . . . . . . . . . . . . .  8\n     3.6.  Variable Repetition:  *Rule  . . . . . . . . . . . . . . .  8\n     3.7.  Specific Repetition:  nRule  . . . . . . . . . . . . . . .  9\n     3.8.  Optional Sequence:  [RULE] . . . . . . . . . . . . . . . .  9\n     3.9.  Comment:  ; Comment  . . . . . . . . . . . . . . . . . . .  9\n     3.10. Operator Precedence  . . . . . . . . . . . . . . . . . . .  9\n   4.  ABNF DEFINITION OF ABNF  . . . . . . . . . . . . . . . . . . . 10\n   5.  SECURITY CONSIDERATIONS  . . . . . . . . . . . . . . . . . . . 11\n   6.  References . . . . . . . . . . . . . . . . . . . . . . . . . . 11\n     6.1.  Normative References . . . . . . . . . . . . . . . . . . . 11\n     6.2.  Informative References . . . . . . . . . . . . . . . . . . 12\n   Appendix A.  ACKNOWLEDGEMENTS  . . . . . . . . . . . . . . . . . . 12\n   Appendix B.  CORE ABNF OF ABNF . . . . . . . . . . . . . . . . . . 13\n     B.1.  Core Rules . . . . . . . . . . . . . . . . . . . . . . . . 13\n     B.2.  Common Encoding  . . . . . . . . . . . . . . . . . . . . . 14\n   Authors' Addresses . . . . . . . . . . . . . . . . . . . . . . . . 14\n   Intellectual Property and Copyright Statements . . . . . . . . . . 16\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nCrocker & Overell        Expires April 11, 2008                 [page 2]")
+            #self.assertEqual(s.first_two_pages, "\n\n\nNetwork Working Group...")
             self.assertEqual(s.group,           "/api/v1/group/group/1027/")
             self.assertEqual(s.id,              2402)
             self.assertEqual(s.name,            "draft-crocker-rfc4234bis")
@@ -508,6 +599,7 @@ class TestDatatracker(unittest.TestCase):
         else:
             self.fail("Cannot find submission")
 
+    # FIXME: this needs to be updated
     def test_document_type(self) -> None:
         doctype = self.dt.document_type("/api/v1/name/doctypename/draft/")
         if doctype is not None:
@@ -521,6 +613,7 @@ class TestDatatracker(unittest.TestCase):
         else:
             self.fail("Cannot find doctype")
 
+    # FIXME: this needs to be updated
     def test_document_types(self) -> None:
         types = list(self.dt.document_types())
         self.assertEqual(len(types), 13)
@@ -538,6 +631,10 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(types[11].slug, "slides")
         self.assertEqual(types[12].slug, "statchg")
 
+    # -----------------------------------------------------------------------------------------------------------------------------
+    # Tests relating to streams:
+
+    # FIXME: this needs to be updated
     def test_stream(self) -> None:
         stream = self.dt.stream("/api/v1/name/streamname/irtf/")
         if stream is not None:
@@ -550,6 +647,7 @@ class TestDatatracker(unittest.TestCase):
         else:
             self.fail("Cannot find stream")
 
+    # FIXME: this needs to be updated
     def test_streams(self) -> None:
         streams = list(self.dt.streams())
         self.assertEqual(len(streams), 5)
@@ -559,6 +657,10 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(streams[ 3].slug, "iab")
         self.assertEqual(streams[ 4].slug, "legacy")
 
+    # -----------------------------------------------------------------------------------------------------------------------------
+    # Tests relating to groups:
+
+    # FIXME: this needs to be updated
     def test_group(self) -> None:
         group = self.dt.group(941)
         if group is not None:
@@ -582,6 +684,7 @@ class TestDatatracker(unittest.TestCase):
         else:
             self.fail("Cannot find group")
 
+    # FIXME: this needs to be updated
     def test_group_from_acronym(self) -> None:
         group = self.dt.group_from_acronym("avt")
         if group is not None:
@@ -589,6 +692,7 @@ class TestDatatracker(unittest.TestCase):
         else:
             self.fail("Cannot find group")
 
+    # FIXME: this needs to be updated
     def test_groups(self) -> None:
         # FIXME: split into two tests? _timerange, and _namecontains -- testing without parameters not practical
         groups = list(self.dt.groups(since="2019-01-01T00:00:00", until="2019-01-31T23:59:59"))
@@ -596,6 +700,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(groups[0].id, 1897)
         self.assertEqual(groups[1].id, 2220)
 
+    # FIXME: this needs to be updated
     def test_group_states(self) -> None:
         states = list(self.dt.group_states())
         self.assertEqual(len(states),  9)
@@ -609,6 +714,10 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(states[7].slug, "replaced")
         self.assertEqual(states[8].slug, "unknown")
 
+    # -----------------------------------------------------------------------------------------------------------------------------
+    # Tests relating to meetings:
+
+    # FIXME: this needs to be updated
     def test_meetings(self) -> None:
         meetings = list(self.dt.meetings(since="2019-01-01", until="2019-12-31", meeting_type=self.dt.meeting_type("ietf")))
         self.assertEqual(len(meetings),  3)
@@ -616,6 +725,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(meetings[1].city, "Montreal")
         self.assertEqual(meetings[2].city, "Prague")
 
+    # FIXME: this needs to be updated
     def test_meeting_types(self) -> None:
         types = list(self.dt.meeting_types())
         self.assertEqual(len(types),  2)

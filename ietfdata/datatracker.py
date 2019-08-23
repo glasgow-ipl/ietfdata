@@ -64,9 +64,9 @@ import re
 
 @dataclass(frozen=True)
 class Email:
-    resource_uri : str
-    address      : str
-    person       : str
+    resource_uri : str # Suitable for use with DataTracker::email()
+    person       : str # Suitable for use with DataTracker::person()
+    address      : str # The email address
     time         : str
     origin       : str
     primary      : bool
@@ -93,7 +93,7 @@ class HistoricalEmail(Email):
 
 @dataclass(frozen=True)
 class Person:
-    resource_uri    : str
+    resource_uri    : str # Suitable for use with DataTracker::person()
     id              : int
     name            : str
     name_from_draft : str
@@ -125,8 +125,8 @@ class HistoricalPerson(Person):
 @dataclass(frozen=True)
 class PersonAlias:
     id                 : int
-    resource_uri       : str
-    person             : str
+    resource_uri       : str # Suitable for use with DataTracker::person_aliases()
+    person             : str # Suitable for use with DataTracker::person()
     name               : str
 
     def __post_init__(self) -> None:
@@ -139,7 +139,8 @@ class PersonAlias:
 
 @dataclass(frozen=True)
 class Document:
-    resource_uri       : str
+    id                 : int
+    resource_uri       : str           # Suitable for use with DataTracker::document()
     name               : str
     title              : str
     pages              : Optional[int]
@@ -148,20 +149,20 @@ class Document:
     notify             : str
     expires            : Optional[str]
     type               : str           # Suitable for use with DataTracker::document_type()
-    rev                : str
+    rfc                : Optional[int] 
+    rev                : str           # If `rfc` is not None, `rev` will point to the RFC publication notice
     abstract           : str
     internal_comments  : str
     order              : int
     note               : str
-    states             : List[str]
-    ad                 : Optional[str]
-    shepherd           : Optional[str]
-    group              : Optional[str]
-    stream             : Optional[str]
-    rfc                : Optional[int]
-    std_level          : Optional[str]
+    ad                 : Optional[str] # Suitable for use with DataTracker::person()
+    shepherd           : Optional[str] # Suitable for use with DataTracker::person()
+    group              : Optional[str] # Suitable for use with DataTracker::group()
+    stream             : Optional[str] # Suitable for use with DataTracker::stream()
     intended_std_level : Optional[str]
-    submissions        : List[str]
+    std_level          : Optional[str]
+    states             : List[str]     # Suitable for use with DataTracker::document_state()
+    submissions        : List[str]     # Suitable for use with DataTracker::submission()
     tags               : List[str]
     uploaded_filename  : str
     external_url       : str
@@ -169,58 +170,62 @@ class Document:
     def __post_init__(self) -> None:
         assert self.resource_uri.startswith("/api/v1/doc/document/")
         assert self.type.startswith("/api/v1/name/doctypename/")
-        assert self.stream is None or self.stream.startswith("/api/v1/name/streamname/")
-        assert self.group  is None or self.group.startswith("/api/v1/group/group/")
+        assert self.ad                 is None or self.ad.startswith("/api/v1/person/person/")
+        assert self.shepherd           is None or self.shepherd.startswith("/api/v1/person/email/")
+        assert self.stream             is None or self.stream.startswith("/api/v1/name/streamname/")
+        assert self.group              is None or self.group.startswith("/api/v1/group/group/")
+        assert self.intended_std_level is None or self.intended_std_level.startswith("/api/v1/name/intendedstdlevelname/")
+        assert self.std_level          is None or self.std_level.startswith("/api/v1/name/stdlevelname/")
         for state in self.states:
             assert state.startswith("/api/v1/doc/state/")
         for submit in self.submissions:
             assert submit.startswith("/api/v1/submit/submission/")
 
-    def derive_document_url(self) -> str:
+    def document_url(self) -> str:
         if self.type == "/api/v1/name/doctypename/agenda/":
             # FIXME: This doesn't work for interim meetings
             # FIXME: This doesn't work for PDF agenda files
-            meeting = self.name.split("-")[1]
-            document_url = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + self.uploaded_filename
-        elif self.type == "/api/v1/name/doctypename/minutes/":
-            meeting = self.name.split("-")[1]
-            document_url = "https://datatracker.ietf.org/meeting/" + meeting + "/materials/" + self.uploaded_filename
+            mtg = self.name.split("-")[1]
+            url = "https://datatracker.ietf.org/meeting/" + mtg + "/materials/" + self.uploaded_filename
         elif self.type == "/api/v1/name/doctypename/bluesheets/":
-            meeting = self.name.split("-")[1]
-            document_url = "https://www.ietf.org/proceedings/" + meeting + "/bluesheets/" + self.uploaded_filename
+            mtg = self.name.split("-")[1]
+            url = "https://www.ietf.org/proceedings/" + mtg + "/bluesheets/" + self.uploaded_filename
         elif self.type == "/api/v1/name/doctypename/charter/":
-            document_url = "https://www.ietf.org/charter/"     + self.name + "-" + self.rev + ".txt"
+            url = "https://www.ietf.org/charter/"     + self.name + "-" + self.rev + ".txt"
         elif self.type == "/api/v1/name/doctypename/conflrev/":
-            document_url = "https://www.ietf.org/cr/"          + self.name + "-" + self.rev + ".txt"
+            url = "https://www.ietf.org/cr/"          + self.name + "-" + self.rev + ".txt"
         elif self.type == "/api/v1/name/doctypename/draft/":
-            document_url = "https://www.ietf.org/archive/id/"  + self.name + "-" + self.rev + ".txt"
-        elif self.type == "/api/v1/name/doctypename/slides/":
-            meeting = self.name.split("-")[1]
-            document_url = "https://www.ietf.org/proceedings/" + meeting + "/slides/" + self.uploaded_filename
-        elif self.type == "/api/v1/name/doctypename/statchg/":
-            document_url = "https://www.ietf.org/sc/"          + self.name + "-" + self.rev + ".txt"
+            url = "https://www.ietf.org/archive/id/"  + self.name + "-" + self.rev + ".txt"
         elif self.type == "/api/v1/name/doctypename/liaison/":
-            document_url = "https://www.ietf.org/lib/dt/documents/LIAISON/" + self.uploaded_filename
+            url = "https://www.ietf.org/lib/dt/documents/LIAISON/" + self.uploaded_filename
         elif self.type == "/api/v1/name/doctypename/liai-att/":
-            document_url = "https://www.ietf.org/lib/dt/documents/LIAISON/" + self.uploaded_filename
+            url = "https://www.ietf.org/lib/dt/documents/LIAISON/" + self.uploaded_filename
+        elif self.type == "/api/v1/name/doctypename/minutes/":
+            mtg = self.name.split("-")[1]
+            url = "https://datatracker.ietf.org/meeting/" + mtg + "/materials/" + self.uploaded_filename
         elif self.type == "/api/v1/name/doctypename/recording/":
-            document_url = self.external_url
+            url = self.external_url
         elif self.type == "/api/v1/name/doctypename/review/":
             # FIXME: This points to the formatted HTML page containing the message, but we really want the raw message
-            document_url = "https://datatracker.ietf.org/doc/" + self.name
+            url = "https://datatracker.ietf.org/doc/" + self.name
         elif self.type == "/api/v1/name/doctypename/shepwrit/":
-            document_url = self.external_url
+            url = self.external_url
+        elif self.type == "/api/v1/name/doctypename/slides/":
+            mtg = self.name.split("-")[1]
+            url = "https://www.ietf.org/proceedings/" + mtg + "/slides/" + self.uploaded_filename
+        elif self.type == "/api/v1/name/doctypename/statchg/":
+            url = "https://www.ietf.org/sc/"          + self.name + "-" + self.rev + ".txt"
         else:
             raise NotImplementedError
-        return document_url
+        return url
 
 
 @dataclass(frozen=True)
 class DocumentAlias:
     id           : int
-    name         : str
     resource_uri : str
     document     : str
+    name         : str
 
     def __post_init__(self) -> None:
         assert self.resource_uri.startswith("/api/v1/doc/docalias/")
