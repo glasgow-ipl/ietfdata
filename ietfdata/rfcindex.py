@@ -60,7 +60,7 @@ class RfcEntry:
     errata_url   : Optional[str]
     abstract     : Optional[ET.Element]
 
-    def __init__(self, rfc_element: ET.Element):
+    def __init__(self, rfc_element: ET.Element) -> None:
         self.wg           = None
         self.area         = None
         self.day          = None
@@ -200,7 +200,7 @@ class RfcEntry:
                 raise NotImplementedError
 
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "RFC {\n" \
              + "      doc_id: " + self.doc_id            + "\n" \
              + "       title: " + self.title             + "\n" \
@@ -290,7 +290,7 @@ class RfcNotIssuedEntry:
     """
     doc_id : str
 
-    def __init__(self, rfc_not_issued_element: ET.Element):
+    def __init__(self, rfc_not_issued_element: ET.Element) -> None:
         for elem in rfc_not_issued_element:
             if   elem.tag == "{http://www.rfc-editor.org/rfc-index}doc-id":
                 assert elem.text is not None
@@ -298,7 +298,7 @@ class RfcNotIssuedEntry:
             else:
                 raise NotImplementedError
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "RFC-Not-Issued {\n" \
              + "      doc_id: " + self.doc_id + "\n" \
              + "}\n"
@@ -312,7 +312,7 @@ class BcpEntry:
     doc_id  : str
     is_also : List[str]
 
-    def __init__(self, bcp_element: ET.Element):
+    def __init__(self, bcp_element: ET.Element) -> None:
         self.is_also = []
 
         for elem in bcp_element:
@@ -329,7 +329,7 @@ class BcpEntry:
             else:
                 raise NotImplementedError
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "BCP {\n" \
              + "      doc_id: " + self.doc_id        + "\n" \
              + "     is_also: " + str(self.is_also)  + "\n" \
@@ -345,7 +345,7 @@ class StdEntry:
     title   : str
     is_also : List[str]
 
-    def __init__(self, std_element: ET.Element):
+    def __init__(self, std_element: ET.Element) -> None:
         self.is_also = []
 
         for elem in std_element:
@@ -364,7 +364,7 @@ class StdEntry:
             else:
                 raise NotImplementedError
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "STD {\n" \
              + "      doc_id: " + self.doc_id       + "\n" \
              + "       title: " + self.title        + "\n" \
@@ -380,7 +380,7 @@ class FyiEntry:
     doc_id   : str
     is_also  : List[str]
 
-    def __init__(self, fyi_element: ET.Element):
+    def __init__(self, fyi_element: ET.Element) -> None:
         self.is_also = []
 
         for elem in fyi_element:
@@ -397,7 +397,7 @@ class FyiEntry:
             else:
                 raise NotImplementedError
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "FYI {\n" \
              + "      doc_id: " + self.doc_id       + "\n" \
              + "     is_also: " + str(self.is_also) + "\n" \
@@ -415,7 +415,7 @@ class RFCIndex:
     std            : Dict[str, StdEntry]
     fyi            : Dict[str, FyiEntry]
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.rfc            = {}
         self.rfc_not_issued = {}
         self.bcp            = {}
@@ -431,20 +431,20 @@ class RFCIndex:
 
         for doc in ET.fromstring(response.text):
             if   doc.tag == "{http://www.rfc-editor.org/rfc-index}rfc-entry":
-                val = RfcEntry(doc)
-                self.rfc[val.doc_id] = val
+                rfc = RfcEntry(doc)
+                self.rfc[rfc.doc_id] = rfc
             elif doc.tag == "{http://www.rfc-editor.org/rfc-index}rfc-not-issued-entry":
-                val = RfcNotIssuedEntry(doc)
-                self.rfc_not_issued[val.doc_id] = val
+                rne = RfcNotIssuedEntry(doc)
+                self.rfc_not_issued[rne.doc_id] = rne
             elif doc.tag == "{http://www.rfc-editor.org/rfc-index}bcp-entry":
-                val = BcpEntry(doc)
-                self.bcp[val.doc_id] = val
+                bcp = BcpEntry(doc)
+                self.bcp[bcp.doc_id] = bcp
             elif doc.tag == "{http://www.rfc-editor.org/rfc-index}std-entry":
-                val = StdEntry(doc)
-                self.std[val.doc_id] = val
+                std = StdEntry(doc)
+                self.std[std.doc_id] = std
             elif doc.tag == "{http://www.rfc-editor.org/rfc-index}fyi-entry":
-                val = FyiEntry(doc)
-                self.fyi[val.doc_id] = val
+                fyi = FyiEntry(doc)
+                self.fyi[fyi.doc_id] = fyi
             else:
                 raise NotImplementedError
 
