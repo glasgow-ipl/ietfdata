@@ -60,6 +60,7 @@ class RfcEntry:
     errata_url   : Optional[str]
     abstract     : Optional[ET.Element]
 
+
     def __init__(self, rfc_element: ET.Element) -> None:
         self.wg           = None
         self.area         = None
@@ -282,6 +283,7 @@ class RfcEntry:
                     return None
         return None
 
+
 # ==================================================================================================
 
 class RfcNotIssuedEntry:
@@ -289,6 +291,7 @@ class RfcNotIssuedEntry:
       An RFC that was not issued in the rfc-index.xml file.
     """
     doc_id : str
+
 
     def __init__(self, rfc_not_issued_element: ET.Element) -> None:
         for elem in rfc_not_issued_element:
@@ -298,10 +301,12 @@ class RfcNotIssuedEntry:
             else:
                 raise NotImplementedError
 
+
     def __str__(self) -> str:
         return "RFC-Not-Issued {\n" \
              + "      doc_id: " + self.doc_id + "\n" \
              + "}\n"
+
 
 # ==================================================================================================
 
@@ -311,6 +316,7 @@ class BcpEntry:
     """
     doc_id  : str
     is_also : List[str]
+
 
     def __init__(self, bcp_element: ET.Element) -> None:
         self.is_also = []
@@ -329,11 +335,13 @@ class BcpEntry:
             else:
                 raise NotImplementedError
 
+
     def __str__(self) -> str:
         return "BCP {\n" \
              + "      doc_id: " + self.doc_id        + "\n" \
              + "     is_also: " + str(self.is_also)  + "\n" \
              + "}\n"
+
 
 # ==================================================================================================
 
@@ -344,6 +352,7 @@ class StdEntry:
     doc_id  : str
     title   : str
     is_also : List[str]
+
 
     def __init__(self, std_element: ET.Element) -> None:
         self.is_also = []
@@ -364,6 +373,7 @@ class StdEntry:
             else:
                 raise NotImplementedError
 
+
     def __str__(self) -> str:
         return "STD {\n" \
              + "      doc_id: " + self.doc_id       + "\n" \
@@ -379,6 +389,7 @@ class FyiEntry:
     """
     doc_id   : str
     is_also  : List[str]
+
 
     def __init__(self, fyi_element: ET.Element) -> None:
         self.is_also = []
@@ -397,11 +408,13 @@ class FyiEntry:
             else:
                 raise NotImplementedError
 
+
     def __str__(self) -> str:
         return "FYI {\n" \
              + "      doc_id: " + self.doc_id       + "\n" \
              + "     is_also: " + str(self.is_also) + "\n" \
              + "}\n"
+
 
 # ==================================================================================================
 
@@ -414,6 +427,7 @@ class RFCIndex:
     bcp            : Dict[str, BcpEntry]
     std            : Dict[str, StdEntry]
     fyi            : Dict[str, FyiEntry]
+
 
     def __init__(self) -> None:
         self.rfc            = {}
