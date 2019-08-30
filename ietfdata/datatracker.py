@@ -50,7 +50,6 @@ from pavlova     import Pavlova
 
 T = TypeVar('T')
 
-import datetime
 import glob
 import json
 import requests
