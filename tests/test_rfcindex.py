@@ -42,64 +42,72 @@ class TestRFCIndex(unittest.TestCase):
         self.index = RFCIndex()
 
     def test_rfc(self):
-        self.assertEqual(self.index.rfc["RFC3550"].doc_id,       "RFC3550")
-        self.assertEqual(self.index.rfc["RFC3550"].title,        "RTP: A Transport Protocol for Real-Time Applications")
-        self.assertEqual(self.index.rfc["RFC3550"].authors,      ["H. Schulzrinne", "S. Casner", "R. Frederick", "V. Jacobson"])
-        self.assertEqual(self.index.rfc["RFC3550"].doi,          "10.17487/RFC3550")
-        self.assertEqual(self.index.rfc["RFC3550"].stream,       "IETF")
-        self.assertEqual(self.index.rfc["RFC3550"].wg,           "avt")
-        self.assertEqual(self.index.rfc["RFC3550"].area,         "rai")
-        self.assertEqual(self.index.rfc["RFC3550"].curr_status,  "INTERNET STANDARD")
-        self.assertEqual(self.index.rfc["RFC3550"].publ_status,  "DRAFT STANDARD")
-        self.assertEqual(self.index.rfc["RFC3550"].day,          None)
-        self.assertEqual(self.index.rfc["RFC3550"].month,        "July")
-        self.assertEqual(self.index.rfc["RFC3550"].year,         2003)
-        self.assertEqual(self.index.rfc["RFC3550"].formats,      [("ASCII", 259985, 104), ("PS", 630740, None), ("PDF", 504117, None), ("HTML", None, None)])
-        self.assertEqual(self.index.rfc["RFC3550"].draft,        "draft-ietf-avt-rtp-new-12")
-        self.assertEqual(self.index.rfc["RFC3550"].keywords,     ["RTP", "end-to-end", "network", "audio", "video", "RTCP"])
-        self.assertEqual(self.index.rfc["RFC3550"].updates,      [])
-        self.assertEqual(self.index.rfc["RFC3550"].updated_by,   ["RFC5506", "RFC5761", "RFC6051", "RFC6222", "RFC7022", "RFC7160", "RFC7164", "RFC8083", "RFC8108"])
-        self.assertEqual(self.index.rfc["RFC3550"].obsoletes,    ["RFC1889"])
-        self.assertEqual(self.index.rfc["RFC3550"].obsoleted_by, [])
-        self.assertEqual(self.index.rfc["RFC3550"].is_also,      ["STD0064"])
-        self.assertEqual(self.index.rfc["RFC3550"].see_also,     [])
-        self.assertEqual(self.index.rfc["RFC3550"].errata_url,   "http://www.rfc-editor.org/errata_search.php?rfc=3550")
-        self.assertEqual(self.index.rfc["RFC3550"].charset(),    "utf-8")
-        self.assertEqual(self.index.rfc["RFC3550"].content_url("ASCII"), "https://www.rfc-editor.org/rfc/rfc3550.txt")
-        self.assertEqual(self.index.rfc["RFC3550"].content_url("PS"),    "https://www.rfc-editor.org/rfc/rfc3550.ps")
-        self.assertEqual(self.index.rfc["RFC3550"].content_url("PDF"),   "https://www.rfc-editor.org/rfc/rfc3550.pdf")
-        self.assertEqual(self.index.rfc["RFC3550"].content_url("XML"),   None)
+        rfc = self.index.rfc("RFC3550")
+        self.assertEqual(rfc.doc_id,       "RFC3550")
+        self.assertEqual(rfc.title,        "RTP: A Transport Protocol for Real-Time Applications")
+        self.assertEqual(rfc.authors,      ["H. Schulzrinne", "S. Casner", "R. Frederick", "V. Jacobson"])
+        self.assertEqual(rfc.doi,          "10.17487/RFC3550")
+        self.assertEqual(rfc.stream,       "IETF")
+        self.assertEqual(rfc.wg,           "avt")
+        self.assertEqual(rfc.area,         "rai")
+        self.assertEqual(rfc.curr_status,  "INTERNET STANDARD")
+        self.assertEqual(rfc.publ_status,  "DRAFT STANDARD")
+        self.assertEqual(rfc.day,          None)
+        self.assertEqual(rfc.month,        "July")
+        self.assertEqual(rfc.year,         2003)
+        self.assertEqual(rfc.formats,      [("ASCII", 259985, 104), ("PS", 630740, None), ("PDF", 504117, None), ("HTML", None, None)])
+        self.assertEqual(rfc.draft,        "draft-ietf-avt-rtp-new-12")
+        self.assertEqual(rfc.keywords,     ["RTP", "end-to-end", "network", "audio", "video", "RTCP"])
+        self.assertEqual(rfc.updates,      [])
+        self.assertEqual(rfc.updated_by,   ["RFC5506", "RFC5761", "RFC6051", "RFC6222", "RFC7022", "RFC7160", "RFC7164", "RFC8083", "RFC8108"])
+        self.assertEqual(rfc.obsoletes,    ["RFC1889"])
+        self.assertEqual(rfc.obsoleted_by, [])
+        self.assertEqual(rfc.is_also,      ["STD0064"])
+        self.assertEqual(rfc.see_also,     [])
+        self.assertEqual(rfc.errata_url,   "http://www.rfc-editor.org/errata_search.php?rfc=3550")
+        self.assertEqual(rfc.charset(),    "utf-8")
+        self.assertEqual(rfc.content_url("ASCII"), "https://www.rfc-editor.org/rfc/rfc3550.txt")
+        self.assertEqual(rfc.content_url("PS"),    "https://www.rfc-editor.org/rfc/rfc3550.ps")
+        self.assertEqual(rfc.content_url("PDF"),   "https://www.rfc-editor.org/rfc/rfc3550.pdf")
+        self.assertEqual(rfc.content_url("XML"),   None)
         # FIXME: no text for the abstract
 
     def test_rfc_april_fool(self):
         # RFCs published on 1 April are the only ones to specify a day in the XML
-        self.assertEqual(self.index.rfc["RFC1149"].day,   1)
-        self.assertEqual(self.index.rfc["RFC1149"].month, "April")
-        self.assertEqual(self.index.rfc["RFC1149"].year,  1990)
+        rfc = self.index.rfc("RFC1149")
+        self.assertEqual(rfc.day,   1)
+        self.assertEqual(rfc.month, "April")
+        self.assertEqual(rfc.year,  1990)
 
     def test_rfc_editor(self):
         # Some RFCs have <title>...</title> within an author block, usually "Editor". Check that we correctly strip this out.
-        self.assertEqual(self.index.rfc["RFC1256"].authors, ["S. Deering"])
+        rfc = self.index.rfc("RFC1256")
+        self.assertEqual(rfc.authors, ["S. Deering"])
 
     def test_rfc_empty_kw(self):
         # Some RFCs have <kw></kw> which is not useful. Check that we correctly strip this out.
-        self.assertEqual(self.index.rfc["RFC2351"].keywords, ["internet", "protocol", "encapsulation", "transactional", "traffic", "messaging"])
+        rfc = self.index.rfc("RFC2351")
+        self.assertEqual(rfc.keywords, ["internet", "protocol", "encapsulation", "transactional", "traffic", "messaging"])
 
     def test_rfc_not_issued(self):
-        self.assertEqual(self.index.rfc_not_issued["RFC7907"].doc_id,  "RFC7907")
+        rne = self.index.rfc_not_issued("RFC7907")
+        self.assertEqual(rne.doc_id,  "RFC7907")
 
     def test_bcp(self):
-        self.assertEqual(self.index.bcp["BCP0009"].doc_id,  "BCP0009")
-        self.assertEqual(self.index.bcp["BCP0009"].is_also, ["RFC2026", "RFC5657", "RFC6410", "RFC7100", "RFC7127", "RFC7475"])
+        bcp = self.index.bcp("BCP0009")
+        self.assertEqual(bcp.doc_id,  "BCP0009")
+        self.assertEqual(bcp.is_also, ["RFC2026", "RFC5657", "RFC6410", "RFC7100", "RFC7127", "RFC7475"])
 
     def test_fyi(self):
-        self.assertEqual(self.index.fyi["FYI0036"].doc_id,  "FYI0036")
-        self.assertEqual(self.index.fyi["FYI0036"].is_also, ["RFC4949"])
+        fyi = self.index.fyi("FYI0036")
+        self.assertEqual(fyi.doc_id,  "FYI0036")
+        self.assertEqual(fyi.is_also, ["RFC4949"])
 
     def test_std(self):
-        self.assertEqual(self.index.std["STD0064"].doc_id,  "STD0064")
-        self.assertEqual(self.index.std["STD0064"].is_also, ["RFC3550"])
-        self.assertEqual(self.index.std["STD0064"].title,   "RTP: A Transport Protocol for Real-Time Applications")
+        std =  self.index.std("STD0064")
+        self.assertEqual(std.doc_id,  "STD0064")
+        self.assertEqual(std.is_also, ["RFC3550"])
+        self.assertEqual(std.title,   "RTP: A Transport Protocol for Real-Time Applications")
 
 
 if __name__ == '__main__':

@@ -422,19 +422,19 @@ class RFCIndex:
     """
     The RFC Index.
     """
-    rfc            : Dict[str, RfcEntry]
-    rfc_not_issued : Dict[str, RfcNotIssuedEntry]
-    bcp            : Dict[str, BcpEntry]
-    std            : Dict[str, StdEntry]
-    fyi            : Dict[str, FyiEntry]
+    _rfc            : Dict[str, RfcEntry]
+    _rfc_not_issued : Dict[str, RfcNotIssuedEntry]
+    _bcp            : Dict[str, BcpEntry]
+    _std            : Dict[str, StdEntry]
+    _fyi            : Dict[str, FyiEntry]
 
 
     def __init__(self) -> None:
-        self.rfc            = {}
-        self.rfc_not_issued = {}
-        self.bcp            = {}
-        self.std            = {}
-        self.fyi            = {}
+        self._rfc            = {}
+        self._rfc_not_issued = {}
+        self._bcp            = {}
+        self._std            = {}
+        self._fyi            = {}
 
         session  = requests.Session()
         response = session.get("https://www.rfc-editor.org/rfc-index.xml", verify=True)
@@ -446,20 +446,42 @@ class RFCIndex:
         for doc in ET.fromstring(response.text):
             if   doc.tag == "{http://www.rfc-editor.org/rfc-index}rfc-entry":
                 rfc = RfcEntry(doc)
-                self.rfc[rfc.doc_id] = rfc
+                self._rfc[rfc.doc_id] = rfc
             elif doc.tag == "{http://www.rfc-editor.org/rfc-index}rfc-not-issued-entry":
                 rne = RfcNotIssuedEntry(doc)
-                self.rfc_not_issued[rne.doc_id] = rne
+                self._rfc_not_issued[rne.doc_id] = rne
             elif doc.tag == "{http://www.rfc-editor.org/rfc-index}bcp-entry":
                 bcp = BcpEntry(doc)
-                self.bcp[bcp.doc_id] = bcp
+                self._bcp[bcp.doc_id] = bcp
             elif doc.tag == "{http://www.rfc-editor.org/rfc-index}std-entry":
                 std = StdEntry(doc)
-                self.std[std.doc_id] = std
+                self._std[std.doc_id] = std
             elif doc.tag == "{http://www.rfc-editor.org/rfc-index}fyi-entry":
                 fyi = FyiEntry(doc)
-                self.fyi[fyi.doc_id] = fyi
+                self._fyi[fyi.doc_id] = fyi
             else:
                 raise NotImplementedError
+
+
+    def rfc(self, rfc_id: str) -> Optional[RfcEntry]:
+        return self._rfc[rfc_id]
+
+
+    def rfc_not_issued(self, rfc_id: str) -> Optional[RfcNotIssuedEntry]:
+        return self._rfc_not_issued[rfc_id]
+
+
+    def bcp(self, bcp_id: str) -> Optional[BcpEntry]:
+        return self._bcp[bcp_id]
+
+
+    def fyi(self, fyi_id: str) -> Optional[FyiEntry]:
+        return self._fyi[fyi_id]
+
+
+    def std(self, std_id: str) -> Optional[StdEntry]:
+        return self._std[std_id]
+
+
 
 # ==================================================================================================
