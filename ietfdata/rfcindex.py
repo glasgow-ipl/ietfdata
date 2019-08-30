@@ -23,7 +23,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from typing import List, Optional, Tuple, Dict
+from typing   import Iterator, List, Optional, Tuple, Dict
+from datetime import datetime
 
 import xml.etree.ElementTree as ET
 import requests
@@ -284,6 +285,16 @@ class RfcEntry:
         return None
 
 
+    def date(self) -> datetime:
+        if self.day != None:
+            date = "{} {} {}".format(self.day, self.month, self.year)
+            return datetime.strptime(date, "%d %B %Y")
+        else:
+            date = "{} {}".format(self.month, self.year)
+            return datetime.strptime(date, "%B %Y")
+
+
+
 # ==================================================================================================
 
 class RfcNotIssuedEntry:
@@ -482,6 +493,29 @@ class RFCIndex:
     def std(self, std_id: str) -> Optional[StdEntry]:
         return self._std[std_id]
 
+
+    def rfcs(self,
+            since:  str = "1969-01",  # The first RFCs were published in 1969
+            until:  str = "2038-01",
+            stream: Optional[str] = None,
+            area:   Optional[str] = None,
+            wg:     Optional[str] = None,
+            status: Optional[str] = None) -> Iterator[RfcEntry]:
+        for rfc_id in self._rfc:
+            rfc = self._rfc[rfc_id]
+            if stream is not None and rfc.stream != stream:
+                continue
+            if area   is not None and rfc.area   != area:
+                continue
+            if wg     is not None and rfc.wg     != wg:
+                continue
+            if status is not None and rfc.curr_status != status:
+                continue
+            if rfc.date() < datetime.strptime(since, "%Y-%m"):
+                continue
+            if rfc.date() > datetime.strptime(until, "%Y-%m"):
+                continue
+            yield(rfc)
 
 
 # ==================================================================================================

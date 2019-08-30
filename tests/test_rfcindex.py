@@ -109,6 +109,16 @@ class TestRFCIndex(unittest.TestCase):
         self.assertEqual(std.is_also, ["RFC3550"])
         self.assertEqual(std.title,   "RTP: A Transport Protocol for Real-Time Applications")
 
+    def test_rfcs(self):
+        rfcs = list(self.index.rfcs(since="2019-07", until="2019-07", stream="IRTF"))
+        self.assertEqual(len(rfcs), 2)
+        self.assertEqual(rfcs[0].doc_id, "RFC8569")
+        self.assertEqual(rfcs[1].doc_id, "RFC8609")
+
+        rfcs = list(self.index.rfcs(since="2019-07", until="2019-07", stream="IETF", area="art", wg="payload"))
+        self.assertEqual(len(rfcs), 1)
+        self.assertEqual(rfcs[0].doc_id, "RFC8627")
+
 
 if __name__ == '__main__':
     unittest.main()
