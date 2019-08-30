@@ -8,6 +8,7 @@ mypy = "*"
 setuptools = "*"
 wheel = "*"
 twine = "*"
+keyring = "*"
 
 [packages]
 requests = "*"
