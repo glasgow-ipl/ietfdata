@@ -543,7 +543,7 @@ class TestDatatracker(unittest.TestCase):
     # FIXME: this needs to be updated
     def test_document_state_types(self) -> None:
         st = list(self.dt.document_state_types())
-        self.assertEqual(len(st), 23)
+        self.assertEqual(len(st), 24)
         self.assertEqual(st[ 0].slug, 'draft')
         self.assertEqual(st[ 1].slug, 'draft-iesg')
         self.assertEqual(st[ 2].slug, 'draft-iana')
@@ -567,6 +567,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(st[20].slug, 'review')
         self.assertEqual(st[21].slug, 'liaison')
         self.assertEqual(st[22].slug, 'shepwrit')
+        self.assertEqual(st[23].slug, 'draft-iana-experts')
 
     # FIXME: this needs to be updated
     def test_submission(self) -> None:
