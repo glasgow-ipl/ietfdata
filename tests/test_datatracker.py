@@ -520,7 +520,7 @@ class TestDatatracker(unittest.TestCase):
     # FIXME: this needs to be updated
     def test_document_states(self) -> None:
         states = list(self.dt.document_states(statetype="draft-rfceditor"))
-        self.assertEqual(len(states), 18)
+        self.assertEqual(len(states), 19)
         self.assertEqual(states[ 0].name, 'AUTH')
         self.assertEqual(states[ 1].name, 'AUTH48')
         self.assertEqual(states[ 2].name, 'EDIT')
@@ -539,6 +539,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(states[15].name, 'IESG')
         self.assertEqual(states[16].name, 'ISR-AUTH')
         self.assertEqual(states[17].name, 'Pending')
+        self.assertEqual(states[18].name, 'TI')
 
     # FIXME: this needs to be updated
     def test_document_state_types(self) -> None:
