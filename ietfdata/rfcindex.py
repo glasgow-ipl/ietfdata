@@ -275,7 +275,7 @@ class RfcEntry:
                 elif required_format == "PS":
                     return "https://www.rfc-editor.org/rfc/" + self.doc_id.lower() + ".ps"
                 elif required_format == "PDF":
-                    return "https://www.rfc-editor.org/rfc/pdfrfc/" + self.doc_id.lower() + ".pdf"
+                    return "https://www.rfc-editor.org/rfc/" + self.doc_id.lower() + ".pdf"
                 elif required_format == "HTML":
                     return "https://www.rfc-editor.org/rfc/" + self.doc_id.lower() + ".html"
                 else:
