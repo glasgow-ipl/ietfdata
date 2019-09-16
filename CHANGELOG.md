@@ -1,6 +1,13 @@
 Change Log -- ietfdata
 ======================
 
+## v0.1.3 -- 2019-09-16
+
+ - Work around problems with Datatracker dropping connections when 
+   HTTP connection reuse is active
+ - Catch-up with changes to Datatracker API
+ - Catch-up with changes to RFC index format
+
 
 ## v0.1.2 -- 2019-09-09
 
