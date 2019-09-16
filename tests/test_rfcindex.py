@@ -55,7 +55,7 @@ class TestRFCIndex(unittest.TestCase):
         self.assertEqual(rfc.day,          None)
         self.assertEqual(rfc.month,        "July")
         self.assertEqual(rfc.year,         2003)
-        self.assertEqual(rfc.formats,      [("ASCII", 259985, 104), ("PS", 630740, None), ("PDF", 504117, None), ("HTML", None, None)])
+        self.assertEqual(rfc.formats,      ["ASCII", "PS", "PDF", "HTML"])
         self.assertEqual(rfc.draft,        "draft-ietf-avt-rtp-new-12")
         self.assertEqual(rfc.keywords,     ["RTP", "end-to-end", "network", "audio", "video", "RTCP"])
         self.assertEqual(rfc.updates,      [])
@@ -70,6 +70,7 @@ class TestRFCIndex(unittest.TestCase):
         self.assertEqual(rfc.content_url("PS"),    "https://www.rfc-editor.org/rfc/rfc3550.ps")
         self.assertEqual(rfc.content_url("PDF"),   "https://www.rfc-editor.org/rfc/rfc3550.pdf")
         self.assertEqual(rfc.content_url("XML"),   None)
+        self.assertEqual(rfc.page_count,   104)
         # FIXME: no text for the abstract
 
     def test_rfc_april_fool(self):

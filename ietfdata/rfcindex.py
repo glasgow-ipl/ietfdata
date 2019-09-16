@@ -49,7 +49,7 @@ class RfcEntry:
     day          : Optional[int]
     month        : str
     year         : int
-    formats      : List[Tuple[str, Optional[int], Optional[int]]]
+    formats      : List[str]
     draft        : Optional[str]
     keywords     : List[str]
     updates      : List[str]
@@ -60,6 +60,7 @@ class RfcEntry:
     see_also     : List[str]
     errata_url   : Optional[str]
     abstract     : Optional[ET.Element]
+    page_count   : int
 
 
     def __init__(self, rfc_element: ET.Element) -> None:
@@ -126,20 +127,12 @@ class RfcEntry:
                     else:
                         raise NotImplementedError
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}format":
-                # Not all formats have pages, and some of those that do don't have a page count
-                page_count = None
-                char_count = None
                 for inner in elem:
                     assert inner.text is not None
                     if   inner.tag == "{http://www.rfc-editor.org/rfc-index}file-format":
-                        file_format = inner.text
-                    elif inner.tag == "{http://www.rfc-editor.org/rfc-index}char-count":
-                        char_count = int(inner.text)
-                    elif inner.tag == "{http://www.rfc-editor.org/rfc-index}page-count":
-                        page_count = int(inner.text)
+                        self.formats.append(inner.text)
                     else:
                         raise NotImplementedError
-                self.formats.append((file_format, char_count, page_count))
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}draft":
                 self.draft = elem.text
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}keywords":
@@ -198,7 +191,10 @@ class RfcEntry:
                 # The <abstract>...</abstract> contains formatted XML, most
                 # typically a sequence of <p>...</p> tags.
                 self.abstract = elem
+            elif elem.tag == "{http://www.rfc-editor.org/rfc-index}page-count":
+                self.page_count = int(elem.text)
             else:
+                print("Unknown tag: " + elem.tag)
                 raise NotImplementedError
 
 
@@ -272,14 +268,16 @@ class RfcEntry:
 
 
     def content_url(self, required_format: str) -> Optional[str]:
-        for (fmt, size, pages) in self.formats:
+        for fmt in self.formats:
             if fmt == required_format:
                 if required_format == "ASCII":
                     return "https://www.rfc-editor.org/rfc/" + self.doc_id.lower() + ".txt"
                 elif required_format == "PS":
                     return "https://www.rfc-editor.org/rfc/" + self.doc_id.lower() + ".ps"
                 elif required_format == "PDF":
-                    return "https://www.rfc-editor.org/rfc/" + self.doc_id.lower() + ".pdf"
+                    return "https://www.rfc-editor.org/rfc/pdfrfc/" + self.doc_id.lower() + ".pdf"
+                elif required_format == "HTML":
+                    return "https://www.rfc-editor.org/rfc/" + self.doc_id.lower() + ".html"
                 else:
                     return None
         return None
