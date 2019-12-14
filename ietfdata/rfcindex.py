@@ -192,6 +192,7 @@ class RfcEntry:
                 # typically a sequence of <p>...</p> tags.
                 self.abstract = elem
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}page-count":
+                assert elem.text is not None
                 self.page_count = int(elem.text)
             else:
                 print("Unknown tag: " + elem.tag)
