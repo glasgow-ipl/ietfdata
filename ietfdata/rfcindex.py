@@ -23,7 +23,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from typing   import Iterator, List, Optional, Tuple, Dict
+from typing   import NewType, Iterator, List, Optional, Tuple, Dict
 from datetime import datetime
 
 import xml.etree.ElementTree as ET
@@ -32,12 +32,14 @@ import unittest
 
 # ==================================================================================================
 
+DocID = NewType('DocID', str)
+
 class RfcEntry:
     """
     An RFC entry in the rfc-index.xml file. No attempt is made to
     normalise the data included here.
     """
-    doc_id       : str                  # DocumentID (e.g., "RFC8700")
+    doc_id       : DocID                # DocumentID (e.g., "RFC8700")
     title        : str
     authors      : List[str]
     doi          : str
@@ -52,12 +54,12 @@ class RfcEntry:
     formats      : List[str]
     draft        : Optional[str]        # The Internet-draft that became this RFC
     keywords     : List[str]
-    updates      : List[str]            # List of DocumentID
-    updated_by   : List[str]            # List of DocumentID
-    obsoletes    : List[str]            # List of DocumentID
-    obsoleted_by : List[str]            # List of DocumentID
-    is_also      : List[str]            # List of DocumentID; a BCP or STD number
-    see_also     : List[str]            # List of DocumentID
+    updates      : List[DocID]
+    updated_by   : List[DocID]
+    obsoletes    : List[DocID]
+    obsoleted_by : List[DocID]
+    is_also      : List[DocID]
+    see_also     : List[DocID]
     errata_url   : Optional[str]
     abstract     : Optional[ET.Element] # The abstract, as formatted XML
     page_count   : int
@@ -83,7 +85,7 @@ class RfcEntry:
         for elem in rfc_element:
             if   elem.tag == "{http://www.rfc-editor.org/rfc-index}doc-id":
                 assert elem.text is not None
-                self.doc_id = elem.text
+                self.doc_id = DocID(elem.text)
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}title":
                 assert elem.text is not None
                 self.title  = elem.text
@@ -147,42 +149,42 @@ class RfcEntry:
                 for inner in elem:
                     assert inner.text is not None
                     if   inner.tag == "{http://www.rfc-editor.org/rfc-index}doc-id":
-                        self.updates.append(inner.text)
+                        self.updates.append(DocID(inner.text))
                     else:
                         raise NotImplementedError
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}updated-by":
                 for inner in elem:
                     assert inner.text is not None
                     if   inner.tag == "{http://www.rfc-editor.org/rfc-index}doc-id":
-                        self.updated_by.append(inner.text)
+                        self.updated_by.append(DocID(inner.text))
                     else:
                         raise NotImplementedError
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}obsoletes":
                 for inner in elem:
                     assert inner.text is not None
                     if   inner.tag == "{http://www.rfc-editor.org/rfc-index}doc-id":
-                        self.obsoletes.append(inner.text)
+                        self.obsoletes.append(DocID(inner.text))
                     else:
                         raise NotImplementedError
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}obsoleted-by":
                 for inner in elem:
                     assert inner.text is not None
                     if   inner.tag == "{http://www.rfc-editor.org/rfc-index}doc-id":
-                        self.obsoleted_by.append(inner.text)
+                        self.obsoleted_by.append(DocID(inner.text))
                     else:
                         raise NotImplementedError
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}is-also":
                 for inner in elem:
                     assert inner.text is not None
                     if   inner.tag == "{http://www.rfc-editor.org/rfc-index}doc-id":
-                        self.is_also.append(inner.text)
+                        self.is_also.append(DocID(inner.text))
                     else:
                         raise NotImplementedError
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}see-also":
                 for inner in elem:
                     assert inner.text is not None
                     if   inner.tag == "{http://www.rfc-editor.org/rfc-index}doc-id":
-                        self.see_also.append(inner.text)
+                        self.see_also.append(DocID(inner.text))
                     else:
                         raise NotImplementedError
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}errata-url":
@@ -300,14 +302,14 @@ class RfcNotIssuedEntry:
     """
       An RFC that was not issued in the rfc-index.xml file.
     """
-    doc_id : str
+    doc_id : DocID
 
 
     def __init__(self, rfc_not_issued_element: ET.Element) -> None:
         for elem in rfc_not_issued_element:
             if   elem.tag == "{http://www.rfc-editor.org/rfc-index}doc-id":
                 assert elem.text is not None
-                self.doc_id = elem.text
+                self.doc_id = DocID(elem.text)
             else:
                 raise NotImplementedError
 
@@ -324,8 +326,8 @@ class BcpEntry:
     """
       A BCP entry in the rfc-index.xml file.
     """
-    doc_id  : str
-    is_also : List[str]
+    doc_id  : DocID
+    is_also : List[DocID]
 
 
     def __init__(self, bcp_element: ET.Element) -> None:
@@ -334,12 +336,12 @@ class BcpEntry:
         for elem in bcp_element:
             if   elem.tag == "{http://www.rfc-editor.org/rfc-index}doc-id":
                 assert elem.text is not None
-                self.doc_id = elem.text
+                self.doc_id = DocID(elem.text)
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}is-also":
                 for inner in elem:
                     assert inner.text is not None
                     if   inner.tag == "{http://www.rfc-editor.org/rfc-index}doc-id":
-                        self.is_also.append(inner.text)
+                        self.is_also.append(DocID(inner.text))
                     else:
                         raise NotImplementedError
             else:
@@ -359,9 +361,9 @@ class StdEntry:
     """
       An STD entry in the rfc-index.xml file.
     """
-    doc_id  : str
+    doc_id  : DocID
     title   : str
-    is_also : List[str]
+    is_also : List[DocID]
 
 
     def __init__(self, std_element: ET.Element) -> None:
@@ -370,14 +372,14 @@ class StdEntry:
         for elem in std_element:
             assert elem.text is not None
             if   elem.tag == "{http://www.rfc-editor.org/rfc-index}doc-id":
-                self.doc_id = elem.text
+                self.doc_id = DocID(elem.text)
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}title":
                 self.title  = elem.text
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}is-also":
                 for inner in elem:
                     assert inner.text is not None
                     if   inner.tag == "{http://www.rfc-editor.org/rfc-index}doc-id":
-                        self.is_also.append(inner.text)
+                        self.is_also.append(DocID(inner.text))
                     else:
                         raise NotImplementedError
             else:
@@ -397,8 +399,8 @@ class FyiEntry:
     """
       A FYI entry in the rfc-index.xml file.
     """
-    doc_id   : str
-    is_also  : List[str]
+    doc_id   : DocID
+    is_also  : List[DocID]
 
 
     def __init__(self, fyi_element: ET.Element) -> None:
@@ -407,12 +409,12 @@ class FyiEntry:
         for elem in fyi_element:
             assert elem.text is not None
             if   elem.tag == "{http://www.rfc-editor.org/rfc-index}doc-id":
-                self.doc_id = elem.text
+                self.doc_id = DocID(elem.text)
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}is-also":
                 for inner in elem:
                     assert inner.text is not None
                     if   inner.tag == "{http://www.rfc-editor.org/rfc-index}doc-id":
-                        self.is_also.append(inner.text)
+                        self.is_also.append(DocID(inner.text))
                     else:
                         raise NotImplementedError
             else:
