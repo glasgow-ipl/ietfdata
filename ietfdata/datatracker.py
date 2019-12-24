@@ -44,6 +44,8 @@
 #   RFC 6359 "Datatracker Extensions to Include IANA and RFC Editor Processing Information"
 #   RFC 7760 "Statement of Work for Extensions to the IETF Datatracker for Author Statistics"
 
+from datetime    import datetime, timedelta
+from enum        import Enum
 from typing      import List, Optional, Tuple, Dict, Iterator, Type, TypeVar
 from dataclasses import dataclass
 from pavlova     import Pavlova
@@ -358,6 +360,11 @@ class GroupState:
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to meetings:
 
+class MeetingStatus(Enum):
+    FUTURE    = 1
+    ONGOING   = 2
+    COMPLETED = 3
+
 @dataclass
 class Meeting:
     resource_uri                     : str
@@ -389,6 +396,17 @@ class Meeting:
     attendees                        : Optional[str]
     date                             : str
     days                             : int
+
+    def status(self) -> MeetingStatus:
+        now = datetime.now()
+        meeting_start = datetime.strptime(self.date, "%Y-%m-%d")
+        meeting_end   = meeting_start + timedelta(days = self.days - 1)
+        if meeting_start > now:
+            return MeetingStatus.FUTURE
+        elif meeting_end < now:
+            return MeetingStatus.COMPLETED
+        else:
+            return MeetingStatus.ONGOING
 
 
 @dataclass
