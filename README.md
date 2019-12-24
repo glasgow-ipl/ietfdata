@@ -39,6 +39,7 @@ Getting started
 Release Process
 ---------------
 
+- Edit CHANGELOG.md and ensure up-to-date
 - Edit setup.py to ensure the correct version number is present
 - Commit changes and push to Github
 - Run `make test` to run the test suite. If any tests fail, fix then
