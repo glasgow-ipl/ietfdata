@@ -1,6 +1,11 @@
 Change Log -- ietfdata
 ======================
 
+## v0.1.5 -- 2019-12-24
+
+ - Add Meeting::status() method
+
+
 ## v0.1.4 -- 2019-10-07
 
  - Update tests
