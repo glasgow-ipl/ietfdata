@@ -1,6 +1,11 @@
 Change Log -- ietfdata
 ======================
 
+## v0.1.6 -- ???
+
+ - Update documentation of RfcEntry class
+
+
 ## v0.1.5 -- 2019-12-24
 
  - Add Meeting::status() method

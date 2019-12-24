@@ -37,29 +37,29 @@ class RfcEntry:
     An RFC entry in the rfc-index.xml file. No attempt is made to
     normalise the data included here.
     """
-    doc_id       : str
+    doc_id       : str                  # DocumentID (e.g., "RFC8700")
     title        : str
     authors      : List[str]
     doi          : str
     stream       : str
-    wg           : Optional[str]
-    area         : Optional[str]
-    curr_status  : str
-    publ_status  : str
-    day          : Optional[int]
-    month        : str
-    year         : int
+    wg           : Optional[str]        # For IETF stream RFCs, the working group
+    area         : Optional[str]        # For IETF stream RFCs, the area
+    publ_status  : str                  # The RFC status when published
+    curr_status  : str                  # The RFC status now
+    day          : Optional[int]        # The publication day; only recorded for 1 April RFCs
+    month        : str                  # The publication month (e.g., "December")
+    year         : int                  # The publication year
     formats      : List[str]
-    draft        : Optional[str]
+    draft        : Optional[str]        # The Internet-draft that became this RFC
     keywords     : List[str]
-    updates      : List[str]
-    updated_by   : List[str]
-    obsoletes    : List[str]
-    obsoleted_by : List[str]
-    is_also      : List[str]
-    see_also     : List[str]
+    updates      : List[str]            # List of DocumentID
+    updated_by   : List[str]            # List of DocumentID
+    obsoletes    : List[str]            # List of DocumentID
+    obsoleted_by : List[str]            # List of DocumentID
+    is_also      : List[str]            # List of DocumentID; a BCP or STD number
+    see_also     : List[str]            # List of DocumentID
     errata_url   : Optional[str]
-    abstract     : Optional[ET.Element]
+    abstract     : Optional[ET.Element] # The abstract, as formatted XML
     page_count   : int
 
 
