@@ -343,14 +343,40 @@ class TestDatatracker(unittest.TestCase):
             self.fail("Cannot find document")
 
 
-    # FIXME: this needs to be updated
     def test_document_charter(self) -> None:
         d  = self.dt.document("/api/v1/doc/document/charter-ietf-vgmib/")
         if d is not None:
-            self.assertEqual(d.resource_uri,          "/api/v1/doc/document/charter-ietf-vgmib/")
-            self.assertEqual(d.document_url(), "https://www.ietf.org/charter/charter-ietf-vgmib-01.txt")
-            self.assertEqual(d.uploaded_filename,     "")
-            self.assertEqual(self.dt.session.get(d.document_url()).status_code, 200)
+            self.assertEqual(d.internal_comments,  "")
+            self.assertEqual(d.id,                 1)
+            self.assertEqual(d.name,               "charter-ietf-vgmib")
+            self.assertEqual(d.notify,             "")
+            self.assertEqual(d.order,              1)
+            self.assertEqual(d.rev,                "01")
+            self.assertEqual(d.external_url,       "")
+            self.assertEqual(d.expires,            None)
+            self.assertEqual(d.type,               "/api/v1/name/doctypename/charter/")
+            self.assertEqual(d.group,              "/api/v1/group/group/925/")
+            self.assertEqual(d.resource_uri,       "/api/v1/doc/document/charter-ietf-vgmib/")
+            self.assertEqual(d.title,              "100VG-AnyLAN MIB")
+            self.assertEqual(d.abstract,           "100VG-AnyLAN MIB")
+            self.assertEqual(d.uploaded_filename,  "")
+            self.assertEqual(d.rfc,                None)
+            self.assertEqual(d.shepherd,           None)
+            self.assertEqual(d.submissions,        [])
+            self.assertEqual(d.intended_std_level, None)
+            self.assertEqual(d.ad,                 None)
+            self.assertEqual(d.note,               "")
+            self.assertEqual(d.words,              None)
+            self.assertEqual(d.tags,               [])
+            self.assertEqual(d.time,               "1998-01-26T12:00:00")
+            self.assertEqual(d.pages,              None)
+            self.assertEqual(d.stream,             None)
+            self.assertEqual(d.std_level,          None)
+            self.assertEqual(d.states,             ["/api/v1/doc/state/88/"])
+
+            url = d.document_url()
+            self.assertEqual(url, "https://www.ietf.org/charter/charter-ietf-vgmib-01.txt")
+            self.assertEqual(self.dt.session.get(url).status_code, 200)
         else:
             self.fail("Cannot find document")
 
@@ -361,7 +387,6 @@ class TestDatatracker(unittest.TestCase):
         if d is not None:
             self.assertEqual(d.resource_uri,          "/api/v1/doc/document/conflict-review-kiyomoto-kcipher2/")
             self.assertEqual(d.document_url(), "https://www.ietf.org/cr/conflict-review-kiyomoto-kcipher2-00.txt")
-            self.assertEqual(d.uploaded_filename,     "")
             self.assertEqual(self.dt.session.get(d.document_url()).status_code, 200)
         else:
             self.fail("Cannot find document")
