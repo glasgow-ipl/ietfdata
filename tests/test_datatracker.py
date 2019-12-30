@@ -495,14 +495,40 @@ class TestDatatracker(unittest.TestCase):
             self.fail("Cannot find document")
 
 
-    # FIXME: this needs to be updated
     def test_document_liai_att(self) -> None:
         d  = self.dt.document("/api/v1/doc/document/liaison-2004-08-23-itu-t-ietf-liaison-statement-to-ietf-and-itu-t-study-groups-countering-spam-pdf-version-attachment-1/")
         if d is not None:
-            self.assertEqual(d.resource_uri,          "/api/v1/doc/document/liaison-2004-08-23-itu-t-ietf-liaison-statement-to-ietf-and-itu-t-study-groups-countering-spam-pdf-version-attachment-1/")
-            self.assertEqual(d.document_url(), "https://www.ietf.org/lib/dt/documents/LIAISON/file39.pdf")
-            self.assertEqual(d.uploaded_filename,     "file39.pdf")
-            self.assertEqual(self.dt.session.get(d.document_url()).status_code, 200)
+            self.assertEqual(d.internal_comments,  "")
+            self.assertEqual(d.id,                 43519)
+            self.assertEqual(d.name,               "liaison-2004-08-23-itu-t-ietf-liaison-statement-to-ietf-and-itu-t-study-groups-countering-spam-pdf-version-attachment-1")
+            self.assertEqual(d.notify,             "")
+            self.assertEqual(d.order,              1)
+            self.assertEqual(d.rev,                "")
+            self.assertEqual(d.external_url,       "")
+            self.assertEqual(d.expires,            None)
+            self.assertEqual(d.type,               "/api/v1/name/doctypename/liai-att/")
+            self.assertEqual(d.group,              None)
+            self.assertEqual(d.resource_uri,       "/api/v1/doc/document/liaison-2004-08-23-itu-t-ietf-liaison-statement-to-ietf-and-itu-t-study-groups-countering-spam-pdf-version-attachment-1/")
+            self.assertEqual(d.title,              "Liaison Statement to IETF and ITU-T Study Groups: Countering SPAM (PDF version)")
+            self.assertEqual(d.abstract,           "")
+            self.assertEqual(d.uploaded_filename,  "file39.pdf")
+            self.assertEqual(d.rfc,                None)
+            self.assertEqual(d.shepherd,           None)
+            self.assertEqual(d.submissions,        [])
+            self.assertEqual(d.intended_std_level, None)
+            self.assertEqual(d.ad,                 None)
+            self.assertEqual(d.note,               "")
+            self.assertEqual(d.words,              None)
+            self.assertEqual(d.tags,               [])
+            self.assertEqual(d.time,               "2004-08-23T00:00:00")
+            self.assertEqual(d.pages,              None)
+            self.assertEqual(d.stream,             None)
+            self.assertEqual(d.std_level,          None)
+            self.assertEqual(d.states,             [])
+
+            url = d.document_url()
+            self.assertEqual(url, "https://www.ietf.org/lib/dt/documents/LIAISON/file39.pdf")
+            self.assertEqual(self.dt.session.get(url).status_code, 200)
         else:
             self.fail("Cannot find document")
 
