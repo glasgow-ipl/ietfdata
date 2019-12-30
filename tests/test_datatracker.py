@@ -101,6 +101,42 @@ class TestDatatracker(unittest.TestCase):
             self.fail("Cannot find person")
 
 
+    def test_emails(self) -> None:
+        e = list(self.dt.emails(since="2018-04-01T00:00:00", until="2018-04-30T23:59:59"))
+        self.assertEqual(len(e), 32)
+        self.assertEqual(e[ 0].resource_uri, '/api/v1/person/email/jeromee.marcon@free.fr/')
+        self.assertEqual(e[ 1].resource_uri, '/api/v1/person/email/to-niwa@kddi.com/')
+        self.assertEqual(e[ 2].resource_uri, '/api/v1/person/email/lucaspardue.24.7@gmail.com/')
+        self.assertEqual(e[ 3].resource_uri, '/api/v1/person/email/eagros@dolby.com/')
+        self.assertEqual(e[ 4].resource_uri, '/api/v1/person/email/loghyr@hammer.space/')
+        self.assertEqual(e[ 5].resource_uri, '/api/v1/person/email/abashandy.ietf@gmail.com/')
+        self.assertEqual(e[ 6].resource_uri, '/api/v1/person/email/nasimparvez21@gmail.com/')
+        self.assertEqual(e[ 7].resource_uri, '/api/v1/person/email/bkaduk@akamai.com/')
+        self.assertEqual(e[ 8].resource_uri, '/api/v1/person/email/16111011@bjtu.edu.cn/')
+        self.assertEqual(e[ 9].resource_uri, '/api/v1/person/email/bhfeng@bjtu.edu.cn/')
+        self.assertEqual(e[10].resource_uri, '/api/v1/person/email/kouhei@chromium.org/')
+        self.assertEqual(e[11].resource_uri, '/api/v1/person/email/christian.grothoff@bfh.ch/')
+        self.assertEqual(e[12].resource_uri, '/api/v1/person/email/unknown-email-Nikos-Triantafillis/')
+        self.assertEqual(e[13].resource_uri, '/api/v1/person/email/nikos@linkedin.com/')
+        self.assertEqual(e[14].resource_uri, '/api/v1/person/email/ccassar@tesla.com/')
+        self.assertEqual(e[15].resource_uri, '/api/v1/person/email/benjamin.phister@op3ft.org/')
+        self.assertEqual(e[16].resource_uri, '/api/v1/person/email/jean-emmanuel.rodriguez@op3ft.org/')
+        self.assertEqual(e[17].resource_uri, '/api/v1/person/email/simon.perreault@logmein.com/')
+        self.assertEqual(e[18].resource_uri, '/api/v1/person/email/brian@trammell.ch/')
+        self.assertEqual(e[19].resource_uri, '/api/v1/person/email/oyvind.ronningstad@nordicsemi.no/')
+        self.assertEqual(e[20].resource_uri, '/api/v1/person/email/zs_yolanda@163.com/')
+        self.assertEqual(e[21].resource_uri, '/api/v1/person/email/18810320812@163.com/')
+        self.assertEqual(e[22].resource_uri, '/api/v1/person/email/190449115@qq.com/')
+        self.assertEqual(e[23].resource_uri, '/api/v1/person/email/smd@simplemetadata.org/')
+        self.assertEqual(e[24].resource_uri, '/api/v1/person/email/michael.slusarz@open-xchange.com/')
+        self.assertEqual(e[25].resource_uri, '/api/v1/person/email/unknown-email-Giorgio-Campo/')
+        self.assertEqual(e[26].resource_uri, '/api/v1/person/email/security@paragonie.com/')
+        self.assertEqual(e[27].resource_uri, '/api/v1/person/email/hausss@rpi.edu/')
+        self.assertEqual(e[28].resource_uri, '/api/v1/person/email/daniel@kais3r.de/')
+        self.assertEqual(e[29].resource_uri, '/api/v1/person/email/farhadiba44@gmail.com/')
+        self.assertEqual(e[30].resource_uri, '/api/v1/person/email/lee.howard@retevia.net/')
+        self.assertEqual(e[31].resource_uri, '/api/v1/person/email/yolanda.xia@huawei.com/')
+
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to people:
 

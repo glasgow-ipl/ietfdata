@@ -479,6 +479,23 @@ class DataTracker:
         return self._retrieve_multi(uri, HistoricalEmail)
 
 
+    def emails(self, 
+               since : str ="1970-01-01T00:00:00", 
+               until : str ="2038-01-19T03:14:07") -> Iterator[Email]:
+        """
+        A generator that returns email addresses recorded in the datatracker.
+
+        Parameters:
+            since         -- Only return people with timestamp after this
+            until         -- Only return people with timestamp before this
+
+        Returns:
+            An iterator, where each element is an Email object
+        """
+        url = "/api/v1/person/email/?time__gte=" + since + "&time__lt=" + until
+        return self._retrieve_multi(url, Email)
+
+
     # ----------------------------------------------------------------------------------------------------------------------------
     # Datatracker API endpoints returning information about people:
     # * https://datatracker.ietf.org/api/v1/person/person/
