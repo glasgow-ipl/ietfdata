@@ -572,7 +572,6 @@ class TestDatatracker(unittest.TestCase):
     def test_document_minutes(self) -> None:
         d  = self.dt.document("/api/v1/doc/document/minutes-89-cfrg/")
         if d is not None:
-
             self.assertEqual(d.internal_comments,  "")
             self.assertEqual(d.id,                 272)
             self.assertEqual(d.name,               "minutes-89-cfrg")
@@ -608,15 +607,41 @@ class TestDatatracker(unittest.TestCase):
             self.fail("Cannot find document")
 
 
-    # FIXME: this needs to be updated
     def test_document_recording(self) -> None:
         d  = self.dt.document("/api/v1/doc/document/recording-94-taps-1/")
         if d is not None:
-            self.assertEqual(d.resource_uri,          "/api/v1/doc/document/recording-94-taps-1/")
-            self.assertEqual(d.document_url(), "https://www.ietf.org/audio/ietf94/ietf94-room304-20151103-1520.mp3")
-            self.assertEqual(d.uploaded_filename,     "")
+            self.assertEqual(d.internal_comments,  "")
+            self.assertEqual(d.id,                 49624)
+            self.assertEqual(d.name,               "recording-94-taps-1")
+            self.assertEqual(d.notify,             "")
+            self.assertEqual(d.order,              1)
+            self.assertEqual(d.rev,                "00")
+            self.assertEqual(d.external_url,       "https://www.ietf.org/audio/ietf94/ietf94-room304-20151103-1520.mp3")
+            self.assertEqual(d.expires,            None)
+            self.assertEqual(d.type,               "/api/v1/name/doctypename/recording/")
+            self.assertEqual(d.group,              "/api/v1/group/group/1924/")
+            self.assertEqual(d.resource_uri,       "/api/v1/doc/document/recording-94-taps-1/")
+            self.assertEqual(d.title,              "Audio recording for 2015-11-03 15:20")
+            self.assertEqual(d.abstract,           "")
+            self.assertEqual(d.uploaded_filename,  "")
+            self.assertEqual(d.rfc,                None)
+            self.assertEqual(d.shepherd,           None)
+            self.assertEqual(d.submissions,        [])
+            self.assertEqual(d.intended_std_level, None)
+            self.assertEqual(d.ad,                 None)
+            self.assertEqual(d.note,               "")
+            self.assertEqual(d.words,              None)
+            self.assertEqual(d.tags,               [])
+            self.assertEqual(d.time,               "2015-11-24T08:23:42")
+            self.assertEqual(d.pages,              None)
+            self.assertEqual(d.stream,             None)
+            self.assertEqual(d.std_level,          None)
+            self.assertEqual(d.states,             ["/api/v1/doc/state/135/"])
+
+            url = d.document_url()
+            self.assertEqual(url, "https://www.ietf.org/audio/ietf94/ietf94-room304-20151103-1520.mp3")
             # Downloading the MP3 is expensive, so check a HEAD request instead:
-            self.assertEqual(self.dt.session.head(d.document_url()).status_code, 200)
+            self.assertEqual(self.dt.session.head(url).status_code, 200)
         else:
             self.fail("Cannot find document")
 
