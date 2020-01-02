@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2019 University of Glasgow
+# Copyright (C) 2017-2020 University of Glasgow
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -49,6 +49,7 @@ from enum        import Enum
 from typing      import List, Optional, Tuple, Dict, Iterator, Type, TypeVar
 from dataclasses import dataclass
 from pavlova     import Pavlova
+from pavlova.parsers import GenericParser
 
 T = TypeVar('T')
 
@@ -61,21 +62,45 @@ import re
 # Classes to represent the JSON-serialised objects returned by the Datatracker API:
 
 # ---------------------------------------------------------------------------------------------------------------------------------
+# URI types:
+
+@dataclass(frozen=True)
+class EmailURI:
+    uri : str
+
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/person/email/") or self.uri.startswith("/api/v1/person/historicalemail/")
+
+
+@dataclass(frozen=True)
+class PersonURI:
+    uri : str
+
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/person/person/") or self.uri.startswith("/api/v1/person/historicalperson/")
+
+
+@dataclass(frozen=True)
+class GroupURI:
+    uri : str
+
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/group/group/")
+
+
+# ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to email addresses:
+
 
 @dataclass(frozen=True)
 class Email:
-    resource_uri : str # Suitable for use with DataTracker::email()
-    person       : str # Suitable for use with DataTracker::person()
+    resource_uri : EmailURI
+    person       : PersonURI
     address      : str # The email address
     time         : str
     origin       : str
     primary      : bool
     active       : bool
-
-    def __post_init__(self) -> None:
-        assert self.resource_uri.startswith("/api/v1/person/email/")
-        assert self.person.startswith("/api/v1/person/person/")
 
 
 @dataclass(frozen=True)
@@ -86,15 +111,13 @@ class HistoricalEmail(Email):
     history_type          : str
     history_date          : str
 
-    def __post_init__(self) -> None:
-        assert self.resource_uri.startswith("/api/v1/person/historicalemail/")
 
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to people:
 
 @dataclass(frozen=True)
 class Person:
-    resource_uri    : str # Suitable for use with DataTracker::person()
+    resource_uri    : PersonURI
     id              : int
     name            : str
     name_from_draft : str
@@ -107,9 +130,6 @@ class Person:
     biography       : str
     consent         : bool
 
-    def __post_init__(self) -> None:
-        assert self.resource_uri.startswith("/api/v1/person/person/")
-
 
 @dataclass(frozen=True)
 class HistoricalPerson(Person):
@@ -119,20 +139,16 @@ class HistoricalPerson(Person):
     history_type          : str
     history_date          : str
 
-    def __post_init__(self) -> None:
-        assert self.resource_uri.startswith("/api/v1/person/historicalperson/")
-
 
 @dataclass(frozen=True)
 class PersonAlias:
     id                 : int
     resource_uri       : str # Suitable for use with DataTracker::person_aliases()
-    person             : str # Suitable for use with DataTracker::person()
+    person             : PersonURI
     name               : str
 
     def __post_init__(self) -> None:
         assert self.resource_uri.startswith("/api/v1/person/alias/")
-        assert self.person.startswith("/api/v1/person/person/")
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------
@@ -156,9 +172,9 @@ class Document:
     internal_comments  : str
     order              : int
     note               : str
-    ad                 : Optional[str] # Suitable for use with DataTracker::person()
-    shepherd           : Optional[str] # Suitable for use with DataTracker::person()
-    group              : Optional[str] # Suitable for use with DataTracker::group()
+    ad                 : Optional[PersonURI]
+    shepherd           : Optional[PersonURI]
+    group              : Optional[GroupURI]
     stream             : Optional[str] # Suitable for use with DataTracker::stream()
     intended_std_level : Optional[str]
     std_level          : Optional[str]
@@ -171,10 +187,7 @@ class Document:
     def __post_init__(self) -> None:
         assert self.resource_uri.startswith("/api/v1/doc/document/")
         assert self.type.startswith("/api/v1/name/doctypename/")
-        assert self.ad                 is None or self.ad.startswith("/api/v1/person/person/")
-        assert self.shepherd           is None or self.shepherd.startswith("/api/v1/person/email/")
         assert self.stream             is None or self.stream.startswith("/api/v1/name/streamname/")
-        assert self.group              is None or self.group.startswith("/api/v1/group/group/")
         assert self.intended_std_level is None or self.intended_std_level.startswith("/api/v1/name/intendedstdlevelname/")
         assert self.std_level          is None or self.std_level.startswith("/api/v1/name/stdlevelname/")
         for state in self.states:
@@ -301,7 +314,7 @@ class Submission:
     file_size       : int
     file_types      : str
     first_two_pages : str
-    group           : str
+    group           : GroupURI
     id              : int
     name            : str
     note            : str
@@ -319,7 +332,6 @@ class Submission:
     def __post_init__(self) -> None:
         assert self.resource_uri.startswith("/api/v1/submit/submission/")
         assert self.state.startswith("/api/v1/name/draftsubmissionstatename/")
-        assert self.group.startswith("/api/v1/group/group/")
         assert self.draft.startswith("/api/v1/doc/document/draft-")
 
 
@@ -329,7 +341,7 @@ class Submission:
 @dataclass(frozen=True)
 class Group:
     acronym        : str
-    ad             : Optional[str]
+    ad             : Optional[PersonURI]
     charter        : str
     comments       : str
     description    : str
@@ -338,8 +350,8 @@ class Group:
     list_email     : str
     list_subscribe : str
     name           : str
-    parent         : str
-    resource_uri   : str
+    parent         : GroupURI
+    resource_uri   : GroupURI
     state          : str
     time           : str
     type           : str
@@ -429,6 +441,10 @@ class DataTracker:
     def __init__(self):
         self.session  = requests.Session()
         self.base_url = "https://datatracker.ietf.org"
+        self.pavlova = Pavlova()
+        self.pavlova.register_parser(EmailURI,  GenericParser(self.pavlova, EmailURI))
+        self.pavlova.register_parser(PersonURI, GenericParser(self.pavlova, PersonURI))
+        self.pavlova.register_parser(GroupURI,  GenericParser(self.pavlova, GroupURI))
 
 
     def __del__(self):
@@ -441,7 +457,7 @@ class DataTracker:
         response = requests.get(self.base_url + uri, verify=True)
         # response = self.session.get(self.base_url + uri, verify=True)
         if response.status_code == 200:
-            return Pavlova().from_mapping(response.json(), obj_type)
+            return self.pavlova.from_mapping(response.json(), obj_type)
         else:
             return None
 
@@ -456,7 +472,7 @@ class DataTracker:
             objs = r.json()['objects']
             uri  = meta['next']
             for obj in objs:
-                yield Pavlova().from_mapping(obj, obj_type)
+                yield self.pavlova.from_mapping(obj, obj_type)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -464,9 +480,8 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/person/email/csp@csperkins.org/
     # * https://datatracker.ietf.org/api/v1/person/historicalemail/
 
-    def email(self, email_addr: str) -> Optional[Email]:
-        uri = "/api/v1/person/email/" + email_addr + "/"
-        return self._retrieve(uri, Email)
+    def email(self, email_uri: EmailURI) -> Optional[Email]:
+        return self._retrieve(email_uri.uri, Email)
 
 
     def email_history_for_address(self, email_addr: str) -> Iterator[HistoricalEmail]:
@@ -504,21 +519,16 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/person/alias/
 
 
-    def person(self, person_uri: str) -> Optional[Person]:
-        if   person_uri.startswith("/api/v1/person/person/"):
-            return self._retrieve(person_uri, Person)
-        elif person_uri.startswith("/api/v1/person/email/"):
-            email = self._retrieve(person_uri, Email)
-            if email is not None:
-                return self._retrieve(email.person, Person)
-            else:
-                return None
-        else:
-            raise RuntimeError
+    def person(self, person_uri: PersonURI) -> Optional[Person]:
+        return self._retrieve(person_uri.uri, Person)
 
 
     def person_from_email(self, email_addr: str) -> Optional[Person]:
-        return self.person("/api/v1/person/email/" + email_addr + "/")
+        email = self.email(EmailURI("/api/v1/person/email/" + email_addr + "/"))
+        if email is not None:
+            return self.person(email.person)
+        else:
+            return None
 
 
     def person_aliases(self, person: Person) -> Iterator[PersonAlias]:
@@ -571,7 +581,7 @@ class DataTracker:
         if doctype is not None:
             url = url + "&type=" + doctype.slug
         if group is not None:
-            url = url + "&group=" + group.resource_uri
+            url = url + "&group=" + group.resource_uri.uri
         return self._retrieve_multi(url, Document)
 
 
@@ -876,9 +886,8 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/group/changestategroupevent/?group=2161    - Group state changes
     #   https://datatracker.ietf.org/api/v1/group/groupstatetransitions                - ???
 
-    def group(self, group_id: int) -> Optional[Group]:
-        url  = "/api/v1/group/group/%d/" % (group_id)
-        return self._retrieve(url, Group)
+    def group(self, group_uri: GroupURI) -> Optional[Group]:
+        return self._retrieve(group_uri.uri, Group)
 
 
     def group_from_acronym(self, acronym: str) -> Optional[Group]:

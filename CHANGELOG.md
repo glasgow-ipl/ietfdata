@@ -1,11 +1,12 @@
 Change Log -- ietfdata
 ======================
 
-## v0.1.6 -- ???
+## v0.2.0 -- ???
 
  - Update documentation of RfcEntry class
  - Update tests
  - Add Datatracker::emails() method
+ - Introduce and use URI types
 
 
 ## v0.1.5 -- 2019-12-24
