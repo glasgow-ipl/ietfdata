@@ -684,7 +684,6 @@ class TestDatatracker(unittest.TestCase):
             self.fail("Cannot find document")
 
 
-    # FIXME: this needs to be updated
     def test_document_shepwrit(self) -> None:
         for d in self.dt.documents(doctype=self.dt.document_type("shepwrit")):
             self.fail("shepwrit is not used, so this should return no documents")
