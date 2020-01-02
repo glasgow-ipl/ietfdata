@@ -689,14 +689,40 @@ class TestDatatracker(unittest.TestCase):
             self.fail("shepwrit is not used, so this should return no documents")
 
 
-    # FIXME: this needs to be updated
     def test_document_slides(self) -> None:
         d  = self.dt.document("/api/v1/doc/document/slides-65-l2vpn-4/")
         if d is not None:
-            self.assertEqual(d.resource_uri,          "/api/v1/doc/document/slides-65-l2vpn-4/")
-            self.assertEqual(d.document_url(), "https://www.ietf.org/proceedings/65/slides/l2vpn-4.pdf")
-            self.assertEqual(d.uploaded_filename,     "l2vpn-4.pdf")
-            self.assertEqual(self.dt.session.get(d.document_url()).status_code, 200)
+            self.assertEqual(d.internal_comments,  "")
+            self.assertEqual(d.id,                 736)
+            self.assertEqual(d.name,               "slides-65-l2vpn-4")
+            self.assertEqual(d.notify,             "")
+            self.assertEqual(d.order,              4)
+            self.assertEqual(d.rev,                "00")
+            self.assertEqual(d.external_url,       "")
+            self.assertEqual(d.expires,            None)
+            self.assertEqual(d.type,               "/api/v1/name/doctypename/slides/")
+            self.assertEqual(d.group,              "/api/v1/group/group/1593/")
+            self.assertEqual(d.resource_uri,       "/api/v1/doc/document/slides-65-l2vpn-4/")
+            self.assertEqual(d.title,              "Congruency for VPLS Mcast & Unicast Paths")
+            self.assertEqual(d.abstract,           "")
+            self.assertEqual(d.uploaded_filename,  "l2vpn-4.pdf")
+            self.assertEqual(d.rfc,                None)
+            self.assertEqual(d.shepherd,           None)
+            self.assertEqual(d.submissions,        [])
+            self.assertEqual(d.intended_std_level, None)
+            self.assertEqual(d.ad,                 None)
+            self.assertEqual(d.note,               "")
+            self.assertEqual(d.words,              None)
+            self.assertEqual(d.tags,               [])
+            self.assertEqual(d.time,               "2006-04-07T17:30:22")
+            self.assertEqual(d.pages,              None)
+            self.assertEqual(d.stream,             None)
+            self.assertEqual(d.std_level,          None)
+            self.assertEqual(d.states,             ["/api/v1/doc/state/141/", "/api/v1/doc/state/138/"])
+
+            url = d.document_url()
+            self.assertEqual(url, "https://www.ietf.org/proceedings/65/slides/l2vpn-4.pdf")
+            self.assertEqual(self.dt.session.get(url).status_code, 200)
         else:
             self.fail("Cannot find document")
 
