@@ -88,6 +88,14 @@ class GroupURI:
         assert self.uri.startswith("/api/v1/group/group/")
 
 
+@dataclass(frozen=True)
+class DocumentURI:
+    uri : str
+
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/doc/document/")
+
+
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to email addresses:
 
@@ -157,7 +165,7 @@ class PersonAlias:
 @dataclass(frozen=True)
 class Document:
     id                 : int
-    resource_uri       : str           # Suitable for use with DataTracker::document()
+    resource_uri       : DocumentURI
     name               : str
     title              : str
     pages              : Optional[int]
@@ -185,7 +193,6 @@ class Document:
     external_url       : str
 
     def __post_init__(self) -> None:
-        assert self.resource_uri.startswith("/api/v1/doc/document/")
         assert self.type.startswith("/api/v1/name/doctypename/")
         assert self.stream             is None or self.stream.startswith("/api/v1/name/streamname/")
         assert self.intended_std_level is None or self.intended_std_level.startswith("/api/v1/name/intendedstdlevelname/")
@@ -238,12 +245,11 @@ class Document:
 class DocumentAlias:
     id           : int
     resource_uri : str
-    document     : str
+    document     : DocumentURI
     name         : str
 
     def __post_init__(self) -> None:
         assert self.resource_uri.startswith("/api/v1/doc/docalias/")
-        assert self.document.startswith("/api/v1/doc/document/")
 
 
 @dataclass(frozen=True)
@@ -310,7 +316,7 @@ class Submission:
     authors         : str
     checks          : List[str]
     document_date   : str
-    draft           : str
+    draft           : DocumentURI
     file_size       : int
     file_types      : str
     first_two_pages : str
@@ -332,7 +338,6 @@ class Submission:
     def __post_init__(self) -> None:
         assert self.resource_uri.startswith("/api/v1/submit/submission/")
         assert self.state.startswith("/api/v1/name/draftsubmissionstatename/")
-        assert self.draft.startswith("/api/v1/doc/document/draft-")
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------
@@ -342,7 +347,7 @@ class Submission:
 class Group:
     acronym        : str
     ad             : Optional[PersonURI]
-    charter        : str
+    charter        : DocumentURI
     comments       : str
     description    : str
     id             : int
@@ -442,9 +447,10 @@ class DataTracker:
         self.session  = requests.Session()
         self.base_url = "https://datatracker.ietf.org"
         self.pavlova = Pavlova()
-        self.pavlova.register_parser(EmailURI,  GenericParser(self.pavlova, EmailURI))
-        self.pavlova.register_parser(PersonURI, GenericParser(self.pavlova, PersonURI))
-        self.pavlova.register_parser(GroupURI,  GenericParser(self.pavlova, GroupURI))
+        self.pavlova.register_parser(DocumentURI, GenericParser(self.pavlova, DocumentURI))
+        self.pavlova.register_parser(EmailURI,    GenericParser(self.pavlova, EmailURI))
+        self.pavlova.register_parser(GroupURI,    GenericParser(self.pavlova, GroupURI))
+        self.pavlova.register_parser(PersonURI,   GenericParser(self.pavlova, PersonURI))
 
 
     def __del__(self):
@@ -567,9 +573,8 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/doc/document/                        - list of documents
     # * https://datatracker.ietf.org/api/v1/doc/document/draft-ietf-avt-rtp-new/ - info about document
 
-    def document(self, document_uri: str) -> Optional[Document]:
-        assert document_uri.startswith("/api/v1/doc/document/")
-        return self._retrieve(document_uri, Document)
+    def document(self, document_uri: DocumentURI) -> Optional[Document]:
+        return self._retrieve(document_uri.uri, Document)
 
 
     def documents(self,
