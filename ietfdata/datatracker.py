@@ -174,7 +174,7 @@ class Document:
     notify             : str
     expires            : Optional[str]
     type               : str           # Suitable for use with DataTracker::document_type()
-    rfc                : Optional[int] 
+    rfc                : Optional[int]
     rev                : str           # If `rfc` is not None, `rev` will point to the RFC publication notice
     abstract           : str
     internal_comments  : str
@@ -340,6 +340,18 @@ class Submission:
         assert self.state.startswith("/api/v1/name/draftsubmissionstatename/")
 
 
+@dataclass(frozen=True)
+class DocumentEvent:
+    by              : PersonURI
+    desc            : str
+    doc             : DocumentURI
+    id              : int
+    resource_uri    : str
+    rev             : str
+    time            : str
+    type            : str
+
+
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to groups:
 
@@ -500,8 +512,8 @@ class DataTracker:
         return self._retrieve_multi(uri, HistoricalEmail)
 
 
-    def emails(self, 
-               since : str ="1970-01-01T00:00:00", 
+    def emails(self,
+               since : str ="1970-01-01T00:00:00",
                until : str ="2038-01-19T03:14:07") -> Iterator[Email]:
         """
         A generator that returns email addresses recorded in the datatracker.
@@ -547,9 +559,9 @@ class DataTracker:
         return self._retrieve_multi(url, HistoricalPerson)
 
 
-    def people(self, 
-            since : str ="1970-01-01T00:00:00", 
-            until : str ="2038-01-19T03:14:07", 
+    def people(self,
+            since : str ="1970-01-01T00:00:00",
+            until : str ="2038-01-19T03:14:07",
             name_contains : Optional[str] =None) -> Iterator[Person]:
         """
         A generator that returns people recorded in the datatracker. As of April
@@ -730,11 +742,49 @@ class DataTracker:
         """
         return self._retrieve_multi("/api/v1/doc/statetype/", StateType)
 
-
+    # Datatracker API endpoints returning information about document events:
     #   https://datatracker.ietf.org/api/v1/doc/docevent/                        - list of document events
     #   https://datatracker.ietf.org/api/v1/doc/docevent/?doc=...                - events for a document
     #   https://datatracker.ietf.org/api/v1/doc/docevent/?by=...                 - events by a person (as /api/v1/person/person)
     #   https://datatracker.ietf.org/api/v1/doc/docevent/?time=...               - events by time
+
+    def document_events(self,
+                        since         : str = "1970-01-01T00:00:00",
+                        until         : str = "2038-01-19T03:14:07",
+                        by            : PersonURI            = None,
+                        desc          : str                  = None,
+                        id            : int                  = None,
+                        rev           : int                  = None,
+                        type          : str                  = None) -> Iterator[DocumentEvent]:
+        """
+        A generator returning information about document events.
+
+        Parameters:
+            since -- Only return document events with timestamp after this
+            until -- Only return document events with timestamp after this
+            by    -- Only return document events by this person
+            desc  -- Only return document events with this description
+            id    -- Only return document events with this ID
+            rev   -- Only return document events with this revision number
+            type  -- Only return document events with this type
+
+
+        Returns:
+           A sequence of DocumentEvent objects
+        """
+        url = "/api/v1/doc/docevent/?time__gt=" + since + "&time__lt=" + until
+        if by is not None:
+            url +=  "&by=" + str(by)
+        if desc is not None:
+            url += "&desc=" + str(desc)
+        if id is not None:
+            url += "&id=" + str(id)
+        if rev is not None:
+            url += "&rev=" + str(rev)
+        if type is not None:
+            url += "&type=" + str(type)
+        return self._retrieve_multi(url, DocumentEvent)
+
     #   https://datatracker.ietf.org/api/v1/doc/documentauthor/?document=...     - authors of a document
     #   https://datatracker.ietf.org/api/v1/doc/documentauthor/?person=...       - documents by person (as /api/v1/person/person)
     #   https://datatracker.ietf.org/api/v1/doc/documentauthor/?email=...        - documents by person with particular email
