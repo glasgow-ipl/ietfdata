@@ -26,11 +26,11 @@ Getting started
 
   Once the virtual environment is started, running:
   ```~~~~~~~~
-  python3 ietfdata/datatracker.py 
+  python3 tests/test_datatracker.py 
   ```
   will run the test suite for the datatracker module. Running:
   ```~~~~~~~~
-  python3 ietfdata/rfcindex.py
+  python3 tests/test_rfcindex.py
   ```
   Will test the rfcindex module.
 

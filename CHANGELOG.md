@@ -7,6 +7,7 @@ Change Log -- ietfdata
  - Update tests
  - Add Datatracker::emails() method
  - Introduce and use URI types
+ - Add Datatracker::document_states() method
 
 
 ## v0.1.5 -- 2019-12-24
@@ -21,7 +22,7 @@ Change Log -- ietfdata
 
 ## v0.1.3 -- 2019-09-16
 
- - Work around problems with Datatracker dropping connections when 
+ - Work around problems with Datatracker dropping connections when
    HTTP connection reuse is active
  - Catch-up with changes to Datatracker API
  - Catch-up with changes to RFC index format
@@ -41,5 +42,3 @@ Change Log -- ietfdata
 ## v0.1.0 -- 2019-08-30
 
  - Initial release
-
-

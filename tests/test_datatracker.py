@@ -853,6 +853,24 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(st[22].slug, 'shepwrit')
         self.assertEqual(st[23].slug, 'draft-iana-experts')
 
+
+    def test_document_events(self) -> None:
+        es = list(self.dt.document_events(id=729040))
+        self.assertEqual(len(es), 1)
+        e = es[0]
+        if e is not None:
+            self.assertEqual(e.by,              PersonURI("/api/v1/person/person/121595/"))
+            self.assertEqual(e.desc,            "New version available: <b>draft-irtf-cfrg-randomness-improvements-09.txt</b>")
+            self.assertEqual(e.doc,             DocumentURI("/api/v1/doc/document/draft-irtf-cfrg-randomness-improvements/"))
+            self.assertEqual(e.id,              729040)
+            self.assertEqual(e.resource_uri,    "/api/v1/doc/docevent/729040/")
+            self.assertEqual(e.rev,             "09")
+            self.assertEqual(e.time,            "2020-01-27T06:41:36")
+            self.assertEqual(e.type,            "new_revision")
+        else:
+            self.fail("Cannot find event")
+
+
     # FIXME: this needs to be updated
     def test_submission(self) -> None:
         s  = self.dt.submission("/api/v1/submit/submission/2402/")
