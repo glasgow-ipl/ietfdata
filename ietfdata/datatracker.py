@@ -470,10 +470,7 @@ class DataTracker:
 
 
     def _retrieve(self, uri: str, obj_type: Type[T]) -> Optional[T]:
-        # FIXME: the datatracker has intermittent failures if we reuse connections,
-        #        workaround by not using the session object to avoid reuse.
-        response = requests.get(self.base_url + uri, verify=True)
-        # response = self.session.get(self.base_url + uri, verify=True)
+        response = self.session.get(self.base_url + uri, verify=True, stream=False)
         if response.status_code == 200:
             return self.pavlova.from_mapping(response.json(), obj_type)
         else:
@@ -482,10 +479,7 @@ class DataTracker:
 
     def _retrieve_multi(self, uri: str, obj_type: Type[T]) -> Iterator[T]:
         while uri is not None:
-            # FIXME: the datatracker has intermittent failures if we reuse connections,
-            #        workaround by not using the session object to avoid reuse.
-            r = requests.get(self.base_url + uri, verify=True)
-            # r = self.session.get(self.base_url + uri, verify=True)
+            r = self.session.get(self.base_url + uri, verify=True, stream=False)
             meta = r.json()['meta']
             objs = r.json()['objects']
             uri  = meta['next']
