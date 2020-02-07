@@ -359,7 +359,7 @@ class DocumentEvent:
 class Group:
     acronym        : str
     ad             : Optional[PersonURI]
-    charter        : DocumentURI
+    charter        : Optional[DocumentURI]
     comments       : str
     description    : str
     id             : int
