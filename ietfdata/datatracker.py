@@ -317,7 +317,7 @@ class Submission:
     checks          : List[str]
     document_date   : str
     draft           : DocumentURI
-    file_size       : int
+    file_size       : Optional[int]
     file_types      : str
     first_two_pages : str
     group           : Optional[GroupURI]
