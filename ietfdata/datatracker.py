@@ -324,7 +324,7 @@ class Submission:
     id              : int
     name            : str
     note            : str
-    pages           : int
+    pages           : Optional[int]
     remote_ip       : str
     replaces        : str
     resource_uri    : str
