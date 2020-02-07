@@ -181,7 +181,7 @@ class Document:
     order              : int
     note               : str
     ad                 : Optional[PersonURI]
-    shepherd           : Optional[PersonURI]
+    shepherd           : Optional[EmailURI]
     group              : Optional[GroupURI]
     stream             : Optional[str] # Suitable for use with DataTracker::stream()
     intended_std_level : Optional[str]
