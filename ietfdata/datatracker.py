@@ -598,7 +598,7 @@ class DataTracker:
         if doctype is not None:
             url = url + "&type=" + doctype.slug
         if group is not None:
-            url = url + "&group=" + group.resource_uri.uri
+            url = url + "&group=" + str(group.id)
         return self._retrieve_multi(url, Document)
 
 
