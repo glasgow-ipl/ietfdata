@@ -320,7 +320,7 @@ class Submission:
     file_size       : int
     file_types      : str
     first_two_pages : str
-    group           : GroupURI
+    group           : Optional[GroupURI]
     id              : int
     name            : str
     note            : str
