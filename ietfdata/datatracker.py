@@ -502,6 +502,11 @@ class DataTracker:
         return self._retrieve(email_uri.uri, Email)
 
 
+    def email_for_person(self, person: Person) -> Iterator[Email]:
+        uri = "/api/v1/person/email/?person=" + str(person.id)
+        return self._retrieve_multi(uri, Email)
+
+
     def email_history_for_address(self, email_addr: str) -> Iterator[HistoricalEmail]:
         uri = "/api/v1/person/historicalemail/?address=" + email_addr
         return self._retrieve_multi(uri, HistoricalEmail)
