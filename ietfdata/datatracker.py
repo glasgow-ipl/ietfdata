@@ -181,7 +181,7 @@ class Document:
     order              : int
     note               : str
     ad                 : Optional[PersonURI]
-    shepherd           : Optional[PersonURI]
+    shepherd           : Optional[EmailURI]
     group              : Optional[GroupURI]
     stream             : Optional[str] # Suitable for use with DataTracker::stream()
     intended_std_level : Optional[str]
@@ -317,14 +317,14 @@ class Submission:
     checks          : List[str]
     document_date   : str
     draft           : DocumentURI
-    file_size       : int
+    file_size       : Optional[int]
     file_types      : str
     first_two_pages : str
-    group           : GroupURI
+    group           : Optional[GroupURI]
     id              : int
     name            : str
     note            : str
-    pages           : int
+    pages           : Optional[int]
     remote_ip       : str
     replaces        : str
     resource_uri    : str
@@ -359,7 +359,7 @@ class DocumentEvent:
 class Group:
     acronym        : str
     ad             : Optional[PersonURI]
-    charter        : DocumentURI
+    charter        : Optional[DocumentURI]
     comments       : str
     description    : str
     id             : int
@@ -470,27 +470,27 @@ class DataTracker:
 
 
     def _retrieve(self, uri: str, obj_type: Type[T]) -> Optional[T]:
-        # FIXME: the datatracker has intermittent failures if we reuse connections,
-        #        workaround by not using the session object to avoid reuse.
-        response = requests.get(self.base_url + uri, verify=True)
-        # response = self.session.get(self.base_url + uri, verify=True)
-        if response.status_code == 200:
-            return self.pavlova.from_mapping(response.json(), obj_type)
+        r = self.session.get(self.base_url + uri, verify=True, stream=False)
+        if r.status_code == 200:
+            return self.pavlova.from_mapping(r.json(), obj_type)
         else:
+            print("_retrieve failed: {}".format(r.status_code))
             return None
 
 
     def _retrieve_multi(self, uri: str, obj_type: Type[T]) -> Iterator[T]:
         while uri is not None:
-            # FIXME: the datatracker has intermittent failures if we reuse connections,
-            #        workaround by not using the session object to avoid reuse.
-            r = requests.get(self.base_url + uri, verify=True)
-            # r = self.session.get(self.base_url + uri, verify=True)
-            meta = r.json()['meta']
-            objs = r.json()['objects']
-            uri  = meta['next']
-            for obj in objs:
-                yield self.pavlova.from_mapping(obj, obj_type)
+            r = self.session.get(self.base_url + uri, verify=True, stream=False)
+            if r.status_code == 200:
+                meta = r.json()['meta']
+                objs = r.json()['objects']
+                uri  = meta['next']
+                for obj in objs:
+                    yield self.pavlova.from_mapping(obj, obj_type)
+            else:
+                print("_retrieve_multi failed: {}".format(r.status_code))
+                print(r.status_code)
+                return None
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -500,6 +500,11 @@ class DataTracker:
 
     def email(self, email_uri: EmailURI) -> Optional[Email]:
         return self._retrieve(email_uri.uri, Email)
+
+
+    def email_for_person(self, person: Person) -> Iterator[Email]:
+        uri = "/api/v1/person/email/?person=" + str(person.id)
+        return self._retrieve_multi(uri, Email)
 
 
     def email_history_for_address(self, email_addr: str) -> Iterator[HistoricalEmail]:
@@ -598,7 +603,7 @@ class DataTracker:
         if doctype is not None:
             url = url + "&type=" + doctype.slug
         if group is not None:
-            url = url + "&group=" + group.resource_uri.uri
+            url = url + "&group=" + str(group.id)
         return self._retrieve_multi(url, Document)
 
 
