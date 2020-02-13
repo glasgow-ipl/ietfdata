@@ -159,6 +159,16 @@ class PersonAlias:
         assert self.resource_uri.startswith("/api/v1/person/alias/")
 
 
+@dataclass(frozen=True)
+class PersonEvent:
+    desc            : str
+    id              : int
+    person          : PersonURI
+    resource_uri    : str
+    time            : str
+    type            : str
+
+
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to documents:
 
@@ -470,7 +480,8 @@ class DataTracker:
 
 
     def _retrieve(self, uri: str, obj_type: Type[T]) -> Optional[T]:
-        r = self.session.get(self.base_url + uri, verify=True, stream=False)
+        r = requests.get(self.base_url + uri, verify=True)
+        #r = self.session.get(self.base_url + uri, verify=True, stream=False)
         if r.status_code == 200:
             return self.pavlova.from_mapping(r.json(), obj_type)
         else:
@@ -480,7 +491,8 @@ class DataTracker:
 
     def _retrieve_multi(self, uri: str, obj_type: Type[T]) -> Iterator[T]:
         while uri is not None:
-            r = self.session.get(self.base_url + uri, verify=True, stream=False)
+            r = requests.get(self.base_url + uri, verify=True)
+            #r = self.session.get(self.base_url + uri, verify=True, stream=False)
             if r.status_code == 200:
                 meta = r.json()['meta']
                 objs = r.json()['objects']
@@ -562,6 +574,11 @@ class DataTracker:
     def person_history(self, person: Person) -> Iterator[HistoricalPerson]:
         url = "/api/v1/person/historicalperson/?id=" + str(person.id)
         return self._retrieve_multi(url, HistoricalPerson)
+
+
+    def person_events(self, person: Person) -> Iterator[PersonEvent]:
+        url = "/api/v1/person/personevent/?person=" + str(person.id)
+        return self._retrieve_multi(url, PersonEvent)
 
 
     def people(self,
