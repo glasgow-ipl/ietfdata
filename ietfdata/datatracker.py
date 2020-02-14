@@ -65,35 +65,104 @@ import re
 # URI types:
 
 @dataclass(frozen=True)
-class EmailURI:
+class URI:
     uri : str
 
+
+@dataclass(frozen=True)
+class EmailURI(URI):
     def __post_init__(self) -> None:
         assert self.uri.startswith("/api/v1/person/email/") or self.uri.startswith("/api/v1/person/historicalemail/")
 
 
 @dataclass(frozen=True)
-class PersonURI:
-    uri : str
-
+class PersonURI(URI):
     def __post_init__(self) -> None:
         assert self.uri.startswith("/api/v1/person/person/") or self.uri.startswith("/api/v1/person/historicalperson/")
 
 
 @dataclass(frozen=True)
-class GroupURI:
-    uri : str
+class PersonAliasURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/person/alias/")
 
+
+@dataclass(frozen=True)
+class PersonEventURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/person/personevent/")
+
+
+@dataclass(frozen=True)
+class GroupURI(URI):
     def __post_init__(self) -> None:
         assert self.uri.startswith("/api/v1/group/group/")
 
 
 @dataclass(frozen=True)
-class DocumentURI:
-    uri : str
+class GroupStateURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/name/groupstatename/")
 
+
+@dataclass(frozen=True)
+class DocumentURI(URI):
     def __post_init__(self) -> None:
         assert self.uri.startswith("/api/v1/doc/document/")
+
+
+@dataclass(frozen=True)
+class DocumentAliasURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/doc/docalias/")
+
+
+@dataclass(frozen=True)
+class DocumentStateURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/doc/state/")
+
+
+@dataclass(frozen=True)
+class DocumentStateTypeURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/doc/statetype/")
+
+
+@dataclass(frozen=True)
+class DocumentTypeURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/name/doctypename/")
+
+
+@dataclass(frozen=True)
+class DocumentEventURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/doc/docevent/")
+
+
+@dataclass(frozen=True)
+class StreamURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/name/streamname/")
+
+
+@dataclass(frozen=True)
+class SubmissionURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/submit/submission/")
+
+
+@dataclass(frozen=True)
+class MeetingURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/meeting/meeting/")
+
+
+@dataclass(frozen=True)
+class MeetingTypeURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/name/meetingtypename/")
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------
@@ -151,12 +220,9 @@ class HistoricalPerson(Person):
 @dataclass(frozen=True)
 class PersonAlias:
     id                 : int
-    resource_uri       : str # Suitable for use with DataTracker::person_aliases()
+    resource_uri       : PersonAliasURI
     person             : PersonURI
     name               : str
-
-    def __post_init__(self) -> None:
-        assert self.resource_uri.startswith("/api/v1/person/alias/")
 
 
 @dataclass(frozen=True)
@@ -164,7 +230,7 @@ class PersonEvent:
     desc            : str
     id              : int
     person          : PersonURI
-    resource_uri    : str
+    resource_uri    : PersonEventURI
     time            : str
     type            : str
 
@@ -183,7 +249,7 @@ class Document:
     time               : str
     notify             : str
     expires            : Optional[str]
-    type               : str           # Suitable for use with DataTracker::document_type()
+    type               : DocumentTypeURI
     rfc                : Optional[int]
     rev                : str           # If `rfc` is not None, `rev` will point to the RFC publication notice
     abstract           : str
@@ -193,58 +259,52 @@ class Document:
     ad                 : Optional[PersonURI]
     shepherd           : Optional[EmailURI]
     group              : Optional[GroupURI]
-    stream             : Optional[str] # Suitable for use with DataTracker::stream()
-    intended_std_level : Optional[str]
-    std_level          : Optional[str]
-    states             : List[str]     # Suitable for use with DataTracker::document_state()
-    submissions        : List[str]     # Suitable for use with DataTracker::submission()
+    stream             : Optional[StreamURI]
+    intended_std_level : Optional[str]  # FIXME: should be a URI subtype?
+    std_level          : Optional[str]  # FIXME: should be a URI subtype?
+    states             : List[DocumentStateURI]
+    submissions        : List[SubmissionURI]
     tags               : List[str]
     uploaded_filename  : str
     external_url       : str
 
     def __post_init__(self) -> None:
-        assert self.type.startswith("/api/v1/name/doctypename/")
-        assert self.stream             is None or self.stream.startswith("/api/v1/name/streamname/")
         assert self.intended_std_level is None or self.intended_std_level.startswith("/api/v1/name/intendedstdlevelname/")
         assert self.std_level          is None or self.std_level.startswith("/api/v1/name/stdlevelname/")
-        for state in self.states:
-            assert state.startswith("/api/v1/doc/state/")
-        for submit in self.submissions:
-            assert submit.startswith("/api/v1/submit/submission/")
 
     def document_url(self) -> str:
-        if self.type == "/api/v1/name/doctypename/agenda/":
+        if self.type == DocumentTypeURI("/api/v1/name/doctypename/agenda/"):
             # FIXME: This doesn't work for interim meetings
             # FIXME: This doesn't work for PDF agenda files
             mtg = self.name.split("-")[1]
             url = "https://datatracker.ietf.org/meeting/" + mtg + "/materials/" + self.uploaded_filename
-        elif self.type == "/api/v1/name/doctypename/bluesheets/":
+        elif self.type == DocumentTypeURI("/api/v1/name/doctypename/bluesheets/"):
             mtg = self.name.split("-")[1]
             url = "https://www.ietf.org/proceedings/" + mtg + "/bluesheets/" + self.uploaded_filename
-        elif self.type == "/api/v1/name/doctypename/charter/":
+        elif self.type == DocumentTypeURI("/api/v1/name/doctypename/charter/"):
             url = "https://www.ietf.org/charter/"     + self.name + "-" + self.rev + ".txt"
-        elif self.type == "/api/v1/name/doctypename/conflrev/":
+        elif self.type == DocumentTypeURI("/api/v1/name/doctypename/conflrev/"):
             url = "https://www.ietf.org/cr/"          + self.name + "-" + self.rev + ".txt"
-        elif self.type == "/api/v1/name/doctypename/draft/":
+        elif self.type == DocumentTypeURI("/api/v1/name/doctypename/draft/"):
             url = "https://www.ietf.org/archive/id/"  + self.name + "-" + self.rev + ".txt"
-        elif self.type == "/api/v1/name/doctypename/liaison/":
+        elif self.type == DocumentTypeURI("/api/v1/name/doctypename/liaison/"):
             url = "https://www.ietf.org/lib/dt/documents/LIAISON/" + self.uploaded_filename
-        elif self.type == "/api/v1/name/doctypename/liai-att/":
+        elif self.type == DocumentTypeURI("/api/v1/name/doctypename/liai-att/"):
             url = "https://www.ietf.org/lib/dt/documents/LIAISON/" + self.uploaded_filename
-        elif self.type == "/api/v1/name/doctypename/minutes/":
+        elif self.type == DocumentTypeURI("/api/v1/name/doctypename/minutes/"):
             mtg = self.name.split("-")[1]
             url = "https://datatracker.ietf.org/meeting/" + mtg + "/materials/" + self.uploaded_filename
-        elif self.type == "/api/v1/name/doctypename/recording/":
+        elif self.type == DocumentTypeURI("/api/v1/name/doctypename/recording/"):
             url = self.external_url
-        elif self.type == "/api/v1/name/doctypename/review/":
+        elif self.type == DocumentTypeURI("/api/v1/name/doctypename/review/"):
             # FIXME: This points to the formatted HTML page containing the message, but we really want the raw message
             url = "https://datatracker.ietf.org/doc/" + self.name
-        elif self.type == "/api/v1/name/doctypename/shepwrit/":
+        elif self.type == DocumentTypeURI("/api/v1/name/doctypename/shepwrit/"):
             url = self.external_url
-        elif self.type == "/api/v1/name/doctypename/slides/":
+        elif self.type == DocumentTypeURI("/api/v1/name/doctypename/slides/"):
             mtg = self.name.split("-")[1]
             url = "https://www.ietf.org/proceedings/" + mtg + "/slides/" + self.uploaded_filename
-        elif self.type == "/api/v1/name/doctypename/statchg/":
+        elif self.type == DocumentTypeURI("/api/v1/name/doctypename/statchg/"):
             url = "https://www.ietf.org/sc/"          + self.name + "-" + self.rev + ".txt"
         else:
             raise NotImplementedError
@@ -254,46 +314,34 @@ class Document:
 @dataclass(frozen=True)
 class DocumentAlias:
     id           : int
-    resource_uri : str
+    resource_uri : DocumentAliasURI
     document     : DocumentURI
     name         : str
-
-    def __post_init__(self) -> None:
-        assert self.resource_uri.startswith("/api/v1/doc/docalias/")
 
 
 @dataclass(frozen=True)
 class State:
     id           : int
-    resource_uri : str
+    resource_uri : DocumentStateURI
     desc         : str
     name         : str
-    next_states  : List[str]
+    next_states  : List[DocumentStateURI]
     order        : int
     slug         : str
-    type         : str
+    type         : DocumentStateTypeURI
     used         : bool
-
-    def __post_init__(self) -> None:
-        assert self.resource_uri.startswith("/api/v1/doc/state/")
-        assert self.type.startswith("/api/v1/doc/statetype/")
-        for state in self.next_states:
-            assert state.startswith("/api/v1/doc/state/")
 
 
 @dataclass(frozen=True)
 class StateType:
-    resource_uri : str
+    resource_uri : DocumentStateTypeURI
     label        : str
     slug         : str
-
-    def __post_init__(self) -> None:
-        assert self.resource_uri.startswith("/api/v1/doc/statetype/")
 
 
 @dataclass(frozen=True)
 class DocumentType:
-    resource_uri : str
+    resource_uri : DocumentTypeURI
     name         : str
     used         : bool
     prefix       : str
@@ -301,21 +349,15 @@ class DocumentType:
     desc         : str
     order        : int
 
-    def __post_init__(self) -> None:
-        assert self.resource_uri.startswith("/api/v1/name/doctypename/")
-
 
 @dataclass(frozen=True)
 class Stream:
-    resource_uri : str
+    resource_uri : StreamURI
     name         : str
     desc         : str
     used         : bool
     slug         : str
     order        : int
-
-    def __post_init__(self) -> None:
-        assert self.resource_uri.startswith("/api/v1/name/streamname/")
 
 
 @dataclass(frozen=True)
@@ -324,7 +366,7 @@ class Submission:
     access_key      : str
     auth_key        : str
     authors         : str
-    checks          : List[str]
+    checks          : List[str] # FIXME: these should be URI subtypes
     document_date   : str
     draft           : DocumentURI
     file_size       : Optional[int]
@@ -336,18 +378,14 @@ class Submission:
     note            : str
     pages           : Optional[int]
     remote_ip       : str
-    replaces        : str
-    resource_uri    : str
+    replaces        : str   # FIXME: this should be an Optional[URI]?
+    resource_uri    : SubmissionURI
     rev             : str
-    state           : str
+    state           : str   # FIXME: this should be a URI subtype
     submission_date : str
     submitter       : str
     title           : str
     words           : Optional[int]
-
-    def __post_init__(self) -> None:
-        assert self.resource_uri.startswith("/api/v1/submit/submission/")
-        assert self.state.startswith("/api/v1/name/draftsubmissionstatename/")
 
 
 @dataclass(frozen=True)
@@ -356,7 +394,7 @@ class DocumentEvent:
     desc            : str
     doc             : DocumentURI
     id              : int
-    resource_uri    : str
+    resource_uri    : DocumentEventURI
     rev             : str
     time            : str
     type            : str
@@ -379,16 +417,16 @@ class Group:
     name           : str
     parent         : GroupURI
     resource_uri   : GroupURI
-    state          : str
+    state          : str    # FIXME: this should be a URI subtype
     time           : str
-    type           : str
+    type           : str    # FIXME: this should be a URI subtype
     unused_states  : List[str]
     unused_tags    : List[str]
 
 
 @dataclass(frozen=True)
 class GroupState:
-    resource_uri   : str
+    resource_uri   : GroupStateURI
     slug           : str
     desc           : str
     name           : str
@@ -406,7 +444,7 @@ class MeetingStatus(Enum):
 
 @dataclass
 class Meeting:
-    resource_uri                     : str
+    resource_uri                     : MeetingURI
     id                               : int
     type                             : str
     venue_name                       : str
@@ -452,7 +490,7 @@ class Meeting:
 class MeetingType:
     name         : str
     order        : int
-    resource_uri : str
+    resource_uri : MeetingTypeURI
     slug         : str
     desc         : str
     used         : bool
@@ -469,18 +507,30 @@ class DataTracker:
         self.session  = requests.Session()
         self.base_url = "https://datatracker.ietf.org"
         self.pavlova = Pavlova()
-        self.pavlova.register_parser(DocumentURI, GenericParser(self.pavlova, DocumentURI))
-        self.pavlova.register_parser(EmailURI,    GenericParser(self.pavlova, EmailURI))
-        self.pavlova.register_parser(GroupURI,    GenericParser(self.pavlova, GroupURI))
-        self.pavlova.register_parser(PersonURI,   GenericParser(self.pavlova, PersonURI))
+        self.pavlova.register_parser(EmailURI,             GenericParser(self.pavlova, EmailURI))
+        self.pavlova.register_parser(PersonURI,            GenericParser(self.pavlova, PersonURI))
+        self.pavlova.register_parser(PersonAliasURI,       GenericParser(self.pavlova, PersonAliasURI))
+        self.pavlova.register_parser(PersonEventURI,       GenericParser(self.pavlova, PersonEventURI))
+        self.pavlova.register_parser(GroupURI,             GenericParser(self.pavlova, GroupURI))
+        self.pavlova.register_parser(GroupStateURI,        GenericParser(self.pavlova, GroupStateURI))
+        self.pavlova.register_parser(DocumentURI,          GenericParser(self.pavlova, DocumentURI))
+        self.pavlova.register_parser(DocumentAliasURI,     GenericParser(self.pavlova, DocumentAliasURI))
+        self.pavlova.register_parser(DocumentStateURI,     GenericParser(self.pavlova, DocumentStateURI))
+        self.pavlova.register_parser(DocumentStateTypeURI, GenericParser(self.pavlova, DocumentStateTypeURI))
+        self.pavlova.register_parser(DocumentTypeURI,      GenericParser(self.pavlova, DocumentTypeURI))
+        self.pavlova.register_parser(DocumentEventURI,     GenericParser(self.pavlova, DocumentEventURI))
+        self.pavlova.register_parser(StreamURI,            GenericParser(self.pavlova, StreamURI))
+        self.pavlova.register_parser(SubmissionURI,        GenericParser(self.pavlova, SubmissionURI))
+        self.pavlova.register_parser(MeetingURI,           GenericParser(self.pavlova, MeetingURI))
+        self.pavlova.register_parser(MeetingTypeURI,       GenericParser(self.pavlova, MeetingTypeURI))
 
 
     def __del__(self):
         self.session.close()
 
 
-    def _retrieve(self, uri: str, obj_type: Type[T]) -> Optional[T]:
-        r = self.session.get(self.base_url + uri, verify=True, stream=False)
+    def _retrieve(self, resource_uri: URI, obj_type: Type[T]) -> Optional[T]:
+        r = self.session.get(self.base_url + resource_uri.uri, verify=True, stream=False)
         if r.status_code == 200:
             return self.pavlova.from_mapping(r.json(), obj_type)
         else:
@@ -509,7 +559,7 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/person/historicalemail/
 
     def email(self, email_uri: EmailURI) -> Optional[Email]:
-        return self._retrieve(email_uri.uri, Email)
+        return self._retrieve(email_uri, Email)
 
 
     def email_for_person(self, person: Person) -> Iterator[Email]:
@@ -553,7 +603,7 @@ class DataTracker:
 
 
     def person(self, person_uri: PersonURI) -> Optional[Person]:
-        return self._retrieve(person_uri.uri, Person)
+        return self._retrieve(person_uri, Person)
 
 
     def person_from_email(self, email_addr: str) -> Optional[Person]:
@@ -606,7 +656,7 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/doc/document/draft-ietf-avt-rtp-new/ - info about document
 
     def document(self, document_uri: DocumentURI) -> Optional[Document]:
-        return self._retrieve(document_uri.uri, Document)
+        return self._retrieve(document_uri, Document)
 
 
     def documents(self,
@@ -717,22 +767,11 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/doc/state/                           - Types of state a document can be in
     # * https://datatracker.ietf.org/api/v1/doc/statetype/                       - Possible types of state for a document
 
-    def document_state(self, state_uri: str) -> Optional[State]:
-        """
-        Information about the state of a document.
-
-        Parameters:
-           state_uri -- A URI representing a document state, e.g., as returned
-                        in the states entry of the dict returned by document()
-
-        Returns:
-            A State object
-        """
-        assert state_uri.startswith("/api/v1/doc/state/") and state_uri.endswith("/")
+    def document_state(self, state_uri: DocumentStateURI) -> Optional[State]:
         return self._retrieve(state_uri, State)
 
 
-    def document_states(self, statetype=None) -> Iterator[State]:
+    def document_states(self, statetype : Optional[str] = None) -> Iterator[State]:
         """
         A generator returning the possible states a document can be in.
 
@@ -762,32 +801,34 @@ class DataTracker:
         """
         return self._retrieve_multi("/api/v1/doc/statetype/", StateType)
 
+
     # Datatracker API endpoints returning information about document events:
     #   https://datatracker.ietf.org/api/v1/doc/docevent/                        - list of document events
     #   https://datatracker.ietf.org/api/v1/doc/docevent/?doc=...                - events for a document
-    #   https://datatracker.ietf.org/api/v1/doc/docevent/?by=...                 - events by a person (as /api/v1/person/person)
-    #   https://datatracker.ietf.org/api/v1/doc/docevent/?time=...               - events by time
+    # * https://datatracker.ietf.org/api/v1/doc/docevent/?by=...                 - events by a person (as /api/v1/person/person)
+    # * https://datatracker.ietf.org/api/v1/doc/docevent/?time=...               - events by time
+
+    def document_event(self, event_uri : DocumentEventURI) -> Optional[DocumentEvent]:
+        return self._retrieve(event_uri, DocumentEvent)
+
 
     def document_events(self,
-                        since         : str = "1970-01-01T00:00:00",
-                        until         : str = "2038-01-19T03:14:07",
-                        by            : PersonURI            = None,
-                        desc          : str                  = None,
-                        id            : int                  = None,
-                        rev           : int                  = None,
-                        type          : str                  = None) -> Iterator[DocumentEvent]:
+                        since      : str = "1970-01-01T00:00:00",
+                        until      : str = "2038-01-19T03:14:07",
+                        by         : PersonURI            = None,
+                        desc       : str                  = None,
+                        rev        : int                  = None,
+                        event_type : str                  = None) -> Iterator[DocumentEvent]:
         """
         A generator returning information about document events.
 
         Parameters:
-            since -- Only return document events with timestamp after this
-            until -- Only return document events with timestamp after this
-            by    -- Only return document events by this person
-            desc  -- Only return document events with this description
-            id    -- Only return document events with this ID
-            rev   -- Only return document events with this revision number
-            type  -- Only return document events with this type
-
+            since      -- Only return document events with timestamp after this
+            until      -- Only return document events with timestamp after this
+            by         -- Only return document events by this person
+            desc       -- Only return document events with this description
+            rev        -- Only return document events with this revision number
+            event_type -- Only return document events with this type
 
         Returns:
            A sequence of DocumentEvent objects
@@ -797,13 +838,12 @@ class DataTracker:
             url +=  "&by=" + str(by)
         if desc is not None:
             url += "&desc=" + str(desc)
-        if id is not None:
-            url += "&id=" + str(id)
         if rev is not None:
             url += "&rev=" + str(rev)
-        if type is not None:
-            url += "&type=" + str(type)
+        if event_type is not None:
+            url += "&type=" + str(event_type)
         return self._retrieve_multi(url, DocumentEvent)
+
 
     #   https://datatracker.ietf.org/api/v1/doc/documentauthor/?document=...     - authors of a document
     #   https://datatracker.ietf.org/api/v1/doc/documentauthor/?person=...       - documents by person (as /api/v1/person/person)
@@ -831,19 +871,9 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/doc/addedmessageevent/
     #   https://datatracker.ietf.org/api/v1/doc/editedauthorsdocevent/
 
-    def submission(self, submission_uri: str) -> Optional[Submission]:
-        """
-        Information about a document submission.
-
-        Parameters:
-           submission_uri -- A submission URI of the form /api/v1/submit/submission/2402/
-
-        Returns:
-            A Submission object
-        """
-
-        assert submission_uri.startswith("/api/v1/submit/submission/")
+    def submission(self, submission_uri: SubmissionURI) -> Optional[Submission]:
         return self._retrieve(submission_uri, Submission)
+
 
     # Datatracker API endpoints returning information about names:
     # * https://datatracker.ietf.org/api/v1/name/doctypename/
@@ -890,56 +920,24 @@ class DataTracker:
         Lookup information about a document type in the datatracker.
 
         Parameters:
-            doctype : Either a full document type URI (e.g., "/api/v1/name/doctypename/draft/")
-                      or a document type slug (e.g., "draft").
+            doctype : A document type slug (e.g., "draft").
 
         Returns:
             A DocumentType object
         """
-        if doctype.startswith("/api/v1/name/doctypename/") and doctype.endswith("/"):
-            doctype_uri = doctype
-        else:
-            doctype_uri = "/api/v1/name/doctypename/" + doctype + "/"
-        return self._retrieve(doctype_uri, DocumentType)
+        uri = DocumentTypeURI("/api/v1/name/doctypename/" + doctype + "/")
+        return self._retrieve(uri, DocumentType)
 
 
     def document_types(self) -> Iterator[DocumentType]:
-        """
-        A generator returning possible document types.
-
-        Parameters:
-            none
-
-        Returns:
-            A sequence of DocumentType objects, as returned by document_type()
-        """
         return self._retrieve_multi("/api/v1/name/doctypename/", DocumentType)
 
 
-    def stream(self, stream_uri: str) -> Optional[Stream]:
-        """
-        Lookup information about a document stream in the datatracker.
-
-        Parameters:
-            stream_uri : a URI of the form, e.g., "/api/v1/name/streamname/.../"
-
-        Returns:
-            A Stream object
-        """
-        assert stream_uri.startswith("/api/v1/name/streamname/") and stream_uri.endswith("/")
+    def stream(self, stream_uri: StreamURI) -> Optional[Stream]:
         return self._retrieve(stream_uri, Stream)
 
 
     def streams(self) -> Iterator[Stream]:
-        """
-        A generator returning possible document streams.
-
-        Parameters:
-            none
-
-        Returns:
-            A sequence of Stream objects, as returned by stream()
-        """
         return self._retrieve_multi("/api/v1/name/streamname/", Stream)
 
 
@@ -962,7 +960,7 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/group/groupstatetransitions                - ???
 
     def group(self, group_uri: GroupURI) -> Optional[Group]:
-        return self._retrieve(group_uri.uri, Group)
+        return self._retrieve(group_uri, Group)
 
 
     def group_from_acronym(self, acronym: str) -> Optional[Group]:
@@ -982,17 +980,6 @@ class DataTracker:
             name_contains : Optional[str]        = None,
             state         : Optional[GroupState] = None,
             parent        : Optional[Group]      = None) -> Iterator[Group]:
-        """
-        A generator that returns Group objects representing all groups recorded
-        in the datatracker. The 'since' and 'until' parameters can be used to
-        contrain the output to only entries with timestamps in a particular
-        time range.
-        If provided, 'name_contains' filters based on the whether the name field
-        contains the specified value.
-        If provided, 'state' filters based on group state (i.e., the values in the
-        slug field of GroupState objects).
-        if provided, 'parent' finds all groups that have the specified parent group.
-        """
         url = "/api/v1/group/group/?time__gt=" + since + "&time__lt=" + until
         if name_contains is not None:
             url = url + "&name__contains=" + name_contains
@@ -1016,20 +1003,11 @@ class DataTracker:
         Returns:
             A GroupState object
         """
-        url  = "/api/v1/name/groupstatename/" + group_state + "/"
+        url  = GroupStateURI("/api/v1/name/groupstatename/" + group_state + "/")
         return self._retrieve(url, GroupState)
 
 
     def group_states(self) -> Iterator[GroupState]:
-        """
-        A generator returning possible group states.
-
-        Parameters:
-            none
-
-        Returns:
-            A sequence of Stream objects, as returned by stream()
-        """
         url = "/api/v1/name/groupstatename/"
         return self._retrieve_multi(url, GroupState)
 
@@ -1052,17 +1030,6 @@ class DataTracker:
             since        : str = "1970-01-01",
             until        : str = "2038-01-19",
             meeting_type : Optional[MeetingType] = None) -> Iterator[Meeting]:
-        """
-        A generator returning information about meetings.
-
-        Parameters:
-           since        -- Only return meetings with date after this
-           until        -- Only return meetings with date before this
-           meeting_type -- If not None, constrain results to the specified MeetingType
-
-        Returns:
-            An iterator of Meeting objects
-        """
         url = "/api/v1/meeting/meeting/?date__gt=" + since + "&date__lt=" + until
         if meeting_type is not None:
             url = url + "&type=" + meeting_type.slug
@@ -1080,7 +1047,7 @@ class DataTracker:
         Returns:
             A MeetingType object
         """
-        url  = "/api/v1/name/meetingtypename/" + meeting_type + "/"
+        url = MeetingTypeURI("/api/v1/name/meetingtypename/" + meeting_type + "/")
         return self._retrieve(url, MeetingType)
 
 

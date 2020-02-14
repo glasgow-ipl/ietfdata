@@ -261,11 +261,11 @@ class TestDatatracker(unittest.TestCase):
             aliases  = list(self.dt.person_aliases(p))
             self.assertEqual(len(aliases), 2)
             self.assertEqual(aliases[0].id,           62)
-            self.assertEqual(aliases[0].resource_uri, "/api/v1/person/alias/62/")
+            self.assertEqual(aliases[0].resource_uri, PersonAliasURI("/api/v1/person/alias/62/"))
             self.assertEqual(aliases[0].person,       PersonURI("/api/v1/person/person/20209/"))
             self.assertEqual(aliases[0].name,         "Dr. Colin Perkins")
             self.assertEqual(aliases[1].id,           22620)
-            self.assertEqual(aliases[1].resource_uri, "/api/v1/person/alias/22620/")
+            self.assertEqual(aliases[1].resource_uri, PersonAliasURI("/api/v1/person/alias/22620/"))
             self.assertEqual(aliases[1].person,       PersonURI("/api/v1/person/person/20209/"))
             self.assertEqual(aliases[1].name,         "Colin Perkins")
         else:
@@ -280,7 +280,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(events[0].desc,         "Sent GDPR notice email to [u'vint@google.com', u'vcerf@mci.net', u'vcerf@nri.reston.va.us', u'vinton.g.cerf@wcom.com'] with confirmation deadline 2018-10-22")
             self.assertEqual(events[0].id,           478)
             self.assertEqual(events[0].person,       PersonURI("/api/v1/person/person/3/"))
-            self.assertEqual(events[0].resource_uri, "/api/v1/person/personevent/478/")
+            self.assertEqual(events[0].resource_uri, PersonEventURI("/api/v1/person/personevent/478/"))
             self.assertEqual(events[0].time,         "2018-09-24T09:28:32.502465")
             self.assertEqual(events[0].type,         "gdpr_notice_email")
         else:
@@ -321,10 +321,10 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.order,              1)
             self.assertEqual(d.intended_std_level, None)
             self.assertEqual(d.uploaded_filename,  "agenda-90-precis.txt")
-            self.assertEqual(d.states,             ["/api/v1/doc/state/81/"])
+            self.assertEqual(d.states,             [DocumentStateURI("/api/v1/doc/state/81/")])
             self.assertEqual(d.abstract,           "")
             self.assertEqual(d.notify,             "")
-            self.assertEqual(d.type,               "/api/v1/name/doctypename/agenda/")
+            self.assertEqual(d.type,               DocumentTypeURI("/api/v1/name/doctypename/agenda/"))
             self.assertEqual(d.rev,                "2")
             self.assertEqual(d.internal_comments,  "")
             self.assertEqual(d.id,                 218)
@@ -363,7 +363,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.rev,                "00")
             self.assertEqual(d.external_url,       "")
             self.assertEqual(d.expires,            None)
-            self.assertEqual(d.type,               "/api/v1/name/doctypename/bluesheets/")
+            self.assertEqual(d.type,               DocumentTypeURI("/api/v1/name/doctypename/bluesheets/"))
             self.assertEqual(d.group,              GroupURI("/api/v1/group/group/1815/"))
             self.assertEqual(d.resource_uri,       DocumentURI("/api/v1/doc/document/bluesheets-95-xrblock-01/"))
             self.assertEqual(d.title,              "Bluesheets IETF95 : xrblock : Wed 16:20")
@@ -381,7 +381,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.pages,              None)
             self.assertEqual(d.stream,             None)
             self.assertEqual(d.std_level,          None)
-            self.assertEqual(d.states,             ["/api/v1/doc/state/139/"])
+            self.assertEqual(d.states,             [DocumentStateURI("/api/v1/doc/state/139/")])
 
             url = d.document_url()
             self.assertEqual(url, "https://www.ietf.org/proceedings/95/bluesheets/bluesheets-95-xrblock-01.pdf")
@@ -401,7 +401,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.rev,                "01")
             self.assertEqual(d.external_url,       "")
             self.assertEqual(d.expires,            None)
-            self.assertEqual(d.type,               "/api/v1/name/doctypename/charter/")
+            self.assertEqual(d.type,               DocumentTypeURI("/api/v1/name/doctypename/charter/"))
             self.assertEqual(d.group,              GroupURI("/api/v1/group/group/925/"))
             self.assertEqual(d.resource_uri,       DocumentURI("/api/v1/doc/document/charter-ietf-vgmib/"))
             self.assertEqual(d.title,              "100VG-AnyLAN MIB")
@@ -419,7 +419,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.pages,              None)
             self.assertEqual(d.stream,             None)
             self.assertEqual(d.std_level,          None)
-            self.assertEqual(d.states,             ["/api/v1/doc/state/88/"])
+            self.assertEqual(d.states,             [DocumentStateURI("/api/v1/doc/state/88/")])
 
             url = d.document_url()
             self.assertEqual(url, "https://www.ietf.org/charter/charter-ietf-vgmib-01.txt")
@@ -439,7 +439,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.rev,                "00")
             self.assertEqual(d.external_url,       "")
             self.assertEqual(d.expires,            None)
-            self.assertEqual(d.type,               "/api/v1/name/doctypename/conflrev/")
+            self.assertEqual(d.type,               DocumentTypeURI("/api/v1/name/doctypename/conflrev/"))
             self.assertEqual(d.group,              GroupURI("/api/v1/group/group/2/"))
             self.assertEqual(d.resource_uri,       DocumentURI("/api/v1/doc/document/conflict-review-kiyomoto-kcipher2/"))
             self.assertEqual(d.title,              "IETF conflict review for draft-kiyomoto-kcipher2")
@@ -455,9 +455,9 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.tags,               [])
             self.assertEqual(d.time,               "2013-07-15T14:47:31")
             self.assertEqual(d.pages,              None)
-            self.assertEqual(d.stream,             "/api/v1/name/streamname/ietf/")
+            self.assertEqual(d.stream,             StreamURI("/api/v1/name/streamname/ietf/"))
             self.assertEqual(d.std_level,          None)
-            self.assertEqual(d.states,             ["/api/v1/doc/state/97/"])
+            self.assertEqual(d.states,             [DocumentStateURI("/api/v1/doc/state/97/")])
 
             url = d.document_url()
             self.assertEqual(url, "https://www.ietf.org/cr/conflict-review-kiyomoto-kcipher2-00.txt")
@@ -477,7 +477,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.rev,                "12")
             self.assertEqual(d.external_url,       "")
             self.assertEqual(d.expires,            "2003-09-08T00:00:12")
-            self.assertEqual(d.type,               "/api/v1/name/doctypename/draft/")
+            self.assertEqual(d.type,               DocumentTypeURI("/api/v1/name/doctypename/draft/"))
             self.assertEqual(d.group,              GroupURI("/api/v1/group/group/941/"))
             self.assertEqual(d.resource_uri,       DocumentURI("/api/v1/doc/document/draft-ietf-avt-rtp-new/"))
             self.assertEqual(d.title,              "RTP: A Transport Protocol for Real-Time Applications")
@@ -493,9 +493,9 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.tags,               ["/api/v1/name/doctagname/app-min/", "/api/v1/name/doctagname/errata/"])
             self.assertEqual(d.time,               "2015-10-14T13:49:52")
             self.assertEqual(d.pages,              104)
-            self.assertEqual(d.stream,             "/api/v1/name/streamname/ietf/")
+            self.assertEqual(d.stream,             StreamURI("/api/v1/name/streamname/ietf/"))
             self.assertEqual(d.std_level,          "/api/v1/name/stdlevelname/std/")
-            self.assertEqual(d.states,             ["/api/v1/doc/state/3/", "/api/v1/doc/state/7/"])
+            self.assertEqual(d.states,             [DocumentStateURI("/api/v1/doc/state/3/"), DocumentStateURI("/api/v1/doc/state/7/")])
 
             url = d.document_url()
             self.assertEqual(url, "https://www.ietf.org/archive/id/draft-ietf-avt-rtp-new-12.txt")
@@ -515,7 +515,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.rev,                "")
             self.assertEqual(d.external_url,       "")
             self.assertEqual(d.expires,            None)
-            self.assertEqual(d.type,               "/api/v1/name/doctypename/liaison/")
+            self.assertEqual(d.type,               DocumentTypeURI("/api/v1/name/doctypename/liaison/"))
             self.assertEqual(d.group,              None)
             self.assertEqual(d.resource_uri,       DocumentURI("/api/v1/doc/document/liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1/"))
             self.assertEqual(d.title,              "S4-120810 DRAFT LS to IETF MMUSIC WG on RTCP Bandwidth Negotiation")
@@ -553,7 +553,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.rev,                "")
             self.assertEqual(d.external_url,       "")
             self.assertEqual(d.expires,            None)
-            self.assertEqual(d.type,               "/api/v1/name/doctypename/liai-att/")
+            self.assertEqual(d.type,               DocumentTypeURI("/api/v1/name/doctypename/liai-att/"))
             self.assertEqual(d.group,              None)
             self.assertEqual(d.resource_uri,       DocumentURI("/api/v1/doc/document/liaison-2004-08-23-itu-t-ietf-liaison-statement-to-ietf-and-itu-t-study-groups-countering-spam-pdf-version-attachment-1/"))
             self.assertEqual(d.title,              "Liaison Statement to IETF and ITU-T Study Groups: Countering SPAM (PDF version)")
@@ -591,7 +591,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.rev,                "1")
             self.assertEqual(d.external_url,       "")
             self.assertEqual(d.expires,            None)
-            self.assertEqual(d.type,               "/api/v1/name/doctypename/minutes/")
+            self.assertEqual(d.type,               DocumentTypeURI("/api/v1/name/doctypename/minutes/"))
             self.assertEqual(d.group,              GroupURI("/api/v1/group/group/31/"))
             self.assertEqual(d.resource_uri,       DocumentURI("/api/v1/doc/document/minutes-89-cfrg/"))
             self.assertEqual(d.title,              "Minutes for CFRG at IETF-89")
@@ -609,7 +609,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.pages,              None)
             self.assertEqual(d.stream,             None)
             self.assertEqual(d.std_level,          None)
-            self.assertEqual(d.states,             ["/api/v1/doc/state/79/"])
+            self.assertEqual(d.states,             [DocumentStateURI("/api/v1/doc/state/79/")])
 
             url = d.document_url()
             self.assertEqual(url, "https://datatracker.ietf.org/meeting/89/materials/minutes-89-cfrg.txt")
@@ -629,7 +629,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.rev,                "00")
             self.assertEqual(d.external_url,       "https://www.ietf.org/audio/ietf94/ietf94-room304-20151103-1520.mp3")
             self.assertEqual(d.expires,            None)
-            self.assertEqual(d.type,               "/api/v1/name/doctypename/recording/")
+            self.assertEqual(d.type,               DocumentTypeURI("/api/v1/name/doctypename/recording/"))
             self.assertEqual(d.group,              GroupURI("/api/v1/group/group/1924/"))
             self.assertEqual(d.resource_uri,       DocumentURI("/api/v1/doc/document/recording-94-taps-1/"))
             self.assertEqual(d.title,              "Audio recording for 2015-11-03 15:20")
@@ -647,7 +647,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.pages,              None)
             self.assertEqual(d.stream,             None)
             self.assertEqual(d.std_level,          None)
-            self.assertEqual(d.states,             ["/api/v1/doc/state/135/"])
+            self.assertEqual(d.states,             [DocumentStateURI("/api/v1/doc/state/135/")])
 
             url = d.document_url()
             self.assertEqual(url, "https://www.ietf.org/audio/ietf94/ietf94-room304-20151103-1520.mp3")
@@ -668,7 +668,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.rev,                "00")
             self.assertEqual(d.external_url,       "")
             self.assertEqual(d.expires,            None)
-            self.assertEqual(d.type,               "/api/v1/name/doctypename/review/")
+            self.assertEqual(d.type,               DocumentTypeURI("/api/v1/name/doctypename/review/"))
             self.assertEqual(d.group,              GroupURI("/api/v1/group/group/1972/"))
             self.assertEqual(d.resource_uri,       DocumentURI("/api/v1/doc/document/review-bchv-rfc6890bis-04-genart-lc-kyzivat-2017-02-28/"))
             self.assertEqual(d.title,              "Last Call Review of draft-bchv-rfc6890bis-04")
@@ -686,7 +686,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.pages,              None)
             self.assertEqual(d.stream,             None)
             self.assertEqual(d.std_level,          None)
-            self.assertEqual(d.states,             ["/api/v1/doc/state/143/"])
+            self.assertEqual(d.states,             [DocumentStateURI("/api/v1/doc/state/143/")])
 
             url = d.document_url()
             self.assertEqual(url, "https://datatracker.ietf.org/doc/review-bchv-rfc6890bis-04-genart-lc-kyzivat-2017-02-28")
@@ -711,7 +711,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.rev,                "00")
             self.assertEqual(d.external_url,       "")
             self.assertEqual(d.expires,            None)
-            self.assertEqual(d.type,               "/api/v1/name/doctypename/slides/")
+            self.assertEqual(d.type,               DocumentTypeURI("/api/v1/name/doctypename/slides/"))
             self.assertEqual(d.group,              GroupURI("/api/v1/group/group/1593/"))
             self.assertEqual(d.resource_uri,       DocumentURI("/api/v1/doc/document/slides-65-l2vpn-4/"))
             self.assertEqual(d.title,              "Congruency for VPLS Mcast & Unicast Paths")
@@ -729,7 +729,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.pages,              None)
             self.assertEqual(d.stream,             None)
             self.assertEqual(d.std_level,          None)
-            self.assertEqual(d.states,             ["/api/v1/doc/state/141/", "/api/v1/doc/state/138/"])
+            self.assertEqual(d.states,             [DocumentStateURI("/api/v1/doc/state/141/"), DocumentStateURI("/api/v1/doc/state/138/")])
 
             url = d.document_url()
             self.assertEqual(url, "https://www.ietf.org/proceedings/65/slides/l2vpn-4.pdf")
@@ -749,7 +749,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.rev,                "00")
             self.assertEqual(d.external_url,       "")
             self.assertEqual(d.expires,            None)
-            self.assertEqual(d.type,               "/api/v1/name/doctypename/statchg/")
+            self.assertEqual(d.type,               DocumentTypeURI("/api/v1/name/doctypename/statchg/"))
             self.assertEqual(d.group,              GroupURI("/api/v1/group/group/2/"))
             self.assertEqual(d.resource_uri,       DocumentURI("/api/v1/doc/document/status-change-rfc3044-rfc3187-orig-urn-regs-to-historic/"))
             self.assertEqual(d.title,              "Change status of RFC 3044 and RFC 3187 (original ISSN and ISBN URN Namespace registrationS) to Historic")
@@ -765,9 +765,9 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.tags,               [])
             self.assertEqual(d.time,               "2017-08-21T09:32:46")
             self.assertEqual(d.pages,              None)
-            self.assertEqual(d.stream,             "/api/v1/name/streamname/ietf/")
+            self.assertEqual(d.stream,             StreamURI("/api/v1/name/streamname/ietf/"))
             self.assertEqual(d.std_level,          None)
-            self.assertEqual(d.states,             ["/api/v1/doc/state/127/"])
+            self.assertEqual(d.states,             [DocumentStateURI("/api/v1/doc/state/127/")])
 
             url = d.document_url()
             self.assertEqual(url, "https://www.ietf.org/sc/status-change-rfc3044-rfc3187-orig-urn-regs-to-historic-00.txt")
@@ -815,16 +815,16 @@ class TestDatatracker(unittest.TestCase):
 
     # FIXME: this needs to be updated
     def test_document_state(self) -> None:
-        s = self.dt.document_state('/api/v1/doc/state/7/')
+        s = self.dt.document_state(DocumentStateURI('/api/v1/doc/state/7/'))
         if s is not None:
             self.assertEqual(s.desc,         'The ID has been published as an RFC.')
             self.assertEqual(s.id,           7)
             self.assertEqual(s.name,         'RFC Published')
-            self.assertEqual(s.next_states,  ['/api/v1/doc/state/8/'])
+            self.assertEqual(s.next_states,  [DocumentStateURI('/api/v1/doc/state/8/')])
             self.assertEqual(s.order,        32)
-            self.assertEqual(s.resource_uri, '/api/v1/doc/state/7/')
+            self.assertEqual(s.resource_uri, DocumentStateURI('/api/v1/doc/state/7/'))
             self.assertEqual(s.slug,         'pub')
-            self.assertEqual(s.type,         '/api/v1/doc/statetype/draft-iesg/')
+            self.assertEqual(s.type,         DocumentStateTypeURI('/api/v1/doc/statetype/draft-iesg/'))
             self.assertEqual(s.used,         True)
         else:
             self.fail("Cannot find state")
@@ -883,16 +883,14 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(st[23].slug, 'draft-iana-experts')
 
 
-    def test_document_events(self) -> None:
-        es = list(self.dt.document_events(id=729040))
-        self.assertEqual(len(es), 1)
-        e = es[0]
+    def test_document_event(self) -> None:
+        e = self.dt.document_event(DocumentEventURI("/api/v1/doc/docevent/729040/"))
         if e is not None:
             self.assertEqual(e.by,              PersonURI("/api/v1/person/person/121595/"))
             self.assertEqual(e.desc,            "New version available: <b>draft-irtf-cfrg-randomness-improvements-09.txt</b>")
             self.assertEqual(e.doc,             DocumentURI("/api/v1/doc/document/draft-irtf-cfrg-randomness-improvements/"))
             self.assertEqual(e.id,              729040)
-            self.assertEqual(e.resource_uri,    "/api/v1/doc/docevent/729040/")
+            self.assertEqual(e.resource_uri,    DocumentEventURI("/api/v1/doc/docevent/729040/"))
             self.assertEqual(e.rev,             "09")
             self.assertEqual(e.time,            "2020-01-27T06:41:36")
             self.assertEqual(e.type,            "new_revision")
@@ -901,8 +899,14 @@ class TestDatatracker(unittest.TestCase):
 
 
     # FIXME: this needs to be updated
+    def test_document_events(self) -> None:
+        pass
+
+
+
+    # FIXME: this needs to be updated
     def test_submission(self) -> None:
-        s  = self.dt.submission("/api/v1/submit/submission/2402/")
+        s  = self.dt.submission(SubmissionURI("/api/v1/submit/submission/2402/"))
         if s is not None:
             #self.assertEqual(s.abstract,        "Internet technical specifications often need to...")
             self.assertEqual(s.access_key,      "f77d08da6da54f3cbecca13d31646be8")
@@ -921,7 +925,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(s.pages,           13)
             self.assertEqual(s.remote_ip,       "72.255.3.179")
             self.assertEqual(s.replaces,        "")
-            self.assertEqual(s.resource_uri,    "/api/v1/submit/submission/2402/")
+            self.assertEqual(s.resource_uri,    SubmissionURI("/api/v1/submit/submission/2402/"))
             self.assertEqual(s.rev,             "01")
             self.assertEqual(s.state,           "/api/v1/name/draftsubmissionstatename/posted/")
             self.assertEqual(s.submission_date, "2007-10-09")
@@ -933,9 +937,9 @@ class TestDatatracker(unittest.TestCase):
 
     # FIXME: this needs to be updated
     def test_document_type(self) -> None:
-        doctype = self.dt.document_type("/api/v1/name/doctypename/draft/")
+        doctype = self.dt.document_type("draft")
         if doctype is not None:
-            self.assertEqual(doctype.resource_uri, "/api/v1/name/doctypename/draft/")
+            self.assertEqual(doctype.resource_uri, DocumentTypeURI("/api/v1/name/doctypename/draft/"))
             self.assertEqual(doctype.name,         "Draft")
             self.assertEqual(doctype.used,         True)
             self.assertEqual(doctype.prefix,       "draft")
@@ -968,12 +972,12 @@ class TestDatatracker(unittest.TestCase):
 
     # FIXME: this needs to be updated
     def test_stream(self) -> None:
-        stream = self.dt.stream("/api/v1/name/streamname/irtf/")
+        stream = self.dt.stream(StreamURI("/api/v1/name/streamname/irtf/"))
         if stream is not None:
             self.assertEqual(stream.desc,         "IRTF Stream")
             self.assertEqual(stream.name,         "IRTF")
             self.assertEqual(stream.order,        3)
-            self.assertEqual(stream.resource_uri, "/api/v1/name/streamname/irtf/")
+            self.assertEqual(stream.resource_uri, StreamURI("/api/v1/name/streamname/irtf/"))
             self.assertEqual(stream.slug,         "irtf")
             self.assertEqual(stream.used,         True)
         else:
