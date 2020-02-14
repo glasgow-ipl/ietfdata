@@ -327,7 +327,7 @@ class State:
     name         : str
     next_states  : List[DocumentStateURI]
     order        : int
-    slug         : str
+    slug         : str  # FIXME: should we introduce a StateSlug type (and similar for the other slug fields)?
     type         : DocumentStateTypeURI
     used         : bool
 
