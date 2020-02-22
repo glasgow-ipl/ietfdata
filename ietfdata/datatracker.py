@@ -70,30 +70,6 @@ class URI:
 
 
 @dataclass(frozen=True)
-class EmailURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/person/email/") or self.uri.startswith("/api/v1/person/historicalemail/")
-
-
-@dataclass(frozen=True)
-class PersonURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/person/person/") or self.uri.startswith("/api/v1/person/historicalperson/")
-
-
-@dataclass(frozen=True)
-class PersonAliasURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/person/alias/")
-
-
-@dataclass(frozen=True)
-class PersonEventURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/person/personevent/")
-
-
-@dataclass(frozen=True)
 class GroupURI(URI):
     def __post_init__(self) -> None:
         assert self.uri.startswith("/api/v1/group/group/")
@@ -166,31 +142,13 @@ class MeetingTypeURI(URI):
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------
-# Types relating to email addresses:
-
-
-@dataclass(frozen=True)
-class Email:
-    resource_uri : EmailURI
-    person       : PersonURI
-    address      : str # The email address
-    time         : str
-    origin       : str
-    primary      : bool
-    active       : bool
-
-
-@dataclass(frozen=True)
-class HistoricalEmail(Email):
-    history_change_reason : Optional[str]
-    history_user          : Optional[str]
-    history_id            : int
-    history_type          : str
-    history_date          : str
-
-
-# ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to people:
+
+@dataclass(frozen=True)
+class PersonURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/person/person/") or self.uri.startswith("/api/v1/person/historicalperson/")
+
 
 @dataclass(frozen=True)
 class Person:
@@ -218,11 +176,23 @@ class HistoricalPerson(Person):
 
 
 @dataclass(frozen=True)
+class PersonAliasURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/person/alias/")
+
+
+@dataclass(frozen=True)
 class PersonAlias:
     id                 : int
     resource_uri       : PersonAliasURI
     person             : PersonURI
     name               : str
+
+
+@dataclass(frozen=True)
+class PersonEventURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/person/personevent/")
 
 
 @dataclass(frozen=True)
@@ -233,6 +203,36 @@ class PersonEvent:
     resource_uri    : PersonEventURI
     time            : str
     type            : str
+
+
+# ---------------------------------------------------------------------------------------------------------------------------------
+# Types relating to email addresses:
+
+@dataclass(frozen=True)
+class EmailURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/person/email/") or self.uri.startswith("/api/v1/person/historicalemail/")
+
+
+
+@dataclass(frozen=True)
+class Email:
+    resource_uri : EmailURI
+    person       : PersonURI
+    address      : str # The email address
+    time         : str
+    origin       : str
+    primary      : bool
+    active       : bool
+
+
+@dataclass(frozen=True)
+class HistoricalEmail(Email):
+    history_change_reason : Optional[str]
+    history_user          : Optional[str]
+    history_id            : int
+    history_type          : str
+    history_date          : str
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------
@@ -554,53 +554,11 @@ class DataTracker:
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
-    # Datatracker API endpoints returning information about email addresses:
-    # * https://datatracker.ietf.org/api/v1/person/email/csp@csperkins.org/
-    # * https://datatracker.ietf.org/api/v1/person/historicalemail/
-
-    def email(self, email_uri: EmailURI) -> Optional[Email]:
-        return self._retrieve(email_uri, Email)
-
-
-    def email_for_person(self, person: Person) -> Iterator[Email]:
-        uri = "/api/v1/person/email/?person=" + str(person.id)
-        return self._retrieve_multi(uri, Email)
-
-
-    def email_history_for_address(self, email_addr: str) -> Iterator[HistoricalEmail]:
-        uri = "/api/v1/person/historicalemail/?address=" + email_addr
-        return self._retrieve_multi(uri, HistoricalEmail)
-
-
-    def email_history_for_person(self, person: Person) -> Iterator[HistoricalEmail]:
-        uri = "/api/v1/person/historicalemail/?person=" + str(person.id)
-        return self._retrieve_multi(uri, HistoricalEmail)
-
-
-    def emails(self,
-               since : str ="1970-01-01T00:00:00",
-               until : str ="2038-01-19T03:14:07") -> Iterator[Email]:
-        """
-        A generator that returns email addresses recorded in the datatracker.
-
-        Parameters:
-            since         -- Only return people with timestamp after this
-            until         -- Only return people with timestamp before this
-
-        Returns:
-            An iterator, where each element is an Email object
-        """
-        url = "/api/v1/person/email/?time__gte=" + since + "&time__lt=" + until
-        return self._retrieve_multi(url, Email)
-
-
-    # ----------------------------------------------------------------------------------------------------------------------------
     # Datatracker API endpoints returning information about people:
     # * https://datatracker.ietf.org/api/v1/person/person/
     # * https://datatracker.ietf.org/api/v1/person/person/20209/
     # * https://datatracker.ietf.org/api/v1/person/historicalperson/
     # * https://datatracker.ietf.org/api/v1/person/alias/
-
 
     def person(self, person_uri: PersonURI) -> Optional[Person]:
         return self._retrieve(person_uri, Person)
@@ -649,6 +607,48 @@ class DataTracker:
         if name_contains is not None:
             url = url + "&name__contains=" + name_contains
         return self._retrieve_multi(url, Person)
+
+
+    # ----------------------------------------------------------------------------------------------------------------------------
+    # Datatracker API endpoints returning information about email addresses:
+    # * https://datatracker.ietf.org/api/v1/person/email/csp@csperkins.org/
+    # * https://datatracker.ietf.org/api/v1/person/historicalemail/
+
+    def email(self, email_uri: EmailURI) -> Optional[Email]:
+        return self._retrieve(email_uri, Email)
+
+
+    def email_for_person(self, person: Person) -> Iterator[Email]:
+        uri = "/api/v1/person/email/?person=" + str(person.id)
+        return self._retrieve_multi(uri, Email)
+
+
+    def email_history_for_address(self, email_addr: str) -> Iterator[HistoricalEmail]:
+        uri = "/api/v1/person/historicalemail/?address=" + email_addr
+        return self._retrieve_multi(uri, HistoricalEmail)
+
+
+    def email_history_for_person(self, person: Person) -> Iterator[HistoricalEmail]:
+        uri = "/api/v1/person/historicalemail/?person=" + str(person.id)
+        return self._retrieve_multi(uri, HistoricalEmail)
+
+
+    def emails(self,
+               since : str ="1970-01-01T00:00:00",
+               until : str ="2038-01-19T03:14:07") -> Iterator[Email]:
+        """
+        A generator that returns email addresses recorded in the datatracker.
+
+        Parameters:
+            since         -- Only return people with timestamp after this
+            until         -- Only return people with timestamp before this
+
+        Returns:
+            An iterator, where each element is an Email object
+        """
+        url = "/api/v1/person/email/?time__gte=" + since + "&time__lt=" + until
+        return self._retrieve_multi(url, Email)
+
 
     # ----------------------------------------------------------------------------------------------------------------------------
     # Datatracker API endpoints returning information about documents:
