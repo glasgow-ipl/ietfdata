@@ -70,75 +70,15 @@ class URI:
 
 
 @dataclass(frozen=True)
-class GroupURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/group/group/")
-
-
-@dataclass(frozen=True)
-class GroupStateURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/groupstatename/")
-
-
-@dataclass(frozen=True)
 class DocumentURI(URI):
     def __post_init__(self) -> None:
         assert self.uri.startswith("/api/v1/doc/document/")
 
 
 @dataclass(frozen=True)
-class DocumentAliasURI(URI):
+class GroupURI(URI):
     def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/doc/docalias/")
-
-
-@dataclass(frozen=True)
-class DocumentStateURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/doc/state/")
-
-
-@dataclass(frozen=True)
-class DocumentStateTypeURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/doc/statetype/")
-
-
-@dataclass(frozen=True)
-class DocumentTypeURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/doctypename/")
-
-
-@dataclass(frozen=True)
-class DocumentEventURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/doc/docevent/")
-
-
-@dataclass(frozen=True)
-class StreamURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/streamname/")
-
-
-@dataclass(frozen=True)
-class SubmissionURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/submit/submission/")
-
-
-@dataclass(frozen=True)
-class MeetingURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/meeting/meeting/")
-
-
-@dataclass(frozen=True)
-class MeetingTypeURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/meetingtypename/")
+        assert self.uri.startswith("/api/v1/group/group/")
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------
@@ -214,7 +154,6 @@ class EmailURI(URI):
         assert self.uri.startswith("/api/v1/person/email/") or self.uri.startswith("/api/v1/person/historicalemail/")
 
 
-
 @dataclass(frozen=True)
 class Email:
     resource_uri : EmailURI
@@ -237,6 +176,108 @@ class HistoricalEmail(Email):
 
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to documents:
+
+@dataclass(frozen=True)
+class DocumentTypeURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/name/doctypename/")
+
+
+@dataclass(frozen=True)
+class DocumentType:
+    resource_uri : DocumentTypeURI
+    name         : str
+    used         : bool
+    prefix       : str
+    slug         : str
+    desc         : str
+    order        : int
+
+
+@dataclass(frozen=True)
+class DocumentStateTypeURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/doc/statetype/")
+
+
+@dataclass(frozen=True)
+class DocumentStateType:
+    resource_uri : DocumentStateTypeURI
+    label        : str
+    slug         : str
+
+
+@dataclass(frozen=True)
+class DocumentStateURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/doc/state/")
+
+
+@dataclass(frozen=True)
+class DocumentState:
+    id           : int
+    resource_uri : DocumentStateURI
+    desc         : str
+    name         : str
+    next_states  : List[DocumentStateURI]
+    order        : int
+    slug         : str  # FIXME: should we introduce a StateSlug type (and similar for the other slug fields)?
+    type         : DocumentStateTypeURI
+    used         : bool
+
+
+@dataclass(frozen=True)
+class StreamURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/name/streamname/")
+
+
+@dataclass(frozen=True)
+class Stream:
+    resource_uri : StreamURI
+    name         : str
+    desc         : str
+    used         : bool
+    slug         : str
+    order        : int
+
+
+@dataclass(frozen=True)
+class SubmissionURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/submit/submission/")
+
+
+@dataclass(frozen=True)
+class Submission:
+    abstract        : str
+    access_key      : str
+    auth_key        : str
+    authors         : str
+    checks          : List[str] # FIXME: these should be URI subtypes
+    document_date   : str
+    draft           : DocumentURI
+    file_size       : Optional[int]
+    file_types      : str
+    first_two_pages : str
+    group           : Optional[GroupURI]
+    id              : int
+    name            : str
+    note            : str
+    pages           : Optional[int]
+    remote_ip       : str
+    replaces        : str   # FIXME: this should be an Optional[URI]?
+    resource_uri    : SubmissionURI
+    rev             : str
+    state           : str   # FIXME: this should be a URI subtype
+    submission_date : str
+    submitter       : str
+    title           : str
+    words           : Optional[int]
+
+
+# DocumentURI is defined earlier, to avoid circular dependencies
+
 
 @dataclass(frozen=True)
 class Document:
@@ -312,6 +353,12 @@ class Document:
 
 
 @dataclass(frozen=True)
+class DocumentAliasURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/doc/docalias/")
+
+
+@dataclass(frozen=True)
 class DocumentAlias:
     id           : int
     resource_uri : DocumentAliasURI
@@ -320,72 +367,9 @@ class DocumentAlias:
 
 
 @dataclass(frozen=True)
-class DocumentState:
-    id           : int
-    resource_uri : DocumentStateURI
-    desc         : str
-    name         : str
-    next_states  : List[DocumentStateURI]
-    order        : int
-    slug         : str  # FIXME: should we introduce a StateSlug type (and similar for the other slug fields)?
-    type         : DocumentStateTypeURI
-    used         : bool
-
-
-@dataclass(frozen=True)
-class DocumentStateType:
-    resource_uri : DocumentStateTypeURI
-    label        : str
-    slug         : str
-
-
-@dataclass(frozen=True)
-class DocumentType:
-    resource_uri : DocumentTypeURI
-    name         : str
-    used         : bool
-    prefix       : str
-    slug         : str
-    desc         : str
-    order        : int
-
-
-@dataclass(frozen=True)
-class Stream:
-    resource_uri : StreamURI
-    name         : str
-    desc         : str
-    used         : bool
-    slug         : str
-    order        : int
-
-
-@dataclass(frozen=True)
-class Submission:
-    abstract        : str
-    access_key      : str
-    auth_key        : str
-    authors         : str
-    checks          : List[str] # FIXME: these should be URI subtypes
-    document_date   : str
-    draft           : DocumentURI
-    file_size       : Optional[int]
-    file_types      : str
-    first_two_pages : str
-    group           : Optional[GroupURI]
-    id              : int
-    name            : str
-    note            : str
-    pages           : Optional[int]
-    remote_ip       : str
-    replaces        : str   # FIXME: this should be an Optional[URI]?
-    resource_uri    : SubmissionURI
-    rev             : str
-    state           : str   # FIXME: this should be a URI subtype
-    submission_date : str
-    submitter       : str
-    title           : str
-    words           : Optional[int]
+class DocumentEventURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/doc/docevent/")
 
 
 @dataclass(frozen=True)
@@ -402,6 +386,10 @@ class DocumentEvent:
 
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to groups:
+
+
+# GroupURI is defined earlier, to avoid circular dependencies
+
 
 @dataclass(frozen=True)
 class Group:
@@ -425,6 +413,12 @@ class Group:
 
 
 @dataclass(frozen=True)
+class GroupStateURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/name/groupstatename/")
+
+
+@dataclass(frozen=True)
 class GroupState:
     resource_uri   : GroupStateURI
     slug           : str
@@ -441,6 +435,13 @@ class MeetingStatus(Enum):
     FUTURE    = 1
     ONGOING   = 2
     COMPLETED = 3
+
+
+@dataclass(frozen=True)
+class MeetingURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/meeting/meeting/")
+
 
 @dataclass
 class Meeting:
@@ -484,6 +485,12 @@ class Meeting:
             return MeetingStatus.COMPLETED
         else:
             return MeetingStatus.ONGOING
+
+
+@dataclass(frozen=True)
+class MeetingTypeURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/name/meetingtypename/")
 
 
 @dataclass
