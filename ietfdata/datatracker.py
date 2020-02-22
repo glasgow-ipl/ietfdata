@@ -320,7 +320,7 @@ class DocumentAlias:
 
 
 @dataclass(frozen=True)
-class State:
+class DocumentState:
     id           : int
     resource_uri : DocumentStateURI
     desc         : str
@@ -333,7 +333,7 @@ class State:
 
 
 @dataclass(frozen=True)
-class StateType:
+class DocumentStateType:
     resource_uri : DocumentStateTypeURI
     label        : str
     slug         : str
@@ -767,11 +767,11 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/doc/state/                           - Types of state a document can be in
     # * https://datatracker.ietf.org/api/v1/doc/statetype/                       - Possible types of state for a document
 
-    def document_state(self, state_uri: DocumentStateURI) -> Optional[State]:
-        return self._retrieve(state_uri, State)
+    def document_state(self, state_uri: DocumentStateURI) -> Optional[DocumentState]:
+        return self._retrieve(state_uri, DocumentState)
 
 
-    def document_states(self, statetype : Optional[str] = None) -> Iterator[State]:
+    def document_states(self, statetype : Optional[str] = None) -> Iterator[DocumentState]:
         """
         A generator returning the possible states a document can be in.
 
@@ -786,10 +786,10 @@ class DataTracker:
         url   = "/api/v1/doc/state/"
         if statetype is not None:
             url = url + "?type=" + statetype
-        return self._retrieve_multi(url, State)
+        return self._retrieve_multi(url, DocumentState)
 
 
-    def document_state_types(self) -> Iterator[StateType]:
+    def document_state_types(self) -> Iterator[DocumentStateType]:
         """
         A generator returning possible state types for a document.
         These are the possible values of the 'type' field in the
@@ -799,7 +799,7 @@ class DataTracker:
         Returns:
            A sequence of StateType objects
         """
-        return self._retrieve_multi("/api/v1/doc/statetype/", StateType)
+        return self._retrieve_multi("/api/v1/doc/statetype/", DocumentStateType)
 
 
     # Datatracker API endpoints returning information about document events:
