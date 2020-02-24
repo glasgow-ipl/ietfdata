@@ -911,7 +911,7 @@ class TestDatatracker(unittest.TestCase):
             #self.assertEqual(s.abstract,        "Internet technical specifications often need to...")
             self.assertEqual(s.access_key,      "f77d08da6da54f3cbecca13d31646be8")
             self.assertEqual(s.auth_key,        "fMm6hur5dJ7gV58x5SE0vkHUoDOrSuSF")
-            self.assertEqual(s.authors,         "[{u'email': u'dcrocker@bbiw.net', u'name': u'Dave Crocker'}, {u'email': u'paul.overell@thus.net', u'name': u'Paul Overell'}]")
+            self.assertEqual(s.authors,         "[{'email': 'dcrocker@bbiw.net', 'name': 'Dave Crocker'}, {'email': 'paul.overell@thus.net', 'name': 'Paul Overell'}]")
             self.assertEqual(s.checks,          ["/api/v1/submit/submissioncheck/386/"])
             self.assertEqual(s.document_date,   "2007-10-09")
             self.assertEqual(s.draft,           DocumentURI("/api/v1/doc/document/draft-crocker-rfc4234bis/"))
