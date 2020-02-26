@@ -1107,26 +1107,27 @@ class DataTracker:
 # =================================================================================================================================
 #   https://datatracker.ietf.org/api/v1/doc/relateddocument/?source=...      - documents that source draft relates to (references, replaces, etc)
 #   https://datatracker.ietf.org/api/v1/doc/relateddocument/?target=...      - documents that relate to target draft
-    
-    def related_documents_source(self,
-            source_id         : str                        = "38559",
-            relationship_type : Optional[RelationshipType] = None) -> Iterator[RelatedDocument]:
 
-        url = "/api/v1/doc/relateddocument/?source=" + source_id
-        if relationship_type is not None:
-            url = url + "&relationship=" + relationship_type
+    def related_documents(self, 
+            source               : Optional[Document]         = None, 
+            target               : Optional[Document]         = None, 
+            relationship_type    : Optional[RelationshipType] = None) -> Iterator[RelatedDocument]:
 
-        return self._retrieve_multi(url, RelatedDocument)
-
-
-    def related_documents_target(self,
-            target_id         : str                        = "38559",
-            relationship_type : Optional[RelationshipType] = None) -> Iterator[RelatedDocument]:
-        
-        url = "/api/v1/doc/relateddocument/?target=" + target_id
-        if relationship_type is not None:
-            url = url + "&relationship=" + relationship_type
-            
+        url = "/api/v1/doc/relateddocument/"
+        if source is not None and target is not None and relationship_type is not None:
+            url = url + "?source=" + source + "&target=" + target + "&relationship=" + relationship_type
+        elif source is not None and target is not None:
+            url = url + "?source=" + source + "&target=" + target
+        elif source is not None and relationship_type is not None:
+            url = url + "?source=" + source + "&relationship=" + relationship_type
+        elif target is not None and relationship_type is not None:
+            url = url + "?target=" + target + "&relationship=" + relationship_type
+        elif target is not None:
+            url = url + "?target=" + target
+        elif source is not None:
+            url = url + "?source=" + source
+        elif relationship_type is not None:
+            url = url + "?relationship=" + relationship_type
         return self._retrieve_multi(url, RelatedDocument)
     
     
