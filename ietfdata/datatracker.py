@@ -400,10 +400,12 @@ class RelationshipType:
     order          : int
     revname        : str
 
+
 @dataclass(frozen=True)
 class RelatedDocumentURI(URI):
     def __post_init__(self) -> None:
         assert self.uri.startswith("/api/v1/doc/relateddocument/")
+
 
 @dataclass(frozen=True)
 class RelatedDocument:
@@ -412,6 +414,7 @@ class RelatedDocument:
     resource_uri    : RelatedDocumentURI
     source          : DocumentURI
     target          : DocumentAliasURI
+
 
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to groups:
@@ -1108,7 +1111,7 @@ class DataTracker:
     def related_documents_source(self,
             source_id         : str                        = "38559",
             relationship_type : Optional[RelationshipType] = None) -> Iterator[RelatedDocument]:
-        
+
         url = "/api/v1/doc/relateddocument/?source=" + source_id
         if relationship_type is not None:
             url = url + "&relationship=" + relationship_type
@@ -1129,7 +1132,7 @@ class DataTracker:
     
     def relationship_type(self, relationship_type: str) -> Optional[RelationshipType]:
         """
-        Retrieve a GroupState
+        Retrieve a relationship type
 
         Parameters:
             relationship_type -- The relationship type, as returned in the 'slug' of a RelationshipType
