@@ -1126,7 +1126,13 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/meeting/room/537/                       - a room at a meeting
     #   https://datatracker.ietf.org/api/v1/meeting/floorplan/14/                   - floor plan for a meeting venue
 
-    def schedule(self, schedule_uri : ScheduleURI) -> Optional[Schedule]:
+    def meeting_schedule(self, schedule_uri : ScheduleURI) -> Optional[Schedule]:
+        """
+        Information about a particular version of the schedule for a meeting.
+
+        Use `meeting_session_assignments()` to find what sessions are scheduled
+        in each timeslot of the meeting in this version of the meeting schedule.
+        """
         return self._retrieve(schedule_uri, Schedule)
 
 
