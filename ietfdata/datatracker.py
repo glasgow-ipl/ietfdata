@@ -557,10 +557,13 @@ class AssignmentURI(URI):
 
 @dataclass(frozen=True)
 class Assignment:
+    """
+    The assignment of a `session` to a `timeslot` within a meeting `schedule`
+    """
     id           : int
     resource_uri : AssignmentURI
     session      : SessionURI
-    agenda       : ScheduleURI
+    agenda       : ScheduleURI  # An alias for `schedule`
     schedule     : ScheduleURI
     timeslot     : TimeslotURI
     modified     : str
@@ -980,7 +983,6 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/name/docrelationshipname/
     #   https://datatracker.ietf.org/api/v1/name/doctagname/
     #   https://datatracker.ietf.org/api/v1/name/docurltagname/
-    #   https://datatracker.ietf.org/api/v1/name/groupstatename/
     #   https://datatracker.ietf.org/api/v1/name/formallanguagename/
     #   https://datatracker.ietf.org/api/v1/name/timeslottypename/
     #   https://datatracker.ietf.org/api/v1/name/liaisonstatementeventtypename/
@@ -1040,8 +1042,8 @@ class DataTracker:
 
 
     # Datatracker API endpoints returning information about working groups:
-    #   https://datatracker.ietf.org/api/v1/group/group/                               - list of groups
-    #   https://datatracker.ietf.org/api/v1/group/group/2161/                          - info about group 2161
+    # * https://datatracker.ietf.org/api/v1/group/group/                               - list of groups
+    # * https://datatracker.ietf.org/api/v1/group/group/2161/                          - info about group 2161
     #   https://datatracker.ietf.org/api/v1/group/grouphistory/?group=2161             - history
     #   https://datatracker.ietf.org/api/v1/group/groupurl/?group=2161                 - URLs
     #   https://datatracker.ietf.org/api/v1/group/groupevent/?group=2161               - events
@@ -1087,6 +1089,7 @@ class DataTracker:
             url = url + "&parent=" + str(parent.id)
         return self._retrieve_multi(url, Group)
 
+    # * https://datatracker.ietf.org/api/v1/name/groupstatename/
 
     def group_state(self, group_state : str) -> Optional[GroupState]:
         """
@@ -1112,23 +1115,25 @@ class DataTracker:
 
     # Datatracker API endpoints returning information about meetings:
     # * https://datatracker.ietf.org/api/v1/meeting/meeting/                        - list of meetings
-    #   https://datatracker.ietf.org/api/v1/meeting/meeting/747/                    - information about meeting number 747
+    # * https://datatracker.ietf.org/api/v1/meeting/meeting/747/                    - information about meeting number 747
     #   https://datatracker.ietf.org/api/v1/meeting/session/                        - list of all sessions in meetings
     #   https://datatracker.ietf.org/api/v1/meeting/session/25886/                  - a session in a meeting
     #   https://datatracker.ietf.org/api/v1/meeting/session/?meeting=747            - sessions in meeting number 747
     #   https://datatracker.ietf.org/api/v1/meeting/session/?meeting=747&group=2161 - sessions in meeting number 747 for group 2161
     #   https://datatracker.ietf.org/api/v1/meeting/schedtimesessassignment/59003/  - a schededuled session within a meeting
     #   https://datatracker.ietf.org/api/v1/meeting/timeslot/9480/                  - a time slot within a meeting (time, duration, location)
-    #   https://datatracker.ietf.org/api/v1/meeting/schedule/791/                   - a draft of the meeting agenda
+    # * https://datatracker.ietf.org/api/v1/meeting/schedule/791/                   - a draft of the meeting agenda
     #   https://datatracker.ietf.org/api/v1/meeting/room/537/                       - a room at a meeting
     #   https://datatracker.ietf.org/api/v1/meeting/floorplan/14/                   - floor plan for a meeting venue
-    # * https://datatracker.ietf.org/api/v1/name/meetingtypename/
 
     def schedule(self, schedule_uri : ScheduleURI) -> Optional[Schedule]:
         return self._retrieve(schedule_uri, Schedule)
 
 
     def meeting(self, meeting_uri : MeetingURI) -> Optional[Meeting]:
+        """
+        Information about a meeting.
+        """
         return self._retrieve(meeting_uri, Meeting)
 
 
@@ -1142,6 +1147,8 @@ class DataTracker:
             url = url + "&type=" + meeting_type.slug
         return self._retrieve_multi(url, Meeting)
 
+
+    # * https://datatracker.ietf.org/api/v1/name/meetingtypename/
 
     def meeting_type(self, meeting_type: str) -> Optional[MeetingType]:
         """
