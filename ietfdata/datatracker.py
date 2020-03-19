@@ -431,10 +431,20 @@ class GroupState:
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to meetings:
 
-class MeetingStatus(Enum):
-    FUTURE    = 1
-    ONGOING   = 2
-    COMPLETED = 3
+@dataclass(frozen=True)
+class MeetingTypeURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/name/meetingtypename/")
+
+
+@dataclass
+class MeetingType:
+    name         : str
+    order        : int
+    resource_uri : MeetingTypeURI
+    slug         : str
+    desc         : str
+    used         : bool
 
 
 @dataclass(frozen=True)
@@ -443,11 +453,17 @@ class MeetingURI(URI):
         assert self.uri.startswith("/api/v1/meeting/meeting/")
 
 
+class MeetingStatus(Enum):
+    FUTURE    = 1
+    ONGOING   = 2
+    COMPLETED = 3
+
+
 @dataclass
 class Meeting:
-    resource_uri                     : MeetingURI
     id                               : int
-    type                             : str
+    resource_uri                     : MeetingURI
+    type                             : MeetingTypeURI
     venue_name                       : str
     venue_addr                       : str
     reg_area                         : str
@@ -471,9 +487,10 @@ class Meeting:
     break_area                       : str
     proceedings_final                : bool
     show_important_dates             : bool
-    attendees                        : Optional[str]
+    attendees                        : Optional[int]
     date                             : str  # Start date of the meeting
     days                             : int  # Duration of the meeting
+    schedule                         : str  # FIXME: this is a URI
 
     def status(self) -> MeetingStatus:
         now = datetime.now()
@@ -488,19 +505,30 @@ class Meeting:
 
 
 @dataclass(frozen=True)
-class MeetingTypeURI(URI):
+class SessionURI(URI):
     def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/meetingtypename/")
+        assert self.uri.startswith("/api/v1/meeting/session/")
 
 
 @dataclass
-class MeetingType:
-    name         : str
-    order        : int
-    resource_uri : MeetingTypeURI
-    slug         : str
-    desc         : str
-    used         : bool
+class Session:
+    id                  : int
+    type                : str           # FIXME: this is a URI
+    name                : str
+    resource_uri        : SessionURI
+    meeting             : MeetingURI
+    group               : GroupURI
+    materials           : List[DocumentURI]
+    scheduled           : str          # Date scheduled
+    requested_duration  : str
+    resources           : List[str]    # FIXME
+    agenda_note         : str
+    assignments         : List[str]    # FIXME: list of URIs
+    remote_instructions : str
+    short               : str
+    attendees           : int
+    modified            : str
+    comments            : str
 
 
 # =================================================================================================================================
@@ -1033,7 +1061,10 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/meeting/floorplan/14/                   - floor plan for a meeting venue
     # * https://datatracker.ietf.org/api/v1/name/meetingtypename/
 
-    # The datatracker annoyingly doesn't let us filter by the `updated` field
+    def meeting(self, meeting_uri : MeetingURI) -> Optional[Meeting]:
+        return self._retrieve(meeting_uri, Meeting)
+
+
     def meetings(self,
             start_date   : str = "1970-01-01",
             end_date     : str = "2038-01-19",
