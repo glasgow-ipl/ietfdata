@@ -1055,7 +1055,7 @@ class TestDatatracker(unittest.TestCase):
 
     # FIXME: this needs to be updated
     def test_meetings(self) -> None:
-        meetings = list(self.dt.meetings(since="2019-01-01", until="2019-12-31", meeting_type=self.dt.meeting_type("ietf")))
+        meetings = list(self.dt.meetings(start_date="2019-01-01", end_date="2019-12-31", meeting_type=self.dt.meeting_type("ietf")))
         self.assertEqual(len(meetings),  3)
         self.assertEqual(meetings[0].city, "Singapore")
         self.assertEqual(meetings[1].city, "Montreal")

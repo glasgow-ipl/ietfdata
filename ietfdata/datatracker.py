@@ -455,7 +455,7 @@ class Meeting:
     acknowledgements                 : str
     agenda_info_note                 : str
     agenda_warning_note              : str
-    updated                          : str
+    updated                          : str  # Time this record was modified
     idsubmit_cutoff_warning_days     : str
     idsubmit_cutoff_time_utc         : str
     idsubmit_cutoff_day_offset_00    : int
@@ -472,8 +472,8 @@ class Meeting:
     proceedings_final                : bool
     show_important_dates             : bool
     attendees                        : Optional[str]
-    date                             : str
-    days                             : int
+    date                             : str  # Start date of the meeting
+    days                             : int  # Duration of the meeting
 
     def status(self) -> MeetingStatus:
         now = datetime.now()
@@ -1033,11 +1033,13 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/meeting/floorplan/14/                   - floor plan for a meeting venue
     # * https://datatracker.ietf.org/api/v1/name/meetingtypename/
 
+    # The datatracker annoyingly doesn't let us filter by the `updated` field
     def meetings(self,
-            since        : str = "1970-01-01",
-            until        : str = "2038-01-19",
+            start_date   : str = "1970-01-01",
+            end_date     : str = "2038-01-19",
             meeting_type : Optional[MeetingType] = None) -> Iterator[Meeting]:
-        url = "/api/v1/meeting/meeting/?date__gt=" + since + "&date__lt=" + until
+        url = "/api/v1/meeting/meeting/"
+        url = url + "?date__gte=" + start_date + "&date__lte=" + end_date
         if meeting_type is not None:
             url = url + "&type=" + meeting_type.slug
         return self._retrieve_multi(url, Meeting)

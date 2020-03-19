@@ -5,10 +5,12 @@ Change Log -- ietfdata
 
  - Update documentation of RfcEntry class
  - Update tests
- - Add Datatracker::emails() method
- - Add Datatracker::document_states() method
- - Introduce and use URI types
+ - Add `Datatracker::emails()` method
+ - Add `Datatracker::document_states()` method
+ - Introduce and use URI types throughout
  - Re-enable HTTP connection reuse
+ - Update `meetings()` to take `start_date` and `end_date` parameters
+   rather than `since` and `until`.
 
 
 ## v0.1.5 -- 2019-12-24
