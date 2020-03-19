@@ -12,6 +12,9 @@ Change Log -- ietfdata
  - Add `Datatracker::meeting()` method
  - Update `Datatracker::meetings()` to take `start_date` and `end_date`
    parameters rather than `since` and `until`.
+ - Add `Datatracker::schedule()` method and `Schedule` type
+ - Add `Datatracker::Timeslot` type
+ - Add `Datatracker::Assignment` type
 
 
 ## v0.1.5 -- 2019-12-24

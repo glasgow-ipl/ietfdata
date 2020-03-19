@@ -1053,6 +1053,19 @@ class TestDatatracker(unittest.TestCase):
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to meetings:
 
+    def test_schedule(self) -> None:
+        schedule = self.dt.schedule(ScheduleURI("/api/v1/meeting/schedule/209/"))
+        if schedule is not None:
+            self.assertEqual(schedule.id,           209)
+            self.assertEqual(schedule.resource_uri, ScheduleURI("/api/v1/meeting/schedule/209/"))
+            self.assertEqual(schedule.meeting,      MeetingURI("/api/v1/meeting/meeting/365/"))
+            self.assertEqual(schedule.owner,        PersonURI("/api/v1/person/person/109129/"))
+            self.assertEqual(schedule.name,         "prelim-fix")
+            self.assertEqual(schedule.visible,      True)
+            self.assertEqual(schedule.public,       True)
+            self.assertEqual(schedule.badness,      None)
+
+
     def test_meeting(self) -> None:
         meeting = self.dt.meeting(MeetingURI("/api/v1/meeting/meeting/365/"))
         if meeting is not None:
@@ -1081,8 +1094,8 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(meeting.agenda_warning_note,              "")
             self.assertEqual(meeting.show_important_dates,             True)
             self.assertEqual(meeting.updated,                          "2016-12-22T09:57:15-08:00")
-            self.assertEqual(meeting.agenda,                           "/api/v1/meeting/schedule/209/")
-            self.assertEqual(meeting.schedule,                         "/api/v1/meeting/schedule/209/")
+            self.assertEqual(meeting.agenda,                           ScheduleURI("/api/v1/meeting/schedule/209/"))
+            self.assertEqual(meeting.schedule,                         ScheduleURI("/api/v1/meeting/schedule/209/"))
             self.assertEqual(meeting.number,                           "90")
             self.assertEqual(meeting.proceedings_final,                False)
             self.assertEqual(meeting.acknowledgements,                 "")

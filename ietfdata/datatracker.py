@@ -431,13 +431,25 @@ class GroupState:
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to meetings:
 
+class MeetingStatus(Enum):
+    FUTURE    = 1
+    ONGOING   = 2
+    COMPLETED = 3
+
+
+@dataclass(frozen=True)
+class MeetingURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/meeting/meeting/")
+
+
 @dataclass(frozen=True)
 class MeetingTypeURI(URI):
     def __post_init__(self) -> None:
         assert self.uri.startswith("/api/v1/name/meetingtypename/")
 
 
-@dataclass
+@dataclass(frozen=True)
 class MeetingType:
     name         : str
     order        : int
@@ -448,30 +460,39 @@ class MeetingType:
 
 
 @dataclass(frozen=True)
-class MeetingURI(URI):
+class ScheduleURI(URI):
     def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/meeting/meeting/")
+        assert self.uri.startswith("/api/v1/meeting/schedule/")
 
 
-class MeetingStatus(Enum):
-    FUTURE    = 1
-    ONGOING   = 2
-    COMPLETED = 3
+@dataclass(frozen=True)
+class Schedule:
+    id           : int
+    name         : str
+    resource_uri : ScheduleURI
+    owner        : PersonURI
+    meeting      : MeetingURI
+    visible      : bool
+    public       : bool
+    badness      : Optional[str]
 
 
-@dataclass
+@dataclass(frozen=True)
 class Meeting:
     id                               : int
     resource_uri                     : MeetingURI
     type                             : MeetingTypeURI
+    country                          : str
+    city                             : str
     venue_name                       : str
     venue_addr                       : str
-    reg_area                         : str
+    date                             : str  # Start date of the meeting
+    days                             : int  # Duration of the meeting
     time_zone                        : str
     acknowledgements                 : str
     agenda_info_note                 : str
     agenda_warning_note              : str
-    updated                          : str  # Time this record was modified
+    session_request_lock_message     : str
     idsubmit_cutoff_warning_days     : str
     idsubmit_cutoff_time_utc         : str
     idsubmit_cutoff_day_offset_00    : int
@@ -479,18 +500,15 @@ class Meeting:
     submission_start_day_offset      : int
     submission_cutoff_day_offset     : int
     submission_correction_day_offset : int
-    country                          : str
-    city                             : str
-    agenda                           : str
+    agenda                           : ScheduleURI
+    schedule                         : ScheduleURI
     number                           : str
-    session_request_lock_message     : str
     break_area                       : str
+    reg_area                         : str
     proceedings_final                : bool
     show_important_dates             : bool
     attendees                        : Optional[int]
-    date                             : str  # Start date of the meeting
-    days                             : int  # Duration of the meeting
-    schedule                         : str  # FIXME: this is a URI
+    updated                          : str  # Time this record was modified
 
     def status(self) -> MeetingStatus:
         now = datetime.now()
@@ -510,7 +528,49 @@ class SessionURI(URI):
         assert self.uri.startswith("/api/v1/meeting/session/")
 
 
-@dataclass
+@dataclass(frozen=True)
+class TimeslotURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/meeting/timeslot/")
+
+
+@dataclass(frozen=True)
+class Timeslot:
+    id            : int
+    resource_uri  : TimeslotURI
+    type          : str               # FIXME: this is a URI "/api/v1/name/timeslottypename/regular/"
+    meeting       : MeetingURI
+    sessions      : List[SessionURI]
+    name          : str
+    time          : str
+    duration      : str
+    location      : str               # FIXME this is a URI "/api/v1/meeting/room/668
+    show_location : bool
+    modified      : str
+
+
+@dataclass(frozen=True)
+class AssignmentURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/meeting/schedtimesessassignment/")
+
+
+@dataclass(frozen=True)
+class Assignment:
+    id           : int
+    resource_uri : AssignmentURI
+    session      : SessionURI
+    agenda       : ScheduleURI
+    schedule     : ScheduleURI
+    timeslot     : TimeslotURI
+    modified     : str
+    notes        : str
+    pinned       : bool
+    extendedfrom : Optional[str]
+    badness      : int
+
+
+@dataclass(frozen=True)
 class Session:
     id                  : int
     type                : str           # FIXME: this is a URI
@@ -523,7 +583,7 @@ class Session:
     requested_duration  : str
     resources           : List[str]    # FIXME
     agenda_note         : str
-    assignments         : List[str]    # FIXME: list of URIs
+    assignments         : List[AssignmentURI]
     remote_instructions : str
     short               : str
     attendees           : int
@@ -558,6 +618,9 @@ class DataTracker:
         self.pavlova.register_parser(SubmissionURI,        GenericParser(self.pavlova, SubmissionURI))
         self.pavlova.register_parser(MeetingURI,           GenericParser(self.pavlova, MeetingURI))
         self.pavlova.register_parser(MeetingTypeURI,       GenericParser(self.pavlova, MeetingTypeURI))
+        self.pavlova.register_parser(ScheduleURI,          GenericParser(self.pavlova, ScheduleURI))
+        self.pavlova.register_parser(TimeslotURI,          GenericParser(self.pavlova, TimeslotURI))
+        self.pavlova.register_parser(AssignmentURI,        GenericParser(self.pavlova, AssignmentURI))
 
 
     def __del__(self):
@@ -1060,6 +1123,10 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/meeting/room/537/                       - a room at a meeting
     #   https://datatracker.ietf.org/api/v1/meeting/floorplan/14/                   - floor plan for a meeting venue
     # * https://datatracker.ietf.org/api/v1/name/meetingtypename/
+
+    def schedule(self, schedule_uri : ScheduleURI) -> Optional[Schedule]:
+        return self._retrieve(schedule_uri, Schedule)
+
 
     def meeting(self, meeting_uri : MeetingURI) -> Optional[Meeting]:
         return self._retrieve(meeting_uri, Meeting)
