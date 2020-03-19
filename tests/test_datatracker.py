@@ -1053,8 +1053,8 @@ class TestDatatracker(unittest.TestCase):
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to meetings:
 
-    def test_schedule(self) -> None:
-        schedule = self.dt.schedule(ScheduleURI("/api/v1/meeting/schedule/209/"))
+    def test_meeting_schedule(self) -> None:
+        schedule = self.dt.meeting_schedule(ScheduleURI("/api/v1/meeting/schedule/209/"))
         if schedule is not None:
             self.assertEqual(schedule.id,           209)
             self.assertEqual(schedule.resource_uri, ScheduleURI("/api/v1/meeting/schedule/209/"))
@@ -1064,6 +1064,12 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(schedule.visible,      True)
             self.assertEqual(schedule.public,       True)
             self.assertEqual(schedule.badness,      None)
+        else:
+            self.fail("cannot find meeting schedule")
+
+
+    def test_meeting_session_assignments(self) -> None:
+        self.fail("not implemented")
 
 
     def test_meeting(self) -> None:
@@ -1099,6 +1105,8 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(meeting.number,                           "90")
             self.assertEqual(meeting.proceedings_final,                False)
             self.assertEqual(meeting.acknowledgements,                 "")
+        else:
+            self.fail("Cannot find meeting")
 
 
     def test_meetings(self) -> None:

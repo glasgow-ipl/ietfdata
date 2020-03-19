@@ -1136,6 +1136,21 @@ class DataTracker:
         return self._retrieve(schedule_uri, Schedule)
 
 
+    def meeting_session_assignments(self,
+            schedule : Schedule,
+            timeslot : Optional[Timeslot] = None,
+            session  : Optional[Session]  = None) -> Iterator[Assignment]:
+        """
+        The assignment of sessions to timeslots in a particular meeting schedule.
+        """
+        url = "/api/v1/meeting/schedtimesessassignment/?schedule=" + str(schedule.id)
+        if timeslot is not None:
+            url = url + "&timeslot=" + str(timeslot.id)
+        if session is not None:
+            url = url + "&session="  + str(session.id)
+        return self._retrieve_multi(url, Assignment)
+
+
     def meeting(self, meeting_uri : MeetingURI) -> Optional[Meeting]:
         """
         Information about a meeting.
