@@ -603,6 +603,7 @@ class DataTracker:
     """
     def __init__(self):
         self.session  = requests.Session()
+        self.ua       = "glasgow-ietfdata/0.2.0"          # Update when making a new relaase
         self.base_url = "https://datatracker.ietf.org"
         self.pavlova = Pavlova()
         self.pavlova.register_parser(EmailURI,             GenericParser(self.pavlova, EmailURI))
@@ -631,7 +632,8 @@ class DataTracker:
 
 
     def _retrieve(self, resource_uri: URI, obj_type: Type[T]) -> Optional[T]:
-        r = self.session.get(self.base_url + resource_uri.uri, verify=True, stream=False)
+        headers = {'user-agent': self.ua}
+        r = self.session.get(self.base_url + resource_uri.uri, headers=headers, verify=True, stream=False)
         if r.status_code == 200:
             return self.pavlova.from_mapping(r.json(), obj_type)
         else:
@@ -641,7 +643,8 @@ class DataTracker:
 
     def _retrieve_multi(self, uri: str, obj_type: Type[T]) -> Iterator[T]:
         while uri is not None:
-            r = self.session.get(self.base_url + uri, verify=True, stream=False)
+            headers = {'user-agent': self.ua}
+            r = self.session.get(self.base_url + uri, headers=headers, verify=True, stream=False)
             if r.status_code == 200:
                 meta = r.json()['meta']
                 objs = r.json()['objects']
