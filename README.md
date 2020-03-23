@@ -41,6 +41,7 @@ Release Process
 
 - Edit CHANGELOG.md and ensure up-to-date
 - Edit setup.py to ensure the correct version number is present
+- Edit ietfdata/datatracker.py to fix version number in DataTracker::ua
 - Commit changes and push to Github
 - Run `make test` to run the test suite. If any tests fail, fix then
   restart the release process
