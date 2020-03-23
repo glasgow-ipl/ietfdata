@@ -995,6 +995,10 @@ class DataTracker:
         return self._retrieve(submission_uri, Submission)
 
 
+    def submission_event(self, event_uri: SubmissionEventURI) -> Optional[SubmissionEvent]:
+        return self._retrieve(event_uri, SubmissionEvent)
+
+
     def submission_events(self,
                         since      : str = "1970-01-01T00:00:00",
                         until      : str = "2038-01-19T03:14:07",
