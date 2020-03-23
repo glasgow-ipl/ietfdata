@@ -276,6 +276,16 @@ class Submission:
     words           : Optional[int]
 
 
+@dataclass(frozen=True)
+class SubmissionEvent:
+    by              : Optional[PersonURI]
+    desc            : str
+    id              : int
+    resource_uri    : str
+    submission      : SubmissionURI
+    time            : str
+
+
 # DocumentURI is defined earlier, to avoid circular dependencies
 
 
@@ -537,7 +547,8 @@ class DataTracker:
 
 
     def _retrieve(self, resource_uri: URI, obj_type: Type[T]) -> Optional[T]:
-        r = self.session.get(self.base_url + resource_uri.uri, verify=True, stream=False)
+        r = requests.get(self.base_url + uri, verify=True)
+        #r = self.session.get(self.base_url + resource_uri.uri, verify=True, stream=False)
         if r.status_code == 200:
             return self.pavlova.from_mapping(r.json(), obj_type)
         else:
@@ -547,7 +558,8 @@ class DataTracker:
 
     def _retrieve_multi(self, uri: str, obj_type: Type[T]) -> Iterator[T]:
         while uri is not None:
-            r = self.session.get(self.base_url + uri, verify=True, stream=False)
+            r = requests.get(self.base_url + uri, verify=True)
+            #r = self.session.get(self.base_url + uri, verify=True, stream=False)
             if r.status_code == 200:
                 meta = r.json()['meta']
                 objs = r.json()['objects']
@@ -579,8 +591,10 @@ class DataTracker:
             return None
 
 
-    def person_aliases(self, person: Person) -> Iterator[PersonAlias]:
-        url = "/api/v1/person/alias/?person=" + str(person.id)
+    def person_aliases(self, person: Optional[Person] = None) -> Iterator[PersonAlias]:
+        url = "/api/v1/person/alias/"
+        if person is not None:
+            url += "?person=" + str(person.id)
         return self._retrieve_multi(url, PersonAlias)
 
 
@@ -880,6 +894,35 @@ class DataTracker:
 
     def submission(self, submission_uri: SubmissionURI) -> Optional[Submission]:
         return self._retrieve(submission_uri, Submission)
+
+
+    def submission_events(self,
+                        since      : str = "1970-01-01T00:00:00",
+                        until      : str = "2038-01-19T03:14:07",
+                        by         : PersonURI            = None,
+                        submission : SubmissionURI        = None,
+                        desc       : str                  = None,) -> Iterator[SubmissionEvent]:
+        """
+        A generator returning information about submission events.
+
+        Parameters:
+            since      -- Only return submission events with timestamp after this
+            until      -- Only return submission events with timestamp after this
+            by         -- Only return submission events by this person
+            submission -- Only return submission events about this submission
+            desc       -- Only return submission events with this description
+
+        Returns:
+           A sequence of SubmissionEvent objects
+        """
+        url = "/api/v1/submit/submissionevent/?time__gt=" + since + "&time__lt=" + until
+        if by is not None:
+            url +=  "&by=" + str(by)
+        if submission is not None:
+            url += "&submission=" + str(submission)
+        if desc is not None:
+            url += "&desc=" + str(desc)
+        return self._retrieve_multi(url, SubmissionEvent)
 
 
     # Datatracker API endpoints returning information about names:
