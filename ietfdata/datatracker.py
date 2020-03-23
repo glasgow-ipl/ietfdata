@@ -657,6 +657,10 @@ class DataTracker:
 
 
     def _retrieve_multi(self, uri: str, obj_type: Type[T]) -> Iterator[T]:
+        if "?" in uri:
+            uri += "&limit=100"
+        else:
+            uri += "?limit=100"
         while uri is not None:
             r = self.session.get(self.base_url + uri, verify=True, stream=False)
             if r.status_code == 200:
