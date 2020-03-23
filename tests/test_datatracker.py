@@ -935,6 +935,20 @@ class TestDatatracker(unittest.TestCase):
         else:
             self.fail("Cannot find submission")
 
+
+    def test_submission_event(self) -> None:
+        e  = self.dt.submission_event(SubmissionEventURI("/api/v1/submit/submissionevent/188542/"))
+        if e is not None:
+            self.assertEqual(e.by,           PersonURI("/api/v1/person/person/115824/"))
+            self.assertEqual(e.desc,         "Uploaded submission")
+            self.assertEqual(e.id,           188542)
+            self.assertEqual(e.resource_uri, SubmissionEventURI("/api/v1/submit/submissionevent/188542/"))
+            self.assertEqual(e.submission,   SubmissionURI("/api/v1/submit/submission/111128/"))
+            self.assertEqual(e.time,         "2020-03-23T04:18:27")
+        else:
+            self.fail("Cannot find submission event")
+
+
     # FIXME: this needs to be updated
     def test_document_type(self) -> None:
         doctype = self.dt.document_type("draft")
