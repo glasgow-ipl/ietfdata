@@ -276,6 +276,22 @@ class Submission:
     words           : Optional[int]
 
 
+@dataclass(frozen=True)
+class SubmissionEventURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/submit/submissionevent/")
+
+
+@dataclass(frozen=True)
+class SubmissionEvent:
+    by              : Optional[PersonURI]
+    desc            : str
+    id              : int
+    resource_uri    : SubmissionEventURI
+    submission      : SubmissionURI
+    time            : str
+
+
 # DocumentURI is defined earlier, to avoid circular dependencies
 
 
@@ -625,6 +641,7 @@ class DataTracker:
         self.pavlova.register_parser(ScheduleURI,          GenericParser(self.pavlova, ScheduleURI))
         self.pavlova.register_parser(TimeslotURI,          GenericParser(self.pavlova, TimeslotURI))
         self.pavlova.register_parser(AssignmentURI,        GenericParser(self.pavlova, AssignmentURI))
+        self.pavlova.register_parser(SubmissionEventURI,   GenericParser(self.pavlova, SubmissionEventURI))
 
 
     def __del__(self):
@@ -977,6 +994,39 @@ class DataTracker:
 
     def submission(self, submission_uri: SubmissionURI) -> Optional[Submission]:
         return self._retrieve(submission_uri, Submission)
+
+
+    def submission_event(self, event_uri: SubmissionEventURI) -> Optional[SubmissionEvent]:
+        return self._retrieve(event_uri, SubmissionEvent)
+
+
+    def submission_events(self,
+                        since      : str = "1970-01-01T00:00:00",
+                        until      : str = "2038-01-19T03:14:07",
+                        by         : Optional[PersonURI]     = None,
+                        submission : Optional[SubmissionURI] = None,
+                        desc       : Optional[str]           = None) -> Iterator[SubmissionEvent]:
+        """
+        A generator returning information about submission events.
+
+        Parameters:
+            since      -- Only return submission events with timestamp after this
+            until      -- Only return submission events with timestamp after this
+            by         -- Only return submission events by this person
+            submission -- Only return submission events about this submission
+            desc       -- Only return submission events with this description
+
+        Returns:
+           A sequence of SubmissionEvent objects
+        """
+        url = "/api/v1/submit/submissionevent/?time__gt=" + since + "&time__lt=" + until
+        if by is not None:
+            url +=  "&by=" + str(by)
+        if submission is not None:
+            url += "&submission=" + str(submission)
+        if desc is not None:
+            url += "&desc=" + str(desc)
+        return self._retrieve_multi(url, SubmissionEvent)
 
 
     # Datatracker API endpoints returning information about names:
