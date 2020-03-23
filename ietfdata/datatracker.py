@@ -659,6 +659,10 @@ class DataTracker:
 
 
     def _retrieve_multi(self, uri: str, obj_type: Type[T]) -> Iterator[T]:
+        if "?" in uri:
+            uri += "&limit=100"
+        else:
+            uri += "?limit=100"
         while uri is not None:
             headers = {'user-agent': self.ua}
             r = self.session.get(self.base_url + uri, headers=headers, verify=True, stream=False)
