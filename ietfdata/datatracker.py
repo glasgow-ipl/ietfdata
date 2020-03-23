@@ -279,7 +279,7 @@ class Submission:
 @dataclass(frozen=True)
 class SubmissionEventURI(URI):
     def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/meeting/submissionevent/")
+        assert self.uri.startswith("/api/v1/submit/submissionevent/")
 
 
 @dataclass(frozen=True)
