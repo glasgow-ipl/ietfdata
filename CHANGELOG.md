@@ -16,6 +16,7 @@ Change Log -- ietfdata
  - Add `Datatracker::Schedule` type
  - Add `Datatracker::Timeslot` type
  - Add `Datatracker::Assignment` type
+ - Add `submission_events()` method and associated types
 
 
 ## v0.1.5 -- 2019-12-24
