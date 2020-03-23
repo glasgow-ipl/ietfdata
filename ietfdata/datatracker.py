@@ -690,10 +690,8 @@ class DataTracker:
             return None
 
 
-    def person_aliases(self, person: Optional[Person] = None) -> Iterator[PersonAlias]:
-        url = "/api/v1/person/alias/"
-        if person is not None:
-            url += "?person=" + str(person.id)
+    def person_aliases(self, person: Person) -> Iterator[PersonAlias]:
+        url = "/api/v1/person/alias/?person=" + str(person.id)
         return self._retrieve_multi(url, PersonAlias)
 
 
