@@ -547,8 +547,7 @@ class DataTracker:
 
 
     def _retrieve(self, resource_uri: URI, obj_type: Type[T]) -> Optional[T]:
-        r = requests.get(self.base_url + uri, verify=True)
-        #r = self.session.get(self.base_url + resource_uri.uri, verify=True, stream=False)
+        r = self.session.get(self.base_url + resource_uri.uri, verify=True, stream=False)
         if r.status_code == 200:
             return self.pavlova.from_mapping(r.json(), obj_type)
         else:
@@ -558,8 +557,7 @@ class DataTracker:
 
     def _retrieve_multi(self, uri: str, obj_type: Type[T]) -> Iterator[T]:
         while uri is not None:
-            r = requests.get(self.base_url + uri, verify=True)
-            #r = self.session.get(self.base_url + uri, verify=True, stream=False)
+            r = self.session.get(self.base_url + uri, verify=True, stream=False)
             if r.status_code == 200:
                 meta = r.json()['meta']
                 objs = r.json()['objects']
