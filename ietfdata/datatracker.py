@@ -1000,9 +1000,9 @@ class DataTracker:
     def submission_events(self,
                         since      : str = "1970-01-01T00:00:00",
                         until      : str = "2038-01-19T03:14:07",
-                        by         : PersonURI            = None,
-                        submission : SubmissionURI        = None,
-                        desc       : str                  = None,) -> Iterator[SubmissionEvent]:
+                        by         : Optional[PersonURI]     = None,
+                        submission : Optional[SubmissionURI] = None,
+                        desc       : Optional[str]           = None) -> Iterator[SubmissionEvent]:
         """
         A generator returning information about submission events.
 
