@@ -1195,6 +1195,10 @@ class DataTracker:
         return self._retrieve(schedule_uri, Schedule)
 
 
+    def meeting_session_assignment(self, assignment_uri : AssignmentURI) -> Optional[Assignment]:
+        return self._retrieve(assignment_uri, Assignment)
+
+
     def meeting_session_assignments(self,
             schedule : Schedule,
             timeslot : Optional[Timeslot] = None,

@@ -1082,6 +1082,24 @@ class TestDatatracker(unittest.TestCase):
             self.fail("cannot find meeting schedule")
 
 
+    def test_meeting_session_assignment(self) -> None:
+        assignment = self.dt.meeting_session_assignment(AssignmentURI("/api/v1/meeting/schedtimesessassignment/61212/"))
+        if assignment is not None:
+            self.assertEqual(assignment.id,           61212)
+            self.assertEqual(assignment.modified,     "2017-10-17T12:14:33")
+            self.assertEqual(assignment.extendedfrom, None)
+            self.assertEqual(assignment.timeslot,     TimeslotURI("/api/v1/meeting/timeslot/9132/"))
+            self.assertEqual(assignment.session,      SessionURI("/api/v1/meeting/session/25907/"))
+            self.assertEqual(assignment.agenda,       ScheduleURI("/api/v1/meeting/schedule/787/"))
+            self.assertEqual(assignment.schedule,     ScheduleURI("/api/v1/meeting/schedule/787/"))
+            self.assertEqual(assignment.pinned,       False)
+            self.assertEqual(assignment.resource_uri, AssignmentURI("/api/v1/meeting/schedtimesessassignment/61212/"))
+            self.assertEqual(assignment.badness,      0)
+            self.assertEqual(assignment.notes, "")
+        else:
+            self.fail("cannot find meeting session assignment")
+
+
     def test_meeting_session_assignments(self) -> None:
         self.fail("not implemented")
 
