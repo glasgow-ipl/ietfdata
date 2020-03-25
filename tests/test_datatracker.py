@@ -935,6 +935,20 @@ class TestDatatracker(unittest.TestCase):
         else:
             self.fail("Cannot find submission")
 
+
+    def test_submission_event(self) -> None:
+        e  = self.dt.submission_event(SubmissionEventURI("/api/v1/submit/submissionevent/188542/"))
+        if e is not None:
+            self.assertEqual(e.by,           PersonURI("/api/v1/person/person/115824/"))
+            self.assertEqual(e.desc,         "Uploaded submission")
+            self.assertEqual(e.id,           188542)
+            self.assertEqual(e.resource_uri, SubmissionEventURI("/api/v1/submit/submissionevent/188542/"))
+            self.assertEqual(e.submission,   SubmissionURI("/api/v1/submit/submission/111128/"))
+            self.assertEqual(e.time,         "2020-03-23T04:18:27")
+        else:
+            self.fail("Cannot find submission event")
+
+
     # FIXME: this needs to be updated
     def test_document_type(self) -> None:
         doctype = self.dt.document_type("draft")
@@ -1053,15 +1067,88 @@ class TestDatatracker(unittest.TestCase):
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to meetings:
 
-    # FIXME: this needs to be updated
+    def test_meeting_schedule(self) -> None:
+        schedule = self.dt.meeting_schedule(ScheduleURI("/api/v1/meeting/schedule/209/"))
+        if schedule is not None:
+            self.assertEqual(schedule.id,           209)
+            self.assertEqual(schedule.resource_uri, ScheduleURI("/api/v1/meeting/schedule/209/"))
+            self.assertEqual(schedule.meeting,      MeetingURI("/api/v1/meeting/meeting/365/"))
+            self.assertEqual(schedule.owner,        PersonURI("/api/v1/person/person/109129/"))
+            self.assertEqual(schedule.name,         "prelim-fix")
+            self.assertEqual(schedule.visible,      True)
+            self.assertEqual(schedule.public,       True)
+            self.assertEqual(schedule.badness,      None)
+        else:
+            self.fail("cannot find meeting schedule")
+
+
+    def test_meeting_session_assignment(self) -> None:
+        assignment = self.dt.meeting_session_assignment(AssignmentURI("/api/v1/meeting/schedtimesessassignment/61212/"))
+        if assignment is not None:
+            self.assertEqual(assignment.id,           61212)
+            self.assertEqual(assignment.modified,     "2017-10-17T12:14:33")
+            self.assertEqual(assignment.extendedfrom, None)
+            self.assertEqual(assignment.timeslot,     TimeslotURI("/api/v1/meeting/timeslot/9132/"))
+            self.assertEqual(assignment.session,      SessionURI("/api/v1/meeting/session/25907/"))
+            self.assertEqual(assignment.agenda,       ScheduleURI("/api/v1/meeting/schedule/787/"))
+            self.assertEqual(assignment.schedule,     ScheduleURI("/api/v1/meeting/schedule/787/"))
+            self.assertEqual(assignment.pinned,       False)
+            self.assertEqual(assignment.resource_uri, AssignmentURI("/api/v1/meeting/schedtimesessassignment/61212/"))
+            self.assertEqual(assignment.badness,      0)
+            self.assertEqual(assignment.notes, "")
+        else:
+            self.fail("cannot find meeting session assignment")
+
+
+    def test_meeting_session_assignments(self) -> None:
+        self.fail("not implemented")
+
+
+    def test_meeting(self) -> None:
+        meeting = self.dt.meeting(MeetingURI("/api/v1/meeting/meeting/365/"))
+        if meeting is not None:
+            self.assertEqual(meeting.id,                               365)
+            self.assertEqual(meeting.resource_uri,                     MeetingURI("/api/v1/meeting/meeting/365/"))
+            self.assertEqual(meeting.type,                             MeetingTypeURI("/api/v1/name/meetingtypename/ietf/"))
+            self.assertEqual(meeting.city,                             "Toronto")
+            self.assertEqual(meeting.country,                          "CA")
+            self.assertEqual(meeting.venue_name,                       "Fairmont Royal York Hotel")
+            self.assertEqual(meeting.venue_addr,                       "100 Front Street W\r\nToronto, Ontario, Canada M5J 1E3")
+            self.assertEqual(meeting.date,                             "2014-07-20")
+            self.assertEqual(meeting.days,                             6)
+            self.assertEqual(meeting.time_zone,                        "America/Toronto")
+            self.assertEqual(meeting.idsubmit_cutoff_day_offset_00,    20)
+            self.assertEqual(meeting.idsubmit_cutoff_day_offset_01,    13)
+            self.assertEqual(meeting.idsubmit_cutoff_warning_days,     "21 days, 0:00:00")
+            self.assertEqual(meeting.idsubmit_cutoff_time_utc,         "23:59:59")
+            self.assertEqual(meeting.submission_cutoff_day_offset,     26)
+            self.assertEqual(meeting.submission_correction_day_offset, 50)
+            self.assertEqual(meeting.submission_start_day_offset,      90)
+            self.assertEqual(meeting.attendees,                        1237)
+            self.assertEqual(meeting.session_request_lock_message,     "")
+            self.assertEqual(meeting.reg_area,                         "Ballroom Foyer ")
+            self.assertEqual(meeting.break_area,                       "Convention and Main Mezzanine Level Foyers")
+            self.assertEqual(meeting.agenda_info_note,                 "")
+            self.assertEqual(meeting.agenda_warning_note,              "")
+            self.assertEqual(meeting.show_important_dates,             True)
+            self.assertEqual(meeting.updated,                          "2016-12-22T09:57:15-08:00")
+            self.assertEqual(meeting.agenda,                           ScheduleURI("/api/v1/meeting/schedule/209/"))
+            self.assertEqual(meeting.schedule,                         ScheduleURI("/api/v1/meeting/schedule/209/"))
+            self.assertEqual(meeting.number,                           "90")
+            self.assertEqual(meeting.proceedings_final,                False)
+            self.assertEqual(meeting.acknowledgements,                 "")
+        else:
+            self.fail("Cannot find meeting")
+
+
     def test_meetings(self) -> None:
-        meetings = list(self.dt.meetings(since="2019-01-01", until="2019-12-31", meeting_type=self.dt.meeting_type("ietf")))
+        meetings = list(self.dt.meetings(start_date="2019-01-01", end_date="2019-12-31", meeting_type=self.dt.meeting_type("ietf")))
         self.assertEqual(len(meetings),  3)
         self.assertEqual(meetings[0].city, "Singapore")
         self.assertEqual(meetings[1].city, "Montreal")
         self.assertEqual(meetings[2].city, "Prague")
 
-    # FIXME: this needs to be updated
+
     def test_meeting_types(self) -> None:
         types = list(self.dt.meeting_types())
         self.assertEqual(len(types),  2)

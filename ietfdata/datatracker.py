@@ -276,6 +276,22 @@ class Submission:
     words           : Optional[int]
 
 
+@dataclass(frozen=True)
+class SubmissionEventURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/submit/submissionevent/")
+
+
+@dataclass(frozen=True)
+class SubmissionEvent:
+    by              : Optional[PersonURI]
+    desc            : str
+    id              : int
+    resource_uri    : SubmissionEventURI
+    submission      : SubmissionURI
+    time            : str
+
+
 # DocumentURI is defined earlier, to avoid circular dependencies
 
 
@@ -475,19 +491,56 @@ class MeetingURI(URI):
         assert self.uri.startswith("/api/v1/meeting/meeting/")
 
 
-@dataclass
+@dataclass(frozen=True)
+class MeetingTypeURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/name/meetingtypename/")
+
+
+@dataclass(frozen=True)
+class MeetingType:
+    name         : str
+    order        : int
+    resource_uri : MeetingTypeURI
+    slug         : str
+    desc         : str
+    used         : bool
+
+
+@dataclass(frozen=True)
+class ScheduleURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/meeting/schedule/")
+
+
+@dataclass(frozen=True)
+class Schedule:
+    id           : int
+    name         : str
+    resource_uri : ScheduleURI
+    owner        : PersonURI
+    meeting      : MeetingURI
+    visible      : bool
+    public       : bool
+    badness      : Optional[str]
+
+
+@dataclass(frozen=True)
 class Meeting:
-    resource_uri                     : MeetingURI
     id                               : int
-    type                             : str
+    resource_uri                     : MeetingURI
+    type                             : MeetingTypeURI
+    country                          : str
+    city                             : str
     venue_name                       : str
     venue_addr                       : str
-    reg_area                         : str
+    date                             : str  # Start date of the meeting
+    days                             : int  # Duration of the meeting
     time_zone                        : str
     acknowledgements                 : str
     agenda_info_note                 : str
     agenda_warning_note              : str
-    updated                          : str
+    session_request_lock_message     : str
     idsubmit_cutoff_warning_days     : str
     idsubmit_cutoff_time_utc         : str
     idsubmit_cutoff_day_offset_00    : int
@@ -495,17 +548,15 @@ class Meeting:
     submission_start_day_offset      : int
     submission_cutoff_day_offset     : int
     submission_correction_day_offset : int
-    country                          : str
-    city                             : str
-    agenda                           : str
+    agenda                           : ScheduleURI
+    schedule                         : ScheduleURI
     number                           : str
-    session_request_lock_message     : str
     break_area                       : str
+    reg_area                         : str
     proceedings_final                : bool
     show_important_dates             : bool
-    attendees                        : Optional[str]
-    date                             : str
-    days                             : int
+    attendees                        : Optional[int]
+    updated                          : str  # Time this record was modified
 
     def status(self) -> MeetingStatus:
         now = datetime.now()
@@ -520,19 +571,75 @@ class Meeting:
 
 
 @dataclass(frozen=True)
-class MeetingTypeURI(URI):
+class SessionURI(URI):
     def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/meetingtypename/")
+        assert self.uri.startswith("/api/v1/meeting/session/")
 
 
-@dataclass
-class MeetingType:
-    name         : str
-    order        : int
-    resource_uri : MeetingTypeURI
-    slug         : str
-    desc         : str
-    used         : bool
+@dataclass(frozen=True)
+class TimeslotURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/meeting/timeslot/")
+
+
+@dataclass(frozen=True)
+class Timeslot:
+    id            : int
+    resource_uri  : TimeslotURI
+    type          : str               # FIXME: this is a URI "/api/v1/name/timeslottypename/regular/"
+    meeting       : MeetingURI
+    sessions      : List[SessionURI]
+    name          : str
+    time          : str
+    duration      : str
+    location      : str               # FIXME this is a URI "/api/v1/meeting/room/668
+    show_location : bool
+    modified      : str
+
+
+@dataclass(frozen=True)
+class AssignmentURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/meeting/schedtimesessassignment/")
+
+
+@dataclass(frozen=True)
+class Assignment:
+    """
+    The assignment of a `session` to a `timeslot` within a meeting `schedule`
+    """
+    id           : int
+    resource_uri : AssignmentURI
+    session      : SessionURI
+    agenda       : ScheduleURI  # An alias for `schedule`
+    schedule     : ScheduleURI
+    timeslot     : TimeslotURI
+    modified     : str
+    notes        : str
+    pinned       : bool
+    extendedfrom : Optional[str]
+    badness      : int
+
+
+@dataclass(frozen=True)
+class Session:
+    id                  : int
+    type                : str           # FIXME: this is a URI
+    name                : str
+    resource_uri        : SessionURI
+    meeting             : MeetingURI
+    group               : GroupURI
+    materials           : List[DocumentURI]
+    scheduled           : str          # Date scheduled
+    requested_duration  : str
+    resources           : List[str]    # FIXME
+    agenda_note         : str
+    assignments         : List[AssignmentURI]
+    remote_instructions : str
+    short               : str
+    attendees           : int
+    modified            : str
+    comments            : str
 
 
 # =================================================================================================================================
@@ -544,26 +651,33 @@ class DataTracker:
     """
     def __init__(self):
         self.session  = requests.Session()
+        self.ua       = "glasgow-ietfdata/0.2.0"          # Update when making a new relaase
         self.base_url = "https://datatracker.ietf.org"
         self.pavlova = Pavlova()
-        self.pavlova.register_parser(EmailURI,             GenericParser(self.pavlova, EmailURI))
-        self.pavlova.register_parser(PersonURI,            GenericParser(self.pavlova, PersonURI))
-        self.pavlova.register_parser(PersonAliasURI,       GenericParser(self.pavlova, PersonAliasURI))
-        self.pavlova.register_parser(PersonEventURI,       GenericParser(self.pavlova, PersonEventURI))
-        self.pavlova.register_parser(GroupURI,             GenericParser(self.pavlova, GroupURI))
-        self.pavlova.register_parser(GroupStateURI,        GenericParser(self.pavlova, GroupStateURI))
-        self.pavlova.register_parser(DocumentURI,          GenericParser(self.pavlova, DocumentURI))
+        # Please sort the following alphabetically:
+        self.pavlova.register_parser(AssignmentURI,        GenericParser(self.pavlova, AssignmentURI))
         self.pavlova.register_parser(DocumentAliasURI,     GenericParser(self.pavlova, DocumentAliasURI))
+        self.pavlova.register_parser(DocumentEventURI,     GenericParser(self.pavlova, DocumentEventURI))
         self.pavlova.register_parser(DocumentStateURI,     GenericParser(self.pavlova, DocumentStateURI))
         self.pavlova.register_parser(DocumentStateTypeURI, GenericParser(self.pavlova, DocumentStateTypeURI))
         self.pavlova.register_parser(DocumentTypeURI,      GenericParser(self.pavlova, DocumentTypeURI))
-        self.pavlova.register_parser(DocumentEventURI,     GenericParser(self.pavlova, DocumentEventURI))
-        self.pavlova.register_parser(StreamURI,            GenericParser(self.pavlova, StreamURI))
-        self.pavlova.register_parser(SubmissionURI,        GenericParser(self.pavlova, SubmissionURI))
-        self.pavlova.register_parser(MeetingURI,           GenericParser(self.pavlova, MeetingURI))
+        self.pavlova.register_parser(DocumentURI,          GenericParser(self.pavlova, DocumentURI))
+        self.pavlova.register_parser(EmailURI,             GenericParser(self.pavlova, EmailURI))
+        self.pavlova.register_parser(GroupStateURI,        GenericParser(self.pavlova, GroupStateURI))
+        self.pavlova.register_parser(GroupURI,             GenericParser(self.pavlova, GroupURI))
         self.pavlova.register_parser(MeetingTypeURI,       GenericParser(self.pavlova, MeetingTypeURI))
+        self.pavlova.register_parser(MeetingURI,           GenericParser(self.pavlova, MeetingURI))
+        self.pavlova.register_parser(PersonAliasURI,       GenericParser(self.pavlova, PersonAliasURI))
+        self.pavlova.register_parser(PersonEventURI,       GenericParser(self.pavlova, PersonEventURI))
+        self.pavlova.register_parser(PersonURI,            GenericParser(self.pavlova, PersonURI))
         self.pavlova.register_parser(RelationshipTypeURI,  GenericParser(self.pavlova, RelationshipTypeURI))
         self.pavlova.register_parser(RelatedDocumentURI,   GenericParser(self.pavlova, RelatedDocumentURI))
+        self.pavlova.register_parser(SessionURI,           GenericParser(self.pavlova, SessionURI))
+        self.pavlova.register_parser(ScheduleURI,          GenericParser(self.pavlova, ScheduleURI))
+        self.pavlova.register_parser(StreamURI,            GenericParser(self.pavlova, StreamURI))
+        self.pavlova.register_parser(SubmissionEventURI,   GenericParser(self.pavlova, SubmissionEventURI))
+        self.pavlova.register_parser(SubmissionURI,        GenericParser(self.pavlova, SubmissionURI))
+        self.pavlova.register_parser(TimeslotURI,          GenericParser(self.pavlova, TimeslotURI))
 
 
     def __del__(self):
@@ -571,7 +685,8 @@ class DataTracker:
 
 
     def _retrieve(self, resource_uri: URI, obj_type: Type[T]) -> Optional[T]:
-        r = self.session.get(self.base_url + resource_uri.uri, verify=True, stream=False)
+        headers = {'user-agent': self.ua}
+        r = self.session.get(self.base_url + resource_uri.uri, headers=headers, verify=True, stream=False)
         if r.status_code == 200:
             return self.pavlova.from_mapping(r.json(), obj_type)
         else:
@@ -580,8 +695,13 @@ class DataTracker:
 
 
     def _retrieve_multi(self, uri: str, obj_type: Type[T]) -> Iterator[T]:
+        if "?" in uri:
+            uri += "&limit=100"
+        else:
+            uri += "?limit=100"
         while uri is not None:
-            r = self.session.get(self.base_url + uri, verify=True, stream=False)
+            headers = {'user-agent': self.ua}
+            r = self.session.get(self.base_url + uri, headers=headers, verify=True, stream=False)
             if r.status_code == 200:
                 meta = r.json()['meta']
                 objs = r.json()['objects']
@@ -916,6 +1036,39 @@ class DataTracker:
         return self._retrieve(submission_uri, Submission)
 
 
+    def submission_event(self, event_uri: SubmissionEventURI) -> Optional[SubmissionEvent]:
+        return self._retrieve(event_uri, SubmissionEvent)
+
+
+    def submission_events(self,
+                        since      : str = "1970-01-01T00:00:00",
+                        until      : str = "2038-01-19T03:14:07",
+                        by         : Optional[PersonURI]     = None,
+                        submission : Optional[SubmissionURI] = None,
+                        desc       : Optional[str]           = None) -> Iterator[SubmissionEvent]:
+        """
+        A generator returning information about submission events.
+
+        Parameters:
+            since      -- Only return submission events with timestamp after this
+            until      -- Only return submission events with timestamp after this
+            by         -- Only return submission events by this person
+            submission -- Only return submission events about this submission
+            desc       -- Only return submission events with this description
+
+        Returns:
+           A sequence of SubmissionEvent objects
+        """
+        url = "/api/v1/submit/submissionevent/?time__gt=" + since + "&time__lt=" + until
+        if by is not None:
+            url +=  "&by=" + str(by)
+        if submission is not None:
+            url += "&submission=" + str(submission)
+        if desc is not None:
+            url += "&desc=" + str(desc)
+        return self._retrieve_multi(url, SubmissionEvent)
+
+
     # Datatracker API endpoints returning information about names:
     # * https://datatracker.ietf.org/api/v1/name/doctypename/
     # * https://datatracker.ietf.org/api/v1/name/streamname/
@@ -923,7 +1076,6 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/name/docrelationshipname/
     #   https://datatracker.ietf.org/api/v1/name/doctagname/
     #   https://datatracker.ietf.org/api/v1/name/docurltagname/
-    #   https://datatracker.ietf.org/api/v1/name/groupstatename/
     #   https://datatracker.ietf.org/api/v1/name/formallanguagename/
     #   https://datatracker.ietf.org/api/v1/name/timeslottypename/
     #   https://datatracker.ietf.org/api/v1/name/liaisonstatementeventtypename/
@@ -983,8 +1135,8 @@ class DataTracker:
 
 
     # Datatracker API endpoints returning information about working groups:
-    #   https://datatracker.ietf.org/api/v1/group/group/                               - list of groups
-    #   https://datatracker.ietf.org/api/v1/group/group/2161/                          - info about group 2161
+    # * https://datatracker.ietf.org/api/v1/group/group/                               - list of groups
+    # * https://datatracker.ietf.org/api/v1/group/group/2161/                          - info about group 2161
     #   https://datatracker.ietf.org/api/v1/group/grouphistory/?group=2161             - history
     #   https://datatracker.ietf.org/api/v1/group/groupurl/?group=2161                 - URLs
     #   https://datatracker.ietf.org/api/v1/group/groupevent/?group=2161               - events
@@ -1030,6 +1182,7 @@ class DataTracker:
             url = url + "&parent=" + str(parent.id)
         return self._retrieve_multi(url, Group)
 
+    # * https://datatracker.ietf.org/api/v1/name/groupstatename/
 
     def group_state(self, group_state : str) -> Optional[GroupState]:
         """
@@ -1055,27 +1208,65 @@ class DataTracker:
 
     # Datatracker API endpoints returning information about meetings:
     # * https://datatracker.ietf.org/api/v1/meeting/meeting/                        - list of meetings
-    #   https://datatracker.ietf.org/api/v1/meeting/meeting/747/                    - information about meeting number 747
+    # * https://datatracker.ietf.org/api/v1/meeting/meeting/747/                    - information about meeting number 747
     #   https://datatracker.ietf.org/api/v1/meeting/session/                        - list of all sessions in meetings
     #   https://datatracker.ietf.org/api/v1/meeting/session/25886/                  - a session in a meeting
     #   https://datatracker.ietf.org/api/v1/meeting/session/?meeting=747            - sessions in meeting number 747
     #   https://datatracker.ietf.org/api/v1/meeting/session/?meeting=747&group=2161 - sessions in meeting number 747 for group 2161
     #   https://datatracker.ietf.org/api/v1/meeting/schedtimesessassignment/59003/  - a schededuled session within a meeting
     #   https://datatracker.ietf.org/api/v1/meeting/timeslot/9480/                  - a time slot within a meeting (time, duration, location)
-    #   https://datatracker.ietf.org/api/v1/meeting/schedule/791/                   - a draft of the meeting agenda
+    # * https://datatracker.ietf.org/api/v1/meeting/schedule/791/                   - a draft of the meeting agenda
     #   https://datatracker.ietf.org/api/v1/meeting/room/537/                       - a room at a meeting
     #   https://datatracker.ietf.org/api/v1/meeting/floorplan/14/                   - floor plan for a meeting venue
-    # * https://datatracker.ietf.org/api/v1/name/meetingtypename/
+
+    def meeting_schedule(self, schedule_uri : ScheduleURI) -> Optional[Schedule]:
+        """
+        Information about a particular version of the schedule for a meeting.
+
+        Use `meeting_session_assignments()` to find what sessions are scheduled
+        in each timeslot of the meeting in this version of the meeting schedule.
+        """
+        return self._retrieve(schedule_uri, Schedule)
+
+
+    def meeting_session_assignment(self, assignment_uri : AssignmentURI) -> Optional[Assignment]:
+        return self._retrieve(assignment_uri, Assignment)
+
+
+    def meeting_session_assignments(self,
+            schedule : Schedule,
+            timeslot : Optional[Timeslot] = None,
+            session  : Optional[Session]  = None) -> Iterator[Assignment]:
+        """
+        The assignment of sessions to timeslots in a particular meeting schedule.
+        """
+        url = "/api/v1/meeting/schedtimesessassignment/?schedule=" + str(schedule.id)
+        if timeslot is not None:
+            url = url + "&timeslot=" + str(timeslot.id)
+        if session is not None:
+            url = url + "&session="  + str(session.id)
+        return self._retrieve_multi(url, Assignment)
+
+
+    def meeting(self, meeting_uri : MeetingURI) -> Optional[Meeting]:
+        """
+        Information about a meeting.
+        """
+        return self._retrieve(meeting_uri, Meeting)
+
 
     def meetings(self,
-            since        : str = "1970-01-01",
-            until        : str = "2038-01-19",
+            start_date   : str = "1970-01-01",
+            end_date     : str = "2038-01-19",
             meeting_type : Optional[MeetingType] = None) -> Iterator[Meeting]:
-        url = "/api/v1/meeting/meeting/?date__gt=" + since + "&date__lt=" + until
+        url = "/api/v1/meeting/meeting/"
+        url = url + "?date__gte=" + start_date + "&date__lte=" + end_date
         if meeting_type is not None:
             url = url + "&type=" + meeting_type.slug
         return self._retrieve_multi(url, Meeting)
 
+
+    # * https://datatracker.ietf.org/api/v1/name/meetingtypename/
 
     def meeting_type(self, meeting_type: str) -> Optional[MeetingType]:
         """
