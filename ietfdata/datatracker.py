@@ -431,6 +431,24 @@ class RelatedDocument:
     source          : DocumentURI
     target          : DocumentAliasURI
 
+    def related_document_source(self, 
+            source               : Optional[Document]         = None, 
+            target               : Optional[Document]         = None, 
+            relationship_type    : Optional[RelationshipType] = None) -> str:
+        url = "?source=" + source
+        if relationship_type is not None:
+            url = url + "&relationship=" + relationship_type
+        return url
+
+    def related_document_target(self, 
+            source               : Optional[Document]         = None, 
+            target               : Optional[Document]         = None, 
+            relationship_type    : Optional[RelationshipType] = None) -> str:
+        url = "?target=" + target
+        if relationship_type is not None:
+            url = url + "&relationship=" + relationship_type
+        return url
+
 
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to groups:
@@ -1306,38 +1324,31 @@ class DataTracker:
 
         url = "/api/v1/doc/relateddocument/"
         if source is not None and target is not None and relationship_type is not None:
-            url = url + "?source=" + source + "&target=" + target + "&relationship=" + relationship_type
+            url = url + "?source=" + source + "&target=" + target + "&relationship_type" + relationship_type
         elif source is not None and target is not None:
             url = url + "?source=" + source + "&target=" + target
-        elif source is not None and relationship_type is not None:
-            url = url + "?source=" + source + "&relationship=" + relationship_type
-        elif target is not None and relationship_type is not None:
-            url = url + "?target=" + target + "&relationship=" + relationship_type
-        elif target is not None:
-            url = url + "?target=" + target
         elif source is not None:
-            url = url + "?source=" + source
-        elif relationship_type is not None:
-            url = url + "?relationship=" + relationship_type
+            url = url + RelatedDocument.related_document_source(self, source, relationship_type=relationship_type)
+        elif target is not None:
+            url = url +RelatedDocument.related_document_target(self, target, relationship_type=relationship_type)
+        else:
+            raise RuntimeError("No parameters were passed")
         return self._retrieve_multi(url, RelatedDocument)
     
     
-    def relationship_type(self, relationship_type: str) -> Optional[RelationshipType]:
+    def relationship_type(self, relationship_type_uri: RelationshipTypeURI) -> Optional[RelationshipType]:
         """
         Retrieve a relationship type
 
         Parameters:
-            relationship_type -- The relationship type, as returned in the 'slug' of a RelationshipType
-                                object. Valid relationship types include "downref-approval", "conflrev",
-                                "refinfo", "tobcp", "toexp", "tohist", "toinf", "tois", "tops", "refnorm",
-                                "obs", "possibly-replaces", "refold", "replaces", "updates" and "refunk".
+            relationship_type_uri -- The relationship type uri, 
+            as found in the resource_uri of a relationship type.
 
         Returns:
             A RelationshipType object
         """
 
-        url = RelationshipTypeURI("/api/v1/name/docrelationshipname/" + relationship_type + "/")
-        return self._retrieve(url, RelationshipType)
+        return self._retrieve(relationship_type_uri, RelationshipType)
 
 
     def relationship_types(self) -> Iterator[RelationshipType]:
