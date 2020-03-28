@@ -433,7 +433,6 @@ class RelatedDocument:
 
     def related_document_source(self, 
             source               : Optional[Document]         = None, 
-            target               : Optional[Document]         = None, 
             relationship_type    : Optional[RelationshipType] = None) -> str:
         url = "?source=" + source
         if relationship_type is not None:
@@ -441,7 +440,6 @@ class RelatedDocument:
         return url
 
     def related_document_target(self, 
-            source               : Optional[Document]         = None, 
             target               : Optional[Document]         = None, 
             relationship_type    : Optional[RelationshipType] = None) -> str:
         url = "?target=" + target
@@ -1330,7 +1328,9 @@ class DataTracker:
         elif source is not None:
             url = url + RelatedDocument.related_document_source(self, source, relationship_type=relationship_type)
         elif target is not None:
-            url = url +RelatedDocument.related_document_target(self, target, relationship_type=relationship_type)
+            url = url + RelatedDocument.related_document_target(self, target, relationship_type=relationship_type)
+        elif relationship_type is not None and source is None and target is None:
+            url = url + "?relationship=" + relationship_type
         else:
             raise RuntimeError("No parameters were passed")
         return self._retrieve_multi(url, RelatedDocument)
