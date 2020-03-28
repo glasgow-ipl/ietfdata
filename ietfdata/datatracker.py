@@ -1321,9 +1321,7 @@ class DataTracker:
             relationship_type    : Optional[RelationshipType] = None) -> Iterator[RelatedDocument]:
 
         url = "/api/v1/doc/relateddocument/"
-        if source is not None and target is not None and relationship_type is not None:
-            url = url + "?source=" + source + "&target=" + target + "&relationship_type" + relationship_type
-        elif source is not None and target is not None:
+        if source is not None and target is not None:
             url = url + "?source=" + source + "&target=" + target
         elif source is not None:
             url = url + RelatedDocument.related_document_source(self, source, relationship_type=relationship_type)
