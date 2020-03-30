@@ -1046,9 +1046,8 @@ class TestDatatracker(unittest.TestCase):
     def test_groups(self) -> None:
         # FIXME: split into two tests? _timerange, and _namecontains -- testing without parameters not practical
         groups = list(self.dt.groups(since="2019-01-01T00:00:00", until="2019-01-31T23:59:59"))
-        self.assertEqual(len(groups),  2)
-        self.assertEqual(groups[0].id, 1897)
-        self.assertEqual(groups[1].id, 2220)
+        self.assertEqual(len(groups),  1)
+        self.assertEqual(groups[0].id, 2220)
 
     # FIXME: this needs to be updated
     def test_group_states(self) -> None:
