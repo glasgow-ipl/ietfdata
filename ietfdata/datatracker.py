@@ -400,6 +400,23 @@ class DocumentEvent:
     type            : str
 
 
+@dataclass(frozen=True)
+class DocumentAuthorURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/doc/documentauthor/")
+
+@dataclass(frozen=True)
+class DocumentAuthor:
+    id           : int
+    order        : int
+    resource_uri : DocumentAuthorURI
+    country      : str
+    affiliation  : str
+    document     : DocumentURI
+    person       : PersonURI
+    email        : EmailURI
+    
+
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to groups:
 
@@ -625,6 +642,7 @@ class DataTracker:
         # Please sort the following alphabetically:
         self.pavlova.register_parser(AssignmentURI,        GenericParser(self.pavlova, AssignmentURI))
         self.pavlova.register_parser(DocumentAliasURI,     GenericParser(self.pavlova, DocumentAliasURI))
+        self.pavlova.register_parser(DocumentAuthorURI,    GenericParser(self.pavlova, DocumentAuthorURI))
         self.pavlova.register_parser(DocumentEventURI,     GenericParser(self.pavlova, DocumentEventURI))
         self.pavlova.register_parser(DocumentStateURI,     GenericParser(self.pavlova, DocumentStateURI))
         self.pavlova.register_parser(DocumentStateTypeURI, GenericParser(self.pavlova, DocumentStateTypeURI))
@@ -972,9 +990,25 @@ class DataTracker:
         return self._retrieve_multi(url, DocumentEvent)
 
 
-    #   https://datatracker.ietf.org/api/v1/doc/documentauthor/?document=...     - authors of a document
-    #   https://datatracker.ietf.org/api/v1/doc/documentauthor/?person=...       - documents by person (as /api/v1/person/person)
-    #   https://datatracker.ietf.org/api/v1/doc/documentauthor/?email=...        - documents by person with particular email
+    # * https://datatracker.ietf.org/api/v1/doc/documentauthor/?document=...     - authors of a document
+    # * https://datatracker.ietf.org/api/v1/doc/documentauthor/?person=...       - documents by person
+    # * https://datatracker.ietf.org/api/v1/doc/documentauthor/?email=...        - documents by person
+
+    def document_authors(self, document : Document) -> Iterator[DocumentAuthor]:
+        url = "/api/v1/doc/documentauthor/?document=" + str(document.id)
+        return self._retrieve_multi(url, DocumentAuthor)
+
+
+    def documents_authored_by_person(self, person : Person) -> Iterator[DocumentAuthor]:
+        url = "/api/v1/doc/documentauthor/?person=" + str(person.id)
+        return self._retrieve_multi(url, DocumentAuthor)
+
+
+    def documents_authored_by_email(self, email : Email) -> Iterator[DocumentAuthor]:
+        url = "/api/v1/doc/documentauthor/?email=" + email.address
+        return self._retrieve_multi(url, DocumentAuthor)
+
+
     #   https://datatracker.ietf.org/api/v1/doc/dochistory/
     #   https://datatracker.ietf.org/api/v1/doc/dochistoryauthor/
     #   https://datatracker.ietf.org/api/v1/doc/docreminder/
