@@ -1146,7 +1146,16 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_meeting_session_assignments(self) -> None:
-        self.fail("not implemented")
+        meeting  = self.dt.meeting(MeetingURI("/api/v1/meeting/meeting/365/")) # IETF 90 in Toronto
+        if meeting is not None:
+            schedule = self.dt.meeting_schedule(meeting.schedule)
+            if schedule is not None:
+                assignments = list(self.dt.meeting_session_assignments(schedule))
+                self.assertEqual(len(assignments), 161)
+            else:
+                self.fail("Cannot find schedule")
+        else:
+            self.fail("Cannot find meeting")
 
 
     def test_meeting(self) -> None:

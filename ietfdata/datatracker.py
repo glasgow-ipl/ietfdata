@@ -573,7 +573,7 @@ class Timeslot:
     resource_uri  : TimeslotURI
     type          : str               # FIXME: this is a URI "/api/v1/name/timeslottypename/regular/"
     meeting       : MeetingURI
-    sessions      : List[SessionURI]
+    sessions      : List[SessionURI]  # Sessions assigned to this slot in various versions of the agenda; current assignment is last
     name          : str
     time          : str
     duration      : str
@@ -1213,7 +1213,7 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/meeting/session/25886/                  - a session in a meeting
     #   https://datatracker.ietf.org/api/v1/meeting/session/?meeting=747            - sessions in meeting number 747
     #   https://datatracker.ietf.org/api/v1/meeting/session/?meeting=747&group=2161 - sessions in meeting number 747 for group 2161
-    #   https://datatracker.ietf.org/api/v1/meeting/schedtimesessassignment/59003/  - a schededuled session within a meeting
+    # * https://datatracker.ietf.org/api/v1/meeting/schedtimesessassignment/59003/  - a schededuled session within a meeting
     #   https://datatracker.ietf.org/api/v1/meeting/timeslot/9480/                  - a time slot within a meeting (time, duration, location)
     # * https://datatracker.ietf.org/api/v1/meeting/schedule/791/                   - a draft of the meeting agenda
     #   https://datatracker.ietf.org/api/v1/meeting/room/537/                       - a room at a meeting
@@ -1233,18 +1233,13 @@ class DataTracker:
         return self._retrieve(assignment_uri, Assignment)
 
 
-    def meeting_session_assignments(self,
-            schedule : Schedule,
-            timeslot : Optional[Timeslot] = None,
-            session  : Optional[Session]  = None) -> Iterator[Assignment]:
+    # It's possible to filter this by timeslot or session, but not clear it's
+    # useful to do so.
+    def meeting_session_assignments(self, schedule : Schedule) -> Iterator[Assignment]:
         """
         The assignment of sessions to timeslots in a particular meeting schedule.
         """
         url = "/api/v1/meeting/schedtimesessassignment/?schedule=" + str(schedule.id)
-        if timeslot is not None:
-            url = url + "&timeslot=" + str(timeslot.id)
-        if session is not None:
-            url = url + "&session="  + str(session.id)
         return self._retrieve_multi(url, Assignment)
 
 
