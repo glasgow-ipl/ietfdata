@@ -1341,24 +1341,25 @@ class DataTracker:
         target               : Optional[Document]         = None, 
         relationship_type    : Optional[RelationshipType] = None) -> Iterator[RelatedDocument]:
 
-        url = "/api/v1/doc/relateddocument/"
-        if source is not None and target is not None and relationship_type is not None:
-            url = url + "?source=" + source + "&target=" + target + "&relationship=" + relationship_type
-        elif source is not None and target is not None:
-            url = url + "?source=" + source + "&target=" + target
-        elif source is not None and relationship_type is not None:
-            url = url + "?source=" + source + "&relationship=" + relationship_type
-        elif target is not None and relationship_type is not None:
-            url = url + "?target=" + target + "&relationship=" + relationship_type
-        elif target is not None:
-            url = url + "?target=" + target
-        elif source is not None:
-            url = url + "?source=" + source
-        elif relationship_type is not None:
-            url = url + "?relationship=" + relationship_type
-        else:
-            raise RuntimeError("No parameters were passed")
-        return self._retrieve_multi(url, RelatedDocument)
+        #url = "/api/v1/doc/relateddocument/"
+        #if source is not None and target is not None and relationship_type is not None:
+        #    url = url + "?source=" + source + "&target=" + target + "&relationship=" + relationship_type
+        #elif source is not None and target is not None:
+        #    url = url + "?source=" + source + "&target=" + target
+        #elif source is not None and relationship_type is not None:
+        #    url = url + "?source=" + source + "&relationship=" + relationship_type
+        #elif target is not None and relationship_type is not None:
+        #    url = url + "?target=" + target + "&relationship=" + relationship_type
+        #elif target is not None:
+        #    url = url + "?target=" + target
+        #elif source is not None:
+        #    url = url + "?source=" + source
+        #elif relationship_type is not None:
+        #    url = url + "?relationship=" + relationship_type
+        #else:
+        #    raise RuntimeError("No parameters were passed")
+        #return self._retrieve_multi(url, RelatedDocument)
+        pass
     
     
     def relationship_type(self, relationship_type_uri: RelationshipTypeURI) -> Optional[RelationshipType]:
