@@ -1338,24 +1338,24 @@ class DataTracker:
 
     def related_documents(self, 
         source               : Optional[Document]         = None, 
-        target               : Optional[Document]         = None, 
+        target               : Optional[DocumentAlias]    = None, 
         relationship_type    : Optional[RelationshipType] = None) -> Iterator[RelatedDocument]:
 
         url = "/api/v1/doc/relateddocument/"
         if source is not None and target is not None and relationship_type is not None:
-            url = url + "?source=" + source + "&target=" + target + "&relationship=" + relationship_type
+            url = url + "?source=" + str(source.id) + "&target=" + str(target.id) + "&relationship=" + relationship_type.slug
         elif source is not None and target is not None:
-            url = url + "?source=" + source + "&target=" + target
+            url = url + "?source=" + str(source.id) + "&target=" + str(target.id)
         elif source is not None and relationship_type is not None:
-            url = url + "?source=" + source + "&relationship=" + relationship_type
+            url = url + "?source=" + str(source.id) + "&relationship=" + relationship_type.slug
         elif target is not None and relationship_type is not None:
-            url = url + "?target=" + target + "&relationship=" + relationship_type
+            url = url + "?target=" + str(target.id) + "&relationship=" + relationship_type.slug
         elif target is not None:
-            url = url + "?target=" + target
+            url = url + "?target=" + str(target.id)
         elif source is not None:
-            url = url + "?source=" + source
+            url = url + "?source=" + str(source.id)
         elif relationship_type is not None:
-            url = url + "?relationship=" + relationship_type
+            url = url + "?relationship=" + relationship_type.slug
         else:
             raise RuntimeError("No parameters were passed")
         return self._retrieve_multi(url, RelatedDocument)
