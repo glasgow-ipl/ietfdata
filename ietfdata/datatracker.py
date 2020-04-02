@@ -294,7 +294,6 @@ class SubmissionEvent:
 
 # DocumentURI is defined earlier, to avoid circular dependencies
 
-
 @dataclass(frozen=True)
 class Document:
     id                 : int
