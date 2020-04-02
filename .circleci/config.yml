@@ -12,8 +12,7 @@ jobs:
           command: |
             sudo pip install pipenv
             pipenv install
-            pipenv shell
-            python3 -m unittest discover -s tests/ -v
+            pipenv run python3 -m unittest discover -s tests/ -v
           name: Test
 
 workflows:
