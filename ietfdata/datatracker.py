@@ -50,6 +50,7 @@ from typing      import List, Optional, Tuple, Dict, Iterator, Type, TypeVar
 from dataclasses import dataclass
 from pavlova     import Pavlova
 from pavlova.parsers import GenericParser
+from pathlib import Path
 
 T = TypeVar('T')
 
@@ -640,7 +641,7 @@ class DataTracker:
     """
     A class for interacting with the IETF DataTracker.
     """
-    def __init__(self, cachedir : Optional[Path] = None):
+    def __init__(self, cachedir: Optional[Path] = None):
         self.session  = requests.Session()
         self.ua       = "glasgow-ietfdata/0.2.0"          # Update when making a new relaase
         self.base_url = "https://datatracker.ietf.org"
@@ -803,7 +804,7 @@ class DataTracker:
         Returns:
             An iterator, where each element is an Email object
         """
-        url = "/api/v1/person/email/?time__gte=" + since + "&time__lt=" + until
+        url = "/api/v1/person/email/"
         return self._retrieve_multi(url, Email)
 
 
