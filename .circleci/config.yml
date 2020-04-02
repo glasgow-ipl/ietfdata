@@ -10,7 +10,7 @@ jobs:
       - checkout
       - run:
           command: |
-	    export MYPYPATH=stubs
+            export MYPYPATH=stubs
             sudo pip install pipenv
             pipenv install --dev
             pipenv run mypy ietfdata/rfcindex.py
