@@ -1,0 +1,27 @@
+version: 2.1
+
+orbs:
+  python: circleci/python@0.2.1
+
+jobs:
+  build-and-test:
+    executor: python/default
+    steps:
+      - checkout
+      - run:
+          environment:
+            MYPYPATH: stubs
+          command: |
+            sudo pip install pipenv
+            pipenv install --dev
+            pipenv run mypy ietfdata/rfcindex.py
+            pipenv run mypy ietfdata/datatracker.py
+            pipenv run mypy tests/test_rfcindex.py
+            pipenv run mypy tests/test_datatracker.py
+            pipenv run python3 -m unittest discover -s tests/ -v
+          name: Test
+
+workflows:
+  main:
+    jobs:
+      - build-and-test
