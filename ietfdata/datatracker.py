@@ -401,6 +401,37 @@ class DocumentEvent:
 
 
 @dataclass(frozen=True)
+class RelationshipTypeURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/name/docrelationshipname/")
+
+
+@dataclass(frozen=True)
+class RelationshipType:
+    resource_uri   : RelationshipTypeURI
+    slug           : str
+    desc           : str
+    name           : str
+    used           : bool
+    order          : int
+    revname        : str
+
+
+@dataclass(frozen=True)
+class RelatedDocumentURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/doc/relateddocument/")
+
+
+@dataclass(frozen=True)
+class RelatedDocument:
+    id              : int
+    relationship    : RelationshipTypeURI
+    resource_uri    : RelatedDocumentURI
+    source          : DocumentURI
+    target          : DocumentAliasURI
+
+
 class DocumentAuthorURI(URI):
     def __post_init__(self) -> None:
         assert self.uri.startswith("/api/v1/doc/documentauthor/")
@@ -662,6 +693,8 @@ class DataTracker:
         self.pavlova.register_parser(PersonAliasURI,       GenericParser(self.pavlova, PersonAliasURI))
         self.pavlova.register_parser(PersonEventURI,       GenericParser(self.pavlova, PersonEventURI))
         self.pavlova.register_parser(PersonURI,            GenericParser(self.pavlova, PersonURI))
+        self.pavlova.register_parser(RelationshipTypeURI,  GenericParser(self.pavlova, RelationshipTypeURI))
+        self.pavlova.register_parser(RelatedDocumentURI,   GenericParser(self.pavlova, RelatedDocumentURI))
         self.pavlova.register_parser(SessionURI,           GenericParser(self.pavlova, SessionURI))
         self.pavlova.register_parser(ScheduleURI,          GenericParser(self.pavlova, ScheduleURI))
         self.pavlova.register_parser(StreamURI,            GenericParser(self.pavlova, StreamURI))
@@ -1299,6 +1332,63 @@ class DataTracker:
         """
         return self._retrieve_multi("/api/v1/name/meetingtypename/", MeetingType)
 
+# =================================================================================================================================
+#   https://datatracker.ietf.org/api/v1/doc/relateddocument/?source=...      - documents that source draft relates to (references, replaces, etc)
+#   https://datatracker.ietf.org/api/v1/doc/relateddocument/?target=...      - documents that relate to target draft
+
+    def related_documents(self, 
+        source               : Optional[Document]         = None, 
+        target               : Optional[Document]         = None, 
+        relationship_type    : Optional[RelationshipType] = None) -> Iterator[RelatedDocument]:
+
+        url = "/api/v1/doc/relateddocument/"
+        if source is not None and target is not None and relationship_type is not None:
+            url = url + "?source=" + source + "&target=" + target + "&relationship=" + relationship_type
+        elif source is not None and target is not None:
+            url = url + "?source=" + source + "&target=" + target
+        elif source is not None and relationship_type is not None:
+            url = url + "?source=" + source + "&relationship=" + relationship_type
+        elif target is not None and relationship_type is not None:
+            url = url + "?target=" + target + "&relationship=" + relationship_type
+        elif target is not None:
+            url = url + "?target=" + target
+        elif source is not None:
+            url = url + "?source=" + source
+        elif relationship_type is not None:
+            url = url + "?relationship=" + relationship_type
+        else:
+            raise RuntimeError("No parameters were passed")
+        return self._retrieve_multi(url, RelatedDocument)
+    
+    
+    def relationship_type(self, relationship_type_uri: RelationshipTypeURI) -> Optional[RelationshipType]:
+        """
+        Retrieve a relationship type
+
+        Parameters:
+            relationship_type_uri -- The relationship type uri, 
+            as found in the resource_uri of a relationship type.
+
+        Returns:
+            A RelationshipType object
+        """
+
+        return self._retrieve(relationship_type_uri, RelationshipType)
+
+
+    def relationship_types(self) -> Iterator[RelationshipType]:
+        """
+        A generator returning the possible relationship types
+
+        Parameters:
+           None
+
+        Returns:
+            An iterator of RelationshipType objects
+        """
+
+        url = "/api/v1/name/docrelationshipname/"
+        return self._retrieve_multi(url, RelationshipType)
 
 # =================================================================================================================================
 # vim: set tw=0 ai:
