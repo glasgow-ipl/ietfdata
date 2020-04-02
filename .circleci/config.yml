@@ -11,6 +11,8 @@ jobs:
       - python/install-deps
       - run:
           command: |
+            sudo pip install pipenv
+            pipenv install
             pipenv shell
             python3 -m unittest discover -s tests/ -v
           name: Test
