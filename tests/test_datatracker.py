@@ -116,6 +116,7 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_emails(self) -> None:
+        # FIXME: need to rework tests now the since and until parameters have been removed
         e = list(self.dt.emails(since="2018-04-01T00:00:00", until="2018-04-30T23:59:59"))
         self.assertEqual(len(e), 32)
         self.assertEqual(e[ 0].resource_uri, EmailURI('/api/v1/person/email/jeromee.marcon@free.fr/'))
@@ -288,6 +289,7 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_people(self) -> None:
+        # FIXME: need to rework tests now the since and until parameters have been removed
         p  = list(self.dt.people(since="2018-04-01T00:00:00", until="2018-04-30T23:59:59"))
         self.assertEqual(len(p), 17)
         self.assertEqual(p[ 0].resource_uri, PersonURI("/api/v1/person/person/124773/"))
@@ -1090,6 +1092,7 @@ class TestDatatracker(unittest.TestCase):
 
     # FIXME: this needs to be updated
     def test_groups(self) -> None:
+        # FIXME: need to rework tests now the since and until parameters have been removed
         # FIXME: split into two tests? _timerange, and _namecontains -- testing without parameters not practical
         groups = list(self.dt.groups(since="2019-01-01T00:00:00", until="2019-01-31T23:59:59"))
         self.assertEqual(len(groups),  1)
