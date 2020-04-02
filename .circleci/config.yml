@@ -9,6 +9,8 @@ jobs:
     steps:
       - checkout
       - run:
+          environment:
+            MYPYPATH: stubs
           command: |
             sudo pip install pipenv
             pipenv install --dev
