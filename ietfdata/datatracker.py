@@ -431,21 +431,6 @@ class RelatedDocument:
     source          : DocumentURI
     target          : DocumentAliasURI
 
-    def related_document_source(self, 
-            source               : Optional[Document]         = None, 
-            relationship_type    : Optional[RelationshipType] = None) -> str:
-        url = "?source=" + source
-        if relationship_type is not None:
-            url = url + "&relationship=" + relationship_type
-        return url
-
-    def related_document_target(self, 
-            target               : Optional[Document]         = None, 
-            relationship_type    : Optional[RelationshipType] = None) -> str:
-        url = "?target=" + target
-        if relationship_type is not None:
-            url = url + "&relationship=" + relationship_type
-        return url
 
 class DocumentAuthorURI(URI):
     def __post_init__(self) -> None:
@@ -1352,18 +1337,24 @@ class DataTracker:
 #   https://datatracker.ietf.org/api/v1/doc/relateddocument/?target=...      - documents that relate to target draft
 
     def related_documents(self, 
-            source               : Optional[Document]         = None, 
-            target               : Optional[Document]         = None, 
-            relationship_type    : Optional[RelationshipType] = None) -> Iterator[RelatedDocument]:
+        source               : Optional[Document]         = None, 
+        target               : Optional[Document]         = None, 
+        relationship_type    : Optional[RelationshipType] = None) -> Iterator[RelatedDocument]:
 
         url = "/api/v1/doc/relateddocument/"
-        if source is not None and target is not None:
+        if source is not None and target is not None and relationship_type is not None:
+            url = url + "?source=" + source + "&target=" + target + "&relationship=" + relationship_type
+        elif source is not None and target is not None:
             url = url + "?source=" + source + "&target=" + target
-        elif source is not None:
-            url = url + RelatedDocument.related_document_source(self, source, relationship_type=relationship_type)
+        elif source is not None and relationship_type is not None:
+            url = url + "?source=" + source + "&relationship=" + relationship_type
+        elif target is not None and relationship_type is not None:
+            url = url + "?target=" + target + "&relationship=" + relationship_type
         elif target is not None:
-            url = url + RelatedDocument.related_document_target(self, target, relationship_type=relationship_type)
-        elif relationship_type is not None and source is None and target is None:
+            url = url + "?target=" + target
+        elif source is not None:
+            url = url + "?source=" + source
+        elif relationship_type is not None:
             url = url + "?relationship=" + relationship_type
         else:
             raise RuntimeError("No parameters were passed")
