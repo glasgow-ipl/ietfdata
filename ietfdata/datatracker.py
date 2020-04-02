@@ -769,7 +769,7 @@ class DataTracker:
         """
         url = "/api/v1/person/person/"
         if name_contains is not None:
-            url = url + "&name__contains=" + name_contains
+            url = url + "?name__contains=" + name_contains
         return self._retrieve_multi(url, Person)
 
 
@@ -821,6 +821,7 @@ class DataTracker:
             doctype : Optional[DocumentType] = None,
             group   : Optional[Group]        = None) -> Iterator[Document]:
         url = "/api/v1/doc/document/"
+        # FIXME: this will fail - waiting on url.append_parameter()
         if doctype is not None:
             url = url + "&type=" + doctype.slug
         if group is not None:
@@ -969,10 +970,10 @@ class DataTracker:
 
 
     def document_events(self,
-                        by         : PersonURI            = None,
-                        desc       : str                  = None,
-                        rev        : int                  = None,
-                        event_type : str                  = None) -> Iterator[DocumentEvent]:
+            by         : PersonURI            = None,   # FIXME: should these parameters be Optional[]?
+            desc       : str                  = None,
+            rev        : int                  = None,
+            event_type : str                  = None) -> Iterator[DocumentEvent]:
         """
         A generator returning information about document events.
 
@@ -987,7 +988,7 @@ class DataTracker:
         """
         url = "/api/v1/doc/docevent/"
         if by is not None:
-            url +=  "&by=" + str(by)
+            url +=  "?by=" + str(by)
         if desc is not None:
             url += "&desc=" + str(desc)
         if rev is not None:
@@ -1065,6 +1066,7 @@ class DataTracker:
            A sequence of SubmissionEvent objects
         """
         url = "/api/v1/submit/submissionevent/"
+        # FIXME: this will fail - waiting on url.append_parameter()
         if by is not None:
             url +=  "&by=" + str(by)
         if submission is not None:
@@ -1177,6 +1179,7 @@ class DataTracker:
             state         : Optional[GroupState] = None,
             parent        : Optional[Group]      = None) -> Iterator[Group]:
         url = "/api/v1/group/group/"
+        # FIXME: this will fail - waiting on url.append_parameter()
         if name_contains is not None:
             url = url + "&name__contains=" + name_contains
         if state is not None:
