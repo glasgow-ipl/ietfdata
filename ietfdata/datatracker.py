@@ -640,11 +640,12 @@ class DataTracker:
     """
     A class for interacting with the IETF DataTracker.
     """
-    def __init__(self):
+    def __init__(self, cachedir : Optional[Path] = None):
         self.session  = requests.Session()
         self.ua       = "glasgow-ietfdata/0.2.0"          # Update when making a new relaase
         self.base_url = "https://datatracker.ietf.org"
-        self.pavlova = Pavlova()
+        self.pavlova  = Pavlova()
+        self.cachedir = cachedir
         # Please sort the following alphabetically:
         self.pavlova.register_parser(AssignmentURI,        GenericParser(self.pavlova, AssignmentURI))
         self.pavlova.register_parser(DocumentAliasURI,     GenericParser(self.pavlova, DocumentAliasURI))
@@ -668,6 +669,7 @@ class DataTracker:
         self.pavlova.register_parser(SubmissionEventURI,   GenericParser(self.pavlova, SubmissionEventURI))
         self.pavlova.register_parser(SubmissionURI,        GenericParser(self.pavlova, SubmissionURI))
         self.pavlova.register_parser(TimeslotURI,          GenericParser(self.pavlova, TimeslotURI))
+        self.update_cache()
 
 
     def __del__(self):
@@ -675,6 +677,8 @@ class DataTracker:
 
 
     def _retrieve(self, resource_uri: URI, obj_type: Type[T]) -> Optional[T]:
+        # FIXME: add caching support. Answer from the cache if present, else directly
+        # from the datatracker.
         headers = {'user-agent': self.ua}
         r = self.session.get(self.base_url + resource_uri.uri, headers=headers, verify=True, stream=False)
         if r.status_code == 200:
@@ -685,6 +689,13 @@ class DataTracker:
 
 
     def _retrieve_multi(self, uri: str, obj_type: Type[T]) -> Iterator[T]:
+        # FIXME: If we have no cache, this method should directly accesses the
+        # datatracker. If we have a cache, this methd will update the cache for
+        # the requested object type, then answer the query from the cache.
+        # E.g., if the uri starts "/api/v1/person/person/", then it should
+        # perform a query for "/api/v1/person/person/?time__gte=XXX&time__lt=XXX"
+        # with appropriate date ranges and use that to update the cache to the
+        # current time, then answer based on the cache content.
         if "?" in uri:
             uri += "&limit=100"
         else:
@@ -703,6 +714,11 @@ class DataTracker:
                 print(r.status_code)
                 return None
 
+
+    def update_cache(self):
+        if self.cachedir is not None:
+            # Force an update of the cache.
+            pass
 
     # ----------------------------------------------------------------------------------------------------------------------------
     # Datatracker API endpoints returning information about people:
@@ -739,22 +755,18 @@ class DataTracker:
 
 
     def people(self,
-            since : str ="1970-01-01T00:00:00",
-            until : str ="2038-01-19T03:14:07",
             name_contains : Optional[str] =None) -> Iterator[Person]:
         """
         A generator that returns people recorded in the datatracker. As of April
         2018, there are approximately 21500 people recorded.
 
         Parameters:
-            since         -- Only return people with timestamp after this
-            until         -- Only return people with timestamp before this
             name_contains -- Only return peopls whose name containing this string
 
         Returns:
             An iterator, where each element is as returned by the person() method
         """
-        url = "/api/v1/person/person/?time__gte=" + since + "&time__lt=" + until
+        url = "/api/v1/person/person/"
         if name_contains is not None:
             url = url + "&name__contains=" + name_contains
         return self._retrieve_multi(url, Person)
@@ -784,15 +796,9 @@ class DataTracker:
         return self._retrieve_multi(uri, HistoricalEmail)
 
 
-    def emails(self,
-               since : str ="1970-01-01T00:00:00",
-               until : str ="2038-01-19T03:14:07") -> Iterator[Email]:
+    def emails(self) -> Iterator[Email]:
         """
         A generator that returns email addresses recorded in the datatracker.
-
-        Parameters:
-            since         -- Only return people with timestamp after this
-            until         -- Only return people with timestamp before this
 
         Returns:
             An iterator, where each element is an Email object
@@ -811,11 +817,9 @@ class DataTracker:
 
 
     def documents(self,
-            since   : str = "1970-01-01T00:00:00",
-            until   : str = "2038-01-19T03:14:07",
             doctype : Optional[DocumentType] = None,
             group   : Optional[Group]        = None) -> Iterator[Document]:
-        url = "/api/v1/doc/document/?time__gt=" + since + "&time__lt=" + until
+        url = "/api/v1/doc/document/"
         if doctype is not None:
             url = url + "&type=" + doctype.slug
         if group is not None:
@@ -964,8 +968,6 @@ class DataTracker:
 
 
     def document_events(self,
-                        since      : str = "1970-01-01T00:00:00",
-                        until      : str = "2038-01-19T03:14:07",
                         by         : PersonURI            = None,
                         desc       : str                  = None,
                         rev        : int                  = None,
@@ -974,8 +976,6 @@ class DataTracker:
         A generator returning information about document events.
 
         Parameters:
-            since      -- Only return document events with timestamp after this
-            until      -- Only return document events with timestamp after this
             by         -- Only return document events by this person
             desc       -- Only return document events with this description
             rev        -- Only return document events with this revision number
@@ -984,7 +984,7 @@ class DataTracker:
         Returns:
            A sequence of DocumentEvent objects
         """
-        url = "/api/v1/doc/docevent/?time__gt=" + since + "&time__lt=" + until
+        url = "/api/v1/doc/docevent/"
         if by is not None:
             url +=  "&by=" + str(by)
         if desc is not None:
@@ -1047,8 +1047,6 @@ class DataTracker:
 
 
     def submission_events(self,
-                        since      : str = "1970-01-01T00:00:00",
-                        until      : str = "2038-01-19T03:14:07",
                         by         : Optional[PersonURI]     = None,
                         submission : Optional[SubmissionURI] = None,
                         desc       : Optional[str]           = None) -> Iterator[SubmissionEvent]:
@@ -1065,7 +1063,7 @@ class DataTracker:
         Returns:
            A sequence of SubmissionEvent objects
         """
-        url = "/api/v1/submit/submissionevent/?time__gt=" + since + "&time__lt=" + until
+        url = "/api/v1/submit/submissionevent/"
         if by is not None:
             url +=  "&by=" + str(by)
         if submission is not None:
@@ -1174,12 +1172,10 @@ class DataTracker:
 
 
     def groups(self,
-            since         : str                  = "1970-01-01T00:00:00",
-            until         : str                  = "2038-01-19T03:14:07",
             name_contains : Optional[str]        = None,
             state         : Optional[GroupState] = None,
             parent        : Optional[Group]      = None) -> Iterator[Group]:
-        url = "/api/v1/group/group/?time__gt=" + since + "&time__lt=" + until
+        url = "/api/v1/group/group/"
         if name_contains is not None:
             url = url + "&name__contains=" + name_contains
         if state is not None:
