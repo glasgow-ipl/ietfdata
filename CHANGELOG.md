@@ -19,6 +19,10 @@ Change Log -- ietfdata
  - Add `submission_events()` method and associated types
  - Add `document_authors()`, `documents_authored_by_persion()`, and
    `documents_authored_by_email()` methods and associated types
+ - Remove `since` and `until` parameters from `people()`, `emails()`,
+   `documents()`, `document_events()`, `submission_events()`, and
+   `groups()` methods. Add a `cachdir` parameter to the data tracker
+   initialisation method, in preparation for caching support.
 
 
 ## v0.1.5 -- 2019-12-24
