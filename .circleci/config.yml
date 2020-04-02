@@ -12,7 +12,9 @@ jobs:
       - python/install-deps
       - python/save-cache
       - run:
-          command: ./manage.py test
+          command: |
+            pipenv shell
+            python3 -m unittest discover -s tests/ -v
           name: Test
 
 workflows:
