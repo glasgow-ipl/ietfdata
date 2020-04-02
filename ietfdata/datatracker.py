@@ -500,6 +500,12 @@ class ScheduleURI(URI):
 
 @dataclass(frozen=True)
 class Schedule:
+    """
+    A particular version of the meeting schedule (i.e., the meeting agenda)
+
+    Use `meeting_session_assignments()` to find the assignment of sessions
+    to timeslots within this schedule.
+    """
     id           : int
     name         : str
     resource_uri : ScheduleURI
@@ -533,8 +539,8 @@ class Meeting:
     submission_start_day_offset      : int
     submission_cutoff_day_offset     : int
     submission_correction_day_offset : int
-    agenda                           : ScheduleURI
-    schedule                         : ScheduleURI
+    agenda                           : ScheduleURI  # An alias for schedule
+    schedule                         : ScheduleURI  # The current meeting schedule (i.e., the agenda)
     number                           : str
     break_area                       : str
     reg_area                         : str
@@ -1218,6 +1224,20 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/meeting/schedule/791/                   - a draft of the meeting agenda
     #   https://datatracker.ietf.org/api/v1/meeting/room/537/                       - a room at a meeting
     #   https://datatracker.ietf.org/api/v1/meeting/floorplan/14/                   - floor plan for a meeting venue
+    #   https://datatracker.ietf.org/api/v1/meeting/schedulingevent/                - meetings being scheduled
+
+    def meeting_session_assignment(self, assignment_uri : AssignmentURI) -> Optional[Assignment]:
+        return self._retrieve(assignment_uri, Assignment)
+
+
+    def meeting_session_assignments(self, schedule : Schedule) -> Iterator[Assignment]:
+        """
+        The assignment of sessions to timeslots in a particular version of the
+        meeting schedule.
+        """
+        url = "/api/v1/meeting/schedtimesessassignment/?schedule=" + str(schedule.id)
+        return self._retrieve_multi(url, Assignment)
+
 
     def meeting_schedule(self, schedule_uri : ScheduleURI) -> Optional[Schedule]:
         """
@@ -1227,20 +1247,6 @@ class DataTracker:
         in each timeslot of the meeting in this version of the meeting schedule.
         """
         return self._retrieve(schedule_uri, Schedule)
-
-
-    def meeting_session_assignment(self, assignment_uri : AssignmentURI) -> Optional[Assignment]:
-        return self._retrieve(assignment_uri, Assignment)
-
-
-    # It's possible to filter this by timeslot or session, but not clear it's
-    # useful to do so.
-    def meeting_session_assignments(self, schedule : Schedule) -> Iterator[Assignment]:
-        """
-        The assignment of sessions to timeslots in a particular meeting schedule.
-        """
-        url = "/api/v1/meeting/schedtimesessassignment/?schedule=" + str(schedule.id)
-        return self._retrieve_multi(url, Assignment)
 
 
     def meeting(self, meeting_uri : MeetingURI) -> Optional[Meeting]:
@@ -1254,6 +1260,9 @@ class DataTracker:
             start_date   : str = "1970-01-01",
             end_date     : str = "2038-01-19",
             meeting_type : Optional[MeetingType] = None) -> Iterator[Meeting]:
+        """
+        Return information about meetings taking place within a particular date range.
+        """
         url = "/api/v1/meeting/meeting/"
         url = url + "?date__gte=" + start_date + "&date__lte=" + end_date
         if meeting_type is not None:
