@@ -249,12 +249,18 @@ class SubmissionURI(URI):
 
 
 @dataclass(frozen=True)
+class SubmissionCheckURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/submit/submissioncheck/")
+        
+
+@dataclass(frozen=True)
 class Submission:
     abstract        : str
     access_key      : str
     auth_key        : str
     authors         : str
-    checks          : List[str] # FIXME: these should be URI subtypes
+    checks          : List[SubmissionCheckURI]
     document_date   : str
     draft           : DocumentURI
     file_size       : Optional[int]
@@ -697,6 +703,7 @@ class DataTracker:
         self.pavlova.register_parser(SessionURI,           GenericParser(self.pavlova, SessionURI))
         self.pavlova.register_parser(ScheduleURI,          GenericParser(self.pavlova, ScheduleURI))
         self.pavlova.register_parser(StreamURI,            GenericParser(self.pavlova, StreamURI))
+        self.pavlova.register_parser(SubmissionCheckURI,   GenericParser(self.pavlova, SubmissionCheckURI))
         self.pavlova.register_parser(SubmissionEventURI,   GenericParser(self.pavlova, SubmissionEventURI))
         self.pavlova.register_parser(SubmissionURI,        GenericParser(self.pavlova, SubmissionURI))
         self.pavlova.register_parser(TimeslotURI,          GenericParser(self.pavlova, TimeslotURI))
