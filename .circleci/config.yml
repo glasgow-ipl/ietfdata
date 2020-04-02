@@ -11,7 +11,7 @@ jobs:
       - run:
           command: |
             sudo pip install pipenv
-            pipenv install
+            pipenv install --dev
             pipenv run mypy ietfdata/rfcindex.py
             pipenv run mypy ietfdata/datatracker.py
             pipenv run mypy tests/test_rfcindex.py
