@@ -447,6 +447,21 @@ class RelatedDocument:
             url = url + "&relationship=" + relationship_type
         return url
 
+class DocumentAuthorURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/doc/documentauthor/")
+
+@dataclass(frozen=True)
+class DocumentAuthor:
+    id           : int
+    order        : int
+    resource_uri : DocumentAuthorURI
+    country      : str
+    affiliation  : str
+    document     : DocumentURI
+    person       : PersonURI
+    email        : EmailURI
+    
 
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to groups:
@@ -531,6 +546,12 @@ class ScheduleURI(URI):
 
 @dataclass(frozen=True)
 class Schedule:
+    """
+    A particular version of the meeting schedule (i.e., the meeting agenda)
+
+    Use `meeting_session_assignments()` to find the assignment of sessions
+    to timeslots within this schedule.
+    """
     id           : int
     name         : str
     resource_uri : ScheduleURI
@@ -564,8 +585,8 @@ class Meeting:
     submission_start_day_offset      : int
     submission_cutoff_day_offset     : int
     submission_correction_day_offset : int
-    agenda                           : ScheduleURI
-    schedule                         : ScheduleURI
+    agenda                           : ScheduleURI  # An alias for schedule
+    schedule                         : ScheduleURI  # The current meeting schedule (i.e., the agenda)
     number                           : str
     break_area                       : str
     reg_area                         : str
@@ -604,7 +625,7 @@ class Timeslot:
     resource_uri  : TimeslotURI
     type          : str               # FIXME: this is a URI "/api/v1/name/timeslottypename/regular/"
     meeting       : MeetingURI
-    sessions      : List[SessionURI]
+    sessions      : List[SessionURI]  # Sessions assigned to this slot in various versions of the agenda; current assignment is last
     name          : str
     time          : str
     duration      : str
@@ -673,6 +694,7 @@ class DataTracker:
         # Please sort the following alphabetically:
         self.pavlova.register_parser(AssignmentURI,        GenericParser(self.pavlova, AssignmentURI))
         self.pavlova.register_parser(DocumentAliasURI,     GenericParser(self.pavlova, DocumentAliasURI))
+        self.pavlova.register_parser(DocumentAuthorURI,    GenericParser(self.pavlova, DocumentAuthorURI))
         self.pavlova.register_parser(DocumentEventURI,     GenericParser(self.pavlova, DocumentEventURI))
         self.pavlova.register_parser(DocumentStateURI,     GenericParser(self.pavlova, DocumentStateURI))
         self.pavlova.register_parser(DocumentStateTypeURI, GenericParser(self.pavlova, DocumentStateTypeURI))
@@ -1022,9 +1044,25 @@ class DataTracker:
         return self._retrieve_multi(url, DocumentEvent)
 
 
-    #   https://datatracker.ietf.org/api/v1/doc/documentauthor/?document=...     - authors of a document
-    #   https://datatracker.ietf.org/api/v1/doc/documentauthor/?person=...       - documents by person (as /api/v1/person/person)
-    #   https://datatracker.ietf.org/api/v1/doc/documentauthor/?email=...        - documents by person with particular email
+    # * https://datatracker.ietf.org/api/v1/doc/documentauthor/?document=...     - authors of a document
+    # * https://datatracker.ietf.org/api/v1/doc/documentauthor/?person=...       - documents by person
+    # * https://datatracker.ietf.org/api/v1/doc/documentauthor/?email=...        - documents by person
+
+    def document_authors(self, document : Document) -> Iterator[DocumentAuthor]:
+        url = "/api/v1/doc/documentauthor/?document=" + str(document.id)
+        return self._retrieve_multi(url, DocumentAuthor)
+
+
+    def documents_authored_by_person(self, person : Person) -> Iterator[DocumentAuthor]:
+        url = "/api/v1/doc/documentauthor/?person=" + str(person.id)
+        return self._retrieve_multi(url, DocumentAuthor)
+
+
+    def documents_authored_by_email(self, email : Email) -> Iterator[DocumentAuthor]:
+        url = "/api/v1/doc/documentauthor/?email=" + email.address
+        return self._retrieve_multi(url, DocumentAuthor)
+
+
     #   https://datatracker.ietf.org/api/v1/doc/dochistory/
     #   https://datatracker.ietf.org/api/v1/doc/dochistoryauthor/
     #   https://datatracker.ietf.org/api/v1/doc/docreminder/
@@ -1229,11 +1267,25 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/meeting/session/25886/                  - a session in a meeting
     #   https://datatracker.ietf.org/api/v1/meeting/session/?meeting=747            - sessions in meeting number 747
     #   https://datatracker.ietf.org/api/v1/meeting/session/?meeting=747&group=2161 - sessions in meeting number 747 for group 2161
-    #   https://datatracker.ietf.org/api/v1/meeting/schedtimesessassignment/59003/  - a schededuled session within a meeting
+    # * https://datatracker.ietf.org/api/v1/meeting/schedtimesessassignment/59003/  - a schededuled session within a meeting
     #   https://datatracker.ietf.org/api/v1/meeting/timeslot/9480/                  - a time slot within a meeting (time, duration, location)
     # * https://datatracker.ietf.org/api/v1/meeting/schedule/791/                   - a draft of the meeting agenda
     #   https://datatracker.ietf.org/api/v1/meeting/room/537/                       - a room at a meeting
     #   https://datatracker.ietf.org/api/v1/meeting/floorplan/14/                   - floor plan for a meeting venue
+    #   https://datatracker.ietf.org/api/v1/meeting/schedulingevent/                - meetings being scheduled
+
+    def meeting_session_assignment(self, assignment_uri : AssignmentURI) -> Optional[Assignment]:
+        return self._retrieve(assignment_uri, Assignment)
+
+
+    def meeting_session_assignments(self, schedule : Schedule) -> Iterator[Assignment]:
+        """
+        The assignment of sessions to timeslots in a particular version of the
+        meeting schedule.
+        """
+        url = "/api/v1/meeting/schedtimesessassignment/?schedule=" + str(schedule.id)
+        return self._retrieve_multi(url, Assignment)
+
 
     def meeting_schedule(self, schedule_uri : ScheduleURI) -> Optional[Schedule]:
         """
@@ -1243,25 +1295,6 @@ class DataTracker:
         in each timeslot of the meeting in this version of the meeting schedule.
         """
         return self._retrieve(schedule_uri, Schedule)
-
-
-    def meeting_session_assignment(self, assignment_uri : AssignmentURI) -> Optional[Assignment]:
-        return self._retrieve(assignment_uri, Assignment)
-
-
-    def meeting_session_assignments(self,
-            schedule : Schedule,
-            timeslot : Optional[Timeslot] = None,
-            session  : Optional[Session]  = None) -> Iterator[Assignment]:
-        """
-        The assignment of sessions to timeslots in a particular meeting schedule.
-        """
-        url = "/api/v1/meeting/schedtimesessassignment/?schedule=" + str(schedule.id)
-        if timeslot is not None:
-            url = url + "&timeslot=" + str(timeslot.id)
-        if session is not None:
-            url = url + "&session="  + str(session.id)
-        return self._retrieve_multi(url, Assignment)
 
 
     def meeting(self, meeting_uri : MeetingURI) -> Optional[Meeting]:
@@ -1275,6 +1308,9 @@ class DataTracker:
             start_date   : str = "1970-01-01",
             end_date     : str = "2038-01-19",
             meeting_type : Optional[MeetingType] = None) -> Iterator[Meeting]:
+        """
+        Return information about meetings taking place within a particular date range.
+        """
         url = "/api/v1/meeting/meeting/"
         url = url + "?date__gte=" + start_date + "&date__lte=" + end_date
         if meeting_type is not None:

@@ -903,6 +903,52 @@ class TestDatatracker(unittest.TestCase):
         pass
 
 
+    def test_document_authors(self) -> None:
+        d = self.dt.document_from_rfc("rfc3550")
+        if d is not None:
+            a = list(self.dt.document_authors(d))
+            self.assertEqual(len(a), 4)
+            self.assertEqual(a[0].id, 5147)  # Schulzrinne
+            self.assertEqual(a[1].id, 5148)  # Casner
+            self.assertEqual(a[2].id, 5149)  # Frederick
+            self.assertEqual(a[3].id, 5150)  # Jacobson
+        else:
+            self.fail("Cannot find RFC 3550")
+
+
+    def test_documents_authored_by_person(self) -> None:
+        p = self.dt.person_from_email("ladan@isi.edu")
+        if p is not None:
+            a = list(self.dt.documents_authored_by_person(p))
+            self.assertEqual(len(a), 7)
+            self.assertEqual(a[0].document, DocumentURI(uri='/api/v1/doc/document/draft-gharai-ac3/'))
+            self.assertEqual(a[1].document, DocumentURI(uri='/api/v1/doc/document/draft-gharai-hdtv-video/'))
+            self.assertEqual(a[2].document, DocumentURI(uri='/api/v1/doc/document/draft-ietf-avt-smpte292-video/'))
+            self.assertEqual(a[3].document, DocumentURI(uri='/api/v1/doc/document/draft-gharai-avt-uncomp-video/'))
+            self.assertEqual(a[4].document, DocumentURI(uri='/api/v1/doc/document/draft-ietf-avt-uncomp-video/'))
+            self.assertEqual(a[5].document, DocumentURI(uri='/api/v1/doc/document/draft-gharai-avt-tfrc-profile/'))
+            self.assertEqual(a[6].document, DocumentURI(uri='/api/v1/doc/document/draft-ietf-avt-tfrc-profile/'))
+        else:
+            self.fail("Cannot find person");
+
+
+    def test_documents_authored_by_email(self) -> None:
+        e = self.dt.email(EmailURI("/api/v1/person/email/ladan@isi.edu/"))
+        if e is not None:
+            a = list(self.dt.documents_authored_by_email(e))
+            self.assertEqual(len(a), 7)
+            self.assertEqual(a[0].document, DocumentURI(uri='/api/v1/doc/document/draft-gharai-ac3/'))
+            self.assertEqual(a[1].document, DocumentURI(uri='/api/v1/doc/document/draft-gharai-hdtv-video/'))
+            self.assertEqual(a[2].document, DocumentURI(uri='/api/v1/doc/document/draft-ietf-avt-smpte292-video/'))
+            self.assertEqual(a[3].document, DocumentURI(uri='/api/v1/doc/document/draft-gharai-avt-uncomp-video/'))
+            self.assertEqual(a[4].document, DocumentURI(uri='/api/v1/doc/document/draft-ietf-avt-uncomp-video/'))
+            self.assertEqual(a[5].document, DocumentURI(uri='/api/v1/doc/document/draft-gharai-avt-tfrc-profile/'))
+            self.assertEqual(a[6].document, DocumentURI(uri='/api/v1/doc/document/draft-ietf-avt-tfrc-profile/'))
+        else:
+            self.fail("Cannot find person");
+
+
+
 
     # FIXME: this needs to be updated
     def test_submission(self) -> None:
@@ -1046,9 +1092,8 @@ class TestDatatracker(unittest.TestCase):
     def test_groups(self) -> None:
         # FIXME: split into two tests? _timerange, and _namecontains -- testing without parameters not practical
         groups = list(self.dt.groups(since="2019-01-01T00:00:00", until="2019-01-31T23:59:59"))
-        self.assertEqual(len(groups),  2)
-        self.assertEqual(groups[0].id, 1897)
-        self.assertEqual(groups[1].id, 2220)
+        self.assertEqual(len(groups),  1)
+        self.assertEqual(groups[0].id, 2220)
 
     # FIXME: this needs to be updated
     def test_group_states(self) -> None:
@@ -1101,7 +1146,16 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_meeting_session_assignments(self) -> None:
-        self.fail("not implemented")
+        meeting  = self.dt.meeting(MeetingURI("/api/v1/meeting/meeting/365/")) # IETF 90 in Toronto
+        if meeting is not None:
+            schedule = self.dt.meeting_schedule(meeting.schedule)
+            if schedule is not None:
+                assignments = list(self.dt.meeting_session_assignments(schedule))
+                self.assertEqual(len(assignments), 161)
+            else:
+                self.fail("Cannot find schedule")
+        else:
+            self.fail("Cannot find meeting")
 
 
     def test_meeting(self) -> None:
