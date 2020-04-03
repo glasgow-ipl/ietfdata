@@ -1264,6 +1264,9 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/meeting/room/537/                       - a room at a meeting
     #   https://datatracker.ietf.org/api/v1/meeting/floorplan/14/                   - floor plan for a meeting venue
     #   https://datatracker.ietf.org/api/v1/meeting/schedulingevent/                - meetings being scheduled
+    #
+    #   https://datatracker.ietf.org/meeting/107/agenda.json
+    #   https://datatracker.ietf.org/meeting/interim-2020-hrpc-01/agenda.json
 
     def meeting_session_assignment(self, assignment_uri : AssignmentURI) -> Optional[Assignment]:
         return self._retrieve(assignment_uri, Assignment)
