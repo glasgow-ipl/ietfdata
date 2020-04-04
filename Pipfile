@@ -13,6 +13,7 @@ keyring = "*"
 [packages]
 requests = "*"
 pavlova = "*"
+coverage = "*"
 
 [requires]
 python_version = "3.7"
