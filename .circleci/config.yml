@@ -19,10 +19,10 @@ jobs:
             pipenv run mypy tests/test_rfcindex.py
             pipenv run mypy tests/test_datatracker.py
             pipenv run python3 -m unittest discover -s tests/ -v
-            coverage run --source ietfdata tests/test_rfcindex.py
-            coverage run -a --source ietfdata tests/test_datatracker.py 
-            coverage report
-            coverage html
+            pipenv run coverage run --source ietfdata tests/test_rfcindex.py
+            pipenv run coverage run -a --source ietfdata tests/test_datatracker.py 
+            pipenv run coverage report
+            pipenv run coverage html
           name: Test
       - store_artifacts:
           path: htmlcov
