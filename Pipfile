@@ -10,7 +10,6 @@ wheel = "*"
 twine = "*"
 keyring = "*"
 coverage = "*"
-testfixtures = "*"
 
 [packages]
 requests = "*"

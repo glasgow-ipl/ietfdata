@@ -26,11 +26,14 @@
 import unittest
 import os
 import sys
-import testfixtures
+
+from unittest.mock import patch, Mock
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+import ietfdata
 from ietfdata.datatracker import *
+
 
 # =================================================================================================================================
 # Unit tests:
@@ -1211,29 +1214,32 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(types[1].slug, "interim")
 
 
+    @patch.object(ietfdata.datatracker, 'datetime', Mock(wraps=datetime))
     def test_meeting_status_future(self) -> None:
         meeting = self.dt.meeting(MeetingURI("/api/v1/meeting/meeting/365/"))
         if meeting is not None:
-            with testfixtures.Replace('ietfdata.datatracker.datetime', testfixtures.test_datetime(2014,1,1)):
-                self.assertEqual(meeting.status(), MeetingStatus.FUTURE)
+            ietfdata.datatracker.datetime.now.return_value = datetime(2014, 1, 1) # type: ignore
+            self.assertEqual(meeting.status(), MeetingStatus.FUTURE)
         else:
             self.fail("Cannot find meeting")
 
 
+    @patch.object(ietfdata.datatracker, 'datetime', Mock(wraps=datetime))
     def test_meeting_status_completed(self) -> None:
         meeting = self.dt.meeting(MeetingURI("/api/v1/meeting/meeting/365/"))
         if meeting is not None:
-            with testfixtures.Replace('ietfdata.datatracker.datetime', testfixtures.test_datetime(2014,12,1)):
-                self.assertEqual(meeting.status(), MeetingStatus.COMPLETED)
+            ietfdata.datatracker.datetime.now.return_value = datetime(2014, 12, 1) # type: ignore
+            self.assertEqual(meeting.status(), MeetingStatus.COMPLETED)
         else:
             self.fail("Cannot find meeting")
 
 
+    @patch.object(ietfdata.datatracker, 'datetime', Mock(wraps=datetime))
     def test_meeting_status_ongoing(self) -> None:
         meeting = self.dt.meeting(MeetingURI("/api/v1/meeting/meeting/365/"))
         if meeting is not None:
-            with testfixtures.Replace('ietfdata.datatracker.datetime', testfixtures.test_datetime(2014,7,20)):
-                self.assertEqual(meeting.status(), MeetingStatus.ONGOING)
+            ietfdata.datatracker.datetime.now.return_value = datetime(2014, 7, 20) # type: ignore
+            self.assertEqual(meeting.status(), MeetingStatus.ONGOING)
         else:
             self.fail("Cannot find meeting")
 
