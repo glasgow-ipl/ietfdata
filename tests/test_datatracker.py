@@ -26,6 +26,7 @@
 import unittest
 import os
 import sys
+import testfixtures
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -1208,6 +1209,33 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(len(types),  2)
         self.assertEqual(types[0].slug, "ietf")
         self.assertEqual(types[1].slug, "interim")
+
+
+    def test_meeting_status_future(self) -> None:
+        meeting = self.dt.meeting(MeetingURI("/api/v1/meeting/meeting/365/"))
+        if meeting is not None:
+            with testfixtures.Replace('ietfdata.datatracker.datetime', testfixtures.test_datetime(2014,1,1)):
+                self.assertEqual(meeting.status(), MeetingStatus.FUTURE)
+        else:
+            self.fail("Cannot find meeting")
+
+
+    def test_meeting_status_completed(self) -> None:
+        meeting = self.dt.meeting(MeetingURI("/api/v1/meeting/meeting/365/"))
+        if meeting is not None:
+            with testfixtures.Replace('ietfdata.datatracker.datetime', testfixtures.test_datetime(2014,12,1)):
+                self.assertEqual(meeting.status(), MeetingStatus.COMPLETED)
+        else:
+            self.fail("Cannot find meeting")
+
+
+    def test_meeting_status_ongoing(self) -> None:
+        meeting = self.dt.meeting(MeetingURI("/api/v1/meeting/meeting/365/"))
+        if meeting is not None:
+            with testfixtures.Replace('ietfdata.datatracker.datetime', testfixtures.test_datetime(2014,7,20)):
+                self.assertEqual(meeting.status(), MeetingStatus.ONGOING)
+        else:
+            self.fail("Cannot find meeting")
 
 
     # -----------------------------------------------------------------------------------------------------------------------------
