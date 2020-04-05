@@ -865,15 +865,15 @@ class DataTracker:
     # Datatracker API endpoints returning information about document aliases:
     # * https://datatracker.ietf.org/api/v1/doc/docalias/?name=/                 - draft that became the given RFC
 
-    def documents_from_alias(self, alias: str) -> Iterator[DocumentAlias]:
+    def docaliases_from_name(self, alias: str) -> Iterator[DocumentAlias]:
         """
-        Returns the documents that correspond to the specified alias.
+        Returns a list of DocumentAlias objects that correspond to the specified name.
 
         Parameters:
-            alias -- The alias to lookup, for example "rfc3550", "std68", "bcp25", "draft-ietf-quic-transport"
+            name -- The name to lookup, for example "rfc3550", "std68", "bcp25", "draft-ietf-quic-transport"
 
         Returns:
-            A list of Document objects
+            A list of DocumentAlias objects
         """
         url = "/api/v1/doc/docalias/?name=" + alias
         return self._retrieve_multi(url, DocumentAlias)
@@ -890,7 +890,7 @@ class DataTracker:
             A Document object
         """
         assert draft.startswith("draft-")
-        docs = list(self.documents_from_alias(draft))
+        docs = list(self.docaliases_from_name(draft))
         if len(docs) == 0:
             return None
         elif len(docs) == 1:
@@ -910,7 +910,7 @@ class DataTracker:
             A Document object
         """
         assert rfc.lower().startswith("rfc")
-        docs = list(self.documents_from_alias(rfc.lower()))
+        docs = list(self.docaliases_from_name(rfc.lower()))
         if len(docs) == 0:
             return None
         elif len(docs) == 1:
@@ -930,7 +930,7 @@ class DataTracker:
             A list of Document objects
         """
         assert bcp.lower().startswith("bcp")
-        for alias in self.documents_from_alias(bcp.lower()):
+        for alias in self.docaliases_from_name(bcp.lower()):
             doc = self.document(alias.document)
             if doc is not None:
                 yield doc
@@ -947,7 +947,7 @@ class DataTracker:
             A list of Document objects
         """
         assert std.lower().startswith("std")
-        for alias in self.documents_from_alias(std.lower()):
+        for alias in self.docaliases_from_name(std.lower()):
             doc = self.document(alias.document)
             if doc is not None:
                 yield doc
