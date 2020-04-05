@@ -1309,6 +1309,27 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(rdocs[5].target,       DocumentAliasURI("/api/v1/doc/docalias/rfc1486/"))
 
 
+    def test_relationship_types(self) -> None:
+        types = list(self.dt.relationship_types())
+        self.assertEqual(len(types), 16)
+        self.assertEqual(types[0].slug,  "downref-approval")
+        self.assertEqual(types[1].slug,  "conflrev")
+        self.assertEqual(types[2].slug,  "refinfo")
+        self.assertEqual(types[3].slug,  "tobcp")
+        self.assertEqual(types[4].slug,  "toexp")
+        self.assertEqual(types[5].slug,  "tohist")
+        self.assertEqual(types[6].slug,  "toinf")
+        self.assertEqual(types[7].slug,  "tois")
+        self.assertEqual(types[8].slug,  "tops")
+        self.assertEqual(types[9].slug,  "refnorm")
+        self.assertEqual(types[10].slug, "obs")
+        self.assertEqual(types[11].slug, "possibly-replaces")
+        self.assertEqual(types[12].slug, "refold")
+        self.assertEqual(types[13].slug, "replaces")
+        self.assertEqual(types[14].slug, "updates")
+        self.assertEqual(types[15].slug, "refunk")
+
+
 if __name__ == '__main__':
     unittest.main()
 
