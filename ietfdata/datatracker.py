@@ -1365,8 +1365,6 @@ class DataTracker:
             url = url + "?source=" + str(source.id)
         elif relationship_type is not None:
             url = url + "?relationship=" + relationship_type.slug
-        else:
-            raise RuntimeError("No parameters were passed")
         return self._retrieve_multi(url, RelatedDocument)
     
     
