@@ -10,11 +10,11 @@ wheel = "*"
 twine = "*"
 keyring = "*"
 coverage = "*"
+testfixtures = "*"
 
 [packages]
 requests = "*"
 pavlova = "*"
-testfixtures = "*"
 
 [requires]
 python_version = "3.7"
