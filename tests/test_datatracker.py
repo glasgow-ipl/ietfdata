@@ -1309,6 +1309,12 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(rdocs[5].target,       DocumentAliasURI("/api/v1/doc/docalias/rfc1486/"))
 
 
+    def test_related_documents_relationship(self) -> None:
+        rel    = self.dt.relationship_type(RelationshipTypeURI("/api/v1/name/docrelationshipname/replaces/"))
+        rdocs  = self.dt.related_documents(relationship_type=rel)
+        self.assertIsNot(rdocs, None)
+
+
     def test_relationship_types(self) -> None:
         types = list(self.dt.relationship_types())
         self.assertEqual(len(types), 16)
