@@ -867,13 +867,13 @@ class DataTracker:
 
     def documents_from_alias(self, alias: str) -> Iterator[DocumentAlias]:
         """
-        Returns the documents that correspond to the specified alias.
+        Returns a list of DocumentAlias objects that correspond to the specified name.
 
         Parameters:
-            alias -- The alias to lookup, for example "rfc3550", "std68", "bcp25", "draft-ietf-quic-transport"
+            name -- The name to lookup, for example "rfc3550", "std68", "bcp25", "draft-ietf-quic-transport"
 
         Returns:
-            A list of Document objects
+            A list of DocumentAlias objects
         """
         url = "/api/v1/doc/docalias/?name=" + alias
         return self._retrieve_multi(url, DocumentAlias)
