@@ -1084,13 +1084,19 @@ class TestDatatracker(unittest.TestCase):
         else:
             self.fail("Cannot find group")
 
-    # FIXME: this needs to be updated
+
     def test_group_from_acronym(self) -> None:
         group = self.dt.group_from_acronym("avt")
         if group is not None:
             self.assertEqual(group.id, 941)
         else:
             self.fail("Cannot find group")
+            
+
+    def test_group_from_acronym_invalid(self) -> None:
+        group = self.dt.group_from_acronym("invalid")
+        self.assertIsNone(group)
+
 
     # FIXME: this needs to be updated
     def test_groups(self) -> None:
