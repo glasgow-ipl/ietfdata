@@ -1399,7 +1399,7 @@ class DataTracker:
         Parameters:
            None
 
-        Returns:emails
+        Returns:
             An iterator of RelationshipType objects
         """
 
