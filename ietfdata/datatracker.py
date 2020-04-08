@@ -46,8 +46,8 @@
 
 from datetime    import datetime, timedelta
 from enum        import Enum
-from typing      import List, Optional, Tuple, Dict, Iterator, Type, TypeVar
-from dataclasses import dataclass
+from typing      import List, Optional, Tuple, Dict, Iterator, Type, TypeVar, Any
+from dataclasses import dataclass, field
 from pavlova     import Pavlova
 from pavlova.parsers import GenericParser
 
@@ -66,7 +66,8 @@ import re
 
 @dataclass(frozen=True)
 class URI:
-    uri : str
+    uri    : str
+    params : Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -715,7 +716,7 @@ class DataTracker:
 
     def _retrieve(self, resource_uri: URI, obj_type: Type[T]) -> Optional[T]:
         headers = {'user-agent': self.ua}
-        r = self.session.get(self.base_url + resource_uri.uri, headers=headers, verify=True, stream=False)
+        r = self.session.get(self.base_url + resource_uri.uri, params=resource_uri.params, headers=headers, verify=True, stream=False)
         if r.status_code == 200:
             return self.pavlova.from_mapping(r.json(), obj_type)
         else:
@@ -723,18 +724,15 @@ class DataTracker:
             return None
 
 
-    def _retrieve_multi(self, uri: str, obj_type: Type[T]) -> Iterator[T]:
-        if "?" in uri:
-            uri += "&limit=100"
-        else:
-            uri += "?limit=100"
-        while uri is not None:
+    def _retrieve_multi(self, resource_uri: URI, obj_type: Type[T]) -> Iterator[T]:
+        resource_uri.params["limit"] = "100"
+        while resource_uri.uri is not None:
             headers = {'user-agent': self.ua}
-            r = self.session.get(self.base_url + uri, headers=headers, verify=True, stream=False)
+            r = self.session.get(self.base_url + resource_uri.uri, params=resource_uri.params, headers=headers, verify=True, stream=False)
             if r.status_code == 200:
                 meta = r.json()['meta']
                 objs = r.json()['objects']
-                uri  = meta['next']
+                resource_uri  = URI(meta['next'])
                 for obj in objs:
                     yield self.pavlova.from_mapping(obj, obj_type)
             else:
@@ -763,17 +761,20 @@ class DataTracker:
 
 
     def person_aliases(self, person: Person) -> Iterator[PersonAlias]:
-        url = "/api/v1/person/alias/?person=" + str(person.id)
+        url = PersonAliasURI("/api/v1/person/alias/")
+        url.params["person"] = str(person.id)
         return self._retrieve_multi(url, PersonAlias)
 
 
     def person_history(self, person: Person) -> Iterator[HistoricalPerson]:
-        url = "/api/v1/person/historicalperson/?id=" + str(person.id)
+        url = PersonURI("/api/v1/person/historicalperson/")
+        url.params["id"] = str(person.id)
         return self._retrieve_multi(url, HistoricalPerson)
 
 
     def person_events(self, person: Person) -> Iterator[PersonEvent]:
-        url = "/api/v1/person/personevent/?person=" + str(person.id)
+        url = PersonEventURI("/api/v1/person/personevent/")
+        url.params["person"] = str(person.id)
         return self._retrieve_multi(url, PersonEvent)
 
 
@@ -793,9 +794,11 @@ class DataTracker:
         Returns:
             An iterator, where each element is as returned by the person() method
         """
-        url = "/api/v1/person/person/?time__gte=" + since + "&time__lt=" + until
+        url = PersonURI("/api/v1/person/person/")
+        url.params["time__gte"] = since
+        url.params["time__lt"]  = until
         if name_contains is not None:
-            url = url + "&name__contains=" + name_contains
+            url.params["name__contains"] = name_contains
         return self._retrieve_multi(url, Person)
 
 
@@ -809,17 +812,20 @@ class DataTracker:
 
 
     def email_for_person(self, person: Person) -> Iterator[Email]:
-        uri = "/api/v1/person/email/?person=" + str(person.id)
+        uri = EmailURI("/api/v1/person/email/")
+        uri.params["person"] = str(person.id)
         return self._retrieve_multi(uri, Email)
 
 
     def email_history_for_address(self, email_addr: str) -> Iterator[HistoricalEmail]:
-        uri = "/api/v1/person/historicalemail/?address=" + email_addr
+        uri = EmailURI("/api/v1/person/historicalemail/")
+        uri.params["address"] = email_addr
         return self._retrieve_multi(uri, HistoricalEmail)
 
 
     def email_history_for_person(self, person: Person) -> Iterator[HistoricalEmail]:
-        uri = "/api/v1/person/historicalemail/?person=" + str(person.id)
+        uri = EmailURI("/api/v1/person/historicalemail/")
+        uri.params["person"] = person.id
         return self._retrieve_multi(uri, HistoricalEmail)
 
 
@@ -836,7 +842,9 @@ class DataTracker:
         Returns:
             An iterator, where each element is an Email object
         """
-        url = "/api/v1/person/email/?time__gte=" + since + "&time__lt=" + until
+        url = EmailURI("/api/v1/person/email/")
+        url.params["time__gte"] = since
+        url.params["time__lt"]   = until
         return self._retrieve_multi(url, Email)
 
 
@@ -854,11 +862,13 @@ class DataTracker:
             until   : str = "2038-01-19T03:14:07",
             doctype : Optional[DocumentType] = None,
             group   : Optional[Group]        = None) -> Iterator[Document]:
-        url = "/api/v1/doc/document/?time__gt=" + since + "&time__lt=" + until
+        url = DocumentURI("/api/v1/doc/document/")
+        url.params["time__gt"] = since
+        url.params["time__lt"] = until
         if doctype is not None:
-            url = url + "&type=" + doctype.slug
+            url.params["type"] = doctype.slug
         if group is not None:
-            url = url + "&group=" + str(group.id)
+            url.params["group"] = group.id
         return self._retrieve_multi(url, Document)
 
 
@@ -875,7 +885,8 @@ class DataTracker:
         Returns:
             A list of DocumentAlias objects
         """
-        url = "/api/v1/doc/docalias/?name=" + alias
+        url = DocumentAliasURI("/api/v1/doc/docalias/")
+        url.params["name"] = alias
         return self._retrieve_multi(url, DocumentAlias)
 
 
@@ -973,9 +984,8 @@ class DataTracker:
         Returns:
             A sequence of Document objects, as returned by document_state()
         """
-        url   = "/api/v1/doc/state/"
-        if statetype is not None:
-            url = url + "?type=" + statetype
+        url   = DocumentStateURI("/api/v1/doc/state/")
+        url.params["type"] = statetype
         return self._retrieve_multi(url, DocumentState)
 
 
@@ -989,7 +999,7 @@ class DataTracker:
         Returns:
            A sequence of StateType objects
         """
-        return self._retrieve_multi("/api/v1/doc/statetype/", DocumentStateType)
+        return self._retrieve_multi(DocumentStateTypeURI("/api/v1/doc/statetype/"), DocumentStateType)
 
 
     # Datatracker API endpoints returning information about document events:
@@ -1023,15 +1033,14 @@ class DataTracker:
         Returns:
            A sequence of DocumentEvent objects
         """
-        url = "/api/v1/doc/docevent/?time__gt=" + since + "&time__lt=" + until
+        url = DocumentEventURI("/api/v1/doc/docevent/")
+        url.params["time__gt"] = since
+        url.params["time__lt"] = until
+        url.params["desc"]     = desc
+        url.params["rev"]      = rev
+        url.params["type"]     = event_type
         if by is not None:
-            url +=  "&by=" + str(by)
-        if desc is not None:
-            url += "&desc=" + str(desc)
-        if rev is not None:
-            url += "&rev=" + str(rev)
-        if event_type is not None:
-            url += "&type=" + str(event_type)
+            url.params["by"] = by
         return self._retrieve_multi(url, DocumentEvent)
 
 
@@ -1040,17 +1049,20 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/doc/documentauthor/?email=...        - documents by person
 
     def document_authors(self, document : Document) -> Iterator[DocumentAuthor]:
-        url = "/api/v1/doc/documentauthor/?document=" + str(document.id)
+        url = DocumentAuthorURI("/api/v1/doc/documentauthor/")
+        url.params["document"] = document.id
         return self._retrieve_multi(url, DocumentAuthor)
 
 
     def documents_authored_by_person(self, person : Person) -> Iterator[DocumentAuthor]:
-        url = "/api/v1/doc/documentauthor/?person=" + str(person.id)
+        url = DocumentAuthorURI("/api/v1/doc/documentauthor/")
+        url.params["person"] = person.id
         return self._retrieve_multi(url, DocumentAuthor)
 
 
     def documents_authored_by_email(self, email : Email) -> Iterator[DocumentAuthor]:
-        url = "/api/v1/doc/documentauthor/?email=" + email.address
+        url = DocumentAuthorURI("/api/v1/doc/documentauthor/")
+        url.params["email"] = email.address
         return self._retrieve_multi(url, DocumentAuthor)
 
 
@@ -1104,13 +1116,14 @@ class DataTracker:
         Returns:
            A sequence of SubmissionEvent objects
         """
-        url = "/api/v1/submit/submissionevent/?time__gt=" + since + "&time__lt=" + until
+        url = SubmissionEventURI("/api/v1/submit/submissionevent/")
+        url.params["time__gt"] = since
+        url.params["time__lt"] = until
+        url.params["desc"]     = desc
         if by is not None:
-            url +=  "&by=" + str(by)
+            url.params["by"] = by
         if submission is not None:
-            url += "&submission=" + str(submission)
-        if desc is not None:
-            url += "&desc=" + str(desc)
+            url.params["submission"] = submission
         return self._retrieve_multi(url, SubmissionEvent)
 
 
@@ -1168,7 +1181,7 @@ class DataTracker:
 
 
     def document_types(self) -> Iterator[DocumentType]:
-        return self._retrieve_multi("/api/v1/name/doctypename/", DocumentType)
+        return self._retrieve_multi(DocumentTypeURI("/api/v1/name/doctypename/"), DocumentType)
 
 
     def stream(self, stream_uri: StreamURI) -> Optional[Stream]:
@@ -1176,7 +1189,7 @@ class DataTracker:
 
 
     def streams(self) -> Iterator[Stream]:
-        return self._retrieve_multi("/api/v1/name/streamname/", Stream)
+        return self._retrieve_multi(StreamURI("/api/v1/name/streamname/"), Stream)
 
 
     # Datatracker API endpoints returning information about working groups:
@@ -1202,7 +1215,8 @@ class DataTracker:
 
 
     def group_from_acronym(self, acronym: str) -> Optional[Group]:
-        url    = "/api/v1/group/group/?acronym=" + acronym
+        url = GroupURI("/api/v1/group/group/")
+        url.params["acronym"] = acronym
         groups = list(self._retrieve_multi(url, Group))
         if len(groups) == 0:
             return None
@@ -1218,13 +1232,14 @@ class DataTracker:
             name_contains : Optional[str]        = None,
             state         : Optional[GroupState] = None,
             parent        : Optional[Group]      = None) -> Iterator[Group]:
-        url = "/api/v1/group/group/?time__gt=" + since + "&time__lt=" + until
-        if name_contains is not None:
-            url = url + "&name__contains=" + name_contains
+        url = GroupURI("/api/v1/group/group/")
+        url.params["time__gt"]       = since
+        url.params["time__lt"]       = until
+        url.params["name__contains"] = name_contains
         if state is not None:
-            url = url + "&state=" + state.slug
+            url.params["state"] = state.slug
         if parent is not None:
-            url = url + "&parent=" + str(parent.id)
+            url.params["parent"] = parent.id
         return self._retrieve_multi(url, Group)
 
     # * https://datatracker.ietf.org/api/v1/name/groupstatename/
@@ -1247,7 +1262,7 @@ class DataTracker:
 
 
     def group_states(self) -> Iterator[GroupState]:
-        url = "/api/v1/name/groupstatename/"
+        url = GroupStateURI("/api/v1/name/groupstatename/")
         return self._retrieve_multi(url, GroupState)
 
 
@@ -1277,7 +1292,8 @@ class DataTracker:
         The assignment of sessions to timeslots in a particular version of the
         meeting schedule.
         """
-        url = "/api/v1/meeting/schedtimesessassignment/?schedule=" + str(schedule.id)
+        url = AssignmentURI("/api/v1/meeting/schedtimesessassignment/")
+        url.params["schedule"] = schedule.id
         return self._retrieve_multi(url, Assignment)
 
 
@@ -1305,10 +1321,11 @@ class DataTracker:
         """
         Return information about meetings taking place within a particular date range.
         """
-        url = "/api/v1/meeting/meeting/"
-        url = url + "?date__gte=" + start_date + "&date__lte=" + end_date
+        url = MeetingURI("/api/v1/meeting/meeting/")
+        url.params["date__gte"] = start_date
+        url.params["date__lte"] = end_date
         if meeting_type is not None:
-            url = url + "&type=" + meeting_type.slug
+            url.params["type"] = meeting_type.slug
         return self._retrieve_multi(url, Meeting)
 
 
@@ -1339,7 +1356,7 @@ class DataTracker:
         Returns:
             An iterator of MeetingType objects
         """
-        return self._retrieve_multi("/api/v1/name/meetingtypename/", MeetingType)
+        return self._retrieve_multi(MeetingTypeURI("/api/v1/name/meetingtypename/"), MeetingType)
 
 # =================================================================================================================================
 #   https://datatracker.ietf.org/api/v1/doc/relateddocument/?source=...      - documents that source draft relates to (references, replaces, etc)
@@ -1350,21 +1367,13 @@ class DataTracker:
         target               : Optional[DocumentAlias]    = None, 
         relationship_type    : Optional[RelationshipType] = None) -> Iterator[RelatedDocument]:
 
-        url = "/api/v1/doc/relateddocument/"
-        if source is not None and target is not None and relationship_type is not None:
-            url = url + "?source=" + str(source.id) + "&target=" + str(target.id) + "&relationship=" + relationship_type.slug
-        elif source is not None and target is not None:
-            url = url + "?source=" + str(source.id) + "&target=" + str(target.id)
-        elif source is not None and relationship_type is not None:
-            url = url + "?source=" + str(source.id) + "&relationship=" + relationship_type.slug
-        elif target is not None and relationship_type is not None:
-            url = url + "?target=" + str(target.id) + "&relationship=" + relationship_type.slug
-        elif target is not None:
-            url = url + "?target=" + str(target.id)
-        elif source is not None:
-            url = url + "?source=" + str(source.id)
-        elif relationship_type is not None:
-            url = url + "?relationship=" + relationship_type.slug
+        url = RelatedDocumentURI("/api/v1/doc/relateddocument/")
+        if source is not None:
+            url.params["source"] = source.id
+        if target is not None:
+            url.params["target"] = target.id
+        if relationship_type is not None:
+            url.params["relationship"] = relationship_type.slug
         return self._retrieve_multi(url, RelatedDocument)
     
     
@@ -1390,11 +1399,11 @@ class DataTracker:
         Parameters:
            None
 
-        Returns:
+        Returns:emails
             An iterator of RelationshipType objects
         """
 
-        url = "/api/v1/name/docrelationshipname/"
+        url = RelationshipTypeURI("/api/v1/name/docrelationshipname/")
         return self._retrieve_multi(url, RelationshipType)
 
 # =================================================================================================================================
