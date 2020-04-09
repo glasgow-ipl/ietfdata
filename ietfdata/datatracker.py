@@ -720,7 +720,7 @@ class DataTracker:
         if r.status_code == 200:
             return self.pavlova.from_mapping(r.json(), obj_type)
         else:
-            print("_retrieve failed: {}".format(r.status_code))
+            print("_retrieve failed: {} {}".format(r.status_code, self.base_url + resource_uri.uri))
             return None
 
 
