@@ -343,12 +343,15 @@ class Document:
         assert self.std_level          is None or self.std_level.startswith("/api/v1/name/stdlevelname/")
 
     def url(self) -> str:
+        # See https://trac.tools.ietf.org/tools/ietfdb/browser/trunk/ietf/settings.py and search for DOC_HREFS
         if self.type == DocumentTypeURI("/api/v1/name/doctypename/agenda/"):
+            # FIXME: should be "/meeting/{meeting.number}/materials/{doc.name}-{doc.rev}" ???
             # FIXME: This doesn't work for interim meetings
             # FIXME: This doesn't work for PDF agenda files
             mtg = self.name.split("-")[1]
             url = "https://datatracker.ietf.org/meeting/" + mtg + "/materials/" + self.uploaded_filename
         elif self.type == DocumentTypeURI("/api/v1/name/doctypename/bluesheets/"):
+            # FIXME: should be "https://www.ietf.org/proceedings/{meeting.number}/bluesheets/{doc.uploaded_filename}" ???
             mtg = self.name.split("-")[1]
             url = "https://www.ietf.org/proceedings/" + mtg + "/bluesheets/" + self.uploaded_filename
         elif self.type == DocumentTypeURI("/api/v1/name/doctypename/charter/"):
@@ -362,6 +365,7 @@ class Document:
         elif self.type == DocumentTypeURI("/api/v1/name/doctypename/liai-att/"):
             url = "https://www.ietf.org/lib/dt/documents/LIAISON/" + self.uploaded_filename
         elif self.type == DocumentTypeURI("/api/v1/name/doctypename/minutes/"):
+            # FIXME: should be "/meeting/{meeting.number}/materials/{doc.name}-{doc.rev}" ???
             mtg = self.name.split("-")[1]
             url = "https://datatracker.ietf.org/meeting/" + mtg + "/materials/" + self.uploaded_filename
         elif self.type == DocumentTypeURI("/api/v1/name/doctypename/recording/"):
@@ -372,6 +376,7 @@ class Document:
         elif self.type == DocumentTypeURI("/api/v1/name/doctypename/shepwrit/"):
             url = self.external_url
         elif self.type == DocumentTypeURI("/api/v1/name/doctypename/slides/"):
+            # FIXME: should be https://www.ietf.org/slides/{doc.name}-{doc.rev} ???
             mtg = self.name.split("-")[1]
             url = "https://www.ietf.org/proceedings/" + mtg + "/slides/" + self.uploaded_filename
         elif self.type == DocumentTypeURI("/api/v1/name/doctypename/statchg/"):
