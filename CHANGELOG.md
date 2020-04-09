@@ -19,6 +19,7 @@ Change Log -- ietfdata
  - Add `submission_events()` method and associated types
  - Add `document_authors()`, `documents_authored_by_persion()`, and
    `documents_authored_by_email()` methods and associated types
+ - Rename `Document.document_url()` to `Document.url()`
 
 
 ## v0.1.5 -- 2019-12-24

@@ -349,7 +349,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.note,               "")
             self.assertEqual(d.external_url,       "")
 
-            url = d.document_url()
+            url = d.url()
             self.assertEqual(url, "https://datatracker.ietf.org/meeting/90/materials/agenda-90-precis.txt")
             self.assertEqual(self.dt.session.get(url).status_code, 200)
         else:
@@ -387,7 +387,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.std_level,          None)
             self.assertEqual(d.states,             [DocumentStateURI("/api/v1/doc/state/139/")])
 
-            url = d.document_url()
+            url = d.url()
             self.assertEqual(url, "https://www.ietf.org/proceedings/95/bluesheets/bluesheets-95-xrblock-01.pdf")
             self.assertEqual(self.dt.session.get(url).status_code, 200)
         else:
@@ -425,7 +425,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.std_level,          None)
             self.assertEqual(d.states,             [DocumentStateURI("/api/v1/doc/state/88/")])
 
-            url = d.document_url()
+            url = d.url()
             self.assertEqual(url, "https://www.ietf.org/charter/charter-ietf-vgmib-01.txt")
             self.assertEqual(self.dt.session.get(url).status_code, 200)
         else:
@@ -463,7 +463,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.std_level,          None)
             self.assertEqual(d.states,             [DocumentStateURI("/api/v1/doc/state/97/")])
 
-            url = d.document_url()
+            url = d.url()
             self.assertEqual(url, "https://www.ietf.org/cr/conflict-review-kiyomoto-kcipher2-00.txt")
             self.assertEqual(self.dt.session.get(url).status_code, 200)
         else:
@@ -501,7 +501,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.std_level,          "/api/v1/name/stdlevelname/std/")
             self.assertEqual(d.states,             [DocumentStateURI("/api/v1/doc/state/3/"), DocumentStateURI("/api/v1/doc/state/7/")])
 
-            url = d.document_url()
+            url = d.url()
             self.assertEqual(url, "https://www.ietf.org/archive/id/draft-ietf-avt-rtp-new-12.txt")
             self.assertEqual(self.dt.session.get(url).status_code, 200)
         else:
@@ -539,7 +539,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.std_level,          None)
             self.assertEqual(d.states,             [])
 
-            url = d.document_url()
+            url = d.url()
             self.assertEqual(url, "https://www.ietf.org/lib/dt/documents/LIAISON/liaison-2012-05-31-3gpp-mmusic-on-rtcp-bandwidth-negotiation-attachment-1.doc")
             self.assertEqual(self.dt.session.get(url).status_code, 200)
         else:
@@ -577,7 +577,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.std_level,          None)
             self.assertEqual(d.states,             [])
 
-            url = d.document_url()
+            url = d.url()
             self.assertEqual(url, "https://www.ietf.org/lib/dt/documents/LIAISON/file39.pdf")
             self.assertEqual(self.dt.session.get(url).status_code, 200)
         else:
@@ -615,7 +615,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.std_level,          None)
             self.assertEqual(d.states,             [DocumentStateURI("/api/v1/doc/state/79/")])
 
-            url = d.document_url()
+            url = d.url()
             self.assertEqual(url, "https://datatracker.ietf.org/meeting/89/materials/minutes-89-cfrg.txt")
             self.assertEqual(self.dt.session.get(url).status_code, 200)
         else:
@@ -653,7 +653,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.std_level,          None)
             self.assertEqual(d.states,             [DocumentStateURI("/api/v1/doc/state/135/")])
 
-            url = d.document_url()
+            url = d.url()
             self.assertEqual(url, "https://www.ietf.org/audio/ietf94/ietf94-room304-20151103-1520.mp3")
             # Downloading the MP3 is expensive, so check a HEAD request instead:
             self.assertEqual(self.dt.session.head(url).status_code, 200)
@@ -692,7 +692,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.std_level,          None)
             self.assertEqual(d.states,             [DocumentStateURI("/api/v1/doc/state/143/")])
 
-            url = d.document_url()
+            url = d.url()
             self.assertEqual(url, "https://datatracker.ietf.org/doc/review-bchv-rfc6890bis-04-genart-lc-kyzivat-2017-02-28")
             self.assertEqual(self.dt.session.get(url).status_code, 200)
         else:
@@ -735,7 +735,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.std_level,          None)
             self.assertEqual(d.states,             [DocumentStateURI("/api/v1/doc/state/141/"), DocumentStateURI("/api/v1/doc/state/138/")])
 
-            url = d.document_url()
+            url = d.url()
             self.assertEqual(url, "https://www.ietf.org/proceedings/65/slides/l2vpn-4.pdf")
             self.assertEqual(self.dt.session.get(url).status_code, 200)
         else:
@@ -773,7 +773,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.std_level,          None)
             self.assertEqual(d.states,             [DocumentStateURI("/api/v1/doc/state/127/")])
 
-            url = d.document_url()
+            url = d.url()
             self.assertEqual(url, "https://www.ietf.org/sc/status-change-rfc3044-rfc3187-orig-urn-regs-to-historic-00.txt")
             self.assertEqual(self.dt.session.get(url).status_code, 200)
         else:

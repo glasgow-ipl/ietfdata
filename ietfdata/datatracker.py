@@ -335,7 +335,7 @@ class Document:
         assert self.intended_std_level is None or self.intended_std_level.startswith("/api/v1/name/intendedstdlevelname/")
         assert self.std_level          is None or self.std_level.startswith("/api/v1/name/stdlevelname/")
 
-    def document_url(self) -> str:
+    def url(self) -> str:
         if self.type == DocumentTypeURI("/api/v1/name/doctypename/agenda/"):
             # FIXME: This doesn't work for interim meetings
             # FIXME: This doesn't work for PDF agenda files
