@@ -1084,20 +1084,62 @@ class TestDatatracker(unittest.TestCase):
         else:
             self.fail("Cannot find group")
 
-    # FIXME: this needs to be updated
+
     def test_group_from_acronym(self) -> None:
         group = self.dt.group_from_acronym("avt")
         if group is not None:
             self.assertEqual(group.id, 941)
         else:
             self.fail("Cannot find group")
+            
 
-    # FIXME: this needs to be updated
+    def test_group_from_acronym_invalid(self) -> None:
+        group = self.dt.group_from_acronym("invalid")
+        self.assertIsNone(group)
+
+
     def test_groups(self) -> None:
-        # FIXME: split into two tests? _timerange, and _namecontains -- testing without parameters not practical
-        groups = list(self.dt.groups(since="2019-01-01T00:00:00", until="2019-01-31T23:59:59"))
-        self.assertEqual(len(groups),  1)
-        self.assertEqual(groups[0].id, 2220)
+        groups = self.dt.groups()
+        self.assertIsNot(groups, None)
+        
+
+    def test_groups_namecontains(self) -> None:
+        groups = list(self.dt.groups(name_contains="IRTF"))
+        self.assertEqual(len(groups), 2)
+        self.assertEqual(groups[0].id, 3)
+        self.assertEqual(groups[1].id, 1853)
+
+        
+    def test_groups_state(self) -> None:
+        groups = list(self.dt.groups(state=self.dt.group_state("abandon")))
+        self.assertEqual(len(groups), 6)
+        self.assertEqual(groups[0].id, 1949)
+        self.assertEqual(groups[1].id, 2009)
+        self.assertEqual(groups[2].id, 2018)
+        self.assertEqual(groups[3].id, 2155)
+        self.assertEqual(groups[4].id, 2190)
+        self.assertEqual(groups[5].id, 2200)
+
+
+    def test_groups_parent(self) -> None:
+        groups = list(self.dt.groups(parent=self.dt.group(GroupURI("/api/v1/group/group/1/"))))
+        self.assertEqual(len(groups), 2)
+        self.assertEqual(groups[0].id, 2)
+        self.assertEqual(groups[1].id, 2225)
+
+
+    def test_group_state(self) -> None:
+        state = self.dt.group_state("abandon")
+        if state is not None:
+            self.assertEqual(state.desc,         "Formation of the group (most likely a BoF or Proposed WG) was abandoned")
+            self.assertEqual(state.name,         "Abandoned")
+            self.assertEqual(state.order,        0)
+            self.assertEqual(state.resource_uri, GroupStateURI("/api/v1/name/groupstatename/abandon/"))
+            self.assertEqual(state.slug,         "abandon")
+            self.assertEqual(state.used,         True)
+        else:
+            self.fail("Cannot find group state")
+
 
     # FIXME: this needs to be updated
     def test_group_states(self) -> None:
@@ -1112,6 +1154,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(states[6].slug, "proposed")
         self.assertEqual(states[7].slug, "replaced")
         self.assertEqual(states[8].slug, "unknown")
+
 
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to meetings:

@@ -473,7 +473,7 @@ class Group:
     list_email     : str
     list_subscribe : str
     name           : str
-    parent         : GroupURI
+    parent         : Optional[GroupURI]
     resource_uri   : GroupURI
     state          : str    # FIXME: this should be a URI subtype
     time           : str
