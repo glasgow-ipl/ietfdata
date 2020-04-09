@@ -285,9 +285,9 @@ class Submission:
     """
     URLs from which this submission can be downloaded.
     """
-    def urls(self) -> Iterator[str]:
+    def urls(self) -> Iterator[Tuple[str, str]]:
         for file_type in self.file_types.split(","):
-            yield "https://www.ietf.org/archive/id/"  + self.name + "-" + self.rev + file_type
+            yield (file_type, "https://www.ietf.org/archive/id/"  + self.name + "-" + self.rev + file_type)
 
 
 @dataclass(frozen=True)
