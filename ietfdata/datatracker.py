@@ -265,7 +265,7 @@ class Submission:
     document_date   : str   # FIXME: this should be a date object
     draft           : DocumentURI
     file_size       : Optional[int]
-    file_types      : str
+    file_types      : str   # e.g., ".txt,.xml"
     first_two_pages : str
     group           : Optional[GroupURI]
     id              : int
@@ -281,6 +281,13 @@ class Submission:
     submitter       : str
     title           : str
     words           : Optional[int]
+
+    """
+    URLs from which this submission can be downloaded.
+    """
+    def urls(self) -> Iterator[str]:
+        for file_type in self.file_types.split(","):
+            yield "https://www.ietf.org/archive/id/"  + self.name + "-" + self.rev + file_type
 
 
 @dataclass(frozen=True)
