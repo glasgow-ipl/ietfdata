@@ -1076,7 +1076,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(group.name,           "Audio/Video Transport")
             self.assertEqual(group.parent,         GroupURI("/api/v1/group/group/1683/"))
             self.assertEqual(group.resource_uri,   GroupURI("/api/v1/group/group/941/"))
-            self.assertEqual(group.state,          "/api/v1/name/groupstatename/conclude/")
+            self.assertEqual(group.state,          GroupStateURI("/api/v1/name/groupstatename/conclude/"))
             self.assertEqual(group.time,           "2011-12-09T12:00:00")
             self.assertEqual(group.type,           "/api/v1/name/grouptypename/wg/")
             self.assertEqual(group.unused_states,  [])

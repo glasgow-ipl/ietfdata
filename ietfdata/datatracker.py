@@ -458,6 +458,22 @@ class DocumentAuthor:
 # Types relating to groups:
 
 
+@dataclass(frozen=True)
+class GroupStateURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/name/groupstatename/")
+
+
+@dataclass(frozen=True)
+class GroupState:
+    resource_uri   : GroupStateURI
+    slug           : str
+    desc           : str
+    name           : str
+    used           : bool
+    order          : int
+
+
 # GroupURI is defined earlier, to avoid circular dependencies
 
 
@@ -475,27 +491,11 @@ class Group:
     name           : str
     parent         : Optional[GroupURI]
     resource_uri   : GroupURI
-    state          : str    # FIXME: this should be a URI subtype
+    state          : GroupStateURI
     time           : str
     type           : str    # FIXME: this should be a URI subtype
     unused_states  : List[str]
     unused_tags    : List[str]
-
-
-@dataclass(frozen=True)
-class GroupStateURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/groupstatename/")
-
-
-@dataclass(frozen=True)
-class GroupState:
-    resource_uri   : GroupStateURI
-    slug           : str
-    desc           : str
-    name           : str
-    used           : bool
-    order          : int
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------
