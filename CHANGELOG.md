@@ -15,7 +15,7 @@ Change Log -- ietfdata
  - Add `Datatracker::meeting_schedule()` method 
  - Add `Datatracker::Schedule` type
  - Add `Datatracker::Timeslot` type
- - Add `Datatracker::Assignment` type
+ - Add `Datatracker::SessionAssignment` type
  - Add `submission_events()` method and associated types
  - Add `document_authors()`, `documents_authored_by_persion()`, and
    `documents_authored_by_email()` methods and associated types

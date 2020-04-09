@@ -626,18 +626,18 @@ class Timeslot:
 
 
 @dataclass(frozen=True)
-class AssignmentURI(URI):
+class SessionAssignmentURI(URI):
     def __post_init__(self) -> None:
         assert self.uri.startswith("/api/v1/meeting/schedtimesessassignment/")
 
 
 @dataclass(frozen=True)
-class Assignment:
+class SessionAssignment:
     """
     The assignment of a `session` to a `timeslot` within a meeting `schedule`
     """
     id           : int
-    resource_uri : AssignmentURI
+    resource_uri : SessionAssignmentURI
     session      : SessionURI
     agenda       : ScheduleURI  # An alias for `schedule`
     schedule     : ScheduleURI
@@ -662,7 +662,7 @@ class Session:
     requested_duration  : str
     resources           : List[str]    # FIXME
     agenda_note         : str
-    assignments         : List[AssignmentURI]
+    assignments         : List[SessionAssignmentURI]
     remote_instructions : str
     short               : str
     attendees           : int
@@ -683,7 +683,6 @@ class DataTracker:
         self.base_url = "https://datatracker.ietf.org"
         self.pavlova = Pavlova()
         # Please sort the following alphabetically:
-        self.pavlova.register_parser(AssignmentURI,        GenericParser(self.pavlova, AssignmentURI))
         self.pavlova.register_parser(DocumentAliasURI,     GenericParser(self.pavlova, DocumentAliasURI))
         self.pavlova.register_parser(DocumentAuthorURI,    GenericParser(self.pavlova, DocumentAuthorURI))
         self.pavlova.register_parser(DocumentEventURI,     GenericParser(self.pavlova, DocumentEventURI))
@@ -701,6 +700,7 @@ class DataTracker:
         self.pavlova.register_parser(PersonURI,            GenericParser(self.pavlova, PersonURI))
         self.pavlova.register_parser(RelationshipTypeURI,  GenericParser(self.pavlova, RelationshipTypeURI))
         self.pavlova.register_parser(RelatedDocumentURI,   GenericParser(self.pavlova, RelatedDocumentURI))
+        self.pavlova.register_parser(SessionAssignmentURI, GenericParser(self.pavlova, SessionAssignmentURI))
         self.pavlova.register_parser(SessionURI,           GenericParser(self.pavlova, SessionURI))
         self.pavlova.register_parser(ScheduleURI,          GenericParser(self.pavlova, ScheduleURI))
         self.pavlova.register_parser(StreamURI,            GenericParser(self.pavlova, StreamURI))
@@ -1283,18 +1283,18 @@ class DataTracker:
     #   https://datatracker.ietf.org/meeting/107/agenda.json
     #   https://datatracker.ietf.org/meeting/interim-2020-hrpc-01/agenda.json
 
-    def meeting_session_assignment(self, assignment_uri : AssignmentURI) -> Optional[Assignment]:
-        return self._retrieve(assignment_uri, Assignment)
+    def meeting_session_assignment(self, assignment_uri : SessionAssignmentURI) -> Optional[SessionAssignment]:
+        return self._retrieve(assignment_uri, SessionAssignment)
 
 
-    def meeting_session_assignments(self, schedule : Schedule) -> Iterator[Assignment]:
+    def meeting_session_assignments(self, schedule : Schedule) -> Iterator[SessionAssignment]:
         """
         The assignment of sessions to timeslots in a particular version of the
         meeting schedule.
         """
-        url = AssignmentURI("/api/v1/meeting/schedtimesessassignment/")
+        url = SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/")
         url.params["schedule"] = schedule.id
-        return self._retrieve_multi(url, Assignment)
+        return self._retrieve_multi(url, SessionAssignment)
 
 
     def meeting_schedule(self, schedule_uri : ScheduleURI) -> Optional[Schedule]:

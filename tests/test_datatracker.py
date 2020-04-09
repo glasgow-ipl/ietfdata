@@ -1175,7 +1175,7 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_meeting_session_assignment(self) -> None:
-        assignment = self.dt.meeting_session_assignment(AssignmentURI("/api/v1/meeting/schedtimesessassignment/61212/"))
+        assignment = self.dt.meeting_session_assignment(SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/61212/"))
         if assignment is not None:
             self.assertEqual(assignment.id,           61212)
             self.assertEqual(assignment.modified,     "2017-10-17T12:14:33")
@@ -1185,7 +1185,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(assignment.agenda,       ScheduleURI("/api/v1/meeting/schedule/787/"))
             self.assertEqual(assignment.schedule,     ScheduleURI("/api/v1/meeting/schedule/787/"))
             self.assertEqual(assignment.pinned,       False)
-            self.assertEqual(assignment.resource_uri, AssignmentURI("/api/v1/meeting/schedtimesessassignment/61212/"))
+            self.assertEqual(assignment.resource_uri, SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/61212/"))
             self.assertEqual(assignment.badness,      0)
             self.assertEqual(assignment.notes, "")
         else:
