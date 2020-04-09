@@ -100,7 +100,7 @@ class Person:
     ascii           : str
     ascii_short     : Optional[str]
     user            : str
-    time            : str
+    time            : datetime
     photo           : str
     photo_thumb     : str
     biography       : str
@@ -113,7 +113,7 @@ class HistoricalPerson(Person):
     history_user          : Optional[str]
     history_id            : int
     history_type          : str
-    history_date          : str
+    history_date          : datetime
 
 
 @dataclass(frozen=True)
@@ -142,7 +142,7 @@ class PersonEvent:
     id              : int
     person          : PersonURI
     resource_uri    : PersonEventURI
-    time            : str
+    time            : datetime
     type            : str
 
 
@@ -160,7 +160,7 @@ class Email:
     resource_uri : EmailURI
     person       : PersonURI
     address      : str # The email address
-    time         : str
+    time         : datetime
     origin       : str
     primary      : bool
     active       : bool
@@ -172,7 +172,7 @@ class HistoricalEmail(Email):
     history_user          : Optional[str]
     history_id            : int
     history_type          : str
-    history_date          : str
+    history_date          : datetime
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------
@@ -262,7 +262,7 @@ class Submission:
     auth_key        : str
     authors         : str
     checks          : List[SubmissionCheckURI]
-    document_date   : str
+    document_date   : str   # FIXME: this should be a date object
     draft           : DocumentURI
     file_size       : Optional[int]
     file_types      : str
@@ -277,7 +277,7 @@ class Submission:
     resource_uri    : SubmissionURI
     rev             : str
     state           : str   # FIXME: this should be a URI subtype
-    submission_date : str
+    submission_date : str   # FIXME: this should be a date object
     submitter       : str
     title           : str
     words           : Optional[int]
@@ -296,7 +296,7 @@ class SubmissionEvent:
     id              : int
     resource_uri    : SubmissionEventURI
     submission      : SubmissionURI
-    time            : str
+    time            : datetime
 
 
 # DocumentURI is defined earlier, to avoid circular dependencies
@@ -309,7 +309,7 @@ class Document:
     title              : str
     pages              : Optional[int]
     words              : Optional[int]
-    time               : str
+    time               : datetime
     notify             : str
     expires            : Optional[str]
     type               : DocumentTypeURI
@@ -402,7 +402,7 @@ class DocumentEvent:
     id              : int
     resource_uri    : DocumentEventURI
     rev             : str
-    time            : str
+    time            : datetime
     type            : str
 
 
@@ -492,7 +492,7 @@ class Group:
     parent         : Optional[GroupURI]
     resource_uri   : GroupURI
     state          : GroupStateURI
-    time           : str
+    time           : datetime
     type           : str    # FIXME: this should be a URI subtype
     unused_states  : List[str]
     unused_tags    : List[str]
@@ -562,8 +562,8 @@ class Meeting:
     city                             : str
     venue_name                       : str
     venue_addr                       : str
-    date                             : str  # Start date of the meeting
-    days                             : int  # Duration of the meeting
+    date                             : str  # FIXME: this should be a date object
+    days                             : int  # FIXME: this should be a timedelta object
     time_zone                        : str
     acknowledgements                 : str
     agenda_info_note                 : str
@@ -584,7 +584,7 @@ class Meeting:
     proceedings_final                : bool
     show_important_dates             : bool
     attendees                        : Optional[int]
-    updated                          : str  # Time this record was modified
+    updated                          : datetime     # Time this record was modified
 
     def status(self) -> MeetingStatus:
         now = datetime.now()
@@ -618,11 +618,11 @@ class Timeslot:
     meeting       : MeetingURI
     sessions      : List[SessionURI]  # Sessions assigned to this slot in various versions of the agenda; current assignment is last
     name          : str
-    time          : str
-    duration      : str
-    location      : str               # FIXME this is a URI "/api/v1/meeting/room/668
+    time          : datetime
+    duration      : str               # FIXME: this should be a timedelta object
+    location      : str               # FIXME: this is a URI "/api/v1/meeting/room/668
     show_location : bool
-    modified      : str
+    modified      : datetime
 
 
 @dataclass(frozen=True)
@@ -642,7 +642,7 @@ class SessionAssignment:
     agenda       : ScheduleURI  # An alias for `schedule`
     schedule     : ScheduleURI
     timeslot     : TimeslotURI
-    modified     : str
+    modified     : datetime
     notes        : str
     pinned       : bool
     extendedfrom : Optional[str]
@@ -666,7 +666,7 @@ class Session:
     remote_instructions : str
     short               : str
     attendees           : int
-    modified            : str
+    modified            : datetime
     comments            : str
 
 
