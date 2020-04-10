@@ -21,6 +21,7 @@ Change Log -- ietfdata
    `documents_authored_by_email()` methods and associated types
  - Rename `Document.document_url()` to `Document.url()`
  - Add `Submissions.urls()` method
+ - Add ballot types and methods
 
 
 ## v0.1.5 -- 2019-12-24
