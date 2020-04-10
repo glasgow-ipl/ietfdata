@@ -1200,12 +1200,18 @@ class DataTracker:
         """
         url = BallotTypeURI("/api/v1/doc/ballottype/")
         if doc_type is not None:
-            url.params["doc_type"] = self.document_type(doc_type).slug
+            document_type = self.document_type(doc_type)
+            if document_type is not None:
+                url.params["doc_type"] = document_type.slug
         url.params["id"] = id
         url.params["name"] = name
         url.params["order"] = order
         if positions is not None:
-            url.params["positions__in"] = [self.ballot_position_name(pos).slug for pos in positions]
+            url.params["positions__in"] = []
+            for pos in positions:
+                ballot_position_name = self.ballot_position_name(pos)
+                if ballot_position_name is not None:
+                    url.params["positions__in"].append(ballot_position_name.slug)
         url.params["question"] = question
         url.params["slug"] = slug
         url.params["used"] = used
@@ -1251,14 +1257,22 @@ class DataTracker:
         url.params["time__gt"] = since
         url.params["time__lt"] = until
         if ballot_type is not None:
-            url.params["ballot_type"] = self.ballot_type(ballot_type).id
+            ballot_type_obj = self.ballot_type(ballot_type)
+            if ballot_type_obj is not None:
+                url.params["ballot_type"] = ballot_type_obj.id
         if by is not None:
-            url.params["by"] = self.person(by).id
+            person = self.person(by)
+            if person is not None:
+                url.params["by"] = person.id
         url.params["desc"] = desc
         if doc is not None:
-            url.params["doc"] = self.document(doc).id
+            document = self.document(doc)
+            if document is not None:
+                url.params["doc"] = document.id
         if docevent_ptr is not None:
-            url.params["docevent_ptr"] = self.document_event(docevent_ptr).id
+            document_event = self.document_event(docevent_ptr)
+            if document_event is not None:
+                url.params["docevent_ptr"] = document_event.id
         url.params["id"] = id
         url.params["rev"] = rev
         url.params["type"] = event_type
