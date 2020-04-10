@@ -419,6 +419,62 @@ class DocumentEvent:
 
 
 @dataclass(frozen=True)
+class BallotPositionNameURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/name/ballotpositionname/")
+
+
+@dataclass(frozen=True)
+class BallotPositionName:
+    blocking     : bool
+    desc         : Optional[str]
+    name         : str
+    order        : int
+    resource_uri : BallotPositionNameURI
+    slug         : str 
+    used         : bool
+
+
+@dataclass(frozen=True)
+class BallotTypeURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/doc/ballottype/")
+
+
+@dataclass(frozen=True)
+class BallotType:
+    doc_type     : DocumentTypeURI
+    id           : int
+    name         : str
+    order        : int
+    positions    : List[BallotPositionNameURI]
+    question     : str
+    resource_uri : BallotTypeURI
+    slug         : str
+    used         : bool
+
+
+@dataclass(frozen=True)
+class BallotDocumentEventURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/doc/ballotdocevent/")
+
+
+@dataclass(frozen=True)
+class BallotDocumentEvent:
+    ballot_type     : BallotTypeURI
+    by              : PersonURI
+    desc            : str
+    doc             : DocumentURI
+    docevent_ptr    : DocumentEventURI
+    id              : int
+    resource_uri    : BallotDocumentEventURI
+    rev             : str
+    time            : datetime
+    type            : str
+
+
+@dataclass(frozen=True)
 class RelationshipTypeURI(URI):
     def __post_init__(self) -> None:
         assert self.uri.startswith("/api/v1/name/docrelationshipname/")
@@ -695,31 +751,34 @@ class DataTracker:
         self.base_url = "https://datatracker.ietf.org"
         self.pavlova = Pavlova()
         # Please sort the following alphabetically:
-        self.pavlova.register_parser(DocumentAliasURI,     GenericParser(self.pavlova, DocumentAliasURI))
-        self.pavlova.register_parser(DocumentAuthorURI,    GenericParser(self.pavlova, DocumentAuthorURI))
-        self.pavlova.register_parser(DocumentEventURI,     GenericParser(self.pavlova, DocumentEventURI))
-        self.pavlova.register_parser(DocumentStateURI,     GenericParser(self.pavlova, DocumentStateURI))
-        self.pavlova.register_parser(DocumentStateTypeURI, GenericParser(self.pavlova, DocumentStateTypeURI))
-        self.pavlova.register_parser(DocumentTypeURI,      GenericParser(self.pavlova, DocumentTypeURI))
-        self.pavlova.register_parser(DocumentURI,          GenericParser(self.pavlova, DocumentURI))
-        self.pavlova.register_parser(EmailURI,             GenericParser(self.pavlova, EmailURI))
-        self.pavlova.register_parser(GroupStateURI,        GenericParser(self.pavlova, GroupStateURI))
-        self.pavlova.register_parser(GroupURI,             GenericParser(self.pavlova, GroupURI))
-        self.pavlova.register_parser(MeetingTypeURI,       GenericParser(self.pavlova, MeetingTypeURI))
-        self.pavlova.register_parser(MeetingURI,           GenericParser(self.pavlova, MeetingURI))
-        self.pavlova.register_parser(PersonAliasURI,       GenericParser(self.pavlova, PersonAliasURI))
-        self.pavlova.register_parser(PersonEventURI,       GenericParser(self.pavlova, PersonEventURI))
-        self.pavlova.register_parser(PersonURI,            GenericParser(self.pavlova, PersonURI))
-        self.pavlova.register_parser(RelationshipTypeURI,  GenericParser(self.pavlova, RelationshipTypeURI))
-        self.pavlova.register_parser(RelatedDocumentURI,   GenericParser(self.pavlova, RelatedDocumentURI))
-        self.pavlova.register_parser(SessionAssignmentURI, GenericParser(self.pavlova, SessionAssignmentURI))
-        self.pavlova.register_parser(SessionURI,           GenericParser(self.pavlova, SessionURI))
-        self.pavlova.register_parser(ScheduleURI,          GenericParser(self.pavlova, ScheduleURI))
-        self.pavlova.register_parser(StreamURI,            GenericParser(self.pavlova, StreamURI))
-        self.pavlova.register_parser(SubmissionCheckURI,   GenericParser(self.pavlova, SubmissionCheckURI))
-        self.pavlova.register_parser(SubmissionEventURI,   GenericParser(self.pavlova, SubmissionEventURI))
-        self.pavlova.register_parser(SubmissionURI,        GenericParser(self.pavlova, SubmissionURI))
-        self.pavlova.register_parser(TimeslotURI,          GenericParser(self.pavlova, TimeslotURI))
+        self.pavlova.register_parser(BallotDocumentEventURI, GenericParser(self.pavlova, BallotDocumentEventURI))
+        self.pavlova.register_parser(BallotPositionNameURI,  GenericParser(self.pavlova, BallotPositionNameURI))
+        self.pavlova.register_parser(BallotTypeURI,          GenericParser(self.pavlova, BallotTypeURI))
+        self.pavlova.register_parser(DocumentAliasURI,       GenericParser(self.pavlova, DocumentAliasURI))
+        self.pavlova.register_parser(DocumentAuthorURI,      GenericParser(self.pavlova, DocumentAuthorURI))
+        self.pavlova.register_parser(DocumentEventURI,       GenericParser(self.pavlova, DocumentEventURI))
+        self.pavlova.register_parser(DocumentStateURI,       GenericParser(self.pavlova, DocumentStateURI))
+        self.pavlova.register_parser(DocumentStateTypeURI,   GenericParser(self.pavlova, DocumentStateTypeURI))
+        self.pavlova.register_parser(DocumentTypeURI,        GenericParser(self.pavlova, DocumentTypeURI))
+        self.pavlova.register_parser(DocumentURI,            GenericParser(self.pavlova, DocumentURI))
+        self.pavlova.register_parser(EmailURI,               GenericParser(self.pavlova, EmailURI))
+        self.pavlova.register_parser(GroupStateURI,          GenericParser(self.pavlova, GroupStateURI))
+        self.pavlova.register_parser(GroupURI,               GenericParser(self.pavlova, GroupURI))
+        self.pavlova.register_parser(MeetingTypeURI,         GenericParser(self.pavlova, MeetingTypeURI))
+        self.pavlova.register_parser(MeetingURI,             GenericParser(self.pavlova, MeetingURI))
+        self.pavlova.register_parser(PersonAliasURI,         GenericParser(self.pavlova, PersonAliasURI))
+        self.pavlova.register_parser(PersonEventURI,         GenericParser(self.pavlova, PersonEventURI))
+        self.pavlova.register_parser(PersonURI,              GenericParser(self.pavlova, PersonURI))
+        self.pavlova.register_parser(RelationshipTypeURI,    GenericParser(self.pavlova, RelationshipTypeURI))
+        self.pavlova.register_parser(RelatedDocumentURI,     GenericParser(self.pavlova, RelatedDocumentURI))
+        self.pavlova.register_parser(SessionAssignmentURI,   GenericParser(self.pavlova, SessionAssignmentURI))
+        self.pavlova.register_parser(SessionURI,             GenericParser(self.pavlova, SessionURI))
+        self.pavlova.register_parser(ScheduleURI,            GenericParser(self.pavlova, ScheduleURI))
+        self.pavlova.register_parser(StreamURI,              GenericParser(self.pavlova, StreamURI))
+        self.pavlova.register_parser(SubmissionCheckURI,     GenericParser(self.pavlova, SubmissionCheckURI))
+        self.pavlova.register_parser(SubmissionEventURI,     GenericParser(self.pavlova, SubmissionEventURI))
+        self.pavlova.register_parser(SubmissionURI,          GenericParser(self.pavlova, SubmissionURI))
+        self.pavlova.register_parser(TimeslotURI,            GenericParser(self.pavlova, TimeslotURI))
 
 
     def __del__(self):
@@ -1083,7 +1142,154 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/doc/docreminder/
     #   https://datatracker.ietf.org/api/v1/doc/documenturl/
     #   https://datatracker.ietf.org/api/v1/doc/statedocevent/                   - subset of /api/v1/doc/docevent/; same parameters
+ 
+    #   https://datatracker.ietf.org/api/v1/name/ballotpositionname/
+    
+    def ballot_position_name(self, ballot_position_name_uri : BallotPositionNameURI) -> Optional[BallotPositionName]:
+        return self._retrieve(ballot_position_name_uri, BallotPositionName)
+
+
+    def ballot_position_names(self,
+                              blocking : Optional[bool] = None,
+                              desc     : Optional[str]  = None,
+                              name     : Optional[str]  = None,
+                              order    : Optional[int]  = None,
+                              slug     : Optional[str]  = None,
+                              used     : Optional[bool] = None) -> Iterator[BallotPositionName]:
+        """
+        A generator returning information about ballot position names.
+
+        Parameters:
+            blocking     -- Only return ballot position names with this value of blocking
+            desc         -- Only return ballot position names with this desc
+            name         -- Only return ballot position names with this name
+            order        -- Only return ballot position names with this order
+            slug         -- Only return ballot position names with this slug
+            used         -- Only return ballot position names with this value of used
+
+        Returns:
+           A sequence of BallotPositionName objects
+        """
+        url = BallotPositionNameURI("/api/v1/name/ballotpositionname/")
+        url.params["blocking"] = blocking
+        url.params["desc"]     = desc
+        url.params["name"]     = name
+        url.params["order"]    = order
+        url.params["slug"]     = slug
+        url.params["used"]     = used
+        return self._retrieve_multi(url, BallotPositionName)
+
+    #   https://datatracker.ietf.org/api/v1/doc/ballottype/                      - Types of ballot that can be issued on a document
+ 
+    def ballot_type(self, ballot_type_uri : BallotTypeURI) -> Optional[BallotType]:
+        return self._retrieve(ballot_type_uri, BallotType)
+
+
+    def ballot_types(self,
+                     doc_type  : Optional[str]                         = None,
+                     id        : Optional[int]                         = None,
+                     name      : Optional[str]                         = None,
+                     order     : Optional[int]                         = None,
+                     positions : Optional[List[BallotPositionNameURI]] = None,
+                     question  : Optional[str]                         = None,
+                     slug      : Optional[str]                         = None,
+                     used      : Optional[bool]                        = None) -> Iterator[BallotType]:
+        """
+        A generator returning information about ballot types.
+
+        Parameters:
+            doc_type     -- Only return ballot types with this document type slug
+            id           -- Only return ballot types with this ID
+            name         -- Only return ballot types with this name
+            order        -- Only return ballot types with this order
+            positions    -- Only return ballot types with these positions
+            question     -- Only return ballot types with this question
+            slug         -- Only return ballot types with this slug
+            used         -- Only return ballot types with this value of used
+
+        Returns:
+           A sequence of BallotType objects
+        """
+        url = BallotTypeURI("/api/v1/doc/ballottype/")
+        if doc_type is not None:
+            document_type = self.document_type(doc_type)
+            if document_type is not None:
+                url.params["doc_type"] = document_type.slug
+        url.params["id"] = id
+        url.params["name"] = name
+        url.params["order"] = order
+        if positions is not None:
+            url.params["positions__in"] = []
+            for pos in positions:
+                ballot_position_name = self.ballot_position_name(pos)
+                if ballot_position_name is not None:
+                    url.params["positions__in"].append(ballot_position_name.slug)
+        url.params["question"] = question
+        url.params["slug"] = slug
+        url.params["used"] = used
+        return self._retrieve_multi(url, BallotType)
+
+
     #   https://datatracker.ietf.org/api/v1/doc/ballotdocevent/                  -               "                "
+    
+    def ballot_document_event(self, ballot_event_uri : BallotDocumentEventURI) -> Optional[BallotDocumentEvent]:
+        return self._retrieve(ballot_event_uri, BallotDocumentEvent)
+
+
+    def ballot_document_events(self,
+                        since        : str = "1970-01-01T00:00:00",
+                        until        : str = "2038-01-19T03:14:07",
+                        ballot_type  : Optional[BallotTypeURI]    = None,
+                        by           : Optional[PersonURI]        = None,
+                        desc         : Optional[str]              = None,
+                        doc          : Optional[DocumentURI]      = None,
+                        docevent_ptr : Optional[DocumentEventURI] = None,
+                        id           : Optional[int]              = None,
+                        rev          : Optional[int]              = None,
+                        event_type   : Optional[str]              = None) -> Iterator[BallotDocumentEvent]:
+        """
+        A generator returning information about ballot document events.
+
+        Parameters:
+            since        -- Only return ballot document events with timestamp after this
+            until        -- Only return ballot document events with timestamp after this
+            ballot_type  -- Only return ballot document events of this ballot type
+            by           -- Only return ballot document events by this person
+            desc         -- Only return ballot document events with this description
+            doc          -- Only return ballot document events that relate to this document
+            docevent_ptr -- Only return ballot document events that relate to this document event
+            id           -- Only return ballot document events with this ID
+            rev          -- Only return ballot document events with this revision number
+            event_type   -- Only return ballot document events with this type
+
+        Returns:
+           A sequence of BallotDocumentEvent objects
+        """
+        url = BallotDocumentEventURI("/api/v1/doc/ballotdocevent/")
+        url.params["time__gt"] = since
+        url.params["time__lt"] = until
+        if ballot_type is not None:
+            ballot_type_obj = self.ballot_type(ballot_type)
+            if ballot_type_obj is not None:
+                url.params["ballot_type"] = ballot_type_obj.id
+        if by is not None:
+            person = self.person(by)
+            if person is not None:
+                url.params["by"] = person.id
+        url.params["desc"] = desc
+        if doc is not None:
+            document = self.document(doc)
+            if document is not None:
+                url.params["doc"] = document.id
+        if docevent_ptr is not None:
+            document_event = self.document_event(docevent_ptr)
+            if document_event is not None:
+                url.params["docevent_ptr"] = document_event.id
+        url.params["id"] = id
+        url.params["rev"] = rev
+        url.params["type"] = event_type
+        return self._retrieve_multi(url, BallotDocumentEvent)
+    
     #   https://datatracker.ietf.org/api/v1/doc/newrevisiondocevent/             -               "                "
     #   https://datatracker.ietf.org/api/v1/doc/submissiondocevent/              -               "                "
     #   https://datatracker.ietf.org/api/v1/doc/writeupdocevent/                 -               "                "
@@ -1094,7 +1300,6 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/doc/telechatdocevent/                -               "                "
     #   https://datatracker.ietf.org/api/v1/doc/relateddocument/?source=...      - documents that source draft relates to (references, replaces, etc)
     #   https://datatracker.ietf.org/api/v1/doc/relateddocument/?target=...      - documents that relate to target draft
-    #   https://datatracker.ietf.org/api/v1/doc/ballottype/                      - Types of ballot that can be issued on a document
     #   https://datatracker.ietf.org/api/v1/doc/relateddochistory/
     #   https://datatracker.ietf.org/api/v1/doc/initialreviewdocevent/
     #   https://datatracker.ietf.org/api/v1/doc/deletedevent/
