@@ -907,17 +907,239 @@ class TestDatatracker(unittest.TestCase):
         pass
 
 
-    def test_document_authors(self) -> None:
-        d = self.dt.document_from_rfc("rfc3550")
-        if d is not None:
-            a = list(self.dt.document_authors(d))
-            self.assertEqual(len(a), 4)
-            self.assertEqual(a[0].id, 5147)  # Schulzrinne
-            self.assertEqual(a[1].id, 5148)  # Casner
-            self.assertEqual(a[2].id, 5149)  # Frederick
-            self.assertEqual(a[3].id, 5150)  # Jacobson
+    def test_ballot_position_name(self) -> None:
+        bp = self.dt.ballot_position_name(BallotPositionNameURI("/api/v1/name/ballotpositionname/moretime/"))
+        if bp is not None:
+            self.assertEqual(bp.blocking,     False)
+            self.assertEqual(bp.desc,         "")
+            self.assertEqual(bp.order,        0)
+            self.assertEqual(bp.resource_uri, BallotPositionNameURI("/api/v1/name/ballotpositionname/moretime/"))
+            self.assertEqual(bp.slug,         "moretime")
+            self.assertEqual(bp.used,         True)
+
+
+    def test_ballot_position_names(self) -> None:
+        bps = list(self.dt.ballot_position_names())
+        self.assertEqual(len(bps), 9)
+        self.assertEqual(bps[0].slug, "moretime")
+        self.assertEqual(bps[1].slug, "notready")
+        self.assertEqual(bps[2].slug, "yes")
+        self.assertEqual(bps[3].slug, "noobj")
+        self.assertEqual(bps[4].slug, "block")
+        self.assertEqual(bps[5].slug, "discuss")
+        self.assertEqual(bps[6].slug, "abstain")
+        self.assertEqual(bps[7].slug, "recuse")
+        self.assertEqual(bps[8].slug, "norecord")
+
+
+    def test_ballot_position_names_blocking(self) -> None:
+        bps = list(self.dt.ballot_position_names(blocking=True))
+        self.assertEqual(len(bps), 2)
+        self.assertEqual(bps[0].slug, "block")
+        self.assertEqual(bps[1].slug, "discuss")
+
+
+    def test_ballot_position_names_name(self) -> None:
+        bps = list(self.dt.ballot_position_names(name="Block"))
+        self.assertEqual(len(bps), 1)
+        self.assertEqual(bps[0].slug, "block")
+
+
+    def test_ballot_position_names_order(self) -> None:
+        bps = list(self.dt.ballot_position_names(order=3))
+        self.assertEqual(len(bps), 2)
+        self.assertEqual(bps[0].slug, "block")
+        self.assertEqual(bps[1].slug, "discuss")
+
+
+    def test_ballot_position_names_slug(self) -> None:
+        bps = list(self.dt.ballot_position_names(slug="block"))
+        self.assertEqual(len(bps), 1)
+        self.assertEqual(bps[0].slug, "block")
+
+
+    def test_ballot_position_names_used(self) -> None:
+        bps = list(self.dt.ballot_position_names(used=False))
+        self.assertEqual(len(bps), 0)
+
+
+    def test_ballot_type(self) -> None:
+        bt = self.dt.ballot_type(BallotTypeURI("/api/v1/doc/ballottype/5/"))
+        if bt is not None:
+            self.assertEqual(bt.doc_type,       DocumentTypeURI("/api/v1/name/doctypename/conflrev/"))
+            self.assertEqual(bt.id,             5)
+            self.assertEqual(bt.name,           "Approve")
+            self.assertEqual(bt.order,          0)
+            self.assertEqual(len(bt.positions), 6)
+            self.assertEqual(bt.positions[0],   BallotPositionNameURI("/api/v1/name/ballotpositionname/yes/"))
+            self.assertEqual(bt.positions[1],   BallotPositionNameURI("/api/v1/name/ballotpositionname/noobj/"))
+            self.assertEqual(bt.positions[2],   BallotPositionNameURI("/api/v1/name/ballotpositionname/discuss/"))
+            self.assertEqual(bt.positions[3],   BallotPositionNameURI("/api/v1/name/ballotpositionname/abstain/"))
+            self.assertEqual(bt.positions[4],   BallotPositionNameURI("/api/v1/name/ballotpositionname/recuse/"))
+            self.assertEqual(bt.positions[5],   BallotPositionNameURI("/api/v1/name/ballotpositionname/norecord/"))
+            self.assertEqual(bt.question,       "Is this the correct conflict review response?")
+            self.assertEqual(bt.resource_uri,   BallotTypeURI("/api/v1/doc/ballottype/5/"))
+            self.assertEqual(bt.slug,           "conflrev")
+            self.assertEqual(bt.used,           True)
         else:
-            self.fail("Cannot find RFC 3550")
+            self.fail("Could not find ballot type")
+
+
+    def test_ballot_types(self) -> None:
+        bts = list(self.dt.ballot_types())
+        self.assertEqual(len(bts), 7)
+        self.assertEqual(bts[0].slug, "conflrev")
+        self.assertEqual(bts[1].slug, "statchg")
+        self.assertEqual(bts[2].slug, "irsg-approve")
+        self.assertEqual(bts[3].slug, "r-extrev")
+        self.assertEqual(bts[4].slug, "approve")
+        self.assertEqual(bts[5].slug, "r-wo-ext")
+        self.assertEqual(bts[6].slug, "approve")
+
+
+    def test_ballot_types_used(self) -> None:
+        bts = list(self.dt.ballot_types(used=True))
+        self.assertEqual(len(bts), 7)
+        self.assertEqual(bts[0].slug, "conflrev")
+        self.assertEqual(bts[1].slug, "statchg")
+        self.assertEqual(bts[2].slug, "irsg-approve")
+        self.assertEqual(bts[3].slug, "r-extrev")
+        self.assertEqual(bts[4].slug, "approve")
+        self.assertEqual(bts[5].slug, "r-wo-ext")
+        self.assertEqual(bts[6].slug, "approve")      
+ 
+ 
+    def test_ballot_types_slug(self) -> None:
+        bts = list(self.dt.ballot_types(slug="approve"))
+        self.assertEqual(len(bts), 2)
+        self.assertEqual(bts[0].slug, "approve")
+        self.assertEqual(bts[1].slug, "approve")  
+ 
+ 
+    def test_ballot_types_question(self) -> None:
+        bts = list(self.dt.ballot_types(question="Do we approve these RFC status changes?"))
+        self.assertEqual(len(bts), 1)
+        self.assertEqual(bts[0].slug, "statchg")
+
+
+    def test_ballot_types_id(self) -> None:
+        bts = list(self.dt.ballot_types(id=6))
+        self.assertEqual(len(bts), 1)
+        self.assertEqual(bts[0].slug, "statchg")
+
+
+    def test_ballot_types_name(self) -> None:
+        bts = list(self.dt.ballot_types(name="Approve"))
+        self.assertEqual(len(bts), 4)
+        self.assertEqual(bts[0].slug, "conflrev")
+        self.assertEqual(bts[1].slug, "statchg")
+        self.assertEqual(bts[2].slug, "approve")
+        self.assertEqual(bts[3].slug, "approve")
+
+
+    def test_ballot_types_order(self) -> None:
+        bts = list(self.dt.ballot_types(order=1))
+        self.assertEqual(len(bts), 2)
+        self.assertEqual(bts[0].slug, "r-extrev")
+        self.assertEqual(bts[1].slug, "approve")
+
+
+    def test_ballot_types_positions(self) -> None:
+        bts = list(self.dt.ballot_types(positions=[BallotPositionNameURI("/api/v1/name/ballotpositionname/moretime/")]))
+        self.assertEqual(len(bts), 1)
+        self.assertEqual(bts[0].slug, "irsg-approve")
+
+
+    def test_ballot_types_doctype(self) -> None:
+        bts = list(self.dt.ballot_types(doc_type="draft"))
+        self.assertEqual(len(bts), 2)
+        self.assertEqual(bts[0].slug, "irsg-approve")
+        self.assertEqual(bts[1].slug, "approve")
+
+
+    def test_ballot_document_event(self) -> None:
+        e = self.dt.ballot_document_event(BallotDocumentEventURI("/api/v1/doc/ballotdocevent/744784/"))
+        if e is not None:
+            self.assertEqual(e.ballot_type,  BallotTypeURI("/api/v1/doc/ballottype/5/"))
+            self.assertEqual(e.by,           PersonURI("/api/v1/person/person/21684/"))
+            self.assertEqual(e.desc,         'Created "Approve" ballot')
+            self.assertEqual(e.doc,          DocumentURI("/api/v1/doc/document/conflict-review-dold-payto/"))
+            self.assertEqual(e.docevent_ptr, DocumentEventURI("/api/v1/doc/docevent/744784/"))
+            self.assertEqual(e.id,           744784)
+            self.assertEqual(e.resource_uri, BallotDocumentEventURI("/api/v1/doc/ballotdocevent/744784/"))
+            self.assertEqual(e.rev,          "00")
+            self.assertEqual(e.time,         datetime.fromisoformat("2020-04-04T10:57:29"))
+            self.assertEqual(e.type,         "created_ballot")
+        else:
+            self.fail("Cannot find ballot event")
+
+
+    def test_ballot_document_event(self) -> None:
+        e = self.dt.ballot_document_event(BallotDocumentEventURI("/api/v1/doc/ballotdocevent/744784/"))
+        if e is not None:
+            self.assertEqual(e.ballot_type,  BallotTypeURI("/api/v1/doc/ballottype/5/"))
+            self.assertEqual(e.by,           PersonURI("/api/v1/person/person/21684/"))
+            self.assertEqual(e.desc,         'Created "Approve" ballot')
+            self.assertEqual(e.doc,          DocumentURI("/api/v1/doc/document/conflict-review-dold-payto/"))
+            self.assertEqual(e.docevent_ptr, DocumentEventURI("/api/v1/doc/docevent/744784/"))
+            self.assertEqual(e.id,           744784)
+            self.assertEqual(e.resource_uri, BallotDocumentEventURI("/api/v1/doc/ballotdocevent/744784/"))
+            self.assertEqual(e.rev,          "00")
+            self.assertEqual(e.time,         datetime.fromisoformat("2020-04-04T10:57:29"))
+            self.assertEqual(e.type,         "created_ballot")
+        else:
+            self.fail("Cannot find ballot event")
+
+
+    def test_ballot_document_events(self) -> None:
+        es = self.dt.ballot_document_events()
+        self.assertIsNot(es, None)
+
+
+    def test_ballot_document_events_type(self) -> None:
+        es = self.dt.ballot_document_events(event_type="closed_ballot")
+        self.assertIsNot(es, None)
+
+
+    def test_ballot_document_events_rev(self) -> None:
+        es = list(self.dt.ballot_document_events(rev=42))
+        self.assertEqual(len(es), 2)
+        self.assertEqual(es[0].id, 711417)
+        self.assertEqual(es[1].id, 289200)
+
+
+    def test_ballot_document_events_id(self) -> None:
+        es = list(self.dt.ballot_document_events(id=711417))
+        self.assertEqual(len(es), 1)
+        self.assertEqual(es[0].id, 711417)
+
+
+    def test_ballot_document_events_docevent_ptr(self) -> None:
+        es = list(self.dt.ballot_document_events(docevent_ptr=DocumentEventURI("/api/v1/doc/docevent/711417/")))
+        self.assertEqual(len(es), 1)
+        self.assertEqual(es[0].id, 711417)
+
+
+    def test_ballot_document_events_doc(self) -> None:
+        es = list(self.dt.ballot_document_events(doc=DocumentURI("/api/v1/doc/document/draft-ietf-isis-yang-isis-cfg/")))
+        self.assertEqual(len(es), 2)
+        self.assertEqual(es[0].id, 711417)
+        self.assertEqual(es[1].id, 708537)
+
+
+    def test_ballot_document_events_desc(self) -> None:
+        es = self.dt.ballot_document_events(desc='Closed "Approve" ballot')
+        self.assertIsNot(es, None)
+
+
+    def test_ballot_document_events_by(self) -> None:
+        es = self.dt.ballot_document_events(by=PersonURI("/api/v1/person/person/106460/"))
+        self.assertIsNot(es, None)
+    
+    
+    def test_ballot_document_events_ballot_type(self) -> None:
+        es = self.dt.ballot_document_events(ballot_type=BallotTypeURI("/api/v1/doc/ballottype/4/"))
+        self.assertIsNot(es, None)
 
 
     def test_documents_authored_by_person(self) -> None:
