@@ -1074,23 +1074,6 @@ class TestDatatracker(unittest.TestCase):
             self.fail("Cannot find ballot event")
 
 
-    def test_ballot_document_event(self) -> None:
-        e = self.dt.ballot_document_event(BallotDocumentEventURI("/api/v1/doc/ballotdocevent/744784/"))
-        if e is not None:
-            self.assertEqual(e.ballot_type,  BallotTypeURI("/api/v1/doc/ballottype/5/"))
-            self.assertEqual(e.by,           PersonURI("/api/v1/person/person/21684/"))
-            self.assertEqual(e.desc,         'Created "Approve" ballot')
-            self.assertEqual(e.doc,          DocumentURI("/api/v1/doc/document/conflict-review-dold-payto/"))
-            self.assertEqual(e.docevent_ptr, DocumentEventURI("/api/v1/doc/docevent/744784/"))
-            self.assertEqual(e.id,           744784)
-            self.assertEqual(e.resource_uri, BallotDocumentEventURI("/api/v1/doc/ballotdocevent/744784/"))
-            self.assertEqual(e.rev,          "00")
-            self.assertEqual(e.time,         datetime.fromisoformat("2020-04-04T10:57:29"))
-            self.assertEqual(e.type,         "created_ballot")
-        else:
-            self.fail("Cannot find ballot event")
-
-
     def test_ballot_document_events(self) -> None:
         es = self.dt.ballot_document_events()
         self.assertIsNot(es, None)
