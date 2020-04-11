@@ -1258,9 +1258,8 @@ class DataTracker:
     def submission_events(self,
                         since      : str = "1970-01-01T00:00:00",
                         until      : str = "2038-01-19T03:14:07",
-                        by         : Optional[PersonURI]     = None,
-                        submission : Optional[SubmissionURI] = None,
-                        desc       : Optional[str]           = None) -> Iterator[SubmissionEvent]:
+                        by         : Optional[Person]     = None,
+                        submission : Optional[Submission] = None) -> Iterator[SubmissionEvent]:
         """
         A generator returning information about submission events.
 
@@ -1269,7 +1268,6 @@ class DataTracker:
             until      -- Only return submission events with timestamp after this
             by         -- Only return submission events by this person
             submission -- Only return submission events about this submission
-            desc       -- Only return submission events with this description
 
         Returns:
            A sequence of SubmissionEvent objects
@@ -1277,11 +1275,10 @@ class DataTracker:
         url = SubmissionEventURI("/api/v1/submit/submissionevent/")
         url.params["time__gt"] = since
         url.params["time__lt"] = until
-        url.params["desc"]     = desc
         if by is not None:
-            url.params["by"] = by
+            url.params["by"] = by.id
         if submission is not None:
-            url.params["submission"] = submission
+            url.params["submission"] = submission.id
         return self._retrieve_multi(url, SubmissionEvent)
 
 
