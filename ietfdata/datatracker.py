@@ -1038,6 +1038,27 @@ class DataTracker:
                 yield doc
 
 
+    # Datatracker API endpoints returning information about document types:
+    # * https://datatracker.ietf.org/api/v1/name/doctypename/
+
+    def document_type(self, doctype: str) -> Optional[DocumentType]:
+        """
+        Lookup information about a document type in the datatracker.
+
+        Parameters:
+            doctype : A document type slug (e.g., "draft").
+
+        Returns:
+            A DocumentType object
+        """
+        uri = DocumentTypeURI("/api/v1/name/doctypename/" + doctype + "/")
+        return self._retrieve(uri, DocumentType)
+
+
+    def document_types(self) -> Iterator[DocumentType]:
+        return self._retrieve_multi(DocumentTypeURI("/api/v1/name/doctypename/"), DocumentType)
+
+
     # Datatracker API endpoints returning information about document states:
     # * https://datatracker.ietf.org/api/v1/doc/state/                           - Types of state a document can be in
     # * https://datatracker.ietf.org/api/v1/doc/statetype/                       - Possible types of state for a document
@@ -1067,6 +1088,16 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/doc/docevent/?doc=...                - events for a document
     # * https://datatracker.ietf.org/api/v1/doc/docevent/?by=...                 - events by a person (as /api/v1/person/person)
     # * https://datatracker.ietf.org/api/v1/doc/docevent/?time=...               - events by time
+    #   https://datatracker.ietf.org/api/v1/doc/statedocevent/                   - subset of /api/v1/doc/docevent/; same parameters
+    #   https://datatracker.ietf.org/api/v1/doc/newrevisiondocevent/             -               "                "
+    #   https://datatracker.ietf.org/api/v1/doc/submissiondocevent/              -               "                "
+    #   https://datatracker.ietf.org/api/v1/doc/writeupdocevent/                 -               "                "
+    #   https://datatracker.ietf.org/api/v1/doc/consensusdocevent/               -               "                "
+    #   https://datatracker.ietf.org/api/v1/doc/reviewrequestdocevent/           -               "                "
+    #   https://datatracker.ietf.org/api/v1/doc/lastcalldocevent/                -               "                "
+    #   https://datatracker.ietf.org/api/v1/doc/telechatdocevent/                -               "                "
+    #   https://datatracker.ietf.org/api/v1/doc/initialreviewdocevent/           -               "                "
+    #   https://datatracker.ietf.org/api/v1/doc/editedauthorsdocevent/           -               "                "
 
     def document_event(self, event_uri : DocumentEventURI) -> Optional[DocumentEvent]:
         return self._retrieve(event_uri, DocumentEvent)
@@ -1125,19 +1156,67 @@ class DataTracker:
         return self._retrieve_multi(url, DocumentAuthor)
 
 
+    # Datatracker API endpoints returning information about related documents:
+    #   https://datatracker.ietf.org/api/v1/doc/relateddocument/?source=...      - documents that source draft relates to
+    #   https://datatracker.ietf.org/api/v1/doc/relateddocument/?target=...      - documents that relate to target draft
+    #   https://datatracker.ietf.org/api/v1/doc/relateddochistory/
+
+    def related_documents(self, 
+        source               : Optional[Document]         = None, 
+        target               : Optional[DocumentAlias]    = None, 
+        relationship_type    : Optional[RelationshipType] = None) -> Iterator[RelatedDocument]:
+
+        url = RelatedDocumentURI("/api/v1/doc/relateddocument/")
+        if source is not None:
+            url.params["source"] = source.id
+        if target is not None:
+            url.params["target"] = target.id
+        if relationship_type is not None:
+            url.params["relationship"] = relationship_type.slug
+        return self._retrieve_multi(url, RelatedDocument)
+    
+    
+    def relationship_type(self, relationship_type_uri: RelationshipTypeURI) -> Optional[RelationshipType]:
+        """
+        Retrieve a relationship type
+
+        Parameters:
+            relationship_type_uri -- The relationship type uri, 
+            as found in the resource_uri of a relationship type.
+
+        Returns:
+            A RelationshipType object
+        """
+        return self._retrieve(relationship_type_uri, RelationshipType)
+
+
+    def relationship_types(self) -> Iterator[RelationshipType]:
+        """
+        A generator returning the possible relationship types
+
+        Parameters:
+           None
+
+        Returns:
+            An iterator of RelationshipType objects
+        """
+        url = RelationshipTypeURI("/api/v1/name/docrelationshipname/")
+        return self._retrieve_multi(url, RelationshipType)
+
+
     # Datatracker API endpoints returning information about document history:
     #   https://datatracker.ietf.org/api/v1/doc/dochistory/
     #   https://datatracker.ietf.org/api/v1/doc/dochistoryauthor/
 
-    # FIXME: to add
+    # FIXME: implement document history methods
 
 
-    # Datatracker API endpoints returning information about document ballots:
+    # ----------------------------------------------------------------------------------------------------------------------------
+    # Datatracker API endpoints returning information about ballots and document approval:
     # * https://datatracker.ietf.org/api/v1/name/ballotpositionname/
     #   https://datatracker.ietf.org/api/v1/doc/ballotpositiondocevent/
     # * https://datatracker.ietf.org/api/v1/doc/ballottype/
     # * https://datatracker.ietf.org/api/v1/doc/ballotdocevent/
-    # * https://datatracker.ietf.org/api/v1/doc/irsgballotdocevent/     -- This doesn't seem to be used
     
     def ballot_position_name(self, ballot_position_name_uri : BallotPositionNameURI) -> Optional[BallotPositionName]:
         return self._retrieve(ballot_position_name_uri, BallotPositionName)
@@ -1215,28 +1294,10 @@ class DataTracker:
         return self._retrieve_multi(url, BallotDocumentEvent)
     
 
-    #   https://datatracker.ietf.org/api/v1/doc/docreminder/
-    #   https://datatracker.ietf.org/api/v1/doc/documenturl/
-    #   https://datatracker.ietf.org/api/v1/doc/statedocevent/                   - subset of /api/v1/doc/docevent/; same parameters
- 
-    #   https://datatracker.ietf.org/api/v1/doc/newrevisiondocevent/             -               "                "
-    #   https://datatracker.ietf.org/api/v1/doc/submissiondocevent/              -               "                "
-    #   https://datatracker.ietf.org/api/v1/doc/writeupdocevent/                 -               "                "
-    #   https://datatracker.ietf.org/api/v1/doc/consensusdocevent/               -               "                "
-    #   https://datatracker.ietf.org/api/v1/doc/reviewrequestdocevent/           -               "                "
-    #   https://datatracker.ietf.org/api/v1/doc/lastcalldocevent/                -               "                "
-    #   https://datatracker.ietf.org/api/v1/doc/telechatdocevent/                -               "                "
-    #   https://datatracker.ietf.org/api/v1/doc/relateddochistory/
-    #   https://datatracker.ietf.org/api/v1/doc/initialreviewdocevent/
-    #   https://datatracker.ietf.org/api/v1/doc/deletedevent/
-    #   https://datatracker.ietf.org/api/v1/doc/addedmessageevent/
-    #   https://datatracker.ietf.org/api/v1/doc/editedauthorsdocevent/
-
-
+    # ----------------------------------------------------------------------------------------------------------------------------
     # Datatracker API endpoints returning information about document submissions:
     # * https://datatracker.ietf.org/api/v1/submit/submission/
     # * https://datatracker.ietf.org/api/v1/submit/submissionevent/
-    # * https://datatracker.ietf.org/api/v1/submit/submissionemailevent/     -- This doesn't seem to be used
     #   https://datatracker.ietf.org/api/v1/submit/submissioncheck/
     #   https://datatracker.ietf.org/api/v1/submit/preapproval/
 
@@ -1283,63 +1344,18 @@ class DataTracker:
             url.params["submission"] = submission.id
         return self._retrieve_multi(url, SubmissionEvent)
 
+    # ----------------------------------------------------------------------------------------------------------------------------
+    # Datatracker API endpoints returning miscellaneous information about documents:
+    #   https://datatracker.ietf.org/api/v1/doc/docreminder/
+    #   https://datatracker.ietf.org/api/v1/doc/documenturl/
+    #   https://datatracker.ietf.org/api/v1/doc/deletedevent/
 
-    # Datatracker API endpoints returning information about names:
-    # * https://datatracker.ietf.org/api/v1/name/doctypename/
+    # FIXME: implement these
+
+
+    # ----------------------------------------------------------------------------------------------------------------------------
+    # Datatracker API endpoints returning information about RFC publication streams:
     # * https://datatracker.ietf.org/api/v1/name/streamname/
-    #   https://datatracker.ietf.org/api/v1/name/dbtemplatetypename/
-    #   https://datatracker.ietf.org/api/v1/name/docrelationshipname/
-    #   https://datatracker.ietf.org/api/v1/name/doctagname/
-    #   https://datatracker.ietf.org/api/v1/name/docurltagname/
-    #   https://datatracker.ietf.org/api/v1/name/formallanguagename/
-    #   https://datatracker.ietf.org/api/v1/name/timeslottypename/
-    #   https://datatracker.ietf.org/api/v1/name/liaisonstatementeventtypename/
-    #   https://datatracker.ietf.org/api/v1/name/stdlevelname/
-    #   https://datatracker.ietf.org/api/v1/name/ballotpositionname/
-    #   https://datatracker.ietf.org/api/v1/name/reviewrequeststatename/
-    #   https://datatracker.ietf.org/api/v1/name/groupmilestonestatename/
-    #   https://datatracker.ietf.org/api/v1/name/iprlicensetypename/
-    #   https://datatracker.ietf.org/api/v1/name/feedbacktypename/
-    #   https://datatracker.ietf.org/api/v1/name/reviewtypename/
-    #   https://datatracker.ietf.org/api/v1/name/iprdisclosurestatename/
-    #   https://datatracker.ietf.org/api/v1/name/reviewresultname/
-    #   https://datatracker.ietf.org/api/v1/name/liaisonstatementstate/
-    #   https://datatracker.ietf.org/api/v1/name/roomresourcename/
-    #   https://datatracker.ietf.org/api/v1/name/liaisonstatementtagname/
-    #   https://datatracker.ietf.org/api/v1/name/topicaudiencename/
-    #   https://datatracker.ietf.org/api/v1/name/continentname/
-    #   https://datatracker.ietf.org/api/v1/name/nomineepositionstatename/
-    #   https://datatracker.ietf.org/api/v1/name/importantdatename/
-    #   https://datatracker.ietf.org/api/v1/name/liaisonstatementpurposename/
-    #   https://datatracker.ietf.org/api/v1/name/constraintname/
-    #   https://datatracker.ietf.org/api/v1/name/sessionstatusname/
-    #   https://datatracker.ietf.org/api/v1/name/ipreventtypename/
-    #   https://datatracker.ietf.org/api/v1/name/agendatypename/
-    #   https://datatracker.ietf.org/api/v1/name/docremindertypename/
-    #   https://datatracker.ietf.org/api/v1/name/intendedstdlevelname/
-    #   https://datatracker.ietf.org/api/v1/name/countryname/
-    #   https://datatracker.ietf.org/api/v1/name/grouptypename/
-    #   https://datatracker.ietf.org/api/v1/name/draftsubmissionstatename/
-    #   https://datatracker.ietf.org/api/v1/name/rolename/
-
-
-    def document_type(self, doctype: str) -> Optional[DocumentType]:
-        """
-        Lookup information about a document type in the datatracker.
-
-        Parameters:
-            doctype : A document type slug (e.g., "draft").
-
-        Returns:
-            A DocumentType object
-        """
-        uri = DocumentTypeURI("/api/v1/name/doctypename/" + doctype + "/")
-        return self._retrieve(uri, DocumentType)
-
-
-    def document_types(self) -> Iterator[DocumentType]:
-        return self._retrieve_multi(DocumentTypeURI("/api/v1/name/doctypename/"), DocumentType)
-
 
     def stream(self, stream_uri: StreamURI) -> Optional[Stream]:
         return self._retrieve(stream_uri, Stream)
@@ -1349,6 +1365,7 @@ class DataTracker:
         return self._retrieve_multi(StreamURI("/api/v1/name/streamname/"), Stream)
 
 
+    # ----------------------------------------------------------------------------------------------------------------------------
     # Datatracker API endpoints returning information about working groups:
     # * https://datatracker.ietf.org/api/v1/group/group/                               - list of groups
     # * https://datatracker.ietf.org/api/v1/group/group/2161/                          - info about group 2161
@@ -1366,6 +1383,8 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/group/rolehistory/?email=csp@csperkins.org - Groups person was previously involved with
     #   https://datatracker.ietf.org/api/v1/group/changestategroupevent/?group=2161    - Group state changes
     #   https://datatracker.ietf.org/api/v1/group/groupstatetransitions                - ???
+    # * https://datatracker.ietf.org/api/v1/name/groupstatename/
+    #   https://datatracker.ietf.org/api/v1/name/grouptypename/
 
     def group(self, group_uri: GroupURI) -> Optional[Group]:
         return self._retrieve(group_uri, Group)
@@ -1399,7 +1418,6 @@ class DataTracker:
             url.params["parent"] = parent.id
         return self._retrieve_multi(url, Group)
 
-    # * https://datatracker.ietf.org/api/v1/name/groupstatename/
 
     def group_state(self, group_state : str) -> Optional[GroupState]:
         """
@@ -1423,6 +1441,7 @@ class DataTracker:
         return self._retrieve_multi(url, GroupState)
 
 
+    # ----------------------------------------------------------------------------------------------------------------------------
     # Datatracker API endpoints returning information about meetings:
     # * https://datatracker.ietf.org/api/v1/meeting/meeting/                        - list of meetings
     # * https://datatracker.ietf.org/api/v1/meeting/meeting/747/                    - information about meeting number 747
@@ -1439,6 +1458,15 @@ class DataTracker:
     #
     #   https://datatracker.ietf.org/meeting/107/agenda.json
     #   https://datatracker.ietf.org/meeting/interim-2020-hrpc-01/agenda.json
+    #
+    #   https://datatracker.ietf.org/api/v1/name/sessionstatusname/
+    #   https://datatracker.ietf.org/api/v1/name/agendatypename/
+    #   https://datatracker.ietf.org/api/v1/name/timeslottypename/
+    #   https://datatracker.ietf.org/api/v1/name/roomresourcename/
+    #   https://datatracker.ietf.org/api/v1/name/countryname/
+    #   https://datatracker.ietf.org/api/v1/name/continentname/
+    # * https://datatracker.ietf.org/api/v1/name/meetingtypename/
+    #   https://datatracker.ietf.org/api/v1/name/importantdatename/
 
     def meeting_session_assignment(self, assignment_uri : SessionAssignmentURI) -> Optional[SessionAssignment]:
         return self._retrieve(assignment_uri, SessionAssignment)
@@ -1486,7 +1514,6 @@ class DataTracker:
         return self._retrieve_multi(url, Meeting)
 
 
-    # * https://datatracker.ietf.org/api/v1/name/meetingtypename/
 
     def meeting_type(self, meeting_type: str) -> Optional[MeetingType]:
         """
@@ -1516,52 +1543,38 @@ class DataTracker:
         return self._retrieve_multi(MeetingTypeURI("/api/v1/name/meetingtypename/"), MeetingType)
 
 
-    # Datatracker API endpoints returning information about related documents:
-    #   https://datatracker.ietf.org/api/v1/doc/relateddocument/?source=...      - documents that source draft relates to
-    #   https://datatracker.ietf.org/api/v1/doc/relateddocument/?target=...      - documents that relate to target draft
-
-    def related_documents(self, 
-        source               : Optional[Document]         = None, 
-        target               : Optional[DocumentAlias]    = None, 
-        relationship_type    : Optional[RelationshipType] = None) -> Iterator[RelatedDocument]:
-
-        url = RelatedDocumentURI("/api/v1/doc/relateddocument/")
-        if source is not None:
-            url.params["source"] = source.id
-        if target is not None:
-            url.params["target"] = target.id
-        if relationship_type is not None:
-            url.params["relationship"] = relationship_type.slug
-        return self._retrieve_multi(url, RelatedDocument)
-    
-    
-    def relationship_type(self, relationship_type_uri: RelationshipTypeURI) -> Optional[RelationshipType]:
-        """
-        Retrieve a relationship type
-
-        Parameters:
-            relationship_type_uri -- The relationship type uri, 
-            as found in the resource_uri of a relationship type.
-
-        Returns:
-            A RelationshipType object
-        """
-        return self._retrieve(relationship_type_uri, RelationshipType)
-
-
-    def relationship_types(self) -> Iterator[RelationshipType]:
-        """
-        A generator returning the possible relationship types
-
-        Parameters:
-           None
-
-        Returns:
-            An iterator of RelationshipType objects
-        """
-        url = RelationshipTypeURI("/api/v1/name/docrelationshipname/")
-        return self._retrieve_multi(url, RelationshipType)
-
+    # ----------------------------------------------------------------------------------------------------------------------------
+    # Datatracker API endpoints returning information about names:
+    #
+    # FIXME: move these into the appropriate place
+    #
+    #   https://datatracker.ietf.org/api/v1/name/dbtemplatetypename/
+    #   https://datatracker.ietf.org/api/v1/name/docrelationshipname/
+    #   https://datatracker.ietf.org/api/v1/name/doctagname/
+    #   https://datatracker.ietf.org/api/v1/name/docurltagname/
+    #   https://datatracker.ietf.org/api/v1/name/formallanguagename/
+    #   https://datatracker.ietf.org/api/v1/name/stdlevelname/
+    #   https://datatracker.ietf.org/api/v1/name/reviewrequeststatename/
+    #   https://datatracker.ietf.org/api/v1/name/groupmilestonestatename/
+    #   https://datatracker.ietf.org/api/v1/name/feedbacktypename/
+    #   https://datatracker.ietf.org/api/v1/name/reviewtypename/
+    #   https://datatracker.ietf.org/api/v1/name/reviewresultname/
+    #   https://datatracker.ietf.org/api/v1/name/topicaudiencename/
+    #   https://datatracker.ietf.org/api/v1/name/nomineepositionstatename/
+    #   https://datatracker.ietf.org/api/v1/name/constraintname/
+    #   https://datatracker.ietf.org/api/v1/name/docremindertypename/
+    #   https://datatracker.ietf.org/api/v1/name/intendedstdlevelname/
+    #   https://datatracker.ietf.org/api/v1/name/draftsubmissionstatename/
+    #   https://datatracker.ietf.org/api/v1/name/rolename/
+    #
+    #   https://datatracker.ietf.org/api/v1/name/iprdisclosurestatename/
+    #   https://datatracker.ietf.org/api/v1/name/ipreventtypename/
+    #   https://datatracker.ietf.org/api/v1/name/iprlicensetypename/
+    #
+    #   https://datatracker.ietf.org/api/v1/name/liaisonstatementeventtypename/
+    #   https://datatracker.ietf.org/api/v1/name/liaisonstatementpurposename/
+    #   https://datatracker.ietf.org/api/v1/name/liaisonstatementstate/
+    #   https://datatracker.ietf.org/api/v1/name/liaisonstatementtagname/
 
 # =================================================================================================================================
 # vim: set tw=0 ai:
