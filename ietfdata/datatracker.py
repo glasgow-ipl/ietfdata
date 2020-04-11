@@ -1173,25 +1173,13 @@ class DataTracker:
 
 
     def ballot_types(self,
-                     doc_type  : Optional[str]                         = None,
-                     id        : Optional[int]                         = None,
-                     name      : Optional[str]                         = None,
-                     order     : Optional[int]                         = None,
-                     positions : Optional[List[BallotPositionNameURI]] = None,
-                     question  : Optional[str]                         = None,
-                     slug      : Optional[str]                         = None,
-                     used      : Optional[bool]                        = None) -> Iterator[BallotType]:
+                     doc_type : Optional[DocumentType] = None,
+                     used     : Optional[bool]         = True) -> Iterator[BallotType]:
         """
         A generator returning information about ballot types.
 
         Parameters:
             doc_type     -- Only return ballot types with this document type slug
-            id           -- Only return ballot types with this ID
-            name         -- Only return ballot types with this name
-            order        -- Only return ballot types with this order
-            positions    -- Only return ballot types with these positions
-            question     -- Only return ballot types with this question
-            slug         -- Only return ballot types with this slug
             used         -- Only return ballot types with this value of used
 
         Returns:
@@ -1199,20 +1187,7 @@ class DataTracker:
         """
         url = BallotTypeURI("/api/v1/doc/ballottype/")
         if doc_type is not None:
-            document_type = self.document_type(doc_type)
-            if document_type is not None:
-                url.params["doc_type"] = document_type.slug
-        url.params["id"] = id
-        url.params["name"] = name
-        url.params["order"] = order
-        if positions is not None:
-            url.params["positions__in"] = []
-            for pos in positions:
-                ballot_position_name = self.ballot_position_name(pos)
-                if ballot_position_name is not None:
-                    url.params["positions__in"].append(ballot_position_name.slug)
-        url.params["question"] = question
-        url.params["slug"] = slug
+            url.params["doc_type"] = doc_type.slug
         url.params["used"] = used
         return self._retrieve_multi(url, BallotType)
 

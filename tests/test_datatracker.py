@@ -989,18 +989,6 @@ class TestDatatracker(unittest.TestCase):
             self.fail("Could not find ballot type")
 
 
-    def test_ballot_types(self) -> None:
-        bts = list(self.dt.ballot_types())
-        self.assertEqual(len(bts), 7)
-        self.assertEqual(bts[0].slug, "conflrev")
-        self.assertEqual(bts[1].slug, "statchg")
-        self.assertEqual(bts[2].slug, "irsg-approve")
-        self.assertEqual(bts[3].slug, "r-extrev")
-        self.assertEqual(bts[4].slug, "approve")
-        self.assertEqual(bts[5].slug, "r-wo-ext")
-        self.assertEqual(bts[6].slug, "approve")
-
-
     def test_ballot_types_used(self) -> None:
         bts = list(self.dt.ballot_types(used=True))
         self.assertEqual(len(bts), 7)
@@ -1011,51 +999,12 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(bts[4].slug, "approve")
         self.assertEqual(bts[5].slug, "r-wo-ext")
         self.assertEqual(bts[6].slug, "approve")      
- 
- 
-    def test_ballot_types_slug(self) -> None:
-        bts = list(self.dt.ballot_types(slug="approve"))
-        self.assertEqual(len(bts), 2)
-        self.assertEqual(bts[0].slug, "approve")
-        self.assertEqual(bts[1].slug, "approve")  
- 
- 
-    def test_ballot_types_question(self) -> None:
-        bts = list(self.dt.ballot_types(question="Do we approve these RFC status changes?"))
-        self.assertEqual(len(bts), 1)
-        self.assertEqual(bts[0].slug, "statchg")
-
-
-    def test_ballot_types_id(self) -> None:
-        bts = list(self.dt.ballot_types(id=6))
-        self.assertEqual(len(bts), 1)
-        self.assertEqual(bts[0].slug, "statchg")
-
-
-    def test_ballot_types_name(self) -> None:
-        bts = list(self.dt.ballot_types(name="Approve"))
-        self.assertEqual(len(bts), 4)
-        self.assertEqual(bts[0].slug, "conflrev")
-        self.assertEqual(bts[1].slug, "statchg")
-        self.assertEqual(bts[2].slug, "approve")
-        self.assertEqual(bts[3].slug, "approve")
-
-
-    def test_ballot_types_order(self) -> None:
-        bts = list(self.dt.ballot_types(order=1))
-        self.assertEqual(len(bts), 2)
-        self.assertEqual(bts[0].slug, "r-extrev")
-        self.assertEqual(bts[1].slug, "approve")
-
-
-    def test_ballot_types_positions(self) -> None:
-        bts = list(self.dt.ballot_types(positions=[BallotPositionNameURI("/api/v1/name/ballotpositionname/moretime/")]))
-        self.assertEqual(len(bts), 1)
-        self.assertEqual(bts[0].slug, "irsg-approve")
+        bts = list(self.dt.ballot_types(used=False))
+        self.assertEqual(len(bts), 0)
 
 
     def test_ballot_types_doctype(self) -> None:
-        bts = list(self.dt.ballot_types(doc_type="draft"))
+        bts = list(self.dt.ballot_types(self.dt.document_type("draft")))
         self.assertEqual(len(bts), 2)
         self.assertEqual(bts[0].slug, "irsg-approve")
         self.assertEqual(bts[1].slug, "approve")
