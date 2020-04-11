@@ -1075,8 +1075,8 @@ class DataTracker:
 
 
     # Datatracker API endpoints returning information about document events:
-    #   https://datatracker.ietf.org/api/v1/doc/docevent/                        - list of document events
-    #   https://datatracker.ietf.org/api/v1/doc/docevent/?doc=...                - events for a document
+    # * https://datatracker.ietf.org/api/v1/doc/docevent/                        - list of document events
+    # * https://datatracker.ietf.org/api/v1/doc/docevent/?doc=...                - events for a document
     # * https://datatracker.ietf.org/api/v1/doc/docevent/?by=...                 - events by a person (as /api/v1/person/person)
     # * https://datatracker.ietf.org/api/v1/doc/docevent/?time=...               - events by time
 
@@ -1087,19 +1087,17 @@ class DataTracker:
     def document_events(self,
                         since      : str = "1970-01-01T00:00:00",
                         until      : str = "2038-01-19T03:14:07",
-                        by         : PersonURI            = None,
-                        desc       : str                  = None,
-                        rev        : int                  = None,
-                        event_type : str                  = None) -> Iterator[DocumentEvent]:
+                        doc        : Document = None,
+                        by         : Person   = None,
+                        event_type : str      = None) -> Iterator[DocumentEvent]:
         """
         A generator returning information about document events.
 
         Parameters:
             since      -- Only return document events with timestamp after this
             until      -- Only return document events with timestamp after this
+            doc        -- Only return document events for this document
             by         -- Only return document events by this person
-            desc       -- Only return document events with this description
-            rev        -- Only return document events with this revision number
             event_type -- Only return document events with this type
 
         Returns:
@@ -1108,11 +1106,11 @@ class DataTracker:
         url = DocumentEventURI("/api/v1/doc/docevent/")
         url.params["time__gt"] = since
         url.params["time__lt"] = until
-        url.params["desc"]     = desc
-        url.params["rev"]      = rev
-        url.params["type"]     = event_type
+        if doc is not None:
+            url.params["doc"]  = doc.id
         if by is not None:
-            url.params["by"] = by
+            url.params["by"]   = by.id
+        url.params["type"]     = event_type
         return self._retrieve_multi(url, DocumentEvent)
 
 

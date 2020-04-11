@@ -902,9 +902,30 @@ class TestDatatracker(unittest.TestCase):
             self.fail("Cannot find event")
 
 
-    # FIXME: this needs to be updated
     def test_document_events(self) -> None:
-        pass
+        p  = self.dt.person_from_email("csp@csperkins.org")
+        d  = self.dt.document_from_draft("draft-ietf-avtcore-rtp-circuit-breakers")
+        de = list(self.dt.document_events(doc=d, by=p, event_type="new_revision"))
+        self.assertEqual(len(de), 19)
+        self.assertEqual(de[ 0].id, 478637)
+        self.assertEqual(de[ 1].id, 475709)
+        self.assertEqual(de[ 2].id, 470372)
+        self.assertEqual(de[ 3].id, 466353)
+        self.assertEqual(de[ 4].id, 460235)
+        self.assertEqual(de[ 5].id, 456912)
+        self.assertEqual(de[ 6].id, 456736)
+        self.assertEqual(de[ 7].id, 444539)
+        self.assertEqual(de[ 8].id, 415925)
+        self.assertEqual(de[ 9].id, 413197)
+        self.assertEqual(de[10].id, 402942)
+        self.assertEqual(de[11].id, 397776)
+        self.assertEqual(de[12].id, 384673)
+        self.assertEqual(de[13].id, 369306)
+        self.assertEqual(de[14].id, 364835)
+        self.assertEqual(de[15].id, 340119)
+        self.assertEqual(de[16].id, 326064)
+        self.assertEqual(de[17].id, 307226)
+        self.assertEqual(de[18].id, 306017)
 
 
     def test_ballot_position_name(self) -> None:
