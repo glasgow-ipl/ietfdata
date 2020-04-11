@@ -1226,16 +1226,31 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/doc/reviewrequestdocevent/           -               "                "
     #   https://datatracker.ietf.org/api/v1/doc/lastcalldocevent/                -               "                "
     #   https://datatracker.ietf.org/api/v1/doc/telechatdocevent/                -               "                "
-    #   https://datatracker.ietf.org/api/v1/doc/relateddocument/?source=...      - documents that source draft relates to (references, replaces, etc)
-    #   https://datatracker.ietf.org/api/v1/doc/relateddocument/?target=...      - documents that relate to target draft
     #   https://datatracker.ietf.org/api/v1/doc/relateddochistory/
     #   https://datatracker.ietf.org/api/v1/doc/initialreviewdocevent/
     #   https://datatracker.ietf.org/api/v1/doc/deletedevent/
     #   https://datatracker.ietf.org/api/v1/doc/addedmessageevent/
     #   https://datatracker.ietf.org/api/v1/doc/editedauthorsdocevent/
 
+
+    # Datatracker API endpoints returning information about document submissions:
+    # * https://datatracker.ietf.org/api/v1/submit/submission/
+    # * https://datatracker.ietf.org/api/v1/submit/submissionevent/
+    # * https://datatracker.ietf.org/api/v1/submit/submissionemailevent/     -- This doesn't seem to be used
+    #   https://datatracker.ietf.org/api/v1/submit/submissioncheck/
+    #   https://datatracker.ietf.org/api/v1/submit/preapproval/
+
     def submission(self, submission_uri: SubmissionURI) -> Optional[Submission]:
         return self._retrieve(submission_uri, Submission)
+
+
+    def submissions(self,
+            since           : str = "1970-01-01T00:00:00",
+            until           : str = "2038-01-19T03:14:07") -> Iterator[Submission]:
+        url = SubmissionURI("/api/v1/submit/submission/")
+        url.params["time__gt"] = since
+        url.params["time__lt"] = until
+        return self._retrieve_multi(url, Submission)
 
 
     def submission_event(self, event_uri: SubmissionEventURI) -> Optional[SubmissionEvent]:
@@ -1500,9 +1515,10 @@ class DataTracker:
         """
         return self._retrieve_multi(MeetingTypeURI("/api/v1/name/meetingtypename/"), MeetingType)
 
-# =================================================================================================================================
-#   https://datatracker.ietf.org/api/v1/doc/relateddocument/?source=...      - documents that source draft relates to (references, replaces, etc)
-#   https://datatracker.ietf.org/api/v1/doc/relateddocument/?target=...      - documents that relate to target draft
+
+    # Datatracker API endpoints returning information about related documents:
+    #   https://datatracker.ietf.org/api/v1/doc/relateddocument/?source=...      - documents that source draft relates to
+    #   https://datatracker.ietf.org/api/v1/doc/relateddocument/?target=...      - documents that relate to target draft
 
     def related_documents(self, 
         source               : Optional[Document]         = None, 
@@ -1530,7 +1546,6 @@ class DataTracker:
         Returns:
             A RelationshipType object
         """
-
         return self._retrieve(relationship_type_uri, RelationshipType)
 
 
@@ -1544,9 +1559,9 @@ class DataTracker:
         Returns:
             An iterator of RelationshipType objects
         """
-
         url = RelationshipTypeURI("/api/v1/name/docrelationshipname/")
         return self._retrieve_multi(url, RelationshipType)
+
 
 # =================================================================================================================================
 # vim: set tw=0 ai:
