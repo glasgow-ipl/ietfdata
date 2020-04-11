@@ -48,6 +48,7 @@ from datetime    import datetime, timedelta
 from enum        import Enum
 from typing      import List, Optional, Tuple, Dict, Iterator, Type, TypeVar, Any
 from dataclasses import dataclass, field
+from pathlib     import Path
 from pavlova     import Pavlova
 from pavlova.parsers import GenericParser
 
@@ -745,10 +746,11 @@ class DataTracker:
     """
     A class for interacting with the IETF DataTracker.
     """
-    def __init__(self):
+    def __init__(self, cachedir: Optional[Path] = None):
         self.session  = requests.Session()
         self.ua       = "glasgow-ietfdata/0.2.0"          # Update when making a new relaase
         self.base_url = "https://datatracker.ietf.org"
+        self.cachedir = cachedir
         self.pavlova = Pavlova()
         # Please sort the following alphabetically:
         self.pavlova.register_parser(BallotDocumentEventURI, GenericParser(self.pavlova, BallotDocumentEventURI))
@@ -785,15 +787,44 @@ class DataTracker:
         self.session.close()
 
 
+    def _cache_filepath(self, resource_uri: URI) -> str:
+        return Path(self.cachedir, resource_uri.uri[1:-1] + ".json")
+
+
+    def _obj_is_cached(self, resource_uri: URI) -> bool:
+        if self.cachedir is None:
+            return False
+        return self._cache_filepath(resource_uri).exists()
+
+
+    def _retrieve_from_cache(self, resource_uri: URI) -> str:
+        obj_json = {}
+        with open(self._cache_filepath(resource_uri)) as cache_file:
+            obj_json = json.load(cache_file)
+        return obj_json
+
+
+    def _cache_obj(self, resource_uri: URI, obj_json: str) -> None:
+        if self.cachedir is not None:
+            cache_filepath = self._cache_filepath(resource_uri)
+            cache_filepath.parent.mkdir(parents=True, exist_ok=True)
+            with open(cache_filepath, "w") as cache_file:
+                json.dump(obj_json, cache_file)
+
+
     def _retrieve(self, resource_uri: URI, obj_type: Type[T]) -> Optional[T]:
         headers = {'user-agent': self.ua}
-        r = self.session.get(self.base_url + resource_uri.uri, params=resource_uri.params, headers=headers, verify=True, stream=False)
-        if r.status_code == 200:
-            obj = self.pavlova.from_mapping(r.json(), obj_type) # type: T
-            return obj
+        if self._obj_is_cached(resource_uri):
+            obj_json = self._retrieve_from_cache(resource_uri)
         else:
-            print("_retrieve failed: {} {}".format(r.status_code, self.base_url + resource_uri.uri))
-            return None
+            r = self.session.get(self.base_url + resource_uri.uri, params=resource_uri.params, headers=headers, verify=True, stream=False)
+            if r.status_code == 200:
+                obj_json = r.json()
+                self._cache_obj(resource_uri, obj_json)
+            else:
+                print("_retrieve failed: {} {}".format(r.status_code, self.base_url + resource_uri.uri))
+                return None 
+        return self.pavlova.from_mapping(obj_json, obj_type) # type: T
 
 
     def _retrieve_multi(self, resource_uri: URI, obj_type: Type[T]) -> Iterator[T]:
