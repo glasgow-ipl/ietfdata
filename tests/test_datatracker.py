@@ -890,14 +890,14 @@ class TestDatatracker(unittest.TestCase):
     def test_document_event(self) -> None:
         e = self.dt.document_event(DocumentEventURI("/api/v1/doc/docevent/729040/"))
         if e is not None:
-            self.assertEqual(e.by,              PersonURI("/api/v1/person/person/121595/"))
-            self.assertEqual(e.desc,            "New version available: <b>draft-irtf-cfrg-randomness-improvements-09.txt</b>")
-            self.assertEqual(e.doc,             DocumentURI("/api/v1/doc/document/draft-irtf-cfrg-randomness-improvements/"))
             self.assertEqual(e.id,              729040)
             self.assertEqual(e.resource_uri,    DocumentEventURI("/api/v1/doc/docevent/729040/"))
+            self.assertEqual(e.by,              PersonURI("/api/v1/person/person/121595/"))
+            self.assertEqual(e.doc,             DocumentURI("/api/v1/doc/document/draft-irtf-cfrg-randomness-improvements/"))
+            self.assertEqual(e.type,            "new_revision")
+            self.assertEqual(e.desc,            "New version available: <b>draft-irtf-cfrg-randomness-improvements-09.txt</b>")
             self.assertEqual(e.rev,             "09")
             self.assertEqual(e.time,            datetime.fromisoformat("2020-01-27T06:41:36"))
-            self.assertEqual(e.type,            "new_revision")
         else:
             self.fail("Cannot find event")
 
