@@ -1192,23 +1192,19 @@ class DataTracker:
         return self._retrieve_multi(url, BallotType)
 
 
-    #   https://datatracker.ietf.org/api/v1/doc/ballotdocevent/                  -               "                "
+    # * https://datatracker.ietf.org/api/v1/doc/ballotdocevent/                  - Types of ballot that can be issued on a document
     
     def ballot_document_event(self, ballot_event_uri : BallotDocumentEventURI) -> Optional[BallotDocumentEvent]:
         return self._retrieve(ballot_event_uri, BallotDocumentEvent)
 
 
     def ballot_document_events(self,
-                        since        : str = "1970-01-01T00:00:00",
-                        until        : str = "2038-01-19T03:14:07",
-                        ballot_type  : Optional[BallotTypeURI]    = None,
-                        by           : Optional[PersonURI]        = None,
-                        desc         : Optional[str]              = None,
-                        doc          : Optional[DocumentURI]      = None,
-                        docevent_ptr : Optional[DocumentEventURI] = None,
-                        id           : Optional[int]              = None,
-                        rev          : Optional[int]              = None,
-                        event_type   : Optional[str]              = None) -> Iterator[BallotDocumentEvent]:
+                        since       : str = "1970-01-01T00:00:00",
+                        until       : str = "2038-01-19T03:14:07",
+                        ballot_type : Optional[BallotType]    = None,
+                        event_type  : Optional[str]           = None,
+                        by          : Optional[Person]        = None,
+                        doc         : Optional[Document]      = None) -> Iterator[BallotDocumentEvent]:
         """
         A generator returning information about ballot document events.
 
@@ -1216,13 +1212,9 @@ class DataTracker:
             since        -- Only return ballot document events with timestamp after this
             until        -- Only return ballot document events with timestamp after this
             ballot_type  -- Only return ballot document events of this ballot type
-            by           -- Only return ballot document events by this person
-            desc         -- Only return ballot document events with this description
-            doc          -- Only return ballot document events that relate to this document
-            docevent_ptr -- Only return ballot document events that relate to this document event
-            id           -- Only return ballot document events with this ID
-            rev          -- Only return ballot document events with this revision number
             event_type   -- Only return ballot document events with this type
+            by           -- Only return ballot document events by this person
+            doc          -- Only return ballot document events that relate to this document
 
         Returns:
            A sequence of BallotDocumentEvent objects
@@ -1231,24 +1223,11 @@ class DataTracker:
         url.params["time__gt"] = since
         url.params["time__lt"] = until
         if ballot_type is not None:
-            ballot_type_obj = self.ballot_type(ballot_type)
-            if ballot_type_obj is not None:
-                url.params["ballot_type"] = ballot_type_obj.id
+            url.params["ballot_type"] = ballot_type.id
         if by is not None:
-            person = self.person(by)
-            if person is not None:
-                url.params["by"] = person.id
-        url.params["desc"] = desc
+            url.params["by"] = by.id
         if doc is not None:
-            document = self.document(doc)
-            if document is not None:
-                url.params["doc"] = document.id
-        if docevent_ptr is not None:
-            document_event = self.document_event(docevent_ptr)
-            if document_event is not None:
-                url.params["docevent_ptr"] = document_event.id
-        url.params["id"] = id
-        url.params["rev"] = rev
+            url.params["doc"] = doc.id
         url.params["type"] = event_type
         return self._retrieve_multi(url, BallotDocumentEvent)
     

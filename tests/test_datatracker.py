@@ -1028,54 +1028,18 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_ballot_document_events(self) -> None:
-        es = self.dt.ballot_document_events()
-        self.assertIsNot(es, None)
+        d  = self.dt.document_from_draft("draft-ietf-avtcore-rtp-circuit-breakers")
+        de = list(self.dt.ballot_document_events(doc=d))
+        self.assertEqual(len(de), 2)
+        self.assertEqual(de[0].id, 478676)
+        self.assertEqual(de[1].id, 461800)
 
-
-    def test_ballot_document_events_type(self) -> None:
-        es = self.dt.ballot_document_events(event_type="closed_ballot")
-        self.assertIsNot(es, None)
-
-
-    def test_ballot_document_events_rev(self) -> None:
-        es = list(self.dt.ballot_document_events(rev=42))
-        self.assertEqual(len(es), 2)
-        self.assertEqual(es[0].id, 711417)
-        self.assertEqual(es[1].id, 289200)
-
-
-    def test_ballot_document_events_id(self) -> None:
-        es = list(self.dt.ballot_document_events(id=711417))
-        self.assertEqual(len(es), 1)
-        self.assertEqual(es[0].id, 711417)
-
-
-    def test_ballot_document_events_docevent_ptr(self) -> None:
-        es = list(self.dt.ballot_document_events(docevent_ptr=DocumentEventURI("/api/v1/doc/docevent/711417/")))
-        self.assertEqual(len(es), 1)
-        self.assertEqual(es[0].id, 711417)
-
-
-    def test_ballot_document_events_doc(self) -> None:
-        es = list(self.dt.ballot_document_events(doc=DocumentURI("/api/v1/doc/document/draft-ietf-isis-yang-isis-cfg/")))
-        self.assertEqual(len(es), 2)
-        self.assertEqual(es[0].id, 711417)
-        self.assertEqual(es[1].id, 708537)
-
-
-    def test_ballot_document_events_desc(self) -> None:
-        es = self.dt.ballot_document_events(desc='Closed "Approve" ballot')
-        self.assertIsNot(es, None)
-
-
-    def test_ballot_document_events_by(self) -> None:
-        es = self.dt.ballot_document_events(by=PersonURI("/api/v1/person/person/106460/"))
-        self.assertIsNot(es, None)
-    
-    
-    def test_ballot_document_events_ballot_type(self) -> None:
-        es = self.dt.ballot_document_events(ballot_type=BallotTypeURI("/api/v1/doc/ballottype/4/"))
-        self.assertIsNot(es, None)
+        bt = self.dt.ballot_type(BallotTypeURI("/api/v1/doc/ballottype/3/")) # Charter approval
+        p  = self.dt.person(PersonURI("/api/v1/person/person/108756/"))      # Cindy Morgan
+        d  = self.dt.document(DocumentURI("/api/v1/doc/document/charter-ietf-rmcat/"))
+        de = list(self.dt.ballot_document_events(doc = d, ballot_type = bt, by = p, event_type = "closed_ballot"))
+        self.assertEqual(len(de), 1)
+        self.assertEqual(de[0].id, 304166)
 
 
     def test_documents_authored_by_person(self) -> None:
