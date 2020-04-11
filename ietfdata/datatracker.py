@@ -1142,28 +1142,20 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/doc/documenturl/
     #   https://datatracker.ietf.org/api/v1/doc/statedocevent/                   - subset of /api/v1/doc/docevent/; same parameters
  
-    #   https://datatracker.ietf.org/api/v1/name/ballotpositionname/
+    # * https://datatracker.ietf.org/api/v1/name/ballotpositionname/
     
     def ballot_position_name(self, ballot_position_name_uri : BallotPositionNameURI) -> Optional[BallotPositionName]:
         return self._retrieve(ballot_position_name_uri, BallotPositionName)
 
 
     def ballot_position_names(self,
-                              blocking : Optional[bool] = None,
-                              desc     : Optional[str]  = None,
-                              name     : Optional[str]  = None,
-                              order    : Optional[int]  = None,
-                              slug     : Optional[str]  = None,
-                              used     : Optional[bool] = None) -> Iterator[BallotPositionName]:
+            blocking : Optional[bool] = None,
+            used     : Optional[bool] = True) -> Iterator[BallotPositionName]:
         """
         A generator returning information about ballot position names.
 
         Parameters:
             blocking     -- Only return ballot position names with this value of blocking
-            desc         -- Only return ballot position names with this desc
-            name         -- Only return ballot position names with this name
-            order        -- Only return ballot position names with this order
-            slug         -- Only return ballot position names with this slug
             used         -- Only return ballot position names with this value of used
 
         Returns:
@@ -1171,14 +1163,10 @@ class DataTracker:
         """
         url = BallotPositionNameURI("/api/v1/name/ballotpositionname/")
         url.params["blocking"] = blocking
-        url.params["desc"]     = desc
-        url.params["name"]     = name
-        url.params["order"]    = order
-        url.params["slug"]     = slug
         url.params["used"]     = used
         return self._retrieve_multi(url, BallotPositionName)
 
-    #   https://datatracker.ietf.org/api/v1/doc/ballottype/                      - Types of ballot that can be issued on a document
+    # * https://datatracker.ietf.org/api/v1/doc/ballottype/                      - Types of ballot that can be issued on a document
  
     def ballot_type(self, ballot_type_uri : BallotTypeURI) -> Optional[BallotType]:
         return self._retrieve(ballot_type_uri, BallotType)

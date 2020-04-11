@@ -960,26 +960,9 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(bps[1].slug, "discuss")
 
 
-    def test_ballot_position_names_name(self) -> None:
-        bps = list(self.dt.ballot_position_names(name="Block"))
-        self.assertEqual(len(bps), 1)
-        self.assertEqual(bps[0].slug, "block")
-
-
-    def test_ballot_position_names_order(self) -> None:
-        bps = list(self.dt.ballot_position_names(order=3))
-        self.assertEqual(len(bps), 2)
-        self.assertEqual(bps[0].slug, "block")
-        self.assertEqual(bps[1].slug, "discuss")
-
-
-    def test_ballot_position_names_slug(self) -> None:
-        bps = list(self.dt.ballot_position_names(slug="block"))
-        self.assertEqual(len(bps), 1)
-        self.assertEqual(bps[0].slug, "block")
-
-
     def test_ballot_position_names_used(self) -> None:
+        bps = list(self.dt.ballot_position_names(used=True))
+        self.assertEqual(len(bps), 9)
         bps = list(self.dt.ballot_position_names(used=False))
         self.assertEqual(len(bps), 0)
 
