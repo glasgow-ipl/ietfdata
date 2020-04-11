@@ -1102,6 +1102,7 @@ class DataTracker:
         return self._retrieve_multi(url, DocumentEvent)
 
 
+    # Datatracker API endpoints returning information about document authorship:
     # * https://datatracker.ietf.org/api/v1/doc/documentauthor/?document=...     - authors of a document
     # * https://datatracker.ietf.org/api/v1/doc/documentauthor/?person=...       - documents by person
     # * https://datatracker.ietf.org/api/v1/doc/documentauthor/?email=...        - documents by person
@@ -1124,37 +1125,34 @@ class DataTracker:
         return self._retrieve_multi(url, DocumentAuthor)
 
 
+    # Datatracker API endpoints returning information about document history:
     #   https://datatracker.ietf.org/api/v1/doc/dochistory/
     #   https://datatracker.ietf.org/api/v1/doc/dochistoryauthor/
-    #   https://datatracker.ietf.org/api/v1/doc/docreminder/
-    #   https://datatracker.ietf.org/api/v1/doc/documenturl/
-    #   https://datatracker.ietf.org/api/v1/doc/statedocevent/                   - subset of /api/v1/doc/docevent/; same parameters
- 
+
+    # FIXME: to add
+
+
+    # Datatracker API endpoints returning information about document ballots:
     # * https://datatracker.ietf.org/api/v1/name/ballotpositionname/
+    # * https://datatracker.ietf.org/api/v1/doc/ballottype/                      - Types of ballot that can be issued on a document
+    # * https://datatracker.ietf.org/api/v1/doc/ballotdocevent/                  - Types of ballot that can be issued on a document
     
     def ballot_position_name(self, ballot_position_name_uri : BallotPositionNameURI) -> Optional[BallotPositionName]:
         return self._retrieve(ballot_position_name_uri, BallotPositionName)
 
 
-    def ballot_position_names(self,
-            blocking : Optional[bool] = None,
-            used     : Optional[bool] = True) -> Iterator[BallotPositionName]:
+    def ballot_position_names(self) -> Iterator[BallotPositionName]:
         """
-        A generator returning information about ballot position names.
-
-        Parameters:
-            blocking     -- Only return ballot position names with this value of blocking
-            used         -- Only return ballot position names with this value of used
+        A generator returning information about ballot position names. These describe
+        the names of the responses that a person can give to a ballot (e.g., "Discuss",
+        "Abstain", "No Objection", ...).
 
         Returns:
            A sequence of BallotPositionName objects
         """
         url = BallotPositionNameURI("/api/v1/name/ballotpositionname/")
-        url.params["blocking"] = blocking
-        url.params["used"]     = used
         return self._retrieve_multi(url, BallotPositionName)
 
-    # * https://datatracker.ietf.org/api/v1/doc/ballottype/                      - Types of ballot that can be issued on a document
  
     def ballot_type(self, ballot_type_uri : BallotTypeURI) -> Optional[BallotType]:
         return self._retrieve(ballot_type_uri, BallotType)
@@ -1180,7 +1178,6 @@ class DataTracker:
         return self._retrieve_multi(url, BallotType)
 
 
-    # * https://datatracker.ietf.org/api/v1/doc/ballotdocevent/                  - Types of ballot that can be issued on a document
     
     def ballot_document_event(self, ballot_event_uri : BallotDocumentEventURI) -> Optional[BallotDocumentEvent]:
         return self._retrieve(ballot_event_uri, BallotDocumentEvent)
@@ -1219,6 +1216,11 @@ class DataTracker:
         url.params["type"] = event_type
         return self._retrieve_multi(url, BallotDocumentEvent)
     
+
+    #   https://datatracker.ietf.org/api/v1/doc/docreminder/
+    #   https://datatracker.ietf.org/api/v1/doc/documenturl/
+    #   https://datatracker.ietf.org/api/v1/doc/statedocevent/                   - subset of /api/v1/doc/docevent/; same parameters
+ 
     #   https://datatracker.ietf.org/api/v1/doc/newrevisiondocevent/             -               "                "
     #   https://datatracker.ietf.org/api/v1/doc/submissiondocevent/              -               "                "
     #   https://datatracker.ietf.org/api/v1/doc/writeupdocevent/                 -               "                "

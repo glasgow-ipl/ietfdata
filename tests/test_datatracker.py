@@ -934,20 +934,6 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(bps[8].slug, "norecord")
 
 
-    def test_ballot_position_names_blocking(self) -> None:
-        bps = list(self.dt.ballot_position_names(blocking=True))
-        self.assertEqual(len(bps), 2)
-        self.assertEqual(bps[0].slug, "block")
-        self.assertEqual(bps[1].slug, "discuss")
-
-
-    def test_ballot_position_names_used(self) -> None:
-        bps = list(self.dt.ballot_position_names(used=True))
-        self.assertEqual(len(bps), 9)
-        bps = list(self.dt.ballot_position_names(used=False))
-        self.assertEqual(len(bps), 0)
-
-
     def test_ballot_type(self) -> None:
         bt = self.dt.ballot_type(BallotTypeURI("/api/v1/doc/ballottype/5/"))
         if bt is not None:
