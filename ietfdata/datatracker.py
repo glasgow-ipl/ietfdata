@@ -824,8 +824,8 @@ class DataTracker:
             else:
                 print("_retrieve failed: {} {}".format(r.status_code, self.base_url + resource_uri.uri))
                 return None 
-        return self.pavlova.from_mapping(obj_json, obj_type) # type: T
-
+        obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
+        return obj
 
     def _retrieve_multi(self, resource_uri: URI, obj_type: Type[T]) -> Iterator[T]:
         resource_uri.params["limit"] = "100"
@@ -836,8 +836,10 @@ class DataTracker:
                 meta = r.json()['meta']
                 objs = r.json()['objects']
                 resource_uri  = URI(meta['next'])
-                for obj in objs:
-                    yield self.pavlova.from_mapping(obj, obj_type)
+                for obj_json in objs:
+                    obj = self.pavlova.from_mapping(obj_json, obj_type)
+                    self._cache_obj(obj.resource_uri, obj_json)
+                    yield obj
             else:
                 print("_retrieve_multi failed: {}".format(r.status_code))
                 print(r.status_code)
