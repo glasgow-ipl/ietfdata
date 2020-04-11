@@ -902,13 +902,15 @@ class DataTracker:
 
     def emails(self,
                since : str ="1970-01-01T00:00:00",
-               until : str ="2038-01-19T03:14:07") -> Iterator[Email]:
+               until : str ="2038-01-19T03:14:07",
+               addr_contains : Optional[str] = None) -> Iterator[Email]:
         """
         A generator that returns email addresses recorded in the datatracker.
 
         Parameters:
-            since         -- Only return people with timestamp after this
-            until         -- Only return people with timestamp before this
+            since         -- Only return email addresses with timestamp after this
+            until         -- Only return email addresses with timestamp before this
+            addr_contains -- Only return email addresses containing this substring
 
         Returns:
             An iterator, where each element is an Email object
@@ -916,6 +918,7 @@ class DataTracker:
         url = EmailURI("/api/v1/person/email/")
         url.params["time__gte"] = since
         url.params["time__lt"]   = until
+        url.params["address__contains"] = addr_contains
         return self._retrieve_multi(url, Email)
 
 
