@@ -789,7 +789,8 @@ class DataTracker:
         headers = {'user-agent': self.ua}
         r = self.session.get(self.base_url + resource_uri.uri, params=resource_uri.params, headers=headers, verify=True, stream=False)
         if r.status_code == 200:
-            return self.pavlova.from_mapping(r.json(), obj_type)
+            obj = self.pavlova.from_mapping(r.json(), obj_type) # type: T
+            return obj
         else:
             print("_retrieve failed: {} {}".format(r.status_code, self.base_url + resource_uri.uri))
             return None
