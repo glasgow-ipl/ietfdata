@@ -1046,34 +1046,20 @@ class DataTracker:
         return self._retrieve(state_uri, DocumentState)
 
 
-    def document_states(self, statetype : Optional[str] = None) -> Iterator[DocumentState]:
-        """
-        A generator returning the possible states a document can be in.
-
-        Parameters:
-           statetype -- The 'slug' field from one of the dicts returned by the
-                        document_state_types() method; constrains the results
-                        to that particular state type.
-
-        Returns:
-            A sequence of Document objects, as returned by document_state()
-        """
-        url   = DocumentStateURI("/api/v1/doc/state/")
-        url.params["type"] = statetype
+    def document_states(self, state_type : Optional[DocumentStateType] = None) -> Iterator[DocumentState]:
+        url = DocumentStateURI("/api/v1/doc/state/")
+        if state_type is not None:
+            url.params["type"] = state_type.slug
         return self._retrieve_multi(url, DocumentState)
 
 
-    def document_state_types(self) -> Iterator[DocumentStateType]:
-        """
-        A generator returning possible state types for a document.
-        These are the possible values of the 'type' field in the
-        output of document_state(), or the statetype parameter to
-        document_states().
+    def document_state_type(self, state_type_uri : DocumentStateTypeURI) -> Optional[DocumentStateType]:
+        return self._retrieve(state_type_uri, DocumentStateType)
 
-        Returns:
-           A sequence of StateType objects
-        """
-        return self._retrieve_multi(DocumentStateTypeURI("/api/v1/doc/statetype/"), DocumentStateType)
+
+    def document_state_types(self) -> Iterator[DocumentStateType]:
+        url = DocumentStateTypeURI("/api/v1/doc/statetype/")
+        return self._retrieve_multi(url, DocumentStateType)
 
 
     # Datatracker API endpoints returning information about document events:

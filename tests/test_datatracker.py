@@ -787,25 +787,26 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(len(d), 1)
         self.assertEqual(d[0].resource_uri, DocumentURI("/api/v1/doc/document/draft-crocker-rfc4234bis/"))
 
-    # FIXME: this needs to be updated
+
     def test_document_state(self) -> None:
         s = self.dt.document_state(DocumentStateURI('/api/v1/doc/state/7/'))
         if s is not None:
-            self.assertEqual(s.desc,         'The ID has been published as an RFC.')
             self.assertEqual(s.id,           7)
-            self.assertEqual(s.name,         'RFC Published')
-            self.assertEqual(s.next_states,  [DocumentStateURI('/api/v1/doc/state/8/')])
+            self.assertEqual(s.resource_uri, DocumentStateURI("/api/v1/doc/state/7/"))
+            self.assertEqual(s.name,         "RFC Published")
+            self.assertEqual(s.desc,         "The ID has been published as an RFC.")
+            self.assertEqual(s.type,         DocumentStateTypeURI("/api/v1/doc/statetype/draft-iesg/"))
+            self.assertEqual(s.next_states,  [DocumentStateURI("/api/v1/doc/state/8/")])
             self.assertEqual(s.order,        32)
-            self.assertEqual(s.resource_uri, DocumentStateURI('/api/v1/doc/state/7/'))
-            self.assertEqual(s.slug,         'pub')
-            self.assertEqual(s.type,         DocumentStateTypeURI('/api/v1/doc/statetype/draft-iesg/'))
+            self.assertEqual(s.slug,         "pub")
             self.assertEqual(s.used,         True)
         else:
             self.fail("Cannot find state")
 
-    # FIXME: this needs to be updated
+
     def test_document_states(self) -> None:
-        states = list(self.dt.document_states(statetype="draft-rfceditor"))
+        st = self.dt.document_state_type(DocumentStateTypeURI("/api/v1/doc/statetype/draft-rfceditor/"))
+        states = list(self.dt.document_states(state_type = st))
         self.assertEqual(len(states), 19)
         self.assertEqual(states[ 0].name, 'AUTH')
         self.assertEqual(states[ 1].name, 'AUTH48')
@@ -827,7 +828,17 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(states[17].name, 'Pending')
         self.assertEqual(states[18].name, 'TI')
 
-    # FIXME: this needs to be updated
+
+    def test_document_state_type(self) -> None:
+        st = self.dt.document_state_type(DocumentStateTypeURI("/api/v1/doc/statetype/draft-rfceditor/"))
+        if st is not None:
+            self.assertEqual(st.resource_uri, DocumentStateTypeURI("/api/v1/doc/statetype/draft-rfceditor/"))
+            self.assertEqual(st.slug,         "draft-rfceditor")
+            self.assertEqual(st.label,        "RFC Editor state")
+        else:
+            self.fail("Cannot find state type")
+
+
     def test_document_state_types(self) -> None:
         st = list(self.dt.document_state_types())
         self.assertEqual(len(st), 24)
