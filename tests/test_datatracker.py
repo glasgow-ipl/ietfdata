@@ -956,20 +956,6 @@ class TestDatatracker(unittest.TestCase):
             self.fail("Could not find ballot type")
 
 
-    def test_ballot_types_used(self) -> None:
-        bts = list(self.dt.ballot_types(used=True))
-        self.assertEqual(len(bts), 7)
-        self.assertEqual(bts[0].slug, "conflrev")
-        self.assertEqual(bts[1].slug, "statchg")
-        self.assertEqual(bts[2].slug, "irsg-approve")
-        self.assertEqual(bts[3].slug, "r-extrev")
-        self.assertEqual(bts[4].slug, "approve")
-        self.assertEqual(bts[5].slug, "r-wo-ext")
-        self.assertEqual(bts[6].slug, "approve")      
-        bts = list(self.dt.ballot_types(used=False))
-        self.assertEqual(len(bts), 0)
-
-
     def test_ballot_types_doctype(self) -> None:
         bts = list(self.dt.ballot_types(self.dt.document_type("draft")))
         self.assertEqual(len(bts), 2)

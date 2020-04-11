@@ -1158,15 +1158,12 @@ class DataTracker:
         return self._retrieve(ballot_type_uri, BallotType)
 
 
-    def ballot_types(self,
-                     doc_type : Optional[DocumentType] = None,
-                     used     : Optional[bool]         = True) -> Iterator[BallotType]:
+    def ballot_types(self, doc_type : Optional[DocumentType]) -> Iterator[BallotType]:
         """
         A generator returning information about ballot types.
 
         Parameters:
-            doc_type     -- Only return ballot types with this document type slug
-            used         -- Only return ballot types with this value of used
+            doc_type     -- Only return ballot types relating to this document type
 
         Returns:
            A sequence of BallotType objects
@@ -1174,7 +1171,6 @@ class DataTracker:
         url = BallotTypeURI("/api/v1/doc/ballottype/")
         if doc_type is not None:
             url.params["doc_type"] = doc_type.slug
-        url.params["used"] = used
         return self._retrieve_multi(url, BallotType)
 
 
