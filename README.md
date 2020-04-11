@@ -1,38 +1,37 @@
-ietf-data -- Access the IETF DataTracker and related resources
-==============================================================
+ietf-data - Access the IETF DataTracker and related resources
+=============================================================
 
-  Colin Perkins
-  https://csperkins.org/
+https://github.com/glasgow-ipl/ietfdata
 
-  This project contains Python 3 libraries to interact with, and
-  access, the (IETF data tracker)[https://datatracker.ietf.org], 
-  (RFC index)[https://www.rfc-editor.org], and related resources.
+This project contains Python 3 libraries to interact with, and
+access, the (IETF data tracker)[https://datatracker.ietf.org], 
+(RFC index)[https://www.rfc-editor.org], and related resources.
 
 
 
 Getting started
 ---------------
 
-  The project uses Pipenv for dependency management. To begin, run:
-  ```~~~~~~~~
-  pipenv install --dev
-  ```
-  to create a Python virtual environment with appropriate packages install.
-  Then, run:
-  ```~~~~~~~~
-  pipenv shell
-  ```
-  to start the virtual environment, within which you can run the scripts.
+The project uses Pipenv for dependency management. To begin, run:
+```~~~~~~~~
+pipenv install --dev
+```
+to create a Python virtual environment with appropriate packages install.
+Then, run:
+```~~~~~~~~
+pipenv shell
+```
+to start the virtual environment, within which you can run the scripts.
 
-  Once the virtual environment is started, running:
-  ```~~~~~~~~
-  python3 tests/test_datatracker.py 
-  ```
-  will run the test suite for the datatracker module. Running:
-  ```~~~~~~~~
-  python3 tests/test_rfcindex.py
-  ```
-  Will test the rfcindex module.
+Once the virtual environment is started, running:
+```~~~~~~~~
+python3 tests/test_datatracker.py 
+```
+will run the test suite for the datatracker module. Running:
+```~~~~~~~~
+python3 tests/test_rfcindex.py
+```
+Will test the rfcindex module.
 
 
 
