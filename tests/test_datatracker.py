@@ -27,6 +27,7 @@ import unittest
 import os
 import sys
 
+from pathlib       import Path
 from unittest.mock import patch, Mock
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -46,7 +47,7 @@ class TestDatatracker(unittest.TestCase):
 
     @classmethod
     def setUpClass(self) -> None:
-        self.dt = DataTracker(cachedir="cache")
+        self.dt = DataTracker(cachedir=Path("cache"))
 
     def test_email(self) -> None:
         e  = self.dt.email(EmailURI("/api/v1/person/email/csp@csperkins.org"))
