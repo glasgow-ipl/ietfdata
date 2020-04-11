@@ -1134,8 +1134,10 @@ class DataTracker:
 
     # Datatracker API endpoints returning information about document ballots:
     # * https://datatracker.ietf.org/api/v1/name/ballotpositionname/
-    # * https://datatracker.ietf.org/api/v1/doc/ballottype/                      - Types of ballot that can be issued on a document
-    # * https://datatracker.ietf.org/api/v1/doc/ballotdocevent/                  - Types of ballot that can be issued on a document
+    #   https://datatracker.ietf.org/api/v1/doc/ballotpositiondocevent/
+    # * https://datatracker.ietf.org/api/v1/doc/ballottype/
+    # * https://datatracker.ietf.org/api/v1/doc/ballotdocevent/
+    # * https://datatracker.ietf.org/api/v1/doc/irsgballotdocevent/     -- This doesn't seem to be used
     
     def ballot_position_name(self, ballot_position_name_uri : BallotPositionNameURI) -> Optional[BallotPositionName]:
         return self._retrieve(ballot_position_name_uri, BallotPositionName)
@@ -1221,7 +1223,6 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/doc/submissiondocevent/              -               "                "
     #   https://datatracker.ietf.org/api/v1/doc/writeupdocevent/                 -               "                "
     #   https://datatracker.ietf.org/api/v1/doc/consensusdocevent/               -               "                "
-    #   https://datatracker.ietf.org/api/v1/doc/ballotpositiondocevent/          -               "                "
     #   https://datatracker.ietf.org/api/v1/doc/reviewrequestdocevent/           -               "                "
     #   https://datatracker.ietf.org/api/v1/doc/lastcalldocevent/                -               "                "
     #   https://datatracker.ietf.org/api/v1/doc/telechatdocevent/                -               "                "
