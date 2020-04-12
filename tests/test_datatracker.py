@@ -734,10 +734,30 @@ class TestDatatracker(unittest.TestCase):
             self.fail("Cannot find document")
 
 
-
-    # FIXME: this needs to be updated
-#    def test_documents(self):
-#        documents = list(self.dt.documents(since="2007-01-01T00:00:00", until="2007-12-31T23:59:59", doctype="draft", group="941"))
+    def test_documents(self):
+        documents = list(self.dt.documents(doctype=self.dt.document_type("draft"), group=self.dt.group_from_acronym("xrblock")))
+        self.assertEqual(len(documents), 21)
+        self.assertEqual(documents[ 0].name, "draft-ietf-xrblock-rtcp-xr-discard-rle-metrics")
+        self.assertEqual(documents[ 1].name, "draft-ietf-xrblock-rtcp-xr-pdv")
+        self.assertEqual(documents[ 2].name, "draft-ietf-xrblock-rtcp-xr-meas-identity")
+        self.assertEqual(documents[ 3].name, "draft-ietf-xrblock-rtcp-xr-delay")
+        self.assertEqual(documents[ 4].name, "draft-ietf-xrblock-rtcp-xr-burst-gap-loss")
+        self.assertEqual(documents[ 5].name, "draft-ietf-xrblock-rtcp-xr-burst-gap-discard")
+        self.assertEqual(documents[ 6].name, "draft-ietf-xrblock-rtcp-xr-discard")
+        self.assertEqual(documents[ 7].name, "draft-ietf-xrblock-rtcp-xr-qoe")
+        self.assertEqual(documents[ 8].name, "draft-ietf-xrblock-rtcp-xr-jb")
+        self.assertEqual(documents[ 9].name, "draft-ietf-xrblock-rtcp-xr-loss-conceal")
+        self.assertEqual(documents[10].name, "draft-ietf-xrblock-rtcp-xr-concsec")
+        self.assertEqual(documents[11].name, "draft-ietf-xrblock-rtcp-xr-synchronization")
+        self.assertEqual(documents[12].name, "draft-ietf-xrblock-rtcp-xr-summary-stat")
+        self.assertEqual(documents[13].name, "draft-ietf-xrblock-rtcp-xr-decodability")
+        self.assertEqual(documents[14].name, "draft-ietf-xrblock-rtcp-xr-bytes-discarded-metric")
+        self.assertEqual(documents[15].name, "draft-ietf-xrblock-rtcp-xt-discard-metrics")
+        self.assertEqual(documents[16].name, "draft-ietf-xrblock-rtcp-xr-post-repair-loss-count")
+        self.assertEqual(documents[17].name, "draft-ietf-xrblock-rtcp-xr-psi-decodability")
+        self.assertEqual(documents[18].name, "draft-ietf-xrblock-rtcweb-rtcp-xr-metrics")
+        self.assertEqual(documents[19].name, "draft-ietf-xrblock-rtcp-xr-video-lc")
+        self.assertEqual(documents[20].name, "draft-ietf-xrblock-independent-burst-gap-discard")
 
 
     # FIXME: this needs to be updated
