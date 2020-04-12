@@ -262,25 +262,9 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_people(self) -> None:
-        p  = list(self.dt.people(since="2018-04-01T00:00:00", until="2018-04-30T23:59:59"))
-        self.assertEqual(len(p), 17)
-        self.assertEqual(p[ 0].resource_uri, PersonURI("/api/v1/person/person/124773/"))
-        self.assertEqual(p[ 1].resource_uri, PersonURI("/api/v1/person/person/124759/"))
-        self.assertEqual(p[ 2].resource_uri, PersonURI("/api/v1/person/person/124760/"))
-        self.assertEqual(p[ 3].resource_uri, PersonURI("/api/v1/person/person/124763/"))
-        self.assertEqual(p[ 4].resource_uri, PersonURI("/api/v1/person/person/124765/"))
-        self.assertEqual(p[ 5].resource_uri, PersonURI("/api/v1/person/person/124766/"))
-        self.assertEqual(p[ 6].resource_uri, PersonURI("/api/v1/person/person/124767/"))
-        self.assertEqual(p[ 7].resource_uri, PersonURI("/api/v1/person/person/124768/"))
-        self.assertEqual(p[ 8].resource_uri, PersonURI("/api/v1/person/person/124769/"))
-        self.assertEqual(p[ 9].resource_uri, PersonURI("/api/v1/person/person/124770/"))
-        self.assertEqual(p[10].resource_uri, PersonURI("/api/v1/person/person/124771/"))
-        self.assertEqual(p[11].resource_uri, PersonURI("/api/v1/person/person/124772/"))
-        self.assertEqual(p[12].resource_uri, PersonURI("/api/v1/person/person/124774/"))
-        self.assertEqual(p[13].resource_uri, PersonURI("/api/v1/person/person/124775/"))
-        self.assertEqual(p[14].resource_uri, PersonURI("/api/v1/person/person/124776/"))
-        self.assertEqual(p[15].resource_uri, PersonURI("/api/v1/person/person/124779/"))
-        self.assertEqual(p[16].resource_uri, PersonURI("/api/v1/person/person/124780/"))
+        p  = list(self.dt.people(name_contains="Colin Perkins"))
+        self.assertEqual(len(p), 1)
+        self.assertEqual(p[ 0].resource_uri, PersonURI("/api/v1/person/person/20209/"))
 
 
     # -----------------------------------------------------------------------------------------------------------------------------
