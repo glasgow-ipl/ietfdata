@@ -800,10 +800,8 @@ class DataTracker:
 
 
     def _cache_filepath(self, resource_uri: URI) -> Path:
-        if self.cache_dir is not None:
-            return Path(self.cache_dir, resource_uri.uri[1:-1] + ".json")
-        else:
-            return Path(".")
+        assert self.cache_dir is not None
+        return Path(self.cache_dir, resource_uri.uri[1:-1] + ".json")
 
 
     def _obj_is_cached(self, resource_uri: URI) -> bool:
