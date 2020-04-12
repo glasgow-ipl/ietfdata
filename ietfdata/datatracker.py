@@ -826,7 +826,7 @@ class DataTracker:
 
 
     def _retrieve(self, resource_uri: URI, obj_type: Type[T]) -> Optional[T]:
-        headers = {'user-agent': self.ua}
+        headers = {'User-Agent': self.ua}
         if self._obj_is_cached(resource_uri):
             obj_json = self._retrieve_from_cache(resource_uri)
         else:
