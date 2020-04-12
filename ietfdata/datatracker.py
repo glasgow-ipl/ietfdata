@@ -48,10 +48,9 @@ from datetime    import datetime, timedelta
 from enum        import Enum
 from typing      import List, Optional, Tuple, Dict, Iterator, Type, TypeVar, Any
 from dataclasses import dataclass, field
+from pathlib     import Path
 from pavlova     import Pavlova
 from pavlova.parsers import GenericParser
-
-T = TypeVar('T')
 
 import glob
 import json
@@ -83,6 +82,16 @@ class GroupURI(URI):
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------
+# Resource type
+
+@dataclass(frozen=True)
+class Resource:
+    resource_uri : URI
+
+T = TypeVar('T', bound=Resource)
+
+
+# ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to people:
 
 @dataclass(frozen=True)
@@ -92,7 +101,7 @@ class PersonURI(URI):
 
 
 @dataclass(frozen=True)
-class Person:
+class Person(Resource):
     resource_uri    : PersonURI
     id              : int
     name            : str
@@ -123,7 +132,7 @@ class PersonAliasURI(URI):
 
 
 @dataclass(frozen=True)
-class PersonAlias:
+class PersonAlias(Resource):
     id                 : int
     resource_uri       : PersonAliasURI
     person             : PersonURI
@@ -137,7 +146,7 @@ class PersonEventURI(URI):
 
 
 @dataclass(frozen=True)
-class PersonEvent:
+class PersonEvent(Resource):
     desc            : str
     id              : int
     person          : PersonURI
@@ -156,7 +165,7 @@ class EmailURI(URI):
 
 
 @dataclass(frozen=True)
-class Email:
+class Email(Resource):
     resource_uri : EmailURI
     person       : PersonURI
     address      : str # The email address
@@ -185,7 +194,7 @@ class DocumentTypeURI(URI):
 
 
 @dataclass(frozen=True)
-class DocumentType:
+class DocumentType(Resource):
     resource_uri : DocumentTypeURI
     name         : str
     used         : bool
@@ -202,7 +211,7 @@ class DocumentStateTypeURI(URI):
 
 
 @dataclass(frozen=True)
-class DocumentStateType:
+class DocumentStateType(Resource):
     resource_uri : DocumentStateTypeURI
     label        : str
     slug         : str
@@ -215,7 +224,7 @@ class DocumentStateURI(URI):
 
 
 @dataclass(frozen=True)
-class DocumentState:
+class DocumentState(Resource):
     id           : int
     resource_uri : DocumentStateURI
     desc         : str
@@ -234,7 +243,7 @@ class StreamURI(URI):
 
 
 @dataclass(frozen=True)
-class Stream:
+class Stream(Resource):
     resource_uri : StreamURI
     name         : str
     desc         : str
@@ -256,7 +265,7 @@ class SubmissionCheckURI(URI):
         
 
 @dataclass(frozen=True)
-class Submission:
+class Submission(Resource):
     abstract        : str
     access_key      : str
     auth_key        : str
@@ -297,7 +306,7 @@ class SubmissionEventURI(URI):
 
 
 @dataclass(frozen=True)
-class SubmissionEvent:
+class SubmissionEvent(Resource):
     by              : Optional[PersonURI]
     desc            : str
     id              : int
@@ -309,7 +318,7 @@ class SubmissionEvent:
 # DocumentURI is defined earlier, to avoid circular dependencies
 
 @dataclass(frozen=True)
-class Document:
+class Document(Resource):
     id                 : int
     resource_uri       : DocumentURI
     name               : str
@@ -393,7 +402,7 @@ class DocumentAliasURI(URI):
 
 
 @dataclass(frozen=True)
-class DocumentAlias:
+class DocumentAlias(Resource):
     id           : int
     resource_uri : DocumentAliasURI
     document     : DocumentURI
@@ -407,7 +416,7 @@ class DocumentEventURI(URI):
 
 
 @dataclass(frozen=True)
-class DocumentEvent:
+class DocumentEvent(Resource):
     by              : PersonURI
     desc            : str
     doc             : DocumentURI
@@ -425,7 +434,7 @@ class BallotPositionNameURI(URI):
 
 
 @dataclass(frozen=True)
-class BallotPositionName:
+class BallotPositionName(Resource):
     blocking     : bool
     desc         : Optional[str]
     name         : str
@@ -442,7 +451,7 @@ class BallotTypeURI(URI):
 
 
 @dataclass(frozen=True)
-class BallotType:
+class BallotType(Resource):
     doc_type     : DocumentTypeURI
     id           : int
     name         : str
@@ -461,7 +470,7 @@ class BallotDocumentEventURI(URI):
 
 
 @dataclass(frozen=True)
-class BallotDocumentEvent:
+class BallotDocumentEvent(Resource):
     ballot_type     : BallotTypeURI
     by              : PersonURI
     desc            : str
@@ -481,7 +490,7 @@ class RelationshipTypeURI(URI):
 
 
 @dataclass(frozen=True)
-class RelationshipType:
+class RelationshipType(Resource):
     resource_uri   : RelationshipTypeURI
     slug           : str
     desc           : str
@@ -498,7 +507,7 @@ class RelatedDocumentURI(URI):
 
 
 @dataclass(frozen=True)
-class RelatedDocument:
+class RelatedDocument(Resource):
     id              : int
     relationship    : RelationshipTypeURI
     resource_uri    : RelatedDocumentURI
@@ -511,7 +520,7 @@ class DocumentAuthorURI(URI):
         assert self.uri.startswith("/api/v1/doc/documentauthor/")
 
 @dataclass(frozen=True)
-class DocumentAuthor:
+class DocumentAuthor(Resource):
     id           : int
     order        : int
     resource_uri : DocumentAuthorURI
@@ -533,7 +542,7 @@ class GroupStateURI(URI):
 
 
 @dataclass(frozen=True)
-class GroupState:
+class GroupState(Resource):
     resource_uri   : GroupStateURI
     slug           : str
     desc           : str
@@ -546,7 +555,7 @@ class GroupState:
 
 
 @dataclass(frozen=True)
-class Group:
+class Group(Resource):
     acronym        : str
     ad             : Optional[PersonURI]
     charter        : Optional[DocumentURI]
@@ -588,7 +597,7 @@ class MeetingTypeURI(URI):
 
 
 @dataclass(frozen=True)
-class MeetingType:
+class MeetingType(Resource):
     name         : str
     order        : int
     resource_uri : MeetingTypeURI
@@ -604,7 +613,7 @@ class ScheduleURI(URI):
 
 
 @dataclass(frozen=True)
-class Schedule:
+class Schedule(Resource):
     """
     A particular version of the meeting schedule (i.e., the meeting agenda)
 
@@ -622,7 +631,7 @@ class Schedule:
 
 
 @dataclass(frozen=True)
-class Meeting:
+class Meeting(Resource):
     id                               : int
     resource_uri                     : MeetingURI
     type                             : MeetingTypeURI
@@ -679,7 +688,7 @@ class TimeslotURI(URI):
 
 
 @dataclass(frozen=True)
-class Timeslot:
+class Timeslot(Resource):
     id            : int
     resource_uri  : TimeslotURI
     type          : str               # FIXME: this is a URI "/api/v1/name/timeslottypename/regular/"
@@ -700,7 +709,7 @@ class SessionAssignmentURI(URI):
 
 
 @dataclass(frozen=True)
-class SessionAssignment:
+class SessionAssignment(Resource):
     """
     The assignment of a `session` to a `timeslot` within a meeting `schedule`
     """
@@ -718,7 +727,7 @@ class SessionAssignment:
 
 
 @dataclass(frozen=True)
-class Session:
+class Session(Resource):
     id                  : int
     type                : str           # FIXME: this is a URI
     name                : str
@@ -745,10 +754,15 @@ class DataTracker:
     """
     A class for interacting with the IETF DataTracker.
     """
-    def __init__(self):
+    def __init__(self, cache_dir: Optional[Path] = None):
+        """
+        Parameters:
+            cache_dir      -- If set, use this directory as a cache for Datatracker objects
+        """
         self.session  = requests.Session()
         self.ua       = "glasgow-ietfdata/0.2.0"          # Update when making a new relaase
         self.base_url = "https://datatracker.ietf.org"
+        self.cache_dir = cache_dir
         self.pavlova = Pavlova()
         # Please sort the following alphabetically:
         self.pavlova.register_parser(BallotDocumentEventURI, GenericParser(self.pavlova, BallotDocumentEventURI))
@@ -785,16 +799,46 @@ class DataTracker:
         self.session.close()
 
 
+    def _cache_filepath(self, resource_uri: URI) -> Path:
+        assert self.cache_dir is not None
+        return Path(self.cache_dir, resource_uri.uri[1:-1] + ".json")
+
+
+    def _obj_is_cached(self, resource_uri: URI) -> bool:
+        if self.cache_dir is None:
+            return False
+        return self._cache_filepath(resource_uri).exists()
+
+
+    def _retrieve_from_cache(self, resource_uri: URI) -> Dict[Any, Any]:
+        obj_json = {}
+        with open(self._cache_filepath(resource_uri)) as cache_file:
+            obj_json = json.load(cache_file)
+        return obj_json
+
+
+    def _cache_obj(self, resource_uri: URI, obj_json: Dict[Any, Any]) -> None:
+        if self.cache_dir is not None:
+            cache_filepath = self._cache_filepath(resource_uri)
+            cache_filepath.parent.mkdir(parents=True, exist_ok=True)
+            with open(cache_filepath, "w") as cache_file:
+                json.dump(obj_json, cache_file)
+
+
     def _retrieve(self, resource_uri: URI, obj_type: Type[T]) -> Optional[T]:
         headers = {'user-agent': self.ua}
-        r = self.session.get(self.base_url + resource_uri.uri, params=resource_uri.params, headers=headers, verify=True, stream=False)
-        if r.status_code == 200:
-            obj = self.pavlova.from_mapping(r.json(), obj_type) # type: T
-            return obj
+        if self._obj_is_cached(resource_uri):
+            obj_json = self._retrieve_from_cache(resource_uri)
         else:
-            print("_retrieve failed: {} {}".format(r.status_code, self.base_url + resource_uri.uri))
-            return None
-
+            r = self.session.get(self.base_url + resource_uri.uri, params=resource_uri.params, headers=headers, verify=True, stream=False)
+            if r.status_code == 200:
+                obj_json = r.json()
+                self._cache_obj(resource_uri, obj_json)
+            else:
+                print("_retrieve failed: {} {}".format(r.status_code, self.base_url + resource_uri.uri))
+                return None 
+        obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
+        return obj
 
     def _retrieve_multi(self, resource_uri: URI, obj_type: Type[T]) -> Iterator[T]:
         resource_uri.params["limit"] = "100"
@@ -805,8 +849,10 @@ class DataTracker:
                 meta = r.json()['meta']
                 objs = r.json()['objects']
                 resource_uri  = URI(meta['next'])
-                for obj in objs:
-                    yield self.pavlova.from_mapping(obj, obj_type)
+                for obj_json in objs:
+                    obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
+                    self._cache_obj(obj.resource_uri, obj_json)
+                    yield obj
             else:
                 print("_retrieve_multi failed: {}".format(r.status_code))
                 print(r.status_code)
