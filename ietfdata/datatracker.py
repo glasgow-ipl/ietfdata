@@ -754,15 +754,15 @@ class DataTracker:
     """
     A class for interacting with the IETF DataTracker.
     """
-    def __init__(self, cachedir: Optional[Path] = None):
+    def __init__(self, cache_dir: Optional[Path] = None):
         """
         Parameters:
-            cachedir      -- If set, use this directory as a cache for Datatracker objects
+            cache_dir      -- If set, use this directory as a cache for Datatracker objects
         """
         self.session  = requests.Session()
         self.ua       = "glasgow-ietfdata/0.2.0"          # Update when making a new relaase
         self.base_url = "https://datatracker.ietf.org"
-        self.cachedir = cachedir
+        self.cache_dir = cache_dir
         self.pavlova = Pavlova()
         # Please sort the following alphabetically:
         self.pavlova.register_parser(BallotDocumentEventURI, GenericParser(self.pavlova, BallotDocumentEventURI))
@@ -800,14 +800,14 @@ class DataTracker:
 
 
     def _cache_filepath(self, resource_uri: URI) -> Path:
-        if self.cachedir is not None:
-            return Path(self.cachedir, resource_uri.uri[1:-1] + ".json")
+        if self.cache_dir is not None:
+            return Path(self.cache_dir, resource_uri.uri[1:-1] + ".json")
         else:
             return Path(".")
 
 
     def _obj_is_cached(self, resource_uri: URI) -> bool:
-        if self.cachedir is None:
+        if self.cache_dir is None:
             return False
         return self._cache_filepath(resource_uri).exists()
 
@@ -820,7 +820,7 @@ class DataTracker:
 
 
     def _cache_obj(self, resource_uri: URI, obj_json: Dict[Any, Any]) -> None:
-        if self.cachedir is not None:
+        if self.cache_dir is not None:
             cache_filepath = self._cache_filepath(resource_uri)
             cache_filepath.parent.mkdir(parents=True, exist_ok=True)
             with open(cache_filepath, "w") as cache_file:
