@@ -28,12 +28,13 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+from pathlib              import Path
 from ietfdata.datatracker import *
 
 # =============================================================================
 # Example: print an organisational chart for the IETF
 
-dt = DataTracker(cache_dir="../cache")
+dt = DataTracker(cache_dir=Path("cache"))
 
 def print_group(group : Group, level : int):
     for i in range(0, level):
