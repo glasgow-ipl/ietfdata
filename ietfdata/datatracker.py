@@ -762,6 +762,7 @@ class DataTracker:
         self.session  = requests.Session()
         self.ua       = "glasgow-ietfdata/0.2.0"          # Update when making a new relaase
         self.base_url = "https://datatracker.ietf.org"
+        self.http_req = 0
         self.cache_dir = cache_dir
         self.pavlova = Pavlova()
         # Please sort the following alphabetically:
@@ -825,11 +826,21 @@ class DataTracker:
                 json.dump(obj_json, cache_file)
 
 
+    def _rate_limit(self) -> None:
+        # A trivial rate limiter. Called before every HTTP GET to the datatracker.
+        # The datatracker objects if more than 100 requests are made on a single
+        # persistent HTTP connection.
+        self.http_req += 1
+        if (self.http_req % 100) == 0:
+            self.session.close()
+
+
     def _retrieve(self, resource_uri: URI, obj_type: Type[T]) -> Optional[T]:
         headers = {'User-Agent': self.ua}
         if self._obj_is_cached(resource_uri):
             obj_json = self._retrieve_from_cache(resource_uri)
         else:
+            self._rate_limit()
             r = self.session.get(self.base_url + resource_uri.uri, params=resource_uri.params, headers=headers, verify=True, stream=False)
             if r.status_code == 200:
                 obj_json = r.json()
@@ -844,6 +855,7 @@ class DataTracker:
         resource_uri.params["limit"] = "100"
         while resource_uri.uri is not None:
             headers = {'user-agent': self.ua}
+            self._rate_limit()
             r = self.session.get(self.base_url + resource_uri.uri, params=resource_uri.params, headers=headers, verify=True, stream=False)
             if r.status_code == 200:
                 meta = r.json()['meta']
