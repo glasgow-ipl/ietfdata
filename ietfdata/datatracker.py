@@ -747,6 +747,39 @@ class Session(Resource):
     comments            : str
 
 
+# ---------------------------------------------------------------------------------------------------------------------------------
+# Types relating to mailing lists:
+
+@dataclass(frozen=True)
+class MailingListURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/mailinglists/list/")
+
+
+@dataclass(frozen=True)
+class MailingList(Resource):
+    id           : int
+    resource_uri : MailingListURI
+    name         : str
+    description  : str
+    advertised   : bool
+
+
+@dataclass(frozen=True)
+class MailingListSubscriptionsURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/mailinglists/subscribed/")
+
+
+@dataclass(frozen=True)
+class MailingListSubscriptions(Resource):
+    id           : int
+    resource_uri : MailingListSubscriptionsURI
+    email        : str
+    lists        : List[MailingListURI]
+    time         : datetime
+
+
 # =================================================================================================================================
 # A class to represent the datatracker:
 
@@ -779,6 +812,8 @@ class DataTracker:
         self.pavlova.register_parser(EmailURI,               GenericParser(self.pavlova, EmailURI))
         self.pavlova.register_parser(GroupStateURI,          GenericParser(self.pavlova, GroupStateURI))
         self.pavlova.register_parser(GroupURI,               GenericParser(self.pavlova, GroupURI))
+        self.pavlova.register_parser(MailingListURI,         GenericParser(self.pavlova, MailingListURI))
+        self.pavlova.register_parser(MailingListSubscriptionsURI, GenericParser(self.pavlova, MailingListSubscriptionsURI))
         self.pavlova.register_parser(MeetingTypeURI,         GenericParser(self.pavlova, MeetingTypeURI))
         self.pavlova.register_parser(MeetingURI,             GenericParser(self.pavlova, MeetingURI))
         self.pavlova.register_parser(PersonAliasURI,         GenericParser(self.pavlova, PersonAliasURI))
@@ -1599,6 +1634,27 @@ class DataTracker:
             An iterator of MeetingType objects
         """
         return self._retrieve_multi(MeetingTypeURI("/api/v1/name/meetingtypename/"), MeetingType)
+
+
+    # ----------------------------------------------------------------------------------------------------------------------------
+    # Datatracker API endpoints returning information about mailing lists:
+    #
+    #   https://datatracker.ietf.org/api/v1/mailinglists/list/
+    #   https://datatracker.ietf.org/api/v1/mailinglists/subscribed/
+
+    def mailing_list(self, mailing_list_uri: MailingListURI) -> Optional[MailingList]:
+        return self._retrieve(mailing_list_uri, MailingList)
+
+
+    def mailing_lists(self) -> Iterator[MailingList]:
+        url = MailingListURI("/api/v1/mailinglist/list/")
+        return self._retrieve_multi(url, MailingList)
+
+
+    def mailing_list_subscriptions(self, email_addr : Optional[str]) -> Iterator[MailingListSubscriptions]:
+        url = MailingListSubscriptionsURI("/api/v1/mailinglists/subscribed/")
+        url.params["email"] = email_addr
+        return self._retrieve_multi(url, MailingListSubscriptions)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
