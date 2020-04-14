@@ -32,7 +32,7 @@ from pathlib              import Path
 from ietfdata.datatracker import *
 
 # =============================================================================
-# Example: print an organisational chart for the IETF
+# Example: print information about a person
 
 dt = DataTracker(cache_dir=Path("cache"))
 
