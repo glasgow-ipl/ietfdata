@@ -1637,6 +1637,62 @@ class DataTracker:
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
+    # Datatracker API endpoints returning information about IPR disclosures:
+    #
+    #   https://datatracker.ietf.org/api/v1/ipr/iprdocrel/
+    #   https://datatracker.ietf.org/api/v1/ipr/iprdisclosurebase/
+    #
+    #   https://datatracker.ietf.org/api/v1/ipr/genericiprdisclosure/
+    #   https://datatracker.ietf.org/api/v1/ipr/holderiprdisclosure/
+    #   https://datatracker.ietf.org/api/v1/ipr/thirdpartyiprdisclosure
+    #
+    #   https://datatracker.ietf.org/api/v1/ipr/nondocspecificiprdisclosure/
+    #   https://datatracker.ietf.org/api/v1/ipr/relatedipr/
+    #
+    #   https://datatracker.ietf.org/api/v1/ipr/iprevent/
+    #   https://datatracker.ietf.org/api/v1/ipr/legacymigrationiprevent/
+    #
+    #   https://datatracker.ietf.org/api/v1/name/iprdisclosurestatename/
+    #   https://datatracker.ietf.org/api/v1/name/ipreventtypename/
+    #   https://datatracker.ietf.org/api/v1/name/iprlicensetypename/
+
+    # FIXME: implement these
+
+
+    # ----------------------------------------------------------------------------------------------------------------------------
+    # Datatracker API endpoints returning information about liaison statements:
+    #
+    #   https://datatracker.ietf.org/api/v1/liaisons/liaisonstatement/
+    #   https://datatracker.ietf.org/api/v1/liaisons/liaisonstatementevent/
+    #   https://datatracker.ietf.org/api/v1/liaisons/liaisonstatementgroupcontacts/
+    #   https://datatracker.ietf.org/api/v1/liaisons/relatedliaisonstatement/
+    #   https://datatracker.ietf.org/api/v1/liaisons/liaisonstatementattachment/
+    #
+    #   https://datatracker.ietf.org/api/v1/name/liaisonstatementeventtypename/
+    #   https://datatracker.ietf.org/api/v1/name/liaisonstatementpurposename/
+    #   https://datatracker.ietf.org/api/v1/name/liaisonstatementstate/
+    #   https://datatracker.ietf.org/api/v1/name/liaisonstatementtagname/
+
+    # FIXME: implement these
+
+
+    # ----------------------------------------------------------------------------------------------------------------------------
+    # Datatracker API endpoints returning information about reviews:
+    #
+    #   https://datatracker.ietf.org/api/v1/review/reviewassignment/
+    #   https://datatracker.ietf.org/api/v1/review/reviewrequest/
+    #   https://datatracker.ietf.org/api/v1/review/reviewwish/
+    #   https://datatracker.ietf.org/api/v1/review/reviewteamsettings/
+    #   https://datatracker.ietf.org/api/v1/review/nextreviewerinteam/
+    #   https://datatracker.ietf.org/api/v1/review/historicalunavailableperiod/
+    #   https://datatracker.ietf.org/api/v1/review/historicalreviewrequest/
+    #   https://datatracker.ietf.org/api/v1/review/reviewersettings/
+    #   https://datatracker.ietf.org/api/v1/review/unavailableperiod/
+    #   https://datatracker.ietf.org/api/v1/review/historicalreviewersettings/
+    #   https://datatracker.ietf.org/api/v1/review/historicalreviewassignment/
+    #   https://datatracker.ietf.org/api/v1/review/reviewsecretarysettings/
+
+    # ----------------------------------------------------------------------------------------------------------------------------
     # Datatracker API endpoints returning information about mailing lists:
     #
     #   https://datatracker.ietf.org/api/v1/mailinglists/list/
@@ -1680,15 +1736,6 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/name/intendedstdlevelname/
     #   https://datatracker.ietf.org/api/v1/name/draftsubmissionstatename/
     #   https://datatracker.ietf.org/api/v1/name/rolename/
-    #
-    #   https://datatracker.ietf.org/api/v1/name/iprdisclosurestatename/
-    #   https://datatracker.ietf.org/api/v1/name/ipreventtypename/
-    #   https://datatracker.ietf.org/api/v1/name/iprlicensetypename/
-    #
-    #   https://datatracker.ietf.org/api/v1/name/liaisonstatementeventtypename/
-    #   https://datatracker.ietf.org/api/v1/name/liaisonstatementpurposename/
-    #   https://datatracker.ietf.org/api/v1/name/liaisonstatementstate/
-    #   https://datatracker.ietf.org/api/v1/name/liaisonstatementtagname/
 
 # =================================================================================================================================
 # vim: set tw=0 ai:
