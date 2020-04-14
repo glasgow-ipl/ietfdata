@@ -1493,6 +1493,35 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(types[15].slug, "refunk")
 
 
+    def test_mailing_list(self) -> None:
+        ml = self.dt.mailing_list(MailingListURI("/api/v1/mailinglists/list/461/"))
+        if ml is not None:
+            self.assertEqual(ml.id,           461)
+            self.assertEqual(ml.resource_uri, MailingListURI("/api/v1/mailinglists/list/461/"))
+            self.assertEqual(ml.name,         "hackathon")
+            self.assertEqual(ml.description,  "Discussion regarding past, present, and future IETF hackathons.")
+            self.assertEqual(ml.advertised,   True)
+        else:
+            self.fail("Cannot find mailing list")
+
+
+    def test_mailing_lists(self) -> None:
+        ml = list(self.dt.mailing_lists())
+        if ml is not None:
+            self.assertNotEqual(len(ml), 0)
+        else:
+            self.fail("Cannot find mailing lists")
+
+
+    def test_mailing_list_subscriptions(self) -> None:
+        subs = list(self.dt.mailing_list_subscriptions("colin.perkins@glasgow.ac.uk"))
+        self.assertEqual(len(subs), 1)
+        self.assertEqual(subs[0].id,           66700)
+        self.assertEqual(subs[0].resource_uri, MailingListSubscriptionsURI(uri="/api/v1/mailinglists/subscribed/66700/"))
+        self.assertEqual(subs[0].email,        "colin.perkins@glasgow.ac.uk")
+        self.assertEqual(subs[0].lists[0],     MailingListURI("/api/v1/mailinglists/list/461/"))
+
+
 if __name__ == '__main__':
     unittest.main()
 
