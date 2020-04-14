@@ -1703,7 +1703,7 @@ class DataTracker:
 
 
     def mailing_lists(self) -> Iterator[MailingList]:
-        url = MailingListURI("/api/v1/mailinglist/list/")
+        url = MailingListURI("/api/v1/mailinglists/list/")
         return self._retrieve_multi(url, MailingList)
 
 
