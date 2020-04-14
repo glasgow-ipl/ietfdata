@@ -22,6 +22,7 @@ Change Log -- ietfdata
  - Rename `Document.document_url()` to `Document.url()`
  - Add `Submissions.urls()` method
  - Add ballot types and methods
+ - Add methods and types relating to mailing lists
 
 
 ## v0.1.5 -- 2019-12-24
