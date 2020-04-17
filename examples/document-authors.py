@@ -36,7 +36,7 @@ from ietfdata.datatracker import *
 
 dt = DataTracker(cache_dir=Path("cache"))
 
-doc = dt.document(DocumentURI('/api/v1/doc/document/draft-ietf-quic-transport/'))
+doc = dt.document(DocumentURI('/api/v1/doc/document/draft-ietf-mmusic-rfc4566bis/'))
 print("Title: {}".format(doc.title))
 for doc_author in dt.document_authors(doc):
     p = dt.person(doc_author.person)
