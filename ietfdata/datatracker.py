@@ -300,7 +300,8 @@ class Submission(Resource):
             yield (file_type, "https://www.ietf.org/archive/id/"  + self.name + "-" + self.rev + file_type)
 
     def parse_authors(self) -> List[Dict[str,str]]:
-        return ast.literal_eval(self.authors)
+        authors = ast.literal_eval(self.authors) # type: List[Dict[str, str]]
+        return authors
 
 
 @dataclass(frozen=True)
