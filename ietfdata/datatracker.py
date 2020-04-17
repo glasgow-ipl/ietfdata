@@ -52,6 +52,7 @@ from pathlib     import Path
 from pavlova     import Pavlova
 from pavlova.parsers import GenericParser
 
+import ast
 import glob
 import json
 import requests
@@ -269,7 +270,7 @@ class Submission(Resource):
     abstract        : str
     access_key      : str
     auth_key        : str
-    authors         : str
+    authors         : str   # See the parse_authors() method
     checks          : List[SubmissionCheckURI]
     document_date   : str   # FIXME: this should be a date object
     draft           : DocumentURI
@@ -297,6 +298,9 @@ class Submission(Resource):
     def urls(self) -> Iterator[Tuple[str, str]]:
         for file_type in self.file_types.split(","):
             yield (file_type, "https://www.ietf.org/archive/id/"  + self.name + "-" + self.rev + file_type)
+
+    def parse_authors(self) -> List[Dict[str,str]]:
+        return ast.literal_eval(self.authors)
 
 
 @dataclass(frozen=True)
