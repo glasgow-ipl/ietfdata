@@ -655,7 +655,7 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_document_shepwrit(self) -> None:
-        for d in self.dt.documents(doctype=self.dt.document_type("shepwrit")):
+        for d in self.dt.documents(doctype=self.dt.document_type(DocumentTypeURI("/api/v1/name/doctypename/shepwrit"))):
             self.fail("shepwrit is not used, so this should return no documents")
 
 
@@ -736,7 +736,9 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_documents(self):
-        documents = list(self.dt.documents(doctype=self.dt.document_type("draft"), group=self.dt.group_from_acronym("xrblock")))
+        doctype = self.dt.document_type(DocumentTypeURI("/api/v1/name/doctypename/draft"))
+        group   = self.dt.group_from_acronym("xrblock")
+        documents = list(self.dt.documents(doctype = doctype, group = group))
         self.assertEqual(len(documents), 21)
         self.assertEqual(documents[ 0].name, "draft-ietf-xrblock-rtcp-xr-discard-rle-metrics")
         self.assertEqual(documents[ 1].name, "draft-ietf-xrblock-rtcp-xr-pdv")
@@ -962,7 +964,7 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_ballot_types_doctype(self) -> None:
-        bts = list(self.dt.ballot_types(self.dt.document_type("draft")))
+        bts = list(self.dt.ballot_types(self.dt.document_type(DocumentTypeURI("/api/v1/name/doctypename/draft"))))
         self.assertEqual(len(bts), 2)
         self.assertEqual(bts[0].slug, "irsg-approve")
         self.assertEqual(bts[1].slug, "approve")
@@ -1081,7 +1083,7 @@ class TestDatatracker(unittest.TestCase):
 
     # FIXME: this needs to be updated
     def test_document_type(self) -> None:
-        doctype = self.dt.document_type("draft")
+        doctype = self.dt.document_type(DocumentTypeURI("/api/v1/name/doctypename/draft"))
         if doctype is not None:
             self.assertEqual(doctype.resource_uri, DocumentTypeURI("/api/v1/name/doctypename/draft/"))
             self.assertEqual(doctype.name,         "Draft")

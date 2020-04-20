@@ -1139,18 +1139,8 @@ class DataTracker:
     # Datatracker API endpoints returning information about document types:
     # * https://datatracker.ietf.org/api/v1/name/doctypename/
 
-    def document_type(self, doctype: str) -> Optional[DocumentType]:
-        """
-        Lookup information about a document type in the datatracker.
-
-        Parameters:
-            doctype : A document type slug (e.g., "draft").
-
-        Returns:
-            A DocumentType object
-        """
-        uri = DocumentTypeURI("/api/v1/name/doctypename/" + doctype + "/")
-        return self._retrieve(uri, DocumentType)
+    def document_type(self, doc_type_uri: DocumentTypeURI) -> Optional[DocumentType]:
+        return self._retrieve(doc_type_uri, DocumentType)
 
 
     def document_types(self) -> Iterator[DocumentType]:
