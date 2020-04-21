@@ -1230,7 +1230,7 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_groups_state(self) -> None:
-        groups = list(self.dt.groups(state=self.dt.group_state("abandon")))
+        groups = list(self.dt.groups(state=self.dt.group_state(GroupStateURI("/api/v1/name/groupstatename/abandon"))))
         self.assertEqual(len(groups), 6)
         self.assertEqual(groups[0].id, 1949)
         self.assertEqual(groups[1].id, 2009)
@@ -1248,7 +1248,7 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_group_state(self) -> None:
-        state = self.dt.group_state("abandon")
+        state = self.dt.group_state(GroupStateURI("/api/v1/name/groupstatename/abandon"))
         if state is not None:
             self.assertEqual(state.desc,         "Formation of the group (most likely a BoF or Proposed WG) was abandoned")
             self.assertEqual(state.name,         "Abandoned")

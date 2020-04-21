@@ -1561,7 +1561,7 @@ class DataTracker:
         return self._retrieve_multi(url, GroupHistory)
 
 
-    def group_state(self, group_state : str) -> Optional[GroupState]:
+    def group_state(self, group_state_uri : GroupStateURI) -> Optional[GroupState]:
         """
         Retrieve a GroupState
         Parameters:
@@ -1572,8 +1572,7 @@ class DataTracker:
         Returns:
             A GroupState object
         """
-        url  = GroupStateURI("/api/v1/name/groupstatename/" + group_state + "/")
-        return self._retrieve(url, GroupState)
+        return self._retrieve(group_state_uri, GroupState)
 
 
     def group_states(self) -> Iterator[GroupState]:
