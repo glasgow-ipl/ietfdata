@@ -706,6 +706,45 @@ class GroupRole(Resource):
     person       : PersonURI
     resource_uri : GroupRoleURI
 
+@dataclass(frozen=True)
+class GroupMilestoneHistoryURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/group/groupmilestonehistory/")
+
+
+@dataclass(frozen=True)
+class GroupMilestoneHistory(Resource):
+    desc         : str
+    docs         : List[DocumentURI]
+    due          : str
+    group        : GroupURI
+    id           : int
+    milestone    : GroupMilestoneURI
+    order        : Optional[int]
+    resolved     : str
+    resource_uri : GroupMilestoneHistoryURI
+    state        : GroupMilestoneStateNameURI
+    time         : datetime
+
+
+@dataclass(frozen=True)
+class GroupMilestoneEventURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/group/milestonegroupevent/")
+
+
+@dataclass(frozen=True)
+class GroupMilestoneEvent(Resource):
+    by             : PersonURI
+    desc           : str
+    group          : GroupURI
+    groupevent_ptr : GroupEventURI
+    id             : int
+    milestone      : GroupMilestoneURI
+    resource_uri   : GroupMilestoneEventURI
+    time           : datetime
+    type           : str
+
 
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to meetings:
@@ -944,6 +983,8 @@ class DataTracker:
         self.pavlova.register_parser(EmailURI,               GenericParser(self.pavlova, EmailURI))
         self.pavlova.register_parser(GroupEventURI,          GenericParser(self.pavlova, GroupEventURI))
         self.pavlova.register_parser(GroupHistoryURI,        GenericParser(self.pavlova, GroupHistoryURI))
+        self.pavlova.register_parser(GroupMilestoneEventURI, GenericParser(self.pavlova, GroupMilestoneEventURI))
+        self.pavlova.register_parser(GroupMilestoneHistoryURI, GenericParser(self.pavlova, GroupMilestoneHistoryURI))
         self.pavlova.register_parser(GroupMilestoneStateNameURI, GenericParser(self.pavlova, GroupMilestoneStateNameURI))
         self.pavlova.register_parser(GroupMilestoneURI,      GenericParser(self.pavlova, GroupMilestoneURI))
         self.pavlova.register_parser(GroupRoleURI,           GenericParser(self.pavlova, GroupRoleURI))
@@ -1595,8 +1636,8 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/group/groupurl/?group=2161                 - URLs
     # * https://datatracker.ietf.org/api/v1/group/groupevent/?group=2161               - events
     # * https://datatracker.ietf.org/api/v1/group/groupmilestone/?group=2161           - Current milestones
-    #   https://datatracker.ietf.org/api/v1/group/groupmilestonehistory/?group=2161    - Previous milestones
-    #   https://datatracker.ietf.org/api/v1/group/milestonegroupevent/?group=2161      - changed milestones
+    # * https://datatracker.ietf.org/api/v1/group/groupmilestonehistory/?group=2161    - Previous milestones
+    # * https://datatracker.ietf.org/api/v1/group/milestonegroupevent/?group=2161      - changed milestones
     # * https://datatracker.ietf.org/api/v1/group/role/?group=2161                     - The current WG chairs and ADs of a group
     # * https://datatracker.ietf.org/api/v1/group/role/?person=20209                   - Groups a person is currently involved with
     # * https://datatracker.ietf.org/api/v1/group/role/?email=csp@csperkins.org        - Groups a person is currently involved with
@@ -1750,6 +1791,52 @@ class DataTracker:
         if person is not None:
             url.params["person"] = person.id
         return self._retrieve_multi(url, GroupRole)
+
+
+    def group_milestone_history(self, group_milestone_history_uri : GroupMilestoneHistoryURI) -> Optional[GroupMilestoneHistory]:
+        return self._retrieve(group_milestone_history_uri, GroupMilestoneHistory)
+
+
+    def group_milestone_histories(self,
+            since         : str                               = "1970-01-01T00:00:00",
+            until         : str                               = "2038-01-19T03:14:07",
+            group         : Optional[Group]                   = None,
+            milestone     : Optional[GroupMilestone]          = None,
+            state         : Optional[GroupMilestoneStateName] = None) -> Iterator[GroupMilestoneHistory]:
+        url = GroupMilestoneHistoryURI("/api/v1/group/groupmilestonehistory/")
+        url.params["time__gt"]       = since
+        url.params["time__lt"]       = until
+        if group is not None:
+            url.params["group"] = group.id
+        if milestone is not None:
+            url.params["milestone"] = milestone.id
+        if state is not None:
+            url.params["state"] = state.slug
+        return self._retrieve_multi(url, GroupMilestoneHistory)
+
+
+    def group_milestone_event(self, group_milestone_event_uri : GroupMilestoneEventURI) -> Optional[GroupMilestoneEvent]:
+        return self._retrieve(group_milestone_event_uri, GroupMilestoneEvent)
+
+
+    def group_milestone_events(self,
+            since         : str                        = "1970-01-01T00:00:00",
+            until         : str                        = "2038-01-19T03:14:07",
+            by            : Optional[Person]           = None,
+            group         : Optional[Group]            = None,
+            milestone     : Optional[GroupMilestone]   = None,
+            type          : Optional[str]              = None) -> Iterator[GroupMilestoneEvent]:
+        url = GroupMilestoneEventURI("/api/v1/group/milestonegroupevent/")
+        url.params["time__gt"]       = since
+        url.params["time__lt"]       = until
+        url.params["type"]           = type
+        if by is not None:
+            url.params["by"] = by.id
+        if group is not None:
+            url.params["group"] = group.id
+        if milestone is not None:
+            url.params["milestone"] = milestone.id
+        return self._retrieve_multi(url, GroupMilestoneEvent)
 
 
     def group_state(self, group_state_uri : GroupStateURI) -> Optional[GroupState]:
