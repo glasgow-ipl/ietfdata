@@ -608,6 +608,21 @@ class GroupHistory(Resource):
     uses_milestone_dates : bool
 
 
+@dataclass(frozen=True)
+class GroupUrlURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/group/groupurl/")
+
+
+@dataclass(frozen=True)
+class GroupUrl(Resource):
+    group        : GroupURI
+    id           : int
+    name         : str
+    resource_uri : GroupUrlURI
+    url          : str
+
+
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to meetings:
 
@@ -846,6 +861,7 @@ class DataTracker:
         self.pavlova.register_parser(GroupHistoryURI,        GenericParser(self.pavlova, GroupHistoryURI))
         self.pavlova.register_parser(GroupStateURI,          GenericParser(self.pavlova, GroupStateURI))
         self.pavlova.register_parser(GroupURI,               GenericParser(self.pavlova, GroupURI))
+        self.pavlova.register_parser(GroupUrlURI,            GenericParser(self.pavlova, GroupUrlURI))
         self.pavlova.register_parser(MailingListURI,         GenericParser(self.pavlova, MailingListURI))
         self.pavlova.register_parser(MailingListSubscriptionsURI, GenericParser(self.pavlova, MailingListSubscriptionsURI))
         self.pavlova.register_parser(MeetingTypeURI,         GenericParser(self.pavlova, MeetingTypeURI))
@@ -1487,7 +1503,7 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/group/group/                               - list of groups
     # * https://datatracker.ietf.org/api/v1/group/group/2161/                          - info about group 2161
     # * https://datatracker.ietf.org/api/v1/group/grouphistory/?group=2161             - history
-    #   https://datatracker.ietf.org/api/v1/group/groupurl/?group=2161                 - URLs
+    # * https://datatracker.ietf.org/api/v1/group/groupurl/?group=2161                 - URLs
     #   https://datatracker.ietf.org/api/v1/group/groupevent/?group=2161               - events
     #   https://datatracker.ietf.org/api/v1/group/groupmilestone/?group=2161           - Current milestones
     #   https://datatracker.ietf.org/api/v1/group/groupmilestonehistory/?group=2161    - Previous milestones
@@ -1559,6 +1575,17 @@ class DataTracker:
         if parent is not None:
             url.params["parent"] = parent.id
         return self._retrieve_multi(url, GroupHistory)
+
+
+    def group_url(self, group_url_uri: GroupUrlURI) -> Optional[GroupUrl]:
+        return self._retrieve(group_url_uri, GroupUrl)
+
+
+    def group_urls(self, group: Optional[Group] = None) -> Iterator[GroupUrl]:
+        url = GroupUrlURI("/api/v1/group/groupurl/")
+        if group is not None:
+            url.params["group"] = group.id
+        return self._retrieve_multi(url, GroupUrl)
 
 
     def group_state(self, group_state_uri : GroupStateURI) -> Optional[GroupState]:
