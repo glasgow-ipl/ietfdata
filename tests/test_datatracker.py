@@ -1261,6 +1261,24 @@ class TestDatatracker(unittest.TestCase):
         group_events_type = self.dt.group_events(type="changed_state")
         self.assertIsNot(group_events_type, None)
 
+ 
+    def test_group_url(self) -> None:
+        group_url = self.dt.group_url(GroupUrlURI("/api/v1/group/groupurl/1/"))
+        if group_url is not None:
+            self.assertEqual(group_url.group,        GroupURI("/api/v1/group/group/934/"))
+            self.assertEqual(group_url.id,           1)
+            self.assertEqual(group_url.name,         "Applications Area Web Page")
+            self.assertEqual(group_url.resource_uri, GroupUrlURI("/api/v1/group/groupurl/1/"))
+            self.assertEqual(group_url.url,          "http://www.apps.ietf.org/")
+        else:
+            self.fail("Cannot find group URL")
+
+
+    def test_group_urls(self) -> None:
+        group_urls = list(self.dt.group_urls(self.dt.group(GroupURI("/api/v1/group/group/1062/"))))
+        self.assertEqual(len(group_urls),  1)
+        self.assertEqual(group_urls[0].id, 20)
+
 
     def test_groups_state(self) -> None:
         groups = list(self.dt.groups(state=self.dt.group_state(GroupStateURI("/api/v1/name/groupstatename/abandon"))))
