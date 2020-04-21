@@ -1173,7 +1173,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(group.id, 941)
         else:
             self.fail("Cannot find group")
-            
+
 
     def test_group_from_acronym_invalid(self) -> None:
         group = self.dt.group_from_acronym("invalid")
@@ -1183,7 +1183,7 @@ class TestDatatracker(unittest.TestCase):
     def test_groups(self) -> None:
         groups = self.dt.groups()
         self.assertIsNot(groups, None)
-        
+
 
     def test_groups_namecontains(self) -> None:
         groups = list(self.dt.groups(name_contains="IRTF"))
@@ -1191,9 +1191,9 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(groups[0].id, 3)
         self.assertEqual(groups[1].id, 1853)
 
-        
+
     def test_groups_state(self) -> None:
-        groups = list(self.dt.groups(state=self.dt.group_state("abandon")))
+        groups = list(self.dt.groups(state=self.dt.group_state(GroupStateURI("/api/v1/name/groupstatename/abandon"))))
         self.assertEqual(len(groups), 6)
         self.assertEqual(groups[0].id, 1949)
         self.assertEqual(groups[1].id, 2009)
@@ -1211,7 +1211,7 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_group_state(self) -> None:
-        state = self.dt.group_state("abandon")
+        state = self.dt.group_state(GroupStateURI("/api/v1/name/groupstatename/abandon"))
         if state is not None:
             self.assertEqual(state.desc,         "Formation of the group (most likely a BoF or Proposed WG) was abandoned")
             self.assertEqual(state.name,         "Abandoned")
@@ -1383,7 +1383,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(rdocs[0].resource_uri, RelatedDocumentURI("/api/v1/doc/relateddocument/3/"))
         self.assertEqual(rdocs[0].source,       DocumentURI("/api/v1/doc/document/draft-rfced-info-snpp-v3/"))
         self.assertEqual(rdocs[0].target,       DocumentAliasURI("/api/v1/doc/docalias/draft-gwinn-paging-protocol-v3/"))
-        
+
 
     def test_related_documents_source_target(self) -> None:
         source = self.dt.document(DocumentURI("/api/v1/doc/document/draft-rfced-info-snpp-v3/"))
