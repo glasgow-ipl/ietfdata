@@ -1393,6 +1393,7 @@ class TestDatatracker(unittest.TestCase):
         group_roles = self.dt.group_roles()
         self.assertIsNot(group_roles, None)
 
+
     def test_group_roles_email(self) -> None:
         group_roles = list(self.dt.group_roles(email="csp@csperkins.org"))
         self.assertEqual(len(group_roles), 7)
@@ -1428,6 +1429,48 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(group_roles[4].id, 8466)
         self.assertEqual(group_roles[5].id, 3998)
         self.assertEqual(group_roles[6].id, 9670)
+
+
+    def test_group_role_history(self) -> None:
+        group_role_history = self.dt.group_role_history(GroupRoleHistoryURI("/api/v1/group/rolehistory/519/"))
+        if group_role_history is not None:
+            self.assertEqual(group_role_history.email,        EmailURI("/api/v1/person/email/csp@csperkins.org/"))
+            self.assertEqual(group_role_history.group,        GroupHistoryURI("/api/v1/group/grouphistory/256/"))
+            self.assertEqual(group_role_history.id,           519)
+            self.assertEqual(group_role_history.name,         RoleNameURI("/api/v1/name/rolename/chair/"))
+            self.assertEqual(group_role_history.person,       PersonURI("/api/v1/person/person/20209/"))
+            self.assertEqual(group_role_history.resource_uri, GroupRoleHistoryURI("/api/v1/group/rolehistory/519/"))
+        else:
+            self.fail("Cannot find group role history")
+
+
+    def test_group_role_histories(self) -> None:
+        group_role_histories = self.dt.group_role_histories()
+        self.assertIsNot(group_role_histories, None)
+
+
+    def test_group_role_histories_email(self) -> None:
+        group_role_histories = list(self.dt.group_role_histories(email="csp@csperkins.org"))
+        self.assertEqual(len(group_role_histories), 24)
+
+
+    def test_group_role_histories_group(self) -> None:
+        group_role_histories = list(self.dt.group_role_histories(group=self.dt.group(GroupURI("/api/v1/group/group/1997/"))))
+        self.assertEqual(len(group_role_histories), 4)
+        self.assertEqual(group_role_histories[0].id, 4062)
+        self.assertEqual(group_role_histories[1].id, 4063)
+        self.assertEqual(group_role_histories[2].id, 4064)
+        self.assertEqual(group_role_histories[3].id, 4065)
+
+
+    def test_group_role_histories_name(self) -> None:
+        group_role_histories = self.dt.group_role_histories(name=self.dt.role_name(RoleNameURI("/api/v1/name/rolename/chair/")))
+        self.assertIsNot(group_role_histories, None)
+
+
+    def test_group_role_histories_person(self) -> None:
+        group_role_histories = list(self.dt.group_role_histories(person=self.dt.person(PersonURI("/api/v1/person/person/20209/"))))
+        self.assertEqual(len(group_role_histories), 24)
 
 
     def test_groups_state(self) -> None:

@@ -707,6 +707,22 @@ class GroupRole(Resource):
     resource_uri : GroupRoleURI
 
 
+@dataclass(frozen=True)
+class GroupRoleHistoryURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/group/rolehistory/")
+
+
+@dataclass(frozen=True)
+class GroupRoleHistory(Resource):
+    email        : EmailURI
+    group        : GroupHistoryURI
+    id           : int
+    name         : RoleNameURI
+    person       : PersonURI
+    resource_uri : GroupRoleHistoryURI
+
+
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to meetings:
 
@@ -947,6 +963,7 @@ class DataTracker:
         self.pavlova.register_parser(GroupMilestoneStateNameURI, GenericParser(self.pavlova, GroupMilestoneStateNameURI))
         self.pavlova.register_parser(GroupMilestoneURI,      GenericParser(self.pavlova, GroupMilestoneURI))
         self.pavlova.register_parser(GroupRoleURI,           GenericParser(self.pavlova, GroupRoleURI))
+        self.pavlova.register_parser(GroupRoleHistoryURI,    GenericParser(self.pavlova, GroupRoleHistoryURI))
         self.pavlova.register_parser(GroupStateURI,          GenericParser(self.pavlova, GroupStateURI))
         self.pavlova.register_parser(GroupURI,               GenericParser(self.pavlova, GroupURI))
         self.pavlova.register_parser(GroupUrlURI,            GenericParser(self.pavlova, GroupUrlURI))
@@ -1600,9 +1617,9 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/group/role/?group=2161                     - The current WG chairs and ADs of a group
     # * https://datatracker.ietf.org/api/v1/group/role/?person=20209                   - Groups a person is currently involved with
     # * https://datatracker.ietf.org/api/v1/group/role/?email=csp@csperkins.org        - Groups a person is currently involved with
-    #   https://datatracker.ietf.org/api/v1/group/rolehistory/?group=2161              - The previous WG chairs and ADs of a group
-    #   https://datatracker.ietf.org/api/v1/group/rolehistory/?person=20209            - Groups person was previously involved with
-    #   https://datatracker.ietf.org/api/v1/group/rolehistory/?email=csp@csperkins.org - Groups person was previously involved with
+    # * https://datatracker.ietf.org/api/v1/group/rolehistory/?group=2161              - The previous WG chairs and ADs of a group
+    # * https://datatracker.ietf.org/api/v1/group/rolehistory/?person=20209            - Groups person was previously involved with
+    # * https://datatracker.ietf.org/api/v1/group/rolehistory/?email=csp@csperkins.org - Groups person was previously involved with
     #   https://datatracker.ietf.org/api/v1/group/changestategroupevent/?group=2161    - Group state changes
     #   https://datatracker.ietf.org/api/v1/group/groupstatetransitions                - ???
     # * https://datatracker.ietf.org/api/v1/name/groupstatename/
@@ -1750,6 +1767,26 @@ class DataTracker:
         if person is not None:
             url.params["person"] = person.id
         return self._retrieve_multi(url, GroupRole)
+
+
+    def group_role_history(self, group_role_history_uri : GroupRoleHistoryURI) -> Optional[GroupRoleHistory]:
+        return self._retrieve(group_role_history_uri, GroupRoleHistory)
+
+
+    def group_role_histories(self,
+            email         : Optional[str]           = None,
+            group         : Optional[Group]         = None,
+            name          : Optional[RoleName]      = None,
+            person        : Optional[Person]        = None) -> Iterator[GroupRoleHistory]:
+        url = GroupRoleHistoryURI("/api/v1/group/rolehistory/")
+        url.params["email"] = email
+        if group is not None:
+            url.params["group"] = group.id
+        if name is not None:
+            url.params["name"] = name.slug
+        if person is not None:
+            url.params["person"] = person.id
+        return self._retrieve_multi(url, GroupRoleHistory)
 
 
     def group_state(self, group_state_uri : GroupStateURI) -> Optional[GroupState]:
