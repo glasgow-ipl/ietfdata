@@ -1173,7 +1173,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(group.id, 941)
         else:
             self.fail("Cannot find group")
-            
+
 
     def test_group_from_acronym_invalid(self) -> None:
         group = self.dt.group_from_acronym("invalid")
@@ -1183,7 +1183,7 @@ class TestDatatracker(unittest.TestCase):
     def test_groups(self) -> None:
         groups = self.dt.groups()
         self.assertIsNot(groups, None)
-        
+
 
     def test_groups_namecontains(self) -> None:
         groups = list(self.dt.groups(name_contains="IRTF"))
@@ -1191,7 +1191,44 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(groups[0].id, 3)
         self.assertEqual(groups[1].id, 1853)
 
-        
+
+    def test_group_history(self) -> None:
+        group_history = self.dt.group_history(GroupHistoryURI("/api/v1/group/grouphistory/4042/"))
+        if group_history is not None:
+            self.assertEqual(group_history.acronym,              "git")
+            self.assertEqual(group_history.ad,                   None)
+            self.assertEqual(group_history.comments,             "")
+            self.assertEqual(group_history.description,          "")
+            self.assertEqual(group_history.group,                GroupURI("/api/v1/group/group/2233/"))
+            self.assertEqual(group_history.id,                   4042)
+            self.assertEqual(group_history.list_archive,         "https://mailarchive.ietf.org/arch/browse/ietf-and-github/")
+            self.assertEqual(group_history.list_email,           "ietf-and-github@ietf.org")
+            self.assertEqual(group_history.list_subscribe,       "https://www.ietf.org/mailman/listinfo/ietf-and-github")
+            self.assertEqual(group_history.name,                 "GitHub Integration and Tooling")
+            self.assertEqual(group_history.parent,               GroupURI("/api/v1/group/group/1008/"))
+            self.assertEqual(group_history.resource_uri,         GroupHistoryURI("/api/v1/group/grouphistory/4042/"))
+            self.assertEqual(group_history.state,                GroupStateURI("/api/v1/name/groupstatename/active/"))
+            self.assertEqual(group_history.time,                 datetime.fromisoformat("2019-02-08T14:07:27"))
+            self.assertEqual(group_history.type,                 "/api/v1/name/grouptypename/wg/")
+            self.assertEqual(group_history.unused_states,        [])
+            self.assertEqual(group_history.unused_tags,          [])
+            self.assertEqual(group_history.uses_milestone_dates, True)
+        else:
+            self.fail("Cannot find group history")
+
+
+    def test_group_histories_from_acronym(self) -> None:
+        group_histories = list(self.dt.group_histories_from_acronym("spud"))
+        self.assertEqual(len(group_histories), 2)
+        self.assertEqual(group_histories[0].id, 2179)
+        self.assertEqual(group_histories[1].id, 2257)
+
+
+    def test_group_histories(self) -> None:
+        group_histories = self.dt.group_histories()
+        self.assertIsNot(group_histories, None)
+
+
     def test_groups_state(self) -> None:
         groups = list(self.dt.groups(state=self.dt.group_state("abandon")))
         self.assertEqual(len(groups), 6)
@@ -1383,7 +1420,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(rdocs[0].resource_uri, RelatedDocumentURI("/api/v1/doc/relateddocument/3/"))
         self.assertEqual(rdocs[0].source,       DocumentURI("/api/v1/doc/document/draft-rfced-info-snpp-v3/"))
         self.assertEqual(rdocs[0].target,       DocumentAliasURI("/api/v1/doc/docalias/draft-gwinn-paging-protocol-v3/"))
-        
+
 
     def test_related_documents_source_target(self) -> None:
         source = self.dt.document(DocumentURI("/api/v1/doc/document/draft-rfced-info-snpp-v3/"))

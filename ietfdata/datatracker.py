@@ -263,7 +263,7 @@ class SubmissionURI(URI):
 class SubmissionCheckURI(URI):
     def __post_init__(self) -> None:
         assert self.uri.startswith("/api/v1/submit/submissioncheck/")
-        
+
 
 @dataclass(frozen=True)
 class Submission(Resource):
@@ -445,7 +445,7 @@ class BallotPositionName(Resource):
     name         : str
     order        : int
     resource_uri : BallotPositionNameURI
-    slug         : str 
+    slug         : str
     used         : bool
 
 
@@ -534,7 +534,7 @@ class DocumentAuthor(Resource):
     document     : DocumentURI
     person       : PersonURI
     email        : EmailURI
-    
+
 
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to groups:
@@ -578,6 +578,34 @@ class Group(Resource):
     type           : str    # FIXME: this should be a URI subtype
     unused_states  : List[str]
     unused_tags    : List[str]
+
+
+@dataclass(frozen=True)
+class GroupHistoryURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/group/grouphistory/")
+
+
+@dataclass(frozen=True)
+class GroupHistory(Resource):
+    acronym              : str
+    ad                   : Optional[PersonURI]
+    comments             : str
+    description          : str
+    group                : GroupURI
+    id                   : int
+    list_archive         : str
+    list_email           : str
+    list_subscribe       : str
+    name                 : str
+    parent               : Optional[GroupURI]
+    resource_uri         : GroupHistoryURI
+    state                : GroupStateURI
+    time                 : datetime
+    type                 : str    # FIXME: this should be a URI subtype
+    unused_states        : List[str]
+    unused_tags          : List[str]
+    uses_milestone_dates : bool
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------
@@ -815,6 +843,7 @@ class DataTracker:
         self.pavlova.register_parser(DocumentTypeURI,        GenericParser(self.pavlova, DocumentTypeURI))
         self.pavlova.register_parser(DocumentURI,            GenericParser(self.pavlova, DocumentURI))
         self.pavlova.register_parser(EmailURI,               GenericParser(self.pavlova, EmailURI))
+        self.pavlova.register_parser(GroupHistoryURI,        GenericParser(self.pavlova, GroupHistoryURI))
         self.pavlova.register_parser(GroupStateURI,          GenericParser(self.pavlova, GroupStateURI))
         self.pavlova.register_parser(GroupURI,               GenericParser(self.pavlova, GroupURI))
         self.pavlova.register_parser(MailingListURI,         GenericParser(self.pavlova, MailingListURI))
@@ -887,7 +916,7 @@ class DataTracker:
                 self._cache_obj(resource_uri, obj_json)
             else:
                 print("_retrieve failed: {} {}".format(r.status_code, self.base_url + resource_uri.uri))
-                return None 
+                return None
         obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
         return obj
 
@@ -1249,9 +1278,9 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/doc/relateddocument/?target=...      - documents that relate to target draft
     #   https://datatracker.ietf.org/api/v1/doc/relateddochistory/
 
-    def related_documents(self, 
-        source               : Optional[Document]         = None, 
-        target               : Optional[DocumentAlias]    = None, 
+    def related_documents(self,
+        source               : Optional[Document]         = None,
+        target               : Optional[DocumentAlias]    = None,
         relationship_type    : Optional[RelationshipType] = None) -> Iterator[RelatedDocument]:
 
         url = RelatedDocumentURI("/api/v1/doc/relateddocument/")
@@ -1262,14 +1291,14 @@ class DataTracker:
         if relationship_type is not None:
             url.params["relationship"] = relationship_type.slug
         return self._retrieve_multi(url, RelatedDocument)
-    
-    
+
+
     def relationship_type(self, relationship_type_uri: RelationshipTypeURI) -> Optional[RelationshipType]:
         """
         Retrieve a relationship type
 
         Parameters:
-            relationship_type_uri -- The relationship type uri, 
+            relationship_type_uri -- The relationship type uri,
             as found in the resource_uri of a relationship type.
 
         Returns:
@@ -1305,7 +1334,7 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/doc/ballotpositiondocevent/
     # * https://datatracker.ietf.org/api/v1/doc/ballottype/
     # * https://datatracker.ietf.org/api/v1/doc/ballotdocevent/
-    
+
     def ballot_position_name(self, ballot_position_name_uri : BallotPositionNameURI) -> Optional[BallotPositionName]:
         return self._retrieve(ballot_position_name_uri, BallotPositionName)
 
@@ -1322,7 +1351,7 @@ class DataTracker:
         url = BallotPositionNameURI("/api/v1/name/ballotpositionname/")
         return self._retrieve_multi(url, BallotPositionName)
 
- 
+
     def ballot_type(self, ballot_type_uri : BallotTypeURI) -> Optional[BallotType]:
         return self._retrieve(ballot_type_uri, BallotType)
 
@@ -1343,7 +1372,7 @@ class DataTracker:
         return self._retrieve_multi(url, BallotType)
 
 
-    
+
     def ballot_document_event(self, ballot_event_uri : BallotDocumentEventURI) -> Optional[BallotDocumentEvent]:
         return self._retrieve(ballot_event_uri, BallotDocumentEvent)
 
@@ -1380,7 +1409,7 @@ class DataTracker:
             url.params["doc"] = doc.id
         url.params["type"] = event_type
         return self._retrieve_multi(url, BallotDocumentEvent)
-    
+
 
     # ----------------------------------------------------------------------------------------------------------------------------
     # Datatracker API endpoints returning information about document submissions:
@@ -1457,7 +1486,7 @@ class DataTracker:
     # Datatracker API endpoints returning information about working groups:
     # * https://datatracker.ietf.org/api/v1/group/group/                               - list of groups
     # * https://datatracker.ietf.org/api/v1/group/group/2161/                          - info about group 2161
-    #   https://datatracker.ietf.org/api/v1/group/grouphistory/?group=2161             - history
+    # * https://datatracker.ietf.org/api/v1/group/grouphistory/?group=2161             - history
     #   https://datatracker.ietf.org/api/v1/group/groupurl/?group=2161                 - URLs
     #   https://datatracker.ietf.org/api/v1/group/groupevent/?group=2161               - events
     #   https://datatracker.ietf.org/api/v1/group/groupmilestone/?group=2161           - Current milestones
@@ -1507,16 +1536,39 @@ class DataTracker:
         return self._retrieve_multi(url, Group)
 
 
+    def group_history(self, group_history_uri: GroupHistoryURI) -> Optional[GroupHistory]:
+        return self._retrieve(group_history_uri, GroupHistory)
+
+
+    def group_histories_from_acronym(self, acronym: str) -> Iterator[GroupHistory]:
+        url = GroupHistoryURI("/api/v1/group/grouphistory/")
+        url.params["acronym"] = acronym
+        return self._retrieve_multi(url, GroupHistory)
+
+
+    def group_histories(self,
+            since         : str                  = "1970-01-01T00:00:00",
+            until         : str                  = "2038-01-19T03:14:07",
+            state         : Optional[GroupState] = None,
+            parent        : Optional[Group]      = None) -> Iterator[GroupHistory]:
+        url = GroupHistoryURI("/api/v1/group/grouphistory/")
+        url.params["time__gt"]       = since
+        url.params["time__lt"]       = until
+        if state is not None:
+            url.params["state"] = state.slug
+        if parent is not None:
+            url.params["parent"] = parent.id
+        return self._retrieve_multi(url, GroupHistory)
+
+
     def group_state(self, group_state : str) -> Optional[GroupState]:
         """
         Retrieve a GroupState
-
         Parameters:
            group_state -- The group state, as returned in the 'slug' of a GroupState
                            object. Valid group states include "abandon", "active",
                            "bof", "bof-conc", "conclude", "dormant", "proposed",
                            "replaced", and "unknown".
-
         Returns:
             A GroupState object
         """
