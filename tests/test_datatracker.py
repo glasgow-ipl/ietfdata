@@ -1354,6 +1354,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_milestone_histories(self) -> None:
         group_milestone_histories = self.dt.group_milestone_histories()
+        self.assertIsNot(group_milestone_histories, None)
 
 
     def test_group_milestone_histories_group(self) -> None:
