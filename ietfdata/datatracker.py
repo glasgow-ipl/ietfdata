@@ -640,6 +640,41 @@ class GroupUrl(Resource):
     url          : str
 
 
+@dataclass(frozen=True)
+class GroupMilestoneStateNameURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/name/groupmilestonestatename/")
+
+
+@dataclass(frozen=True)
+class GroupMilestoneStateName(Resource):
+    desc         : str
+    name         : str
+    order        : int
+    resource_uri : GroupMilestoneStateNameURI
+    slug         : str
+    used         : bool
+
+
+@dataclass(frozen=True)
+class GroupMilestoneURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/group/groupmilestone/")
+
+
+@dataclass(frozen=True)
+class GroupMilestone(Resource):
+    desc         : str
+    docs         : List[DocumentURI]
+    due          : str
+    group        : GroupURI
+    id           : int
+    order        : Optional[int]
+    resolved     : str
+    resource_uri : GroupMilestoneURI
+    state        : GroupMilestoneStateNameURI
+    time         : datetime
+
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to meetings:
 
@@ -877,6 +912,8 @@ class DataTracker:
         self.pavlova.register_parser(EmailURI,               GenericParser(self.pavlova, EmailURI))
         self.pavlova.register_parser(GroupEventURI,          GenericParser(self.pavlova, GroupEventURI))
         self.pavlova.register_parser(GroupHistoryURI,        GenericParser(self.pavlova, GroupHistoryURI))
+        self.pavlova.register_parser(GroupMilestoneStateNameURI, GenericParser(self.pavlova, GroupMilestoneStateNameURI))
+        self.pavlova.register_parser(GroupMilestoneURI,      GenericParser(self.pavlova, GroupMilestoneURI))
         self.pavlova.register_parser(GroupStateURI,          GenericParser(self.pavlova, GroupStateURI))
         self.pavlova.register_parser(GroupURI,               GenericParser(self.pavlova, GroupURI))
         self.pavlova.register_parser(GroupUrlURI,            GenericParser(self.pavlova, GroupUrlURI))
@@ -1523,7 +1560,7 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/group/grouphistory/?group=2161             - history
     # * https://datatracker.ietf.org/api/v1/group/groupurl/?group=2161                 - URLs
     # * https://datatracker.ietf.org/api/v1/group/groupevent/?group=2161               - events
-    #   https://datatracker.ietf.org/api/v1/group/groupmilestone/?group=2161           - Current milestones
+    # * https://datatracker.ietf.org/api/v1/group/groupmilestone/?group=2161           - Current milestones
     #   https://datatracker.ietf.org/api/v1/group/groupmilestonehistory/?group=2161    - Previous milestones
     #   https://datatracker.ietf.org/api/v1/group/milestonegroupevent/?group=2161      - changed milestones
     #   https://datatracker.ietf.org/api/v1/group/role/?group=2161                     - The current WG chairs and ADs of a group
@@ -1624,6 +1661,33 @@ class DataTracker:
         if group is not None:
             url.params["group"] = group.id
         return self._retrieve_multi(url, GroupUrl)
+
+
+    def group_milestone_statename(self, group_milestone_statename_uri: GroupMilestoneStateNameURI) -> Optional[GroupMilestoneStateName]:
+        return self._retrieve(group_milestone_statename_uri, GroupMilestoneStateName)
+
+
+    def group_milestone_statenames(self) -> Iterator[GroupMilestoneStateName]:
+        return self._retrieve_multi(GroupMilestoneStateNameURI("/api/v1/name/groupmilestonestatename/"), GroupMilestoneStateName)
+
+
+    def group_milestone(self, group_milestone_uri : GroupMilestoneURI) -> Optional[GroupMilestone]:
+        return self._retrieve(group_milestone_uri, GroupMilestone)
+
+
+    def group_milestones(self,
+            since         : str                               = "1970-01-01T00:00:00",
+            until         : str                               = "2038-01-19T03:14:07",
+            group         : Optional[Group]                   = None,
+            state         : Optional[GroupMilestoneStateName] = None) -> Iterator[GroupMilestone]:
+        url = GroupMilestoneURI("/api/v1/group/groupmilestone/")
+        url.params["time__gt"]       = since
+        url.params["time__lt"]       = until
+        if group is not None:
+            url.params["group"] = group.id
+        if state is not None:
+            url.params["state"] = state.slug
+        return self._retrieve_multi(url, GroupMilestone)
 
 
     def group_state(self, group_state_uri : GroupStateURI) -> Optional[GroupState]:

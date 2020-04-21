@@ -1280,6 +1280,60 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(group_urls[0].id, 20)
 
 
+    def test_group_milestone_statename(self) -> None:
+        group_milestone_statename = self.dt.group_milestone_statename(GroupMilestoneStateNameURI("/api/v1/name/groupmilestonestatename/active/"))
+        if group_milestone_statename is not None:
+            self.assertEqual(group_milestone_statename.desc,  "")
+            self.assertEqual(group_milestone_statename.order, 1)
+            self.assertEqual(group_milestone_statename.slug,  "active")
+            self.assertEqual(group_milestone_statename.used,  True)
+        else:
+            self.fail("Cannot find group milestone state name")
+
+
+    def test_group_milestone_statenames(self) -> None:
+        group_milestone_statenames = list(self.dt.group_milestone_statenames())
+        self.assertEqual(len(group_milestone_statenames),    4)
+        self.assertEqual(group_milestone_statenames[0].slug, "active")
+        self.assertEqual(group_milestone_statenames[1].slug, "deleted")
+        self.assertEqual(group_milestone_statenames[2].slug, "review")
+        self.assertEqual(group_milestone_statenames[3].slug, "charter")
+
+
+    def test_group_milestone(self) -> None:
+        group_milestone = self.dt.group_milestone(GroupMilestoneURI("/api/v1/group/groupmilestone/1520/"))
+        if group_milestone is not None:
+            self.assertEqual(group_milestone.desc,         "Define a protocol for the link and IP layer.")
+            self.assertEqual(group_milestone.docs,         [])
+            self.assertEqual(group_milestone.due,          "1988-03-31")
+            self.assertEqual(group_milestone.group,        GroupURI("/api/v1/group/group/1209/"))
+            self.assertEqual(group_milestone.id,           1520)
+            self.assertEqual(group_milestone.order,        None)
+            self.assertEqual(group_milestone.resolved,     "")
+            self.assertEqual(group_milestone.resource_uri, GroupMilestoneURI("/api/v1/group/groupmilestone/1520/"))
+            self.assertEqual(group_milestone.state,        GroupMilestoneStateNameURI("/api/v1/name/groupmilestonestatename/active/"))
+            self.assertEqual(group_milestone.time,         datetime.fromisoformat("2012-02-26T00:21:52"))
+        else:
+            self.fail("Cannot find group milestone")
+
+
+    def test_group_milestones(self) -> None:
+        group_milestones = self.dt.group_milestones()
+        self.assertIsNot(group_milestones, None)
+
+
+    def test_group_milestones_group(self) -> None:
+        group_milestones = list(self.dt.group_milestones(group=self.dt.group(GroupURI("/api/v1/group/group/1209/"))))
+        self.assertEqual(len(group_milestones),  1)
+        self.assertEqual(group_milestones[0].id, 1520)
+        self.assertIsNot(group_milestones, None)
+
+
+    def test_group_milestones_state(self) -> None:
+        group_milestones = self.dt.group_milestones(state=self.dt.group_milestone_statename(GroupMilestoneStateNameURI("/api/v1/name/groupmilestonestatename/active/")))
+        self.assertIsNot(group_milestones, None)
+
+
     def test_groups_state(self) -> None:
         groups = list(self.dt.groups(state=self.dt.group_state(GroupStateURI("/api/v1/name/groupstatename/abandon"))))
         self.assertEqual(len(groups), 6)
