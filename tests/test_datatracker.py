@@ -1229,6 +1229,39 @@ class TestDatatracker(unittest.TestCase):
         self.assertIsNot(group_histories, None)
 
 
+    def test_group_event(self) -> None:
+        group_event = self.dt.group_event(GroupEventURI("/api/v1/group/groupevent/16849/"))
+        if group_event is not None:
+            self.assertEqual(group_event.by,           PersonURI("/api/v1/person/person/108756/"))
+            self.assertEqual(group_event.desc,         "Added milestone \"Submit data flow information model (informational)\", due 2020-04-30, from approved charter")
+            self.assertEqual(group_event.group,        GroupURI("/api/v1/group/group/1962/"))
+            self.assertEqual(group_event.id,           16849)
+            self.assertEqual(group_event.resource_uri, GroupEventURI("/api/v1/group/groupevent/16849/"))
+            self.assertEqual(group_event.time,         datetime.fromisoformat("2020-04-20T13:31:48"))
+            self.assertEqual(group_event.type,         "changed_milestone")
+        else:
+            self.fail("Cannot find group event")
+
+
+    def test_group_events_by(self) -> None:
+        group_events_by = self.dt.group_events(by=self.dt.person(PersonURI("/api/v1/person/person/108756/")))
+        self.assertIsNot(group_events_by, None)
+
+
+    def test_group_events_group(self) -> None:
+        group_events_group = list(self.dt.group_events(group=self.dt.group(GroupURI("/api/v1/group/group/1997/"))))
+        self.assertEqual(len(group_events_group),  4)
+        self.assertEqual(group_events_group[0].id, 9652)
+        self.assertEqual(group_events_group[1].id, 9585)
+        self.assertEqual(group_events_group[2].id, 9151)
+        self.assertEqual(group_events_group[3].id, 8975)
+
+
+    def test_group_events_type(self) -> None:
+        group_events_type = self.dt.group_events(type="changed_state")
+        self.assertIsNot(group_events_type, None)
+
+
     def test_groups_state(self) -> None:
         groups = list(self.dt.groups(state=self.dt.group_state(GroupStateURI("/api/v1/name/groupstatename/abandon"))))
         self.assertEqual(len(groups), 6)
