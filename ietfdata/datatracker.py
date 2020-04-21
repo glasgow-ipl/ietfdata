@@ -675,6 +675,38 @@ class GroupMilestone(Resource):
     state        : GroupMilestoneStateNameURI
     time         : datetime
 
+
+@dataclass(frozen=True)
+class RoleNameURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/name/rolename/")
+
+@dataclass(frozen=True)
+class RoleName(Resource):
+    desc         : str
+    name         : str
+    order        : int
+    resource_uri : RoleNameURI
+    slug         : str
+    used         : bool
+
+
+@dataclass(frozen=True)
+class GroupRoleURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/group/role/")
+
+
+@dataclass(frozen=True)
+class GroupRole(Resource):
+    email        : EmailURI
+    group        : GroupURI
+    id           : int
+    name         : RoleNameURI
+    person       : PersonURI
+    resource_uri : GroupRoleURI
+
+
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to meetings:
 
@@ -914,6 +946,7 @@ class DataTracker:
         self.pavlova.register_parser(GroupHistoryURI,        GenericParser(self.pavlova, GroupHistoryURI))
         self.pavlova.register_parser(GroupMilestoneStateNameURI, GenericParser(self.pavlova, GroupMilestoneStateNameURI))
         self.pavlova.register_parser(GroupMilestoneURI,      GenericParser(self.pavlova, GroupMilestoneURI))
+        self.pavlova.register_parser(GroupRoleURI,           GenericParser(self.pavlova, GroupRoleURI))
         self.pavlova.register_parser(GroupStateURI,          GenericParser(self.pavlova, GroupStateURI))
         self.pavlova.register_parser(GroupURI,               GenericParser(self.pavlova, GroupURI))
         self.pavlova.register_parser(GroupUrlURI,            GenericParser(self.pavlova, GroupUrlURI))
@@ -926,6 +959,7 @@ class DataTracker:
         self.pavlova.register_parser(PersonURI,              GenericParser(self.pavlova, PersonURI))
         self.pavlova.register_parser(RelationshipTypeURI,    GenericParser(self.pavlova, RelationshipTypeURI))
         self.pavlova.register_parser(RelatedDocumentURI,     GenericParser(self.pavlova, RelatedDocumentURI))
+        self.pavlova.register_parser(RoleNameURI,            GenericParser(self.pavlova, RoleNameURI))
         self.pavlova.register_parser(SessionAssignmentURI,   GenericParser(self.pavlova, SessionAssignmentURI))
         self.pavlova.register_parser(SessionURI,             GenericParser(self.pavlova, SessionURI))
         self.pavlova.register_parser(ScheduleURI,            GenericParser(self.pavlova, ScheduleURI))
@@ -1563,9 +1597,9 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/group/groupmilestone/?group=2161           - Current milestones
     #   https://datatracker.ietf.org/api/v1/group/groupmilestonehistory/?group=2161    - Previous milestones
     #   https://datatracker.ietf.org/api/v1/group/milestonegroupevent/?group=2161      - changed milestones
-    #   https://datatracker.ietf.org/api/v1/group/role/?group=2161                     - The current WG chairs and ADs of a group
-    #   https://datatracker.ietf.org/api/v1/group/role/?person=20209                   - Groups a person is currently involved with
-    #   https://datatracker.ietf.org/api/v1/group/role/?email=csp@csperkins.org        - Groups a person is currently involved with
+    # * https://datatracker.ietf.org/api/v1/group/role/?group=2161                     - The current WG chairs and ADs of a group
+    # * https://datatracker.ietf.org/api/v1/group/role/?person=20209                   - Groups a person is currently involved with
+    # * https://datatracker.ietf.org/api/v1/group/role/?email=csp@csperkins.org        - Groups a person is currently involved with
     #   https://datatracker.ietf.org/api/v1/group/rolehistory/?group=2161              - The previous WG chairs and ADs of a group
     #   https://datatracker.ietf.org/api/v1/group/rolehistory/?person=20209            - Groups person was previously involved with
     #   https://datatracker.ietf.org/api/v1/group/rolehistory/?email=csp@csperkins.org - Groups person was previously involved with
@@ -1688,6 +1722,34 @@ class DataTracker:
         if state is not None:
             url.params["state"] = state.slug
         return self._retrieve_multi(url, GroupMilestone)
+
+
+    def role_name(self, role_name_uri: RoleNameURI) -> Optional[RoleName]:
+        return self._retrieve(role_name_uri, RoleName)
+
+
+    def role_names(self) -> Iterator[RoleName]:
+        return self._retrieve_multi(RoleNameURI("/api/v1/name/rolename/"), RoleName)
+
+
+    def group_role(self, group_role_uri : GroupRoleURI) -> Optional[GroupRole]:
+        return self._retrieve(group_role_uri, GroupRole)
+
+
+    def group_roles(self,
+            email         : Optional[str]           = None,
+            group         : Optional[Group]         = None,
+            name          : Optional[RoleName]      = None,
+            person        : Optional[Person]        = None) -> Iterator[GroupRole]:
+        url = GroupRoleURI("/api/v1/group/role/")
+        url.params["email"] = email
+        if group is not None:
+            url.params["group"] = group.id
+        if name is not None:
+            url.params["name"] = name.slug
+        if person is not None:
+            url.params["person"] = person.id
+        return self._retrieve_multi(url, GroupRole)
 
 
     def group_state(self, group_state_uri : GroupStateURI) -> Optional[GroupState]:

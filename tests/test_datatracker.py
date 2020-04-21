@@ -1261,7 +1261,7 @@ class TestDatatracker(unittest.TestCase):
         group_events_type = self.dt.group_events(type="changed_state")
         self.assertIsNot(group_events_type, None)
 
- 
+
     def test_group_url(self) -> None:
         group_url = self.dt.group_url(GroupUrlURI("/api/v1/group/groupurl/1/"))
         if group_url is not None:
@@ -1332,6 +1332,102 @@ class TestDatatracker(unittest.TestCase):
     def test_group_milestones_state(self) -> None:
         group_milestones = self.dt.group_milestones(state=self.dt.group_milestone_statename(GroupMilestoneStateNameURI("/api/v1/name/groupmilestonestatename/active/")))
         self.assertIsNot(group_milestones, None)
+
+
+    def test_role_name(self) -> None:
+        role_name = self.dt.role_name(RoleNameURI("/api/v1/name/rolename/ceo/"))
+        if role_name is not None:
+            self.assertEqual(role_name.desc,         "")
+            self.assertEqual(role_name.name,         "CEO")
+            self.assertEqual(role_name.order,        0)
+            self.assertEqual(role_name.resource_uri, RoleNameURI("/api/v1/name/rolename/ceo/"))
+            self.assertEqual(role_name.slug,         "ceo")
+            self.assertEqual(role_name.used,         True)
+        else:
+            self.fail("Cannot find role name")
+
+
+    def test_role_names(self) -> None:
+        role_names = list(self.dt.role_names())
+        self.assertEqual(len(role_names), 25)
+        self.assertEqual(role_names[0].slug, "ceo")
+        self.assertEqual(role_names[1].slug, "coord")
+        self.assertEqual(role_names[2].slug, "comdir")
+        self.assertEqual(role_names[3].slug, "lead")
+        self.assertEqual(role_names[4].slug, "trac-admin")
+        self.assertEqual(role_names[5].slug, "trac-editor")
+        self.assertEqual(role_names[6].slug, "chair")
+        self.assertEqual(role_names[7].slug, "ad")
+        self.assertEqual(role_names[8].slug, "execdir")
+        self.assertEqual(role_names[9].slug, "admdir")
+        self.assertEqual(role_names[10].slug, "pre-ad")
+        self.assertEqual(role_names[11].slug, "advisor")
+        self.assertEqual(role_names[12].slug, "liaiman")
+        self.assertEqual(role_names[13].slug, "techadv")
+        self.assertEqual(role_names[14].slug, "auth")
+        self.assertEqual(role_names[15].slug, "editor")
+        self.assertEqual(role_names[16].slug, "delegate")
+        self.assertEqual(role_names[17].slug, "secr")
+        self.assertEqual(role_names[18].slug, "member")
+        self.assertEqual(role_names[19].slug, "atlarge")
+        self.assertEqual(role_names[20].slug, "liaison")
+        self.assertEqual(role_names[21].slug, "announce")
+        self.assertEqual(role_names[22].slug, "matman")
+        self.assertEqual(role_names[23].slug, "recman")
+        self.assertEqual(role_names[24].slug, "reviewer")
+
+
+    def test_group_role(self) -> None:
+        group_role = self.dt.group_role(GroupRoleURI("/api/v1/group/role/1076/"))
+        if group_role is not None:
+            self.assertEqual(group_role.email,  EmailURI("/api/v1/person/email/csp@csperkins.org/"))
+            self.assertEqual(group_role.group,  GroupURI("/api/v1/group/group/1727/"))
+            self.assertEqual(group_role.id,     1076)
+            self.assertEqual(group_role.name,   RoleNameURI("/api/v1/name/rolename/chair/"))
+            self.assertEqual(group_role.person, PersonURI("/api/v1/person/person/20209/"))
+        else:
+            self.fail("Cannot find group role")
+
+
+    def test_group_roles(self) -> None:
+        group_roles = self.dt.group_roles()
+        self.assertIsNot(group_roles, None)
+
+    def test_group_roles_email(self) -> None:
+        group_roles = list(self.dt.group_roles(email="csp@csperkins.org"))
+        self.assertEqual(len(group_roles), 7)
+        self.assertEqual(group_roles[0].id, 1076)
+        self.assertEqual(group_roles[1].id, 9355)
+        self.assertEqual(group_roles[2].id, 8464)
+        self.assertEqual(group_roles[3].id, 8465)
+        self.assertEqual(group_roles[4].id, 8466)
+        self.assertEqual(group_roles[5].id, 3998)
+        self.assertEqual(group_roles[6].id, 9670)
+
+
+    def test_group_roles_group(self) -> None:
+        group_roles = list(self.dt.group_roles(group=self.dt.group(GroupURI("/api/v1/group/group/1997/"))))
+        self.assertEqual(len(group_roles), 3)
+        self.assertEqual(group_roles[0].id, 3036)
+        self.assertEqual(group_roles[1].id, 3037)
+        self.assertEqual(group_roles[2].id, 3038)
+
+
+    def test_group_roles_name(self) -> None:
+        group_roles = self.dt.group_roles(name=self.dt.role_name(RoleNameURI("/api/v1/name/rolename/chair/")))
+        self.assertIsNot(group_roles, None)
+
+
+    def test_group_roles_person(self) -> None:
+        group_roles = list(self.dt.group_roles(person=self.dt.person(PersonURI("/api/v1/person/person/20209/"))))
+        self.assertEqual(len(group_roles), 7)
+        self.assertEqual(group_roles[0].id, 1076)
+        self.assertEqual(group_roles[1].id, 9355)
+        self.assertEqual(group_roles[2].id, 8464)
+        self.assertEqual(group_roles[3].id, 8465)
+        self.assertEqual(group_roles[4].id, 8466)
+        self.assertEqual(group_roles[5].id, 3998)
+        self.assertEqual(group_roles[6].id, 9670)
 
 
     def test_groups_state(self) -> None:
