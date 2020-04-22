@@ -1430,6 +1430,89 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(group_roles[5].id, 3998)
         self.assertEqual(group_roles[6].id, 9670)
 
+ 
+    def test_group_milestone_history(self) -> None:
+        group_milestone_history = self.dt.group_milestone_history(GroupMilestoneHistoryURI("/api/v1/group/groupmilestonehistory/1433/"))
+        if group_milestone_history is not None:
+            self.assertEqual(group_milestone_history.desc,         "Agreement on charter and issues in current draft.")
+            self.assertEqual(group_milestone_history.docs,         [])
+            self.assertEqual(group_milestone_history.due,          "1996-05-31")
+            self.assertEqual(group_milestone_history.group,        GroupURI("/api/v1/group/group/1326/"))
+            self.assertEqual(group_milestone_history.id,           1433)
+            self.assertEqual(group_milestone_history.milestone,    GroupMilestoneURI("/api/v1/group/groupmilestone/2114/"))
+            self.assertEqual(group_milestone_history.order,        None)
+            self.assertEqual(group_milestone_history.resolved,     "Done")
+            self.assertEqual(group_milestone_history.resource_uri, GroupMilestoneHistoryURI("/api/v1/group/groupmilestonehistory/1433/"))
+            self.assertEqual(group_milestone_history.state,        GroupMilestoneStateNameURI("/api/v1/name/groupmilestonestatename/active/"))
+            self.assertEqual(group_milestone_history.time,         datetime.fromisoformat("2013-05-20T15:42:45"))
+        else:
+            self.fail("Cannot find group milestone history")
+
+
+    def test_group_milestone_histories(self) -> None:
+        group_milestone_histories = self.dt.group_milestone_histories()
+        self.assertIsNot(group_milestone_histories, None)
+
+
+    def test_group_milestone_histories_group(self) -> None:
+        group_milestone_histories = list(self.dt.group_milestone_histories(group=self.dt.group(GroupURI("/api/v1/group/group/1326/"))))
+        self.assertEqual(len(group_milestone_histories), 24)
+
+
+    def test_group_milestone_histories_milestone(self) -> None:
+        group_milestone_histories = list(self.dt.group_milestone_histories(milestone=self.dt.group_milestone(GroupMilestoneURI("/api/v1/group/groupmilestone/2114"))))
+        self.assertEqual(len(group_milestone_histories),  1)
+        self.assertEqual(group_milestone_histories[0].id, 1433)
+
+
+    def test_group_milestone_histories_state(self) -> None:
+        group_milestone_histories = self.dt.group_milestone_histories(state=self.dt.group_milestone_statename(GroupMilestoneStateNameURI("/api/v1/name/groupmilestonestatename/active/")))
+        self.assertIsNot(group_milestone_histories, None)
+
+
+    def test_group_milestone_event(self) -> None:
+        group_milestone_event = self.dt.group_milestone_event(GroupMilestoneEventURI("/api/v1/group/milestonegroupevent/16849/"))
+        if group_milestone_event is not None:
+            self.assertEqual(group_milestone_event.by,             PersonURI("/api/v1/person/person/108756/"))
+            self.assertEqual(group_milestone_event.desc,           "Added milestone \"Submit data flow information model (informational)\", due 2020-04-30, from approved charter")
+            self.assertEqual(group_milestone_event.group,          GroupURI("/api/v1/group/group/1962/"))
+            self.assertEqual(group_milestone_event.groupevent_ptr, GroupEventURI("/api/v1/group/groupevent/16849/"))
+            self.assertEqual(group_milestone_event.id,             16849)
+            self.assertEqual(group_milestone_event.milestone,      GroupMilestoneURI("/api/v1/group/groupmilestone/8539/"))
+            self.assertEqual(group_milestone_event.resource_uri,   GroupMilestoneEventURI("/api/v1/group/milestonegroupevent/16849/"))
+            self.assertEqual(group_milestone_event.time,           datetime.fromisoformat("2020-04-20T13:31:48"))
+            self.assertEqual(group_milestone_event.type,           "changed_milestone")
+        else:
+            self.fail("Cannot find group milestone event")
+
+
+    def test_group_milestone_events(self) -> None:
+        group_milestone_events = self.dt.group_milestone_events()
+        self.assertIsNot(group_milestone_events, None)
+
+
+    def test_group_milestone_events_by(self) -> None:
+        group_milestone_events = self.dt.group_milestone_events(by=self.dt.person(PersonURI("/api/v1/person/person/108756/")))
+        self.assertIsNot(group_milestone_events, None)
+
+
+    def test_group_milestone_events_group(self) -> None:
+        group_milestone_events = list(self.dt.group_milestone_events(group=self.dt.group(GroupURI("/api/v1/group/group/1326/"))))
+        self.assertEqual(len(group_milestone_events), 35)
+
+
+    def test_group_milestone_events_milestone(self) -> None:
+        group_milestone_events = list(self.dt.group_milestone_events(milestone=self.dt.group_milestone(GroupMilestoneURI("/api/v1/group/groupmilestone/6489/"))))
+        self.assertEqual(len(group_milestone_events),  3)
+        self.assertEqual(group_milestone_events[0].id, 16331)
+        self.assertEqual(group_milestone_events[1].id, 11947)
+        self.assertEqual(group_milestone_events[2].id, 7224)
+
+
+    def test_group_milestone_events_type(self) -> None:
+        group_milestone_events = self.dt.group_milestone_events(type="changed_milestone")
+        self.assertIsNot(group_milestone_events, None)
+
 
     def test_group_role_history(self) -> None:
         group_role_history = self.dt.group_role_history(GroupRoleHistoryURI("/api/v1/group/rolehistory/519/"))

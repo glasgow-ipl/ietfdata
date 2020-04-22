@@ -706,6 +706,45 @@ class GroupRole(Resource):
     person       : PersonURI
     resource_uri : GroupRoleURI
 
+@dataclass(frozen=True)
+class GroupMilestoneHistoryURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/group/groupmilestonehistory/")
+
+
+@dataclass(frozen=True)
+class GroupMilestoneHistory(Resource):
+    desc         : str
+    docs         : List[DocumentURI]
+    due          : str
+    group        : GroupURI
+    id           : int
+    milestone    : GroupMilestoneURI
+    order        : Optional[int]
+    resolved     : str
+    resource_uri : GroupMilestoneHistoryURI
+    state        : GroupMilestoneStateNameURI
+    time         : datetime
+
+
+@dataclass(frozen=True)
+class GroupMilestoneEventURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/group/milestonegroupevent/")
+
+
+@dataclass(frozen=True)
+class GroupMilestoneEvent(Resource):
+    by             : PersonURI
+    desc           : str
+    group          : GroupURI
+    groupevent_ptr : GroupEventURI
+    id             : int
+    milestone      : GroupMilestoneURI
+    resource_uri   : GroupMilestoneEventURI
+    time           : datetime
+    type           : str
+
 
 @dataclass(frozen=True)
 class GroupRoleHistoryURI(URI):
