@@ -1160,7 +1160,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(group.resource_uri,   GroupURI("/api/v1/group/group/941/"))
             self.assertEqual(group.state,          GroupStateURI("/api/v1/name/groupstatename/conclude/"))
             self.assertEqual(group.time,           datetime.fromisoformat("2011-12-09T12:00:00"))
-            self.assertEqual(group.type,           "/api/v1/name/grouptypename/wg/")
+            self.assertEqual(group.type,           GroupTypeNameURI("/api/v1/name/grouptypename/wg/"))
             self.assertEqual(group.unused_states,  [])
             self.assertEqual(group.unused_tags,    [])
         else:
@@ -1209,7 +1209,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(group_history.resource_uri,         GroupHistoryURI("/api/v1/group/grouphistory/4042/"))
             self.assertEqual(group_history.state,                GroupStateURI("/api/v1/name/groupstatename/active/"))
             self.assertEqual(group_history.time,                 datetime.fromisoformat("2019-02-08T14:07:27"))
-            self.assertEqual(group_history.type,                 "/api/v1/name/grouptypename/wg/")
+            self.assertEqual(group_history.type,                 GroupTypeNameURI("/api/v1/name/grouptypename/wg/"))
             self.assertEqual(group_history.unused_states,        [])
             self.assertEqual(group_history.unused_tags,          [])
             self.assertEqual(group_history.uses_milestone_dates, True)
@@ -1634,6 +1634,44 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(states[6].slug, "proposed")
         self.assertEqual(states[7].slug, "replaced")
         self.assertEqual(states[8].slug, "unknown")
+
+
+    def test_group_type_name(self) -> None:
+        group_type_name = self.dt.group_type_name(GroupTypeNameURI("/api/v1/name/grouptypename/adhoc/"))
+        if group_type_name is not None:
+            self.assertEqual(group_type_name.desc,         "Ad Hoc schedulable Group Type, for instance HotRfc")
+            self.assertEqual(group_type_name.name,         "Ad Hoc")
+            self.assertEqual(group_type_name.order,        0)
+            self.assertEqual(group_type_name.resource_uri, GroupTypeNameURI("/api/v1/name/grouptypename/adhoc/"))
+            self.assertEqual(group_type_name.slug,         "adhoc")
+            self.assertEqual(group_type_name.used,         True)
+            self.assertEqual(group_type_name.verbose_name, "Ad Hoc Group Type")
+
+
+    def test_group_type_names(self) -> None:
+        group_type_names = list(self.dt.group_type_names())
+        self.assertEqual(len(group_type_names), 21)
+        self.assertEqual(group_type_names[0].slug,  "adhoc")
+        self.assertEqual(group_type_names[1].slug,  "admin")
+        self.assertEqual(group_type_names[2].slug,  "ag")
+        self.assertEqual(group_type_names[3].slug,  "area")
+        self.assertEqual(group_type_names[4].slug,  "dir")
+        self.assertEqual(group_type_names[5].slug,  "review")
+        self.assertEqual(group_type_names[6].slug,  "iab")
+        self.assertEqual(group_type_names[7].slug,  "iana")
+        self.assertEqual(group_type_names[8].slug,  "iesg")
+        self.assertEqual(group_type_names[9].slug,  "ietf")
+        self.assertEqual(group_type_names[10].slug, "individ")
+        self.assertEqual(group_type_names[11].slug, "irtf")
+        self.assertEqual(group_type_names[12].slug, "ise")
+        self.assertEqual(group_type_names[13].slug, "isoc")
+        self.assertEqual(group_type_names[14].slug, "nomcom")
+        self.assertEqual(group_type_names[15].slug, "program")
+        self.assertEqual(group_type_names[16].slug, "rfcedtyp")
+        self.assertEqual(group_type_names[17].slug, "rg")
+        self.assertEqual(group_type_names[18].slug, "sdo")
+        self.assertEqual(group_type_names[19].slug, "team")
+        self.assertEqual(group_type_names[20].slug, "wg")
 
 
     # -----------------------------------------------------------------------------------------------------------------------------

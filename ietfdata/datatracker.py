@@ -556,6 +556,23 @@ class GroupState(Resource):
     order          : int
 
 
+@dataclass(frozen=True)
+class GroupTypeNameURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/name/grouptypename/")
+
+
+@dataclass(frozen=True)
+class GroupTypeName(Resource):
+    desc          : str
+    name          : str
+    order         : int
+    resource_uri  : GroupTypeNameURI
+    slug          : str
+    used          : bool
+    verbose_name  : str
+
+
 # GroupURI is defined earlier, to avoid circular dependencies
 
 
@@ -575,7 +592,7 @@ class Group(Resource):
     resource_uri   : GroupURI
     state          : GroupStateURI
     time           : datetime
-    type           : str    # FIXME: this should be a URI subtype
+    type           : GroupTypeNameURI
     unused_states  : List[str]
     unused_tags    : List[str]
 
@@ -602,7 +619,7 @@ class GroupHistory(Resource):
     resource_uri         : GroupHistoryURI
     state                : GroupStateURI
     time                 : datetime
-    type                 : str    # FIXME: this should be a URI subtype
+    type                 : GroupTypeNameURI
     unused_states        : List[str]
     unused_tags          : List[str]
     uses_milestone_dates : bool
@@ -1026,6 +1043,7 @@ class DataTracker:
         self.pavlova.register_parser(GroupRoleHistoryURI,    GenericParser(self.pavlova, GroupRoleHistoryURI))
         self.pavlova.register_parser(GroupStateChangeEventURI, GenericParser(self.pavlova, GroupStateChangeEventURI))
         self.pavlova.register_parser(GroupStateURI,          GenericParser(self.pavlova, GroupStateURI))
+        self.pavlova.register_parser(GroupTypeNameURI,       GenericParser(self.pavlova, GroupTypeNameURI))
         self.pavlova.register_parser(GroupURI,               GenericParser(self.pavlova, GroupURI))
         self.pavlova.register_parser(GroupUrlURI,            GenericParser(self.pavlova, GroupUrlURI))
         self.pavlova.register_parser(MailingListURI,         GenericParser(self.pavlova, MailingListURI))
@@ -1684,7 +1702,7 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/group/changestategroupevent/?group=2161    - Group state changes
     #   https://datatracker.ietf.org/api/v1/group/groupstatetransitions                - ???
     # * https://datatracker.ietf.org/api/v1/name/groupstatename/
-    #   https://datatracker.ietf.org/api/v1/name/grouptypename/
+    # * https://datatracker.ietf.org/api/v1/name/grouptypename/
 
     def group(self, group_uri: GroupURI) -> Optional[Group]:
         return self._retrieve(group_uri, Group)
@@ -1935,6 +1953,14 @@ class DataTracker:
     def group_states(self) -> Iterator[GroupState]:
         url = GroupStateURI("/api/v1/name/groupstatename/")
         return self._retrieve_multi(url, GroupState)
+
+
+    def group_type_name(self, group_type_name_uri : GroupTypeNameURI) -> Optional[GroupTypeName]:
+        return self._retrieve(group_type_name_uri, GroupTypeName)
+
+
+    def group_type_names(self) -> Iterator[GroupTypeName]:
+        return self._retrieve_multi(GroupTypeNameURI("/api/v1/name/grouptypename/"), GroupTypeName)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
