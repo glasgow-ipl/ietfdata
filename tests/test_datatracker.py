@@ -1556,6 +1556,40 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(len(group_role_histories), 25)
 
 
+    def test_group_state_change_event(self) -> None:
+        group_state_change_event = self.dt.group_state_change_event(GroupStateChangeEventURI("/api/v1/group/changestategroupevent/16833/"))
+        if group_state_change_event is not None:
+            self.assertEqual(group_state_change_event.by,             PersonURI("/api/v1/person/person/106842/"))
+            self.assertEqual(group_state_change_event.desc,           "State changed to <b>Proposed</b> from Unknown")
+            self.assertEqual(group_state_change_event.group,          GroupURI("/api/v1/group/group/2273/"))
+            self.assertEqual(group_state_change_event.groupevent_ptr, GroupEventURI("/api/v1/group/groupevent/16833/"))
+            self.assertEqual(group_state_change_event.id,             16833)
+            self.assertEqual(group_state_change_event.resource_uri,   GroupStateChangeEventURI("/api/v1/group/changestategroupevent/16833/"))
+            self.assertEqual(group_state_change_event.state,          GroupStateURI("/api/v1/name/groupstatename/proposed/"))
+            self.assertEqual(group_state_change_event.time,           datetime.fromisoformat("2020-04-14T14:52:24"))
+            self.assertEqual(group_state_change_event.type,           "changed_state")
+        else:
+            self.fail("Cannot find group state change event")
+
+    def test_group_state_change_events(self) -> None:
+        group_state_change_events = self.dt.group_state_change_events()
+
+
+    def test_group_state_change_events_by(self) -> None:
+        group_state_change_events = self.dt.group_state_change_events(by=self.dt.person(PersonURI("/api/v1/person/person/108756/")))
+        self.assertIsNot(group_state_change_events, None)
+
+
+    def test_group_state_change_events_group(self) -> None:
+        group_state_change_events = self.dt.group_state_change_events(group=self.dt.group(GroupURI("/api/v1/group/group/1326/")))
+        self.assertIsNot(group_state_change_events, None)
+
+
+    def test_group_state_change_events_state(self) -> None:
+        group_state_change_events = self.dt.group_state_change_events(state=self.dt.group_state(GroupStateURI("/api/v1/name/groupstatename/proposed/")))
+        self.assertIsNot(group_state_change_events, None)
+
+
     def test_groups_state(self) -> None:
         groups = list(self.dt.groups(state=self.dt.group_state(GroupStateURI("/api/v1/name/groupstatename/abandon"))))
         self.assertEqual(len(groups), 6)
