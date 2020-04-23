@@ -1403,7 +1403,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(group_roles[3].id, 8465)
         self.assertEqual(group_roles[4].id, 8466)
         self.assertEqual(group_roles[5].id, 3998)
-        self.assertEqual(group_roles[6].id, 9670)
+        self.assertEqual(group_roles[6].id, 9772)
 
 
     def test_group_roles_group(self) -> None:
@@ -1428,7 +1428,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(group_roles[3].id, 8465)
         self.assertEqual(group_roles[4].id, 8466)
         self.assertEqual(group_roles[5].id, 3998)
-        self.assertEqual(group_roles[6].id, 9670)
+        self.assertEqual(group_roles[6].id, 9772)
 
 
     def test_group_milestone_history(self) -> None:
@@ -1456,7 +1456,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_milestone_histories_group(self) -> None:
         group_milestone_histories = list(self.dt.group_milestone_histories(group=self.dt.group(GroupURI("/api/v1/group/group/1326/"))))
-        self.assertEqual(len(group_milestone_histories), 24)
+        self.assertEqual(len(group_milestone_histories), 35)
 
 
     def test_group_milestone_histories_milestone(self) -> None:
@@ -1498,7 +1498,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_milestone_events_group(self) -> None:
         group_milestone_events = list(self.dt.group_milestone_events(group=self.dt.group(GroupURI("/api/v1/group/group/1326/"))))
-        self.assertEqual(len(group_milestone_events), 35)
+        self.assertEqual(len(group_milestone_events), 46)
 
 
     def test_group_milestone_events_milestone(self) -> None:
@@ -1534,7 +1534,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_email(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(email="csp@csperkins.org"))
-        self.assertEqual(len(group_role_histories), 24)
+        self.assertEqual(len(group_role_histories), 25)
 
 
     def test_group_role_histories_group(self) -> None:
@@ -1553,7 +1553,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_person(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(person=self.dt.person(PersonURI("/api/v1/person/person/20209/"))))
-        self.assertEqual(len(group_role_histories), 24)
+        self.assertEqual(len(group_role_histories), 25)
 
 
     def test_groups_state(self) -> None:
