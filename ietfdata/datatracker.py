@@ -762,6 +762,25 @@ class GroupRoleHistory(Resource):
     resource_uri : GroupRoleHistoryURI
 
 
+@dataclass(frozen=True)
+class GroupStateChangeEventURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/group/changestategroupevent/")
+
+
+@dataclass(frozen=True)
+class GroupStateChangeEvent(Resource):
+    by             : PersonURI
+    desc           : str
+    group          : GroupURI
+    groupevent_ptr : GroupEventURI
+    id             : int
+    resource_uri   : GroupStateChangeEventURI
+    state          : GroupStateURI
+    time           : datetime
+    type           : str
+
+
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to meetings:
 
@@ -1005,6 +1024,7 @@ class DataTracker:
         self.pavlova.register_parser(GroupMilestoneURI,      GenericParser(self.pavlova, GroupMilestoneURI))
         self.pavlova.register_parser(GroupRoleURI,           GenericParser(self.pavlova, GroupRoleURI))
         self.pavlova.register_parser(GroupRoleHistoryURI,    GenericParser(self.pavlova, GroupRoleHistoryURI))
+        self.pavlova.register_parser(GroupStateChangeEventURI, GenericParser(self.pavlova, GroupStateChangeEventURI))
         self.pavlova.register_parser(GroupStateURI,          GenericParser(self.pavlova, GroupStateURI))
         self.pavlova.register_parser(GroupURI,               GenericParser(self.pavlova, GroupURI))
         self.pavlova.register_parser(GroupUrlURI,            GenericParser(self.pavlova, GroupUrlURI))
@@ -1661,7 +1681,7 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/group/rolehistory/?group=2161              - The previous WG chairs and ADs of a group
     # * https://datatracker.ietf.org/api/v1/group/rolehistory/?person=20209            - Groups person was previously involved with
     # * https://datatracker.ietf.org/api/v1/group/rolehistory/?email=csp@csperkins.org - Groups person was previously involved with
-    #   https://datatracker.ietf.org/api/v1/group/changestategroupevent/?group=2161    - Group state changes
+    # * https://datatracker.ietf.org/api/v1/group/changestategroupevent/?group=2161    - Group state changes
     #   https://datatracker.ietf.org/api/v1/group/groupstatetransitions                - ???
     # * https://datatracker.ietf.org/api/v1/name/groupstatename/
     #   https://datatracker.ietf.org/api/v1/name/grouptypename/
@@ -1874,6 +1894,28 @@ class DataTracker:
         if milestone is not None:
             url.params["milestone"] = milestone.id
         return self._retrieve_multi(url, GroupMilestoneEvent)
+
+
+    def group_state_change_event(self, group_state_change_event_uri : GroupStateChangeEventURI) -> Optional[GroupStateChangeEvent]:
+        return self._retrieve(group_state_change_event_uri, GroupStateChangeEvent)
+
+
+    def group_state_change_events(self,
+            since         : str                        = "1970-01-01T00:00:00",
+            until         : str                        = "2038-01-19T03:14:07",
+            by            : Optional[Person]           = None,
+            group         : Optional[Group]            = None,
+            state         : Optional[GroupState]       = None) -> Iterator[GroupStateChangeEvent]:
+        url = GroupStateChangeEventURI("/api/v1/group/changestategroupevent/")
+        url.params["time__gt"]       = since
+        url.params["time__lt"]       = until
+        if by is not None:
+            url.params["by"] = by.id
+        if group is not None:
+            url.params["group"] = group.id
+        if state is not None:
+            url.params["state"] = state.slug
+        return self._retrieve_multi(url, GroupStateChangeEvent)
 
 
     def group_state(self, group_state_uri : GroupStateURI) -> Optional[GroupState]:
