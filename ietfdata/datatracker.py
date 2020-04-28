@@ -1289,7 +1289,11 @@ class DataTracker:
     # Datatracker API endpoints returning information about document aliases:
     # * https://datatracker.ietf.org/api/v1/doc/docalias/?name=/                 - draft that became the given RFC
 
-    def docaliases_from_name(self, alias: str) -> Iterator[DocumentAlias]:
+    def document_alias(self, document_alias_uri: DocumentAliasURI) -> Optional[DocumentAlias]:
+        return self._retrieve(document_alias_uri, DocumentAlias)
+
+
+    def document_aliases(self, name: Optional[str] = None) -> Iterator[DocumentAlias]:
         """
         Returns a list of DocumentAlias objects that correspond to the specified name.
 
@@ -1300,7 +1304,7 @@ class DataTracker:
             A list of DocumentAlias objects
         """
         url = DocumentAliasURI("/api/v1/doc/docalias/")
-        url.params["name"] = alias
+        url.params["name"] = name
         return self._retrieve_multi(url, DocumentAlias)
 
 
@@ -1329,7 +1333,7 @@ class DataTracker:
             A Document object
         """
         assert rfc.lower().startswith("rfc")
-        docs = list(self.docaliases_from_name(rfc.lower()))
+        docs = list(self.document_aliases(name=rfc.lower()))
         if len(docs) == 0:
             return None
         elif len(docs) == 1:
@@ -1349,7 +1353,7 @@ class DataTracker:
             A list of Document objects
         """
         assert bcp.lower().startswith("bcp")
-        for alias in self.docaliases_from_name(bcp.lower()):
+        for alias in self.document_aliases(name=bcp.lower()):
             doc = self.document(alias.document)
             if doc is not None:
                 yield doc
@@ -1366,7 +1370,7 @@ class DataTracker:
             A list of Document objects
         """
         assert std.lower().startswith("std")
-        for alias in self.docaliases_from_name(std.lower()):
+        for alias in self.document_aliases(name=std.lower()):
             doc = self.document(alias.document)
             if doc is not None:
                 yield doc
