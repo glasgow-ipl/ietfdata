@@ -524,6 +524,7 @@ class DocumentAuthorURI(URI):
     def __post_init__(self) -> None:
         assert self.uri.startswith("/api/v1/doc/documentauthor/")
 
+
 @dataclass(frozen=True)
 class DocumentAuthor(Resource):
     id           : int
@@ -533,7 +534,7 @@ class DocumentAuthor(Resource):
     affiliation  : str
     document     : DocumentURI
     person       : PersonURI
-    email        : EmailURI
+    email        : Optional[EmailURI]
 
 
     def normalise_country(self) -> str:
