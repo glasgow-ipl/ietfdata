@@ -136,7 +136,14 @@ class RfcEntry:
                     else:
                         raise NotImplementedError
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}draft":
-                self.draft = elem.text
+                if elem.text == "rfc4049bis":
+                    # RFC 6019 is RFC 4049 republished as a Proposed Standard RF. 
+                    # with virtually no change. It was never published as a draft,
+                    # but the index lists "rfc4049bis" as its draft name. Replace
+                    # this with the name of the draft that became RFC 4049.
+                    self.draft = "draft-housley-binarytime-02"
+                else:
+                    self.draft = elem.text
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}keywords":
                 for inner in elem:
                     if   inner.tag == "{http://www.rfc-editor.org/rfc-index}kw":
