@@ -142,6 +142,8 @@ class RfcEntry:
                     # but the index lists "rfc4049bis" as its draft name. Replace
                     # this with the name of the draft that became RFC 4049.
                     self.draft = "draft-housley-binarytime-02"
+                elif elem.text == "draft-luckie-recn":
+                    self.draft = None
                 else:
                     self.draft = elem.text
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}keywords":
