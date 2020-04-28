@@ -34,22 +34,26 @@ from ietfdata.datatracker import *
 dt = DataTracker(cache_dir=Path("cache"))
 replaces = dt.relationship_type(RelationshipTypeURI("/api/v1/name/docrelationshipname/replaces/"))
 
-docname = "rfc8256"
+docname = "rfc8280"
 
 def print_revisions(document):
     revisions = list(dt.document_events(doc=document, event_type="new_revision"))[::-1]
     for revision in revisions:
         print("    {0: <50} | {1} | {2}".format(document.name, revision.rev, revision.time.strftime("%Y-%m-%d")))
 
-def get_replacement_chain(doc):
+def replacements(doc, docs_seen):
     replaced_docs = list(dt.related_documents(source=doc, relationship_type=replaces))
     replaced_docs = [dt.document_alias(replaced_doc.target) for replaced_doc in replaced_docs]
     for replaced_doc in replaced_docs:
-        other_replaced_docs = get_replacement_chain(replaced_doc)
-        for other_replaced_doc in other_replaced_docs:
-            if other_replaced_doc not in replaced_docs:
-                replaced_docs.append(other_replaced_doc)
+        if replaced_doc not in docs_seen:
+            replacements(dt.document(replaced_doc.document), docs_seen)
+            docs_seen.append(replaced_doc)
     return replaced_docs
+
+def get_replacement_chain(doc):
+    docs_seen = []
+    replacements(doc, docs_seen)
+    return docs_seen
 
 docs = list(dt.document_aliases(name=docname))
 if len(docs) == 1:
