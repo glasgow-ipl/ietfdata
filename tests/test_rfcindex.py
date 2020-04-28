@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2019 University of Glasgow
+# Copyright (C) 2017-2020 University of Glasgow
 # 
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions 
@@ -39,7 +39,7 @@ class TestRFCIndex(unittest.TestCase):
 
     @classmethod
     def setUpClass(self) -> None:
-        self.index = RFCIndex()
+        self.index = RFCIndex(cache_dir=Path("cache"))
 
     def test_rfc(self):
         rfc = self.index.rfc("RFC3550")
