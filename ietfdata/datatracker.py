@@ -1304,13 +1304,7 @@ class DataTracker:
             A Document object
         """
         assert draft.startswith("draft-")
-        docs = list(self.docaliases_from_name(draft))
-        if len(docs) == 0:
-            return None
-        elif len(docs) == 1:
-            return self.document(docs[0].document)
-        else:
-            raise RuntimeError
+        return self.document(DocumentURI("/api/v1/doc/document/" + draft + "/"))
 
 
     def document_from_rfc(self, rfc: str) -> Optional[Document]:
