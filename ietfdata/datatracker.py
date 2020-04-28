@@ -1289,6 +1289,10 @@ class DataTracker:
     # Datatracker API endpoints returning information about document aliases:
     # * https://datatracker.ietf.org/api/v1/doc/docalias/?name=/                 - draft that became the given RFC
 
+    def document_alias(self, document_alias_uri: DocumentAliasURI) -> Optional[DocumentAlias]:
+        return self._retrieve(document_alias_uri, DocumentAlias)
+
+
     def docaliases_from_name(self, alias: str) -> Iterator[DocumentAlias]:
         """
         Returns a list of DocumentAlias objects that correspond to the specified name.
