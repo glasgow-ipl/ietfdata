@@ -57,6 +57,7 @@ import glob
 import json
 import requests
 import re
+import sys
 
 # =================================================================================================================================
 # Classes to represent the JSON-serialised objects returned by the Datatracker API:
@@ -1127,9 +1128,11 @@ class DataTracker:
             if r.status_code == 200:
                 obj_json = r.json()
                 self._cache_obj(resource_uri, obj_json)
+            elif r.status_code == 404:
+                return None
             else:
                 print("_retrieve failed: {} {}".format(r.status_code, self.base_url + resource_uri.uri))
-                return None
+                sys.exit(1)
         obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
         return obj
 
@@ -1151,7 +1154,7 @@ class DataTracker:
             else:
                 print("_retrieve_multi failed: {}".format(r.status_code))
                 print(r.status_code)
-                return None
+                sys.exit(1)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
