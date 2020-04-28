@@ -39,10 +39,7 @@ def print_submission(draft):
         submission = dt.submission(submission_uri)
         if submission.replaces is not "":
             replaces = dt.document_from_draft(submission.replaces)
-            if replaces.name == draft.name:
-                # draft-ietf-mpls-tp-temporal-hitless-psm replaces itself...
-                return
-            if replaces is not None:
+            if (replaces is not None) and (replaces.name != draft.name):
                 print_submission(replaces)
         print("   dt.submission   | {} | {} | {} | {}".format(rfc.doc_id, submission.name, submission.rev, submission.document_date))
 
