@@ -536,6 +536,16 @@ class DocumentAuthor(Resource):
     email        : EmailURI
 
 
+    def normalise_country(self) -> str:
+        # FIXME: implement this
+        return self.country
+
+
+    def normalise_affiliation(self) -> str:
+        # FIXME: implement this
+        return self.affiliation
+
+
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to groups:
 
