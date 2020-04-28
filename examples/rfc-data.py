@@ -38,9 +38,10 @@ def print_submission(draft):
     for submission_uri in draft.submissions:
         submission = dt.submission(submission_uri)
         if submission.replaces is not "":
-            replaces = dt.document_from_draft(submission.replaces)
-            if (replaces is not None) and (replaces.name != draft.name):
-                print_submission(replaces)
+            for replaces_draft in submission.replaces.split(","):
+                replaces = dt.document_from_draft(replaces_draft)
+                if (replaces is not None) and (replaces.name != draft.name):
+                    print_submission(replaces)
         print("   dt.submission   | {} | {} | {} | {}".format(rfc.doc_id, submission.name, submission.rev, submission.document_date))
 
 

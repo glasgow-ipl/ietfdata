@@ -283,7 +283,8 @@ class Submission(Resource):
     note            : str
     pages           : Optional[int]
     remote_ip       : str
-    replaces        : str   # FIXME: this should be an Optional[URI]?
+    replaces        : str   # This is a comma separated list of draft names (e.g., "draft-dkg-hrpc-glossary,draft-varon-hrpc-methodology")
+                            # although in most cases there is only one entry, and hence no comma.
     resource_uri    : SubmissionURI
     rev             : str
     state           : str   # FIXME: this should be a URI subtype
@@ -1319,6 +1320,7 @@ class DataTracker:
             A Document object
         """
         assert draft.startswith("draft-")
+        assert not "," in draft
         return self.document(DocumentURI("/api/v1/doc/document/" + draft + "/"))
 
 
