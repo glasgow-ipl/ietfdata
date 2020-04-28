@@ -1293,7 +1293,7 @@ class DataTracker:
         return self._retrieve(document_alias_uri, DocumentAlias)
 
 
-    def docaliases_from_name(self, alias: str) -> Iterator[DocumentAlias]:
+    def document_aliases(self, name: Optional[str] = None) -> Iterator[DocumentAlias]:
         """
         Returns a list of DocumentAlias objects that correspond to the specified name.
 
@@ -1304,7 +1304,7 @@ class DataTracker:
             A list of DocumentAlias objects
         """
         url = DocumentAliasURI("/api/v1/doc/docalias/")
-        url.params["name"] = alias
+        url.params["name"] = name
         return self._retrieve_multi(url, DocumentAlias)
 
 
