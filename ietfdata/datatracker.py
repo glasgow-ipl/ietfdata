@@ -58,6 +58,7 @@ import json
 import requests
 import re
 import sys
+import time
 
 # =================================================================================================================================
 # Classes to represent the JSON-serialised objects returned by the Datatracker API:
@@ -1138,23 +1139,34 @@ class DataTracker:
 
     def _retrieve_multi(self, resource_uri: URI, obj_type: Type[T], deref: Dict[str, str] = {}) -> Iterator[T]:
         # deref is currently unused, but will be needed for the cache
+        headers = {'user-agent': self.ua}
         resource_uri.params["limit"] = "100"
         while resource_uri.uri is not None:
-            headers = {'user-agent': self.ua}
             self._rate_limit()
-            r = self.session.get(self.base_url + resource_uri.uri, params=resource_uri.params, headers=headers, verify=True, stream=False)
-            if r.status_code == 200:
-                meta = r.json()['meta']
-                objs = r.json()['objects']
-                resource_uri  = URI(meta['next'])
-                for obj_json in objs:
-                    obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
-                    self._cache_obj(obj.resource_uri, obj_json)
-                    yield obj
-            else:
-                print("_retrieve_multi failed: {}".format(r.status_code))
-                print(r.status_code)
-                sys.exit(1)
+            retry = True
+            retry_time = 1.875
+            while retry:
+                retry = False
+                r = self.session.get(self.base_url + resource_uri.uri, params=resource_uri.params, headers=headers, verify=True, stream=False)
+                if r.status_code == 200:
+                    meta = r.json()['meta']
+                    objs = r.json()['objects']
+                    resource_uri  = URI(meta['next'])
+                    for obj_json in objs:
+                        obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
+                        self._cache_obj(obj.resource_uri, obj_json)
+                        yield obj
+                elif r.status_code == 500:
+                    if retry_time > 60:
+                        print("_retrieve_multi failed: error {} after {} requests".format(r.status_code, self.http_req))
+                        sys.exit(1)
+                    self.session.close()
+                    time.sleep(retry_time)
+                    retry_time *= 2
+                    retry = True
+                else:
+                    print("_retrieve_multi failed: error {} after {} requests".format(r.status_code, self.http_req))
+                    sys.exit(1)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
