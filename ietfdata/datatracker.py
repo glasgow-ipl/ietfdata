@@ -541,8 +541,251 @@ class DocumentAuthor(Resource):
 
 
     def normalise_country(self) -> str:
-        # FIXME: implement this
-        return self.country
+        """
+        The country field of a DocumentAuthor is supposed to contain a country.
+        Often it contains other things. This method tries to normalise it to a
+        consistent country name.
+        """
+        # Does it contain a US state abbreviation and zip code?
+        for state in ["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
+                      "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
+                      "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
+                      "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
+                      "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
+                      "DC"]:
+            p = re.compile(state + ",? +[0-9][0-9][0-9][0-9][0-9]")
+            if p.search(self.country):
+                return "USA"
+        # Does it contain a country name?
+        for name in [
+                "Algeria", "Argentina", "Austria", "Australia", "Belgium", "Brazil", 
+                 "Canada", "Chile", "China", "Colombia", "Croatia", "Czech Republic",
+                 "Denmark", "Egypt", "Finland", "France", "Germany", "Greece", "Hungary",
+                 "Ireland", "India", "Israel", "Italy", "Japan", "Lebanon", "Luxembourg",
+                 "Mauritius", "Mexico", "Morocco", "New Zealand", "Norway", "Philippines",
+                 "Poland", "Portugal", "Romania", "Russia", "Saudi Arabia", "Singapore",
+                 "Slovakia", "Slovenia", "Spain", "South Africa", "Switzerland", "Sweden",
+                 "Syria", "Taiwan", "Thailand", "The Netherlands", "Turkey", "Ukraine",
+                 "UK", "Uruguay", "USA", "United Arab Emirates"
+            ]:
+            if name.lower() in self.country.lower():
+                return name
+        # Does it contain a country synonym?
+        for (synonym, name) in [
+                ("Hellas",                    "Greece"),
+                ("Italia",                    "Italy"),
+                ("Korea",                     "South Korea"),
+                ("Netherlands",               "The Netherlands"),
+                ("P.R.C",                     "China"),
+                ("PRC",                       "China"),
+                ("REPUBLIC OF KOREA",         "South Korea"),
+                ("Russian Federation",        "Russia"),
+                ("Great Britain",             "UK"),
+                ("U.K.",                      "UK"),
+                ("United Kingdom",            "UK"),
+                ("U.S.A",                     "USA"),
+                ("United States",             "USA"),
+            ]:
+            if synonym.lower() in self.country.lower():
+                return name
+        # Does it contain a state, region, city, or street name?
+        for (region, name) in [
+                ("Auckland",                  "New Zealand"),
+                ("Bangalore",                 "India"),
+                ("Barcelona",                 "Spain"),
+                ("Beijing",                   "China"),
+                ("Bruxelles",                 "Belgium"),
+                ("Frankfurt",                 "Germany"),
+                ("Leuven",                    "Belgium"),
+                ("Linkoping",                 "Sweden"),
+                ("Madrid",                    "Spain"),
+                ("Riga",                      "Latvia"),
+                ("Solna",                     "Sweden"),
+                ("Taipei",                    "Taiwan"),
+                ("Tel Aviv",                  "Israel"),
+                ("Tokyo",                     "Japan"),
+                ("Toranomon 17 Mori Bldg.5F", "Japan"),
+                ("750D Chai Chee",            "Singapore"),
+                # Canadian cities:
+                ("Mississauga, ON",           "Canada"),
+                ("Ottawa",                    "Canada"),
+                ("Toronto",                   "Canada"),
+                ("100 Wynford Drive",         "Canada"),  # Bell Canada
+                # US states:
+                ("Arizona",                   "USA"),
+                ("California",                "USA"),
+                ("Colorado",                  "USA"),
+                ("Florida",                   "USA"),
+                ("Illinois",                  "USA"),
+                ("Kansas",                    "USA"),
+                ("Maryland",                  "USA"),
+                ("Massachusetts",             "USA"),
+                ("Michigan",                  "USA"),
+                ("New Hampshire",             "USA"),
+                ("New Jersey",                "USA"),
+                ("Ohio",                      "USA"),
+                ("Oregon",                    "USA"),
+                ("Texas",                     "USA"),
+                ("Vermont",                   "USA"),
+                ("Virginia",                  "USA"),
+                # US cities:
+                ("Atlanta",                   "USA"),
+                ("Bainbridge Island, WA",     "USA"),
+                ("Bellevue, WA",              "USA"),
+                ("Boulder CO" ,               "USA"),
+                ("Boulder, CO",               "USA"),
+                ("Boxborough, MA",            "USA"),
+                ("Burlington, MA",            "USA"),
+                ("Cambridge, MA",             "USA"),
+                ("Campbell, CA",              "USA"),
+                ("Chelmsford, MA",            "USA"),
+                ("Dallas TX",                 "USA"),
+                ("Dallas, TX",                "USA"),
+                ("Denver, CO",                "USA"),
+                ("Edison, NJ",                "USA"),
+                ("Florham Park NJ",           "USA"),
+                ("Ft. Meade, MD",             "USA"),
+                ("Ft. Monmouth, N.J.",        "USA"),
+                ("Littleton MA",              "USA"),
+                ("Lowell, MA",                "USA"),
+                ("Menlo Park, CA",            "USA"),
+                ("Milpitas, CA",              "USA"),
+                ("Mountain View, CA",         "USA"),
+                ("Naperville, IL",            "USA"),
+                ("New York",                  "USA"),
+                ("Evanston, IL",              "USA"),
+                ("Philadelphia",              "USA"),
+                ("Princeton, NJ",             "USA"),
+                ("Raleigh, NC",               "USA"),
+                ("Redmond, WA",               "USA"),
+                ("Richardson, TX",            "USA"),
+                ("Salt Lake City",            "USA"),
+                ("San Jose, CA",              "USA"),
+                ("Santa Barbara, CA",         "USA"),
+                ("Schaumburg, IL",            "USA"),
+                ("Seattle, WA",               "USA"),
+                ("St. Louis, MO",             "USA"),
+                ("Stanford, CA",              "USA"),
+                ("Sunnyvale, CA",             "USA"),
+                ("Tewksbury, MA",             "USA"),
+                ("Wall Township, NJ",         "USA"),
+                ("Waltham, MA",               "USA"),
+                # US streets:
+                ("West Tasman Dr",            "USA"), # San Jose, CA, USA
+                ("1700 Alma Drive",           "USA"), # Plano, TX, USA
+                ("1201 Campbell",             "USA"), # Richardson, TX, USA
+                ("3 Federal Street",          "USA"), # Billerica, MA, USA
+                ("501 East Middlefield Road", "USA"), # Mountain View, CA, USA
+                # UK countries:
+                ("England",                   "UK"),
+                ("Scotland",                  "UK"),
+                ("Wales",                     "UK"),
+                # UK counties:
+                ("Berks",                     "UK"),
+                ("Cambs",                     "UK"),
+                ("Essex",                     "UK"),
+                ("Gwent",                     "UK"),
+                ("Hampshire",                 "UK"),
+                ("Surrey",                    "UK"),
+                ("Middlesex",                 "UK"),
+                # UK cities:
+                ("Aberdeen AB24",             "UK"),
+                ("Cambridge",                 "UK"),
+                ("Edinburgh",                 "UK"),
+                ("Ipswich",                   "UK"),
+                ("Maidenhead",                "UK"),
+                ("Nottingham",                "UK"),
+                ("Reading",                   "UK"),
+                ("London",                    "UK"),
+                ("Oxford",                    "UK"),
+                ("Winchester",                "UK"),
+            ]:
+            if region.lower() in self.country.lower():
+                return name
+        # Does it contain an organisation name?
+        for (org, name) in [
+                ("Aoyama Gakuin University",          "Japan"),
+                ("University of Cambridge",           "UK"),
+                ("Columbia University",               "USA"),
+                ("University of Illinois",            "USA"),
+                ("University of Washington",          "USA"),
+                ("National Security Agency",          "USA"),
+                ("ICSI Center for Internet Research", "USA"),
+                ("Schrage Consulting",                "Germany"),
+                ("Samsung Electronics",               "South Korea"),
+                ("Nishinippori Start up Office 214",  "Japan"),
+            ]:
+            if org.lower() in self.country.lower():
+                return name
+        # Does it contain a postcode?
+        for (postcode, name) in [
+                ("H3B 2S2",    "Canada"),        # Montréal, QC, Canada
+                ("H4P 2N2",    "Canada"),        # Montréal, QC, Canada
+                ("K1Y 4H7",    "Canada"),        # Ottawa, ON, Canada
+                ("K1Y-4H7",    "Canada"),        # Ottawa, ON, Canada
+                ("K2K 3N1",    "Canada"),        # Ottawa, ON, Canada
+                ("V5H 4M2",    "Canada"),        # Burnaby, BC, Canada
+                ("V7X 1M3 ",   "Canada"),        # Vancouver, BC, Canada
+                ("F-22307",    "France"),        # INRIA Rennes-Bretagne Altlantique, France
+                ("FIN-00076",  "Finland"),       # Aalto University
+                ("CH-6942",    "Switzerland"),   # Savosa, Switzerland
+                ("CB3 0FD",    "UK"),            # University of Cambridge, UK
+                ("WR14 3PS",   "UK"),            # Malvern, Worcestershire, UK
+                ("02144",      "USA"),           # Somerville, MA, USA
+                ("02138",      "USA"),           # Cambridge, MA, USA
+                ("20166",      "USA"),           # Dulles, VA, USA
+                ("94704-1198", "USA"),           # Berkeley, CA, USA
+                ("95110",      "USA"),           # San Jose, CA, USA
+                ("Post Office Box 5005", "USA"), # Rochester, NH, USA
+                ("7010",       "Belgium")        # NATO C&I Agency, SHAPE, Belgium
+            ]:
+            if postcode.lower() in self.country.lower():
+                return name
+        # Does it contain a person's name?
+        for (person, name) in [
+                ("Robert Schuettler", "Germany"),
+                ("Mike St. Johns",    "USA"),
+            ]:
+            if person.lower() in self.country.lower():
+                return name
+        # Does it contain a country abbreviation?
+        for (abbrv, name) in [
+                ("AU", "Australia"),
+                ("BE", "Belgium"),
+                ("BR", "Brazil"),
+                ("CA", "Canada"),
+                ("CH", "Switzerland"),
+                ("CN", "China"),
+                ("CZ", "Czech Republic"),
+                ("DE", "Germany"),
+                ("ES", "Spain"),
+                ("FI", "Finland"),
+                ("FR", "France"),
+                ("GE", "Germany"),
+                ("GB", "UK"),
+                ("GI", "UK"),           # Gibralter
+                ("IE", "Ireland"),
+                ("IL", "Israel"),
+                ("IT", "Italy"),
+                ("JA", "Japan"),
+                ("JP", "Japan"),
+                ("MU", "Mauritius"),
+                ("NL", "The Netherlands"),
+                ("NO", "Norway"),
+                ("SE", "Sweden"),
+                ("SG", "Singapore"),
+                ("US", "USA"),
+            ]:
+            if abbrv.lower() in self.country.lower():
+                return name
+        # Does it contain something random?
+        for (text, name) in [
+                ("January 2002", "USA"),  # RFC3271
+            ]:
+            if text.lower() in self.country.lower():
+                return name
+        # Otherwise, just return the country unchanged:
+        return self.country.strip()
 
 
     def normalise_affiliation(self) -> str:
