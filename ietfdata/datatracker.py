@@ -1380,36 +1380,41 @@ class DataTracker:
         obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
         return obj
 
-    def _retrieve_multi(self, resource_uri: URI, obj_type: Type[T], deref: Dict[str, str] = {}) -> Iterator[T]:
+    def _retrieve_multi(self, resource_uri: URI, obj_type: Type[T], deref: Dict[str, str] = {}, enable_cache=False) -> Iterator[T]:
         # deref is currently unused, but will be needed for the cache
-        headers = {'user-agent': self.ua}
-        resource_uri.params["limit"] = "100"
-        while resource_uri.uri is not None:
-            self._rate_limit()
-            retry = True
-            retry_time = 1.875
-            while retry:
-                retry = False
-                r = self.session.get(self.base_url + resource_uri.uri, params=resource_uri.params, headers=headers, verify=True, stream=False)
-                if r.status_code == 200:
-                    meta = r.json()['meta']
-                    objs = r.json()['objects']
-                    resource_uri  = URI(meta['next'])
-                    for obj_json in objs:
-                        obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
-                        self._cache_obj(obj.resource_uri, obj_json)
-                        yield obj
-                elif r.status_code == 500:
-                    if retry_time > 60:
+        # enable_cache is a temporary addition for testing
+        if enable_cache and (self.cache_dir is not None):
+            print("not implemented")
+            sys.exit()
+        else:
+            headers = {'user-agent': self.ua}
+            resource_uri.params["limit"] = "100"
+            while resource_uri.uri is not None:
+                self._rate_limit()
+                retry = True
+                retry_time = 1.875
+                while retry:
+                    retry = False
+                    r = self.session.get(self.base_url + resource_uri.uri, params=resource_uri.params, headers=headers, verify=True, stream=False)
+                    if r.status_code == 200:
+                        meta = r.json()['meta']
+                        objs = r.json()['objects']
+                        resource_uri  = URI(meta['next'])
+                        for obj_json in objs:
+                            obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
+                            self._cache_obj(obj.resource_uri, obj_json)
+                            yield obj
+                    elif r.status_code == 500:
+                        if retry_time > 60:
+                            print("_retrieve_multi failed: error {} after {} requests".format(r.status_code, self.http_req))
+                            sys.exit(1)
+                        self.session.close()
+                        time.sleep(retry_time)
+                        retry_time *= 2
+                        retry = True
+                    else:
                         print("_retrieve_multi failed: error {} after {} requests".format(r.status_code, self.http_req))
                         sys.exit(1)
-                    self.session.close()
-                    time.sleep(retry_time)
-                    retry_time *= 2
-                    retry = True
-                else:
-                    print("_retrieve_multi failed: error {} after {} requests".format(r.status_code, self.http_req))
-                    sys.exit(1)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
