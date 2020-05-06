@@ -34,6 +34,9 @@ from ietfdata.rfcindex    import *
 
 # =============================================================================
 
+dt = DataTracker(cache_dir=Path("cache"))
+ri = RFCIndex()
+
 def print_submission(draft):
     for submission_uri in draft.submissions:
         submission = dt.submission(submission_uri)
@@ -45,8 +48,19 @@ def print_submission(draft):
         print("   dt.submission   | {} | {} | {} | {}".format(rfc.doc_id, submission.name, submission.rev, submission.document_date))
 
 
-dt = DataTracker(cache_dir=Path("cache"))
-ri = RFCIndex()
+def print_dt_person(rfc, person):
+    print("   dt.author       | {} | {:6d} | {}".format(rfc, person.id, person.name))
+
+
+def print_dt_info(rfc, doc):
+    print("   dt.date         | {} | {}".format(rfc, doc.time))
+    for author in dt.document_authors(doc):
+        person = dt.person(rfc, author.person)
+        print_dt_person(person)
+        print("   dt.author_info  | {} | {:6d} | {} | {}".format(rfc, person.id, author.country, author.affiliation))
+    print("   dt.revision     | {} | {}".format(rfc, doc.rev))
+    print_submission(doc)
+
 
 for rfc in ri.rfcs():
     print(rfc.doc_id)
@@ -71,17 +85,41 @@ for rfc in ri.rfcs():
     for doc in rfc.obsoleted_by:
         print("  rfc.obsoleted-by | {} | {}".format(rfc.doc_id, doc))
     for a in rfc.authors:
-        print("  rfc.author       | {} | {} ".format(rfc.doc_id, a))
+        print("  rfc.author       | {} | {}".format(rfc.doc_id, a))
+
+    draft = None
     if rfc.draft is not None:
         draft = dt.document_from_draft(rfc.draft[:-3])
-        if draft is not None:
-            print("   dt.date         | {} | {}".format(rfc.doc_id, draft.time))
-            for author in dt.document_authors(draft):
-                person = dt.person(author.person)
-                print("   dt.author       | {} | {:6d} | {} | {} | {}".format(rfc.doc_id, person.id, person.name, author.country, author.affiliation))
-            print("   dt.revision     | {} | {}".format(rfc.doc_id, draft.rev))
-            print_submission(draft)
-
+        if draft is None:
+            draft = dt.document_from_rfc(rfc.doc_id)
+    else:
+        draft = dt.document_from_rfc(rfc.doc_id)
+    if draft is not None:
+        print_dt_info(rfc.doc_id, draft)
+    else:
+        # Can't find information about the Internet-draft, try to look up
+        # authors individually:
+        for author in rfc.authors:
+            rfc_initial = author[0]
+            rfc_surname = author.split()[-1]
+            matching = []
+            for person in dt.people(name_contains = rfc_surname):
+                if person.name.startswith("Dr. "):
+                    dt_initial = person.name[4]
+                else:
+                    dt_initial = person.name[0]
+                dt_surname = person.name.split()[-1]
+                if (dt_initial == rfc_initial) and (dt_surname == rfc_surname):
+                    matching.append(person)
+            if len(matching) == 0:
+                # No matching authors
+                pass
+            elif len(matching) == 1:
+                print_dt_person(rfc.doc_id, matching[0])
+            else:
+                print("Multiple authors match")
+                print(matching)
+                sys.exit()
 
 
 
