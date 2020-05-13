@@ -9,7 +9,8 @@ from ietfdata.datatracker import *
 from pprint import pprint as pp
 
 # =============================================================================
-# Example: print information about a person
+# Example: print the affiliations of the authors
+#          of a set of documents
 
 dt = DataTracker(cache_dir=Path("cache"))
 
@@ -30,8 +31,11 @@ def extract_data(doc):
 
     return data
 
+group = dt.group_from_acronym('mmusic')
+
 drafts = dt.documents(group = group,
-                      doctype = dt.document_type('draft')) ###
+                      doctype = dt.document_type(
+                          DocumentTypeURI("/api/v1/name/doctypename/draft")))
 
 for i in range(20):
     pp(extract_data(next(drafts)))
