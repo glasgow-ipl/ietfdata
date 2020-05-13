@@ -611,7 +611,7 @@ class TestDatatracker(unittest.TestCase):
             url = d.url()
             self.assertEqual(url, "https://www.ietf.org/audio/ietf94/ietf94-room304-20151103-1520.mp3")
             # Downloading the MP3 is expensive, so check a HEAD request instead:
-            self.assertEqual(self.dt.session.head(url).status_code, 200)
+            # self.assertEqual(self.dt.session.head(url).status_code, 200)
         else:
             self.fail("Cannot find document")
 
@@ -655,7 +655,7 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_document_shepwrit(self) -> None:
-        for d in self.dt.documents(doctype=self.dt.document_type("shepwrit")):
+        for d in self.dt.documents(doctype=self.dt.document_type(DocumentTypeURI("/api/v1/name/doctypename/shepwrit"))):
             self.fail("shepwrit is not used, so this should return no documents")
 
 
@@ -736,7 +736,9 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_documents(self):
-        documents = list(self.dt.documents(doctype=self.dt.document_type("draft"), group=self.dt.group_from_acronym("xrblock")))
+        doctype = self.dt.document_type(DocumentTypeURI("/api/v1/name/doctypename/draft"))
+        group   = self.dt.group_from_acronym("xrblock")
+        documents = list(self.dt.documents(doctype = doctype, group = group))
         self.assertEqual(len(documents), 21)
         self.assertEqual(documents[ 0].name, "draft-ietf-xrblock-rtcp-xr-discard-rle-metrics")
         self.assertEqual(documents[ 1].name, "draft-ietf-xrblock-rtcp-xr-pdv")
@@ -962,7 +964,7 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_ballot_types_doctype(self) -> None:
-        bts = list(self.dt.ballot_types(self.dt.document_type("draft")))
+        bts = list(self.dt.ballot_types(self.dt.document_type(DocumentTypeURI("/api/v1/name/doctypename/draft"))))
         self.assertEqual(len(bts), 2)
         self.assertEqual(bts[0].slug, "irsg-approve")
         self.assertEqual(bts[1].slug, "approve")
@@ -1081,7 +1083,7 @@ class TestDatatracker(unittest.TestCase):
 
     # FIXME: this needs to be updated
     def test_document_type(self) -> None:
-        doctype = self.dt.document_type("draft")
+        doctype = self.dt.document_type(DocumentTypeURI("/api/v1/name/doctypename/draft"))
         if doctype is not None:
             self.assertEqual(doctype.resource_uri, DocumentTypeURI("/api/v1/name/doctypename/draft/"))
             self.assertEqual(doctype.name,         "Draft")
@@ -1158,7 +1160,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(group.resource_uri,   GroupURI("/api/v1/group/group/941/"))
             self.assertEqual(group.state,          GroupStateURI("/api/v1/name/groupstatename/conclude/"))
             self.assertEqual(group.time,           datetime.fromisoformat("2011-12-09T12:00:00"))
-            self.assertEqual(group.type,           "/api/v1/name/grouptypename/wg/")
+            self.assertEqual(group.type,           GroupTypeNameURI("/api/v1/name/grouptypename/wg/"))
             self.assertEqual(group.unused_states,  [])
             self.assertEqual(group.unused_tags,    [])
         else:
@@ -1171,7 +1173,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(group.id, 941)
         else:
             self.fail("Cannot find group")
-            
+
 
     def test_group_from_acronym_invalid(self) -> None:
         group = self.dt.group_from_acronym("invalid")
@@ -1181,7 +1183,7 @@ class TestDatatracker(unittest.TestCase):
     def test_groups(self) -> None:
         groups = self.dt.groups()
         self.assertIsNot(groups, None)
-        
+
 
     def test_groups_namecontains(self) -> None:
         groups = list(self.dt.groups(name_contains="IRTF"))
@@ -1189,9 +1191,407 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(groups[0].id, 3)
         self.assertEqual(groups[1].id, 1853)
 
-        
+
+    def test_group_history(self) -> None:
+        group_history = self.dt.group_history(GroupHistoryURI("/api/v1/group/grouphistory/4042/"))
+        if group_history is not None:
+            self.assertEqual(group_history.acronym,              "git")
+            self.assertEqual(group_history.ad,                   None)
+            self.assertEqual(group_history.comments,             "")
+            self.assertEqual(group_history.description,          "")
+            self.assertEqual(group_history.group,                GroupURI("/api/v1/group/group/2233/"))
+            self.assertEqual(group_history.id,                   4042)
+            self.assertEqual(group_history.list_archive,         "https://mailarchive.ietf.org/arch/browse/ietf-and-github/")
+            self.assertEqual(group_history.list_email,           "ietf-and-github@ietf.org")
+            self.assertEqual(group_history.list_subscribe,       "https://www.ietf.org/mailman/listinfo/ietf-and-github")
+            self.assertEqual(group_history.name,                 "GitHub Integration and Tooling")
+            self.assertEqual(group_history.parent,               GroupURI("/api/v1/group/group/1008/"))
+            self.assertEqual(group_history.resource_uri,         GroupHistoryURI("/api/v1/group/grouphistory/4042/"))
+            self.assertEqual(group_history.state,                GroupStateURI("/api/v1/name/groupstatename/active/"))
+            self.assertEqual(group_history.time,                 datetime.fromisoformat("2019-02-08T14:07:27"))
+            self.assertEqual(group_history.type,                 GroupTypeNameURI("/api/v1/name/grouptypename/wg/"))
+            self.assertEqual(group_history.unused_states,        [])
+            self.assertEqual(group_history.unused_tags,          [])
+            self.assertEqual(group_history.uses_milestone_dates, True)
+        else:
+            self.fail("Cannot find group history")
+
+
+    def test_group_histories_from_acronym(self) -> None:
+        group_histories = list(self.dt.group_histories_from_acronym("spud"))
+        self.assertEqual(len(group_histories), 2)
+        self.assertEqual(group_histories[0].id, 2179)
+        self.assertEqual(group_histories[1].id, 2257)
+
+
+    def test_group_histories(self) -> None:
+        group_histories = self.dt.group_histories()
+        self.assertIsNot(group_histories, None)
+
+
+    def test_group_event(self) -> None:
+        group_event = self.dt.group_event(GroupEventURI("/api/v1/group/groupevent/16849/"))
+        if group_event is not None:
+            self.assertEqual(group_event.by,           PersonURI("/api/v1/person/person/108756/"))
+            self.assertEqual(group_event.desc,         "Added milestone \"Submit data flow information model (informational)\", due 2020-04-30, from approved charter")
+            self.assertEqual(group_event.group,        GroupURI("/api/v1/group/group/1962/"))
+            self.assertEqual(group_event.id,           16849)
+            self.assertEqual(group_event.resource_uri, GroupEventURI("/api/v1/group/groupevent/16849/"))
+            self.assertEqual(group_event.time,         datetime.fromisoformat("2020-04-20T13:31:48"))
+            self.assertEqual(group_event.type,         "changed_milestone")
+        else:
+            self.fail("Cannot find group event")
+
+
+    def test_group_events_by(self) -> None:
+        group_events_by = self.dt.group_events(by=self.dt.person(PersonURI("/api/v1/person/person/108756/")))
+        self.assertIsNot(group_events_by, None)
+
+
+    def test_group_events_group(self) -> None:
+        group_events_group = list(self.dt.group_events(group=self.dt.group(GroupURI("/api/v1/group/group/1997/"))))
+        self.assertEqual(len(group_events_group),  4)
+        self.assertEqual(group_events_group[0].id, 9652)
+        self.assertEqual(group_events_group[1].id, 9585)
+        self.assertEqual(group_events_group[2].id, 9151)
+        self.assertEqual(group_events_group[3].id, 8975)
+
+
+    def test_group_events_type(self) -> None:
+        group_events_type = self.dt.group_events(type="changed_state")
+        self.assertIsNot(group_events_type, None)
+
+
+    def test_group_url(self) -> None:
+        group_url = self.dt.group_url(GroupUrlURI("/api/v1/group/groupurl/1/"))
+        if group_url is not None:
+            self.assertEqual(group_url.group,        GroupURI("/api/v1/group/group/934/"))
+            self.assertEqual(group_url.id,           1)
+            self.assertEqual(group_url.name,         "Applications Area Web Page")
+            self.assertEqual(group_url.resource_uri, GroupUrlURI("/api/v1/group/groupurl/1/"))
+            self.assertEqual(group_url.url,          "http://www.apps.ietf.org/")
+        else:
+            self.fail("Cannot find group URL")
+
+
+    def test_group_urls(self) -> None:
+        group_urls = list(self.dt.group_urls(self.dt.group(GroupURI("/api/v1/group/group/1062/"))))
+        self.assertEqual(len(group_urls),  1)
+        self.assertEqual(group_urls[0].id, 20)
+
+
+    def test_group_milestone_statename(self) -> None:
+        group_milestone_statename = self.dt.group_milestone_statename(GroupMilestoneStateNameURI("/api/v1/name/groupmilestonestatename/active/"))
+        if group_milestone_statename is not None:
+            self.assertEqual(group_milestone_statename.desc,  "")
+            self.assertEqual(group_milestone_statename.order, 1)
+            self.assertEqual(group_milestone_statename.slug,  "active")
+            self.assertEqual(group_milestone_statename.used,  True)
+        else:
+            self.fail("Cannot find group milestone state name")
+
+
+    def test_group_milestone_statenames(self) -> None:
+        group_milestone_statenames = list(self.dt.group_milestone_statenames())
+        self.assertEqual(len(group_milestone_statenames),    4)
+        self.assertEqual(group_milestone_statenames[0].slug, "active")
+        self.assertEqual(group_milestone_statenames[1].slug, "deleted")
+        self.assertEqual(group_milestone_statenames[2].slug, "review")
+        self.assertEqual(group_milestone_statenames[3].slug, "charter")
+
+
+    def test_group_milestone(self) -> None:
+        group_milestone = self.dt.group_milestone(GroupMilestoneURI("/api/v1/group/groupmilestone/1520/"))
+        if group_milestone is not None:
+            self.assertEqual(group_milestone.desc,         "Define a protocol for the link and IP layer.")
+            self.assertEqual(group_milestone.docs,         [])
+            self.assertEqual(group_milestone.due,          "1988-03-31")
+            self.assertEqual(group_milestone.group,        GroupURI("/api/v1/group/group/1209/"))
+            self.assertEqual(group_milestone.id,           1520)
+            self.assertEqual(group_milestone.order,        None)
+            self.assertEqual(group_milestone.resolved,     "")
+            self.assertEqual(group_milestone.resource_uri, GroupMilestoneURI("/api/v1/group/groupmilestone/1520/"))
+            self.assertEqual(group_milestone.state,        GroupMilestoneStateNameURI("/api/v1/name/groupmilestonestatename/active/"))
+            self.assertEqual(group_milestone.time,         datetime.fromisoformat("2012-02-26T00:21:52"))
+        else:
+            self.fail("Cannot find group milestone")
+
+
+    def test_group_milestones(self) -> None:
+        group_milestones = self.dt.group_milestones()
+        self.assertIsNot(group_milestones, None)
+
+
+    def test_group_milestones_group(self) -> None:
+        group_milestones = list(self.dt.group_milestones(group=self.dt.group(GroupURI("/api/v1/group/group/1209/"))))
+        self.assertEqual(len(group_milestones),  1)
+        self.assertEqual(group_milestones[0].id, 1520)
+        self.assertIsNot(group_milestones, None)
+
+
+    def test_group_milestones_state(self) -> None:
+        group_milestones = self.dt.group_milestones(state=self.dt.group_milestone_statename(GroupMilestoneStateNameURI("/api/v1/name/groupmilestonestatename/active/")))
+        self.assertIsNot(group_milestones, None)
+
+
+    def test_role_name(self) -> None:
+        role_name = self.dt.role_name(RoleNameURI("/api/v1/name/rolename/ceo/"))
+        if role_name is not None:
+            self.assertEqual(role_name.desc,         "")
+            self.assertEqual(role_name.name,         "CEO")
+            self.assertEqual(role_name.order,        0)
+            self.assertEqual(role_name.resource_uri, RoleNameURI("/api/v1/name/rolename/ceo/"))
+            self.assertEqual(role_name.slug,         "ceo")
+            self.assertEqual(role_name.used,         True)
+        else:
+            self.fail("Cannot find role name")
+
+
+    def test_role_names(self) -> None:
+        role_names = list(self.dt.role_names())
+        self.assertEqual(len(role_names), 25)
+        self.assertEqual(role_names[0].slug, "ceo")
+        self.assertEqual(role_names[1].slug, "coord")
+        self.assertEqual(role_names[2].slug, "comdir")
+        self.assertEqual(role_names[3].slug, "lead")
+        self.assertEqual(role_names[4].slug, "trac-admin")
+        self.assertEqual(role_names[5].slug, "trac-editor")
+        self.assertEqual(role_names[6].slug, "chair")
+        self.assertEqual(role_names[7].slug, "ad")
+        self.assertEqual(role_names[8].slug, "execdir")
+        self.assertEqual(role_names[9].slug, "admdir")
+        self.assertEqual(role_names[10].slug, "pre-ad")
+        self.assertEqual(role_names[11].slug, "advisor")
+        self.assertEqual(role_names[12].slug, "liaiman")
+        self.assertEqual(role_names[13].slug, "techadv")
+        self.assertEqual(role_names[14].slug, "auth")
+        self.assertEqual(role_names[15].slug, "editor")
+        self.assertEqual(role_names[16].slug, "delegate")
+        self.assertEqual(role_names[17].slug, "secr")
+        self.assertEqual(role_names[18].slug, "member")
+        self.assertEqual(role_names[19].slug, "atlarge")
+        self.assertEqual(role_names[20].slug, "liaison")
+        self.assertEqual(role_names[21].slug, "announce")
+        self.assertEqual(role_names[22].slug, "matman")
+        self.assertEqual(role_names[23].slug, "recman")
+        self.assertEqual(role_names[24].slug, "reviewer")
+
+
+    def test_group_role(self) -> None:
+        group_role = self.dt.group_role(GroupRoleURI("/api/v1/group/role/1076/"))
+        if group_role is not None:
+            self.assertEqual(group_role.email,  EmailURI("/api/v1/person/email/csp@csperkins.org/"))
+            self.assertEqual(group_role.group,  GroupURI("/api/v1/group/group/1727/"))
+            self.assertEqual(group_role.id,     1076)
+            self.assertEqual(group_role.name,   RoleNameURI("/api/v1/name/rolename/chair/"))
+            self.assertEqual(group_role.person, PersonURI("/api/v1/person/person/20209/"))
+        else:
+            self.fail("Cannot find group role")
+
+
+    def test_group_roles(self) -> None:
+        group_roles = self.dt.group_roles()
+        self.assertIsNot(group_roles, None)
+
+
+    def test_group_roles_email(self) -> None:
+        group_roles = list(self.dt.group_roles(email="csp@csperkins.org"))
+        self.assertEqual(len(group_roles), 7)
+        self.assertEqual(group_roles[0].id, 1076)
+        self.assertEqual(group_roles[1].id, 9355)
+        self.assertEqual(group_roles[2].id, 8464)
+        self.assertEqual(group_roles[3].id, 8465)
+        self.assertEqual(group_roles[4].id, 8466)
+        self.assertEqual(group_roles[5].id, 3998)
+        self.assertEqual(group_roles[6].id, 9772)
+
+
+    def test_group_roles_group(self) -> None:
+        group_roles = list(self.dt.group_roles(group=self.dt.group(GroupURI("/api/v1/group/group/1997/"))))
+        self.assertEqual(len(group_roles), 3)
+        self.assertEqual(group_roles[0].id, 3036)
+        self.assertEqual(group_roles[1].id, 3037)
+        self.assertEqual(group_roles[2].id, 3038)
+
+
+    def test_group_roles_name(self) -> None:
+        group_roles = self.dt.group_roles(name=self.dt.role_name(RoleNameURI("/api/v1/name/rolename/chair/")))
+        self.assertIsNot(group_roles, None)
+
+
+    def test_group_roles_person(self) -> None:
+        group_roles = list(self.dt.group_roles(person=self.dt.person(PersonURI("/api/v1/person/person/20209/"))))
+        self.assertEqual(len(group_roles), 7)
+        self.assertEqual(group_roles[0].id, 1076)
+        self.assertEqual(group_roles[1].id, 9355)
+        self.assertEqual(group_roles[2].id, 8464)
+        self.assertEqual(group_roles[3].id, 8465)
+        self.assertEqual(group_roles[4].id, 8466)
+        self.assertEqual(group_roles[5].id, 3998)
+        self.assertEqual(group_roles[6].id, 9772)
+
+
+    def test_group_milestone_history(self) -> None:
+        group_milestone_history = self.dt.group_milestone_history(GroupMilestoneHistoryURI("/api/v1/group/groupmilestonehistory/1433/"))
+        if group_milestone_history is not None:
+            self.assertEqual(group_milestone_history.desc,         "Agreement on charter and issues in current draft.")
+            self.assertEqual(group_milestone_history.docs,         [])
+            self.assertEqual(group_milestone_history.due,          "1996-05-31")
+            self.assertEqual(group_milestone_history.group,        GroupURI("/api/v1/group/group/1326/"))
+            self.assertEqual(group_milestone_history.id,           1433)
+            self.assertEqual(group_milestone_history.milestone,    GroupMilestoneURI("/api/v1/group/groupmilestone/2114/"))
+            self.assertEqual(group_milestone_history.order,        None)
+            self.assertEqual(group_milestone_history.resolved,     "Done")
+            self.assertEqual(group_milestone_history.resource_uri, GroupMilestoneHistoryURI("/api/v1/group/groupmilestonehistory/1433/"))
+            self.assertEqual(group_milestone_history.state,        GroupMilestoneStateNameURI("/api/v1/name/groupmilestonestatename/active/"))
+            self.assertEqual(group_milestone_history.time,         datetime.fromisoformat("2013-05-20T15:42:45"))
+        else:
+            self.fail("Cannot find group milestone history")
+
+
+    def test_group_milestone_histories(self) -> None:
+        group_milestone_histories = self.dt.group_milestone_histories()
+        self.assertIsNot(group_milestone_histories, None)
+
+
+    def test_group_milestone_histories_group(self) -> None:
+        group_milestone_histories = list(self.dt.group_milestone_histories(group=self.dt.group(GroupURI("/api/v1/group/group/1326/"))))
+        self.assertEqual(len(group_milestone_histories), 35)
+
+
+    def test_group_milestone_histories_milestone(self) -> None:
+        group_milestone_histories = list(self.dt.group_milestone_histories(milestone=self.dt.group_milestone(GroupMilestoneURI("/api/v1/group/groupmilestone/2114"))))
+        self.assertEqual(len(group_milestone_histories),  1)
+        self.assertEqual(group_milestone_histories[0].id, 1433)
+
+
+    def test_group_milestone_histories_state(self) -> None:
+        group_milestone_histories = self.dt.group_milestone_histories(state=self.dt.group_milestone_statename(GroupMilestoneStateNameURI("/api/v1/name/groupmilestonestatename/active/")))
+        self.assertIsNot(group_milestone_histories, None)
+
+
+    def test_group_milestone_event(self) -> None:
+        group_milestone_event = self.dt.group_milestone_event(GroupMilestoneEventURI("/api/v1/group/milestonegroupevent/16849/"))
+        if group_milestone_event is not None:
+            self.assertEqual(group_milestone_event.by,             PersonURI("/api/v1/person/person/108756/"))
+            self.assertEqual(group_milestone_event.desc,           "Added milestone \"Submit data flow information model (informational)\", due 2020-04-30, from approved charter")
+            self.assertEqual(group_milestone_event.group,          GroupURI("/api/v1/group/group/1962/"))
+            self.assertEqual(group_milestone_event.groupevent_ptr, GroupEventURI("/api/v1/group/groupevent/16849/"))
+            self.assertEqual(group_milestone_event.id,             16849)
+            self.assertEqual(group_milestone_event.milestone,      GroupMilestoneURI("/api/v1/group/groupmilestone/8539/"))
+            self.assertEqual(group_milestone_event.resource_uri,   GroupMilestoneEventURI("/api/v1/group/milestonegroupevent/16849/"))
+            self.assertEqual(group_milestone_event.time,           datetime.fromisoformat("2020-04-20T13:31:48"))
+            self.assertEqual(group_milestone_event.type,           "changed_milestone")
+        else:
+            self.fail("Cannot find group milestone event")
+
+
+    def test_group_milestone_events(self) -> None:
+        group_milestone_events = self.dt.group_milestone_events()
+        self.assertIsNot(group_milestone_events, None)
+
+
+    def test_group_milestone_events_by(self) -> None:
+        group_milestone_events = self.dt.group_milestone_events(by=self.dt.person(PersonURI("/api/v1/person/person/108756/")))
+        self.assertIsNot(group_milestone_events, None)
+
+
+    def test_group_milestone_events_group(self) -> None:
+        group_milestone_events = list(self.dt.group_milestone_events(group=self.dt.group(GroupURI("/api/v1/group/group/1326/"))))
+        self.assertEqual(len(group_milestone_events), 46)
+
+
+    def test_group_milestone_events_milestone(self) -> None:
+        group_milestone_events = list(self.dt.group_milestone_events(milestone=self.dt.group_milestone(GroupMilestoneURI("/api/v1/group/groupmilestone/6489/"))))
+        self.assertEqual(len(group_milestone_events),  3)
+        self.assertEqual(group_milestone_events[0].id, 16331)
+        self.assertEqual(group_milestone_events[1].id, 11947)
+        self.assertEqual(group_milestone_events[2].id, 7224)
+
+
+    def test_group_milestone_events_type(self) -> None:
+        group_milestone_events = self.dt.group_milestone_events(type="changed_milestone")
+        self.assertIsNot(group_milestone_events, None)
+
+
+    def test_group_role_history(self) -> None:
+        group_role_history = self.dt.group_role_history(GroupRoleHistoryURI("/api/v1/group/rolehistory/519/"))
+        if group_role_history is not None:
+            self.assertEqual(group_role_history.email,        EmailURI("/api/v1/person/email/csp@csperkins.org/"))
+            self.assertEqual(group_role_history.group,        GroupHistoryURI("/api/v1/group/grouphistory/256/"))
+            self.assertEqual(group_role_history.id,           519)
+            self.assertEqual(group_role_history.name,         RoleNameURI("/api/v1/name/rolename/chair/"))
+            self.assertEqual(group_role_history.person,       PersonURI("/api/v1/person/person/20209/"))
+            self.assertEqual(group_role_history.resource_uri, GroupRoleHistoryURI("/api/v1/group/rolehistory/519/"))
+        else:
+            self.fail("Cannot find group role history")
+
+
+    def test_group_role_histories(self) -> None:
+        group_role_histories = self.dt.group_role_histories()
+        self.assertIsNot(group_role_histories, None)
+
+
+    def test_group_role_histories_email(self) -> None:
+        group_role_histories = list(self.dt.group_role_histories(email="csp@csperkins.org"))
+        self.assertEqual(len(group_role_histories), 25)
+
+
+    def test_group_role_histories_group(self) -> None:
+        group_role_histories = list(self.dt.group_role_histories(group=self.dt.group(GroupURI("/api/v1/group/group/1997/"))))
+        self.assertEqual(len(group_role_histories), 4)
+        self.assertEqual(group_role_histories[0].id, 4062)
+        self.assertEqual(group_role_histories[1].id, 4063)
+        self.assertEqual(group_role_histories[2].id, 4064)
+        self.assertEqual(group_role_histories[3].id, 4065)
+
+
+    def test_group_role_histories_name(self) -> None:
+        group_role_histories = self.dt.group_role_histories(name=self.dt.role_name(RoleNameURI("/api/v1/name/rolename/chair/")))
+        self.assertIsNot(group_role_histories, None)
+
+
+    def test_group_role_histories_person(self) -> None:
+        group_role_histories = list(self.dt.group_role_histories(person=self.dt.person(PersonURI("/api/v1/person/person/20209/"))))
+        self.assertEqual(len(group_role_histories), 25)
+
+
+    def test_group_state_change_event(self) -> None:
+        group_state_change_event = self.dt.group_state_change_event(GroupStateChangeEventURI("/api/v1/group/changestategroupevent/16833/"))
+        if group_state_change_event is not None:
+            self.assertEqual(group_state_change_event.by,             PersonURI("/api/v1/person/person/106842/"))
+            self.assertEqual(group_state_change_event.desc,           "State changed to <b>Proposed</b> from Unknown")
+            self.assertEqual(group_state_change_event.group,          GroupURI("/api/v1/group/group/2273/"))
+            self.assertEqual(group_state_change_event.groupevent_ptr, GroupEventURI("/api/v1/group/groupevent/16833/"))
+            self.assertEqual(group_state_change_event.id,             16833)
+            self.assertEqual(group_state_change_event.resource_uri,   GroupStateChangeEventURI("/api/v1/group/changestategroupevent/16833/"))
+            self.assertEqual(group_state_change_event.state,          GroupStateURI("/api/v1/name/groupstatename/proposed/"))
+            self.assertEqual(group_state_change_event.time,           datetime.fromisoformat("2020-04-14T14:52:24"))
+            self.assertEqual(group_state_change_event.type,           "changed_state")
+        else:
+            self.fail("Cannot find group state change event")
+
+    def test_group_state_change_events(self) -> None:
+        group_state_change_events = self.dt.group_state_change_events()
+
+
+    def test_group_state_change_events_by(self) -> None:
+        group_state_change_events = self.dt.group_state_change_events(by=self.dt.person(PersonURI("/api/v1/person/person/108756/")))
+        self.assertIsNot(group_state_change_events, None)
+
+
+    def test_group_state_change_events_group(self) -> None:
+        group_state_change_events = self.dt.group_state_change_events(group=self.dt.group(GroupURI("/api/v1/group/group/1326/")))
+        self.assertIsNot(group_state_change_events, None)
+
+
+    def test_group_state_change_events_state(self) -> None:
+        group_state_change_events = self.dt.group_state_change_events(state=self.dt.group_state(GroupStateURI("/api/v1/name/groupstatename/proposed/")))
+        self.assertIsNot(group_state_change_events, None)
+
+
     def test_groups_state(self) -> None:
-        groups = list(self.dt.groups(state=self.dt.group_state("abandon")))
+        groups = list(self.dt.groups(state=self.dt.group_state(GroupStateURI("/api/v1/name/groupstatename/abandon"))))
         self.assertEqual(len(groups), 6)
         self.assertEqual(groups[0].id, 1949)
         self.assertEqual(groups[1].id, 2009)
@@ -1209,7 +1609,7 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_group_state(self) -> None:
-        state = self.dt.group_state("abandon")
+        state = self.dt.group_state(GroupStateURI("/api/v1/name/groupstatename/abandon"))
         if state is not None:
             self.assertEqual(state.desc,         "Formation of the group (most likely a BoF or Proposed WG) was abandoned")
             self.assertEqual(state.name,         "Abandoned")
@@ -1234,6 +1634,44 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(states[6].slug, "proposed")
         self.assertEqual(states[7].slug, "replaced")
         self.assertEqual(states[8].slug, "unknown")
+
+
+    def test_group_type_name(self) -> None:
+        group_type_name = self.dt.group_type_name(GroupTypeNameURI("/api/v1/name/grouptypename/adhoc/"))
+        if group_type_name is not None:
+            self.assertEqual(group_type_name.desc,         "Ad Hoc schedulable Group Type, for instance HotRfc")
+            self.assertEqual(group_type_name.name,         "Ad Hoc")
+            self.assertEqual(group_type_name.order,        0)
+            self.assertEqual(group_type_name.resource_uri, GroupTypeNameURI("/api/v1/name/grouptypename/adhoc/"))
+            self.assertEqual(group_type_name.slug,         "adhoc")
+            self.assertEqual(group_type_name.used,         True)
+            self.assertEqual(group_type_name.verbose_name, "Ad Hoc Group Type")
+
+
+    def test_group_type_names(self) -> None:
+        group_type_names = list(self.dt.group_type_names())
+        self.assertEqual(len(group_type_names), 21)
+        self.assertEqual(group_type_names[0].slug,  "adhoc")
+        self.assertEqual(group_type_names[1].slug,  "admin")
+        self.assertEqual(group_type_names[2].slug,  "ag")
+        self.assertEqual(group_type_names[3].slug,  "area")
+        self.assertEqual(group_type_names[4].slug,  "dir")
+        self.assertEqual(group_type_names[5].slug,  "review")
+        self.assertEqual(group_type_names[6].slug,  "iab")
+        self.assertEqual(group_type_names[7].slug,  "iana")
+        self.assertEqual(group_type_names[8].slug,  "iesg")
+        self.assertEqual(group_type_names[9].slug,  "ietf")
+        self.assertEqual(group_type_names[10].slug, "individ")
+        self.assertEqual(group_type_names[11].slug, "irtf")
+        self.assertEqual(group_type_names[12].slug, "ise")
+        self.assertEqual(group_type_names[13].slug, "isoc")
+        self.assertEqual(group_type_names[14].slug, "nomcom")
+        self.assertEqual(group_type_names[15].slug, "program")
+        self.assertEqual(group_type_names[16].slug, "rfcedtyp")
+        self.assertEqual(group_type_names[17].slug, "rg")
+        self.assertEqual(group_type_names[18].slug, "sdo")
+        self.assertEqual(group_type_names[19].slug, "team")
+        self.assertEqual(group_type_names[20].slug, "wg")
 
 
     # -----------------------------------------------------------------------------------------------------------------------------
@@ -1372,7 +1810,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_related_documents_all(self) -> None:
         source = self.dt.document(DocumentURI("/api/v1/doc/document/draft-rfced-info-snpp-v3/"))
-        target = list(self.dt.docaliases_from_name("draft-gwinn-paging-protocol-v3"))[0]
+        target = list(self.dt.document_aliases(name="draft-gwinn-paging-protocol-v3"))[0]
         rel    = self.dt.relationship_type(RelationshipTypeURI("/api/v1/name/docrelationshipname/replaces/"))
         rdocs  = list(self.dt.related_documents(source=source, target=target, relationship_type=rel))
         self.assertEqual(len(rdocs), 1)
@@ -1381,11 +1819,11 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(rdocs[0].resource_uri, RelatedDocumentURI("/api/v1/doc/relateddocument/3/"))
         self.assertEqual(rdocs[0].source,       DocumentURI("/api/v1/doc/document/draft-rfced-info-snpp-v3/"))
         self.assertEqual(rdocs[0].target,       DocumentAliasURI("/api/v1/doc/docalias/draft-gwinn-paging-protocol-v3/"))
-        
+
 
     def test_related_documents_source_target(self) -> None:
         source = self.dt.document(DocumentURI("/api/v1/doc/document/draft-rfced-info-snpp-v3/"))
-        target = list(self.dt.docaliases_from_name("draft-gwinn-paging-protocol-v3"))[0]
+        target = list(self.dt.document_aliases(name="draft-gwinn-paging-protocol-v3"))[0]
         rdocs  = list(self.dt.related_documents(source=source, target=target))
         self.assertEqual(len(rdocs), 1)
         self.assertEqual(rdocs[0].id, 3)
@@ -1408,7 +1846,7 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_related_documents_target_relationship(self) -> None:
-        target = list(self.dt.docaliases_from_name("draft-gwinn-paging-protocol-v3"))[0]
+        target = list(self.dt.document_aliases(name="draft-gwinn-paging-protocol-v3"))[0]
         rel    = self.dt.relationship_type(RelationshipTypeURI("/api/v1/name/docrelationshipname/replaces/"))
         rdocs  = list(self.dt.related_documents(target=target, relationship_type=rel))
         self.assertEqual(len(rdocs), 1)
@@ -1420,7 +1858,7 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_related_documents_target(self) -> None:
-        target = list(self.dt.docaliases_from_name("draft-gwinn-paging-protocol-v3"))[0]
+        target = list(self.dt.document_aliases(name="draft-gwinn-paging-protocol-v3"))[0]
         rdocs  = list(self.dt.related_documents(target=target))
         self.assertEqual(len(rdocs), 1)
         self.assertEqual(rdocs[0].id, 3)

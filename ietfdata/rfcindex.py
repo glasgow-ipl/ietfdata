@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2019 University of Glasgow
+# Copyright (C) 2017-2020 University of Glasgow
 # 
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions 
@@ -24,7 +24,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 from typing   import NewType, Iterator, List, Optional, Tuple, Dict
-from datetime import datetime
+from datetime import datetime, timedelta
+from pathlib  import Path
 
 import xml.etree.ElementTree as ET
 import requests
@@ -136,7 +137,16 @@ class RfcEntry:
                     else:
                         raise NotImplementedError
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}draft":
-                self.draft = elem.text
+                if elem.text == "rfc4049bis":
+                    # RFC 6019 is RFC 4049 republished as a Proposed Standard RF. 
+                    # with virtually no change. It was never published as a draft,
+                    # but the index lists "rfc4049bis" as its draft name. Replace
+                    # this with the name of the draft that became RFC 4049.
+                    self.draft = "draft-housley-binarytime-02"
+                elif elem.text == "draft-luckie-recn":
+                    self.draft = None
+                else:
+                    self.draft = elem.text
             elif elem.tag == "{http://www.rfc-editor.org/rfc-index}keywords":
                 for inner in elem:
                     if   inner.tag == "{http://www.rfc-editor.org/rfc-index}kw":
@@ -273,7 +283,7 @@ class RfcEntry:
     def content_url(self, required_format: str) -> Optional[str]:
         for fmt in self.formats:
             if fmt == required_format:
-                if required_format == "ASCII":
+                if required_format in [ "ASCII", "TEXT"] :
                     return "https://www.rfc-editor.org/rfc/" + self.doc_id.lower() + ".txt"
                 elif required_format == "PS":
                     return "https://www.rfc-editor.org/rfc/" + self.doc_id.lower() + ".ps"
@@ -281,6 +291,8 @@ class RfcEntry:
                     return "https://www.rfc-editor.org/rfc/" + self.doc_id.lower() + ".pdf"
                 elif required_format == "HTML":
                     return "https://www.rfc-editor.org/rfc/" + self.doc_id.lower() + ".html"
+                elif required_format == "XML":
+                    return "https://www.rfc-editor.org/rfc/" + self.doc_id.lower() + ".xml"
                 else:
                     return None
         return None
@@ -441,21 +453,60 @@ class RFCIndex:
     _fyi            : Dict[str, FyiEntry]
 
 
-    def __init__(self) -> None:
+    def _download_index(self) -> Optional[str]:
+        with requests.Session() as session:
+            response = session.get("https://www.rfc-editor.org/rfc-index.xml", verify=True)
+            if response.status_code == 200:
+                return response.text
+            else:
+                return None
+
+
+    def _is_cached(self, cache_filepath : Path) -> bool:
+        if cache_filepath.exists():
+            curr_time = datetime.now()
+            prev_time = datetime.fromtimestamp(cache_filepath.stat().st_mtime)
+            if curr_time < prev_time + timedelta(days = 1):
+                return True
+        return False
+
+
+    def _retrieve_index(self) -> Optional[str]:
+        if self.cache_dir is not None:
+            cache_filepath = Path(self.cache_dir, "rfc", "rfc-index.xml")
+            if self._is_cached(cache_filepath):
+                with open(cache_filepath, "r") as cache_file:
+                    return cache_file.read()
+            else:
+                response = self._download_index()
+                if response is not None:
+                    cache_filepath.parent.mkdir(parents=True, exist_ok=True)
+                    with open(cache_filepath, "w") as cache_file:
+                        cache_file.write(response)
+                        return response
+                else:
+                    return None
+        else:
+            return self._download_index()
+
+
+    def __init__(self, cache_dir: Optional[Path] = None):
+        """
+        Parameters:
+            cache_dir      -- If set, use this directory as a cache for Datatracker objects
+        """
+        self.cache_dir       = cache_dir
         self._rfc            = {}
         self._rfc_not_issued = {}
         self._bcp            = {}
         self._std            = {}
         self._fyi            = {}
 
-        session  = requests.Session()
-        response = session.get("https://www.rfc-editor.org/rfc-index.xml", verify=True)
-        if response.status_code != 200:
-            print("cannot fetch RFC index")
-            return
-        session.close()
+        xml = self._retrieve_index()
+        if xml is None:
+            raise RuntimeError
 
-        for doc in ET.fromstring(response.text):
+        for doc in ET.fromstring(xml):
             if   doc.tag == "{http://www.rfc-editor.org/rfc-index}rfc-entry":
                 rfc = RfcEntry(doc)
                 self._rfc[rfc.doc_id] = rfc

@@ -57,6 +57,8 @@ import glob
 import json
 import requests
 import re
+import sys
+import time
 
 # =================================================================================================================================
 # Classes to represent the JSON-serialised objects returned by the Datatracker API:
@@ -263,7 +265,7 @@ class SubmissionURI(URI):
 class SubmissionCheckURI(URI):
     def __post_init__(self) -> None:
         assert self.uri.startswith("/api/v1/submit/submissioncheck/")
-        
+
 
 @dataclass(frozen=True)
 class Submission(Resource):
@@ -283,7 +285,8 @@ class Submission(Resource):
     note            : str
     pages           : Optional[int]
     remote_ip       : str
-    replaces        : str   # FIXME: this should be an Optional[URI]?
+    replaces        : str   # This is a comma separated list of draft names (e.g., "draft-dkg-hrpc-glossary,draft-varon-hrpc-methodology")
+                            # although in most cases there is only one entry, and hence no comma.
     resource_uri    : SubmissionURI
     rev             : str
     state           : str   # FIXME: this should be a URI subtype
@@ -445,7 +448,7 @@ class BallotPositionName(Resource):
     name         : str
     order        : int
     resource_uri : BallotPositionNameURI
-    slug         : str 
+    slug         : str
     used         : bool
 
 
@@ -524,6 +527,7 @@ class DocumentAuthorURI(URI):
     def __post_init__(self) -> None:
         assert self.uri.startswith("/api/v1/doc/documentauthor/")
 
+
 @dataclass(frozen=True)
 class DocumentAuthor(Resource):
     id           : int
@@ -533,8 +537,261 @@ class DocumentAuthor(Resource):
     affiliation  : str
     document     : DocumentURI
     person       : PersonURI
-    email        : EmailURI
-    
+    email        : Optional[EmailURI]
+
+
+    def normalise_country(self) -> str:
+        """
+        The country field of a DocumentAuthor is supposed to contain a country.
+        Often it contains other things. This method tries to normalise it to a
+        consistent country name.
+        """
+        # Does it contain a US state abbreviation and zip code?
+        for state in ["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
+                      "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
+                      "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
+                      "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
+                      "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
+                      "DC"]:
+            p = re.compile(state + ",? +[0-9][0-9][0-9][0-9][0-9]")
+            if p.search(self.country):
+                return "USA"
+        # Does it contain a country name?
+        for name in [
+                "Algeria", "Argentina", "Austria", "Australia", "Belgium", "Brazil", 
+                 "Canada", "Chile", "China", "Colombia", "Croatia", "Czech Republic",
+                 "Denmark", "Egypt", "Finland", "France", "Germany", "Greece", "Hungary",
+                 "Ireland", "India", "Israel", "Italy", "Japan", "Lebanon", "Luxembourg",
+                 "Mauritius", "Mexico", "Morocco", "New Zealand", "Norway", "Philippines",
+                 "Poland", "Portugal", "Romania", "Russia", "Saudi Arabia", "Singapore",
+                 "Slovakia", "Slovenia", "Spain", "South Africa", "Switzerland", "Sweden",
+                 "Syria", "Taiwan", "Thailand", "The Netherlands", "Turkey", "Ukraine",
+                 "UK", "Uruguay", "USA", "United Arab Emirates"
+            ]:
+            if name.lower() in self.country.lower():
+                return name
+        # Does it contain a country synonym?
+        for (synonym, name) in [
+                ("Hellas",                    "Greece"),
+                ("Italia",                    "Italy"),
+                ("Korea",                     "South Korea"),
+                ("Netherlands",               "The Netherlands"),
+                ("P.R.C",                     "China"),
+                ("PRC",                       "China"),
+                ("REPUBLIC OF KOREA",         "South Korea"),
+                ("Russian Federation",        "Russia"),
+                ("Great Britain",             "UK"),
+                ("U.K.",                      "UK"),
+                ("United Kingdom",            "UK"),
+                ("U.S.A",                     "USA"),
+                ("United States",             "USA"),
+            ]:
+            if synonym.lower() in self.country.lower():
+                return name
+        # Does it contain a state, region, city, or street name?
+        for (region, name) in [
+                ("Auckland",                  "New Zealand"),
+                ("Bangalore",                 "India"),
+                ("Barcelona",                 "Spain"),
+                ("Beijing",                   "China"),
+                ("Bruxelles",                 "Belgium"),
+                ("Frankfurt",                 "Germany"),
+                ("Leuven",                    "Belgium"),
+                ("Linkoping",                 "Sweden"),
+                ("Madrid",                    "Spain"),
+                ("Riga",                      "Latvia"),
+                ("Solna",                     "Sweden"),
+                ("Taipei",                    "Taiwan"),
+                ("Tel Aviv",                  "Israel"),
+                ("Tokyo",                     "Japan"),
+                ("Toranomon 17 Mori Bldg.5F", "Japan"),
+                ("750D Chai Chee",            "Singapore"),
+                # Canadian cities:
+                ("Mississauga, ON",           "Canada"),
+                ("Ottawa",                    "Canada"),
+                ("Toronto",                   "Canada"),
+                ("100 Wynford Drive",         "Canada"),  # Bell Canada
+                # US states:
+                ("Arizona",                   "USA"),
+                ("California",                "USA"),
+                ("Colorado",                  "USA"),
+                ("Florida",                   "USA"),
+                ("Illinois",                  "USA"),
+                ("Kansas",                    "USA"),
+                ("Maryland",                  "USA"),
+                ("Massachusetts",             "USA"),
+                ("Michigan",                  "USA"),
+                ("New Hampshire",             "USA"),
+                ("New Jersey",                "USA"),
+                ("Ohio",                      "USA"),
+                ("Oregon",                    "USA"),
+                ("Texas",                     "USA"),
+                ("Vermont",                   "USA"),
+                ("Virginia",                  "USA"),
+                # US cities:
+                ("Atlanta",                   "USA"),
+                ("Bainbridge Island, WA",     "USA"),
+                ("Bellevue, WA",              "USA"),
+                ("Boulder CO" ,               "USA"),
+                ("Boulder, CO",               "USA"),
+                ("Boxborough, MA",            "USA"),
+                ("Burlington, MA",            "USA"),
+                ("Cambridge, MA",             "USA"),
+                ("Campbell, CA",              "USA"),
+                ("Chelmsford, MA",            "USA"),
+                ("Dallas TX",                 "USA"),
+                ("Dallas, TX",                "USA"),
+                ("Denver, CO",                "USA"),
+                ("Edison, NJ",                "USA"),
+                ("Florham Park NJ",           "USA"),
+                ("Ft. Meade, MD",             "USA"),
+                ("Ft. Monmouth, N.J.",        "USA"),
+                ("Littleton MA",              "USA"),
+                ("Lowell, MA",                "USA"),
+                ("Menlo Park, CA",            "USA"),
+                ("Milpitas, CA",              "USA"),
+                ("Mountain View, CA",         "USA"),
+                ("Naperville, IL",            "USA"),
+                ("New York",                  "USA"),
+                ("Evanston, IL",              "USA"),
+                ("Philadelphia",              "USA"),
+                ("Princeton, NJ",             "USA"),
+                ("Raleigh, NC",               "USA"),
+                ("Redmond, WA",               "USA"),
+                ("Richardson, TX",            "USA"),
+                ("Salt Lake City",            "USA"),
+                ("San Jose, CA",              "USA"),
+                ("Santa Barbara, CA",         "USA"),
+                ("Schaumburg, IL",            "USA"),
+                ("Seattle, WA",               "USA"),
+                ("St. Louis, MO",             "USA"),
+                ("Stanford, CA",              "USA"),
+                ("Sunnyvale, CA",             "USA"),
+                ("Tewksbury, MA",             "USA"),
+                ("Wall Township, NJ",         "USA"),
+                ("Waltham, MA",               "USA"),
+                # US streets:
+                ("West Tasman Dr",            "USA"), # San Jose, CA, USA
+                ("1700 Alma Drive",           "USA"), # Plano, TX, USA
+                ("1201 Campbell",             "USA"), # Richardson, TX, USA
+                ("3 Federal Street",          "USA"), # Billerica, MA, USA
+                ("501 East Middlefield Road", "USA"), # Mountain View, CA, USA
+                # UK countries:
+                ("England",                   "UK"),
+                ("Scotland",                  "UK"),
+                ("Wales",                     "UK"),
+                # UK counties:
+                ("Berks",                     "UK"),
+                ("Cambs",                     "UK"),
+                ("Essex",                     "UK"),
+                ("Gwent",                     "UK"),
+                ("Hampshire",                 "UK"),
+                ("Surrey",                    "UK"),
+                ("Middlesex",                 "UK"),
+                # UK cities:
+                ("Aberdeen AB24",             "UK"),
+                ("Cambridge",                 "UK"),
+                ("Edinburgh",                 "UK"),
+                ("Ipswich",                   "UK"),
+                ("Maidenhead",                "UK"),
+                ("Nottingham",                "UK"),
+                ("Reading",                   "UK"),
+                ("London",                    "UK"),
+                ("Oxford",                    "UK"),
+                ("Winchester",                "UK"),
+            ]:
+            if region.lower() in self.country.lower():
+                return name
+        # Does it contain an organisation name?
+        for (org, name) in [
+                ("Aoyama Gakuin University",          "Japan"),
+                ("University of Cambridge",           "UK"),
+                ("Columbia University",               "USA"),
+                ("University of Illinois",            "USA"),
+                ("University of Washington",          "USA"),
+                ("National Security Agency",          "USA"),
+                ("ICSI Center for Internet Research", "USA"),
+                ("Schrage Consulting",                "Germany"),
+                ("Samsung Electronics",               "South Korea"),
+                ("Nishinippori Start up Office 214",  "Japan"),
+            ]:
+            if org.lower() in self.country.lower():
+                return name
+        # Does it contain a postcode?
+        for (postcode, name) in [
+                ("H3B 2S2",    "Canada"),        # Montréal, QC, Canada
+                ("H4P 2N2",    "Canada"),        # Montréal, QC, Canada
+                ("K1Y 4H7",    "Canada"),        # Ottawa, ON, Canada
+                ("K1Y-4H7",    "Canada"),        # Ottawa, ON, Canada
+                ("K2K 3N1",    "Canada"),        # Ottawa, ON, Canada
+                ("V5H 4M2",    "Canada"),        # Burnaby, BC, Canada
+                ("V7X 1M3 ",   "Canada"),        # Vancouver, BC, Canada
+                ("F-22307",    "France"),        # INRIA Rennes-Bretagne Altlantique, France
+                ("FIN-00076",  "Finland"),       # Aalto University
+                ("CH-6942",    "Switzerland"),   # Savosa, Switzerland
+                ("CB3 0FD",    "UK"),            # University of Cambridge, UK
+                ("WR14 3PS",   "UK"),            # Malvern, Worcestershire, UK
+                ("02144",      "USA"),           # Somerville, MA, USA
+                ("02138",      "USA"),           # Cambridge, MA, USA
+                ("20166",      "USA"),           # Dulles, VA, USA
+                ("94704-1198", "USA"),           # Berkeley, CA, USA
+                ("95110",      "USA"),           # San Jose, CA, USA
+                ("Post Office Box 5005", "USA"), # Rochester, NH, USA
+                ("7010",       "Belgium")        # NATO C&I Agency, SHAPE, Belgium
+            ]:
+            if postcode.lower() in self.country.lower():
+                return name
+        # Does it contain a person's name?
+        for (person, name) in [
+                ("Robert Schuettler", "Germany"),
+                ("Mike St. Johns",    "USA"),
+            ]:
+            if person.lower() in self.country.lower():
+                return name
+        # Does it contain a country abbreviation?
+        for (abbrv, name) in [
+                ("AU", "Australia"),
+                ("BE", "Belgium"),
+                ("BR", "Brazil"),
+                ("CA", "Canada"),
+                ("CH", "Switzerland"),
+                ("CN", "China"),
+                ("CZ", "Czech Republic"),
+                ("DE", "Germany"),
+                ("ES", "Spain"),
+                ("FI", "Finland"),
+                ("FR", "France"),
+                ("GE", "Germany"),
+                ("GB", "UK"),
+                ("GI", "UK"),           # Gibralter
+                ("IE", "Ireland"),
+                ("IL", "Israel"),
+                ("IT", "Italy"),
+                ("JA", "Japan"),
+                ("JP", "Japan"),
+                ("MU", "Mauritius"),
+                ("NL", "The Netherlands"),
+                ("NO", "Norway"),
+                ("SE", "Sweden"),
+                ("SG", "Singapore"),
+                ("US", "USA"),
+            ]:
+            if abbrv.lower() in self.country.lower():
+                return name
+        # Does it contain something random?
+        for (text, name) in [
+                ("January 2002", "USA"),  # RFC3271
+            ]:
+            if text.lower() in self.country.lower():
+                return name
+        # Otherwise, just return the country unchanged:
+        return self.country.strip()
+
+
+    def normalise_affiliation(self) -> str:
+        # FIXME: implement this
+        return self.affiliation
+
 
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to groups:
@@ -556,6 +813,23 @@ class GroupState(Resource):
     order          : int
 
 
+@dataclass(frozen=True)
+class GroupTypeNameURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/name/grouptypename/")
+
+
+@dataclass(frozen=True)
+class GroupTypeName(Resource):
+    desc          : str
+    name          : str
+    order         : int
+    resource_uri  : GroupTypeNameURI
+    slug          : str
+    used          : bool
+    verbose_name  : str
+
+
 # GroupURI is defined earlier, to avoid circular dependencies
 
 
@@ -575,9 +849,210 @@ class Group(Resource):
     resource_uri   : GroupURI
     state          : GroupStateURI
     time           : datetime
-    type           : str    # FIXME: this should be a URI subtype
+    type           : GroupTypeNameURI
     unused_states  : List[str]
     unused_tags    : List[str]
+
+
+@dataclass(frozen=True)
+class GroupHistoryURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/group/grouphistory/")
+
+
+@dataclass(frozen=True)
+class GroupHistory(Resource):
+    acronym              : str
+    ad                   : Optional[PersonURI]
+    comments             : str
+    description          : str
+    group                : GroupURI
+    id                   : int
+    list_archive         : str
+    list_email           : str
+    list_subscribe       : str
+    name                 : str
+    parent               : Optional[GroupURI]
+    resource_uri         : GroupHistoryURI
+    state                : GroupStateURI
+    time                 : datetime
+    type                 : GroupTypeNameURI
+    unused_states        : List[str]
+    unused_tags          : List[str]
+    uses_milestone_dates : bool
+
+
+@dataclass(frozen=True)
+class GroupEventURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/group/groupevent/")
+
+
+@dataclass(frozen=True)
+class GroupEvent(Resource):
+    by           : PersonURI
+    desc         : str
+    group        : GroupURI
+    id           : int
+    resource_uri : GroupEventURI
+    time         : datetime
+    type         : str
+
+
+@dataclass(frozen=True)
+class GroupUrlURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/group/groupurl/")
+
+
+@dataclass(frozen=True)
+class GroupUrl(Resource):
+    group        : GroupURI
+    id           : int
+    name         : str
+    resource_uri : GroupUrlURI
+    url          : str
+
+
+@dataclass(frozen=True)
+class GroupMilestoneStateNameURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/name/groupmilestonestatename/")
+
+
+@dataclass(frozen=True)
+class GroupMilestoneStateName(Resource):
+    desc         : str
+    name         : str
+    order        : int
+    resource_uri : GroupMilestoneStateNameURI
+    slug         : str
+    used         : bool
+
+
+@dataclass(frozen=True)
+class GroupMilestoneURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/group/groupmilestone/")
+
+
+@dataclass(frozen=True)
+class GroupMilestone(Resource):
+    desc         : str
+    docs         : List[DocumentURI]
+    due          : str
+    group        : GroupURI
+    id           : int
+    order        : Optional[int]
+    resolved     : str
+    resource_uri : GroupMilestoneURI
+    state        : GroupMilestoneStateNameURI
+    time         : datetime
+
+
+@dataclass(frozen=True)
+class RoleNameURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/name/rolename/")
+
+@dataclass(frozen=True)
+class RoleName(Resource):
+    desc         : str
+    name         : str
+    order        : int
+    resource_uri : RoleNameURI
+    slug         : str
+    used         : bool
+
+
+@dataclass(frozen=True)
+class GroupRoleURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/group/role/")
+
+
+@dataclass(frozen=True)
+class GroupRole(Resource):
+    email        : EmailURI
+    group        : GroupURI
+    id           : int
+    name         : RoleNameURI
+    person       : PersonURI
+    resource_uri : GroupRoleURI
+
+@dataclass(frozen=True)
+class GroupMilestoneHistoryURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/group/groupmilestonehistory/")
+
+
+@dataclass(frozen=True)
+class GroupMilestoneHistory(Resource):
+    desc         : str
+    docs         : List[DocumentURI]
+    due          : str
+    group        : GroupURI
+    id           : int
+    milestone    : GroupMilestoneURI
+    order        : Optional[int]
+    resolved     : str
+    resource_uri : GroupMilestoneHistoryURI
+    state        : GroupMilestoneStateNameURI
+    time         : datetime
+
+
+@dataclass(frozen=True)
+class GroupMilestoneEventURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/group/milestonegroupevent/")
+
+
+@dataclass(frozen=True)
+class GroupMilestoneEvent(Resource):
+    by             : PersonURI
+    desc           : str
+    group          : GroupURI
+    groupevent_ptr : GroupEventURI
+    id             : int
+    milestone      : GroupMilestoneURI
+    resource_uri   : GroupMilestoneEventURI
+    time           : datetime
+    type           : str
+
+
+@dataclass(frozen=True)
+class GroupRoleHistoryURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/group/rolehistory/")
+
+
+@dataclass(frozen=True)
+class GroupRoleHistory(Resource):
+    email        : EmailURI
+    group        : GroupHistoryURI
+    id           : int
+    name         : RoleNameURI
+    person       : PersonURI
+    resource_uri : GroupRoleHistoryURI
+
+
+@dataclass(frozen=True)
+class GroupStateChangeEventURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/group/changestategroupevent/")
+
+
+@dataclass(frozen=True)
+class GroupStateChangeEvent(Resource):
+    by             : PersonURI
+    desc           : str
+    group          : GroupURI
+    groupevent_ptr : GroupEventURI
+    id             : int
+    resource_uri   : GroupStateChangeEventURI
+    state          : GroupStateURI
+    time           : datetime
+    type           : str
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------
@@ -815,8 +1290,19 @@ class DataTracker:
         self.pavlova.register_parser(DocumentTypeURI,        GenericParser(self.pavlova, DocumentTypeURI))
         self.pavlova.register_parser(DocumentURI,            GenericParser(self.pavlova, DocumentURI))
         self.pavlova.register_parser(EmailURI,               GenericParser(self.pavlova, EmailURI))
+        self.pavlova.register_parser(GroupEventURI,          GenericParser(self.pavlova, GroupEventURI))
+        self.pavlova.register_parser(GroupHistoryURI,        GenericParser(self.pavlova, GroupHistoryURI))
+        self.pavlova.register_parser(GroupMilestoneEventURI, GenericParser(self.pavlova, GroupMilestoneEventURI))
+        self.pavlova.register_parser(GroupMilestoneHistoryURI, GenericParser(self.pavlova, GroupMilestoneHistoryURI))
+        self.pavlova.register_parser(GroupMilestoneStateNameURI, GenericParser(self.pavlova, GroupMilestoneStateNameURI))
+        self.pavlova.register_parser(GroupMilestoneURI,      GenericParser(self.pavlova, GroupMilestoneURI))
+        self.pavlova.register_parser(GroupRoleURI,           GenericParser(self.pavlova, GroupRoleURI))
+        self.pavlova.register_parser(GroupRoleHistoryURI,    GenericParser(self.pavlova, GroupRoleHistoryURI))
+        self.pavlova.register_parser(GroupStateChangeEventURI, GenericParser(self.pavlova, GroupStateChangeEventURI))
         self.pavlova.register_parser(GroupStateURI,          GenericParser(self.pavlova, GroupStateURI))
+        self.pavlova.register_parser(GroupTypeNameURI,       GenericParser(self.pavlova, GroupTypeNameURI))
         self.pavlova.register_parser(GroupURI,               GenericParser(self.pavlova, GroupURI))
+        self.pavlova.register_parser(GroupUrlURI,            GenericParser(self.pavlova, GroupUrlURI))
         self.pavlova.register_parser(MailingListURI,         GenericParser(self.pavlova, MailingListURI))
         self.pavlova.register_parser(MailingListSubscriptionsURI, GenericParser(self.pavlova, MailingListSubscriptionsURI))
         self.pavlova.register_parser(MeetingTypeURI,         GenericParser(self.pavlova, MeetingTypeURI))
@@ -826,6 +1312,7 @@ class DataTracker:
         self.pavlova.register_parser(PersonURI,              GenericParser(self.pavlova, PersonURI))
         self.pavlova.register_parser(RelationshipTypeURI,    GenericParser(self.pavlova, RelationshipTypeURI))
         self.pavlova.register_parser(RelatedDocumentURI,     GenericParser(self.pavlova, RelatedDocumentURI))
+        self.pavlova.register_parser(RoleNameURI,            GenericParser(self.pavlova, RoleNameURI))
         self.pavlova.register_parser(SessionAssignmentURI,   GenericParser(self.pavlova, SessionAssignmentURI))
         self.pavlova.register_parser(SessionURI,             GenericParser(self.pavlova, SessionURI))
         self.pavlova.register_parser(ScheduleURI,            GenericParser(self.pavlova, ScheduleURI))
@@ -885,30 +1372,49 @@ class DataTracker:
             if r.status_code == 200:
                 obj_json = r.json()
                 self._cache_obj(resource_uri, obj_json)
+            elif r.status_code == 404:
+                return None
             else:
                 print("_retrieve failed: {} {}".format(r.status_code, self.base_url + resource_uri.uri))
-                return None 
+                sys.exit(1)
         obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
         return obj
 
-    def _retrieve_multi(self, resource_uri: URI, obj_type: Type[T]) -> Iterator[T]:
-        resource_uri.params["limit"] = "100"
-        while resource_uri.uri is not None:
+    def _retrieve_multi(self, resource_uri: URI, obj_type: Type[T], deref: Dict[str, str] = {}, enable_cache=False) -> Iterator[T]:
+        # deref is currently unused, but will be needed for the cache
+        # enable_cache is a temporary addition for testing
+        if enable_cache and (self.cache_dir is not None):
+            print("not implemented")
+            sys.exit()
+        else:
             headers = {'user-agent': self.ua}
-            self._rate_limit()
-            r = self.session.get(self.base_url + resource_uri.uri, params=resource_uri.params, headers=headers, verify=True, stream=False)
-            if r.status_code == 200:
-                meta = r.json()['meta']
-                objs = r.json()['objects']
-                resource_uri  = URI(meta['next'])
-                for obj_json in objs:
-                    obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
-                    self._cache_obj(obj.resource_uri, obj_json)
-                    yield obj
-            else:
-                print("_retrieve_multi failed: {}".format(r.status_code))
-                print(r.status_code)
-                return None
+            resource_uri.params["limit"] = "100"
+            while resource_uri.uri is not None:
+                self._rate_limit()
+                retry = True
+                retry_time = 1.875
+                while retry:
+                    retry = False
+                    r = self.session.get(self.base_url + resource_uri.uri, params=resource_uri.params, headers=headers, verify=True, stream=False)
+                    if r.status_code == 200:
+                        meta = r.json()['meta']
+                        objs = r.json()['objects']
+                        resource_uri  = URI(meta['next'])
+                        for obj_json in objs:
+                            obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
+                            self._cache_obj(obj.resource_uri, obj_json)
+                            yield obj
+                    elif r.status_code == 500:
+                        if retry_time > 60:
+                            print("_retrieve_multi failed: error {} after {} requests".format(r.status_code, self.http_req))
+                            sys.exit(1)
+                        self.session.close()
+                        time.sleep(retry_time)
+                        retry_time *= 2
+                        retry = True
+                    else:
+                        print("_retrieve_multi failed: error {} after {} requests".format(r.status_code, self.http_req))
+                        sys.exit(1)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -933,19 +1439,19 @@ class DataTracker:
     def person_aliases(self, person: Person) -> Iterator[PersonAlias]:
         url = PersonAliasURI("/api/v1/person/alias/")
         url.params["person"] = str(person.id)
-        return self._retrieve_multi(url, PersonAlias)
+        return self._retrieve_multi(url, PersonAlias, deref = {"person": "id"})
 
 
     def person_history(self, person: Person) -> Iterator[HistoricalPerson]:
         url = PersonURI("/api/v1/person/historicalperson/")
         url.params["id"] = str(person.id)
-        return self._retrieve_multi(url, HistoricalPerson)
+        return self._retrieve_multi(url, HistoricalPerson, deref = {"person": "id"})
 
 
     def person_events(self, person: Person) -> Iterator[PersonEvent]:
         url = PersonEventURI("/api/v1/person/personevent/")
         url.params["person"] = str(person.id)
-        return self._retrieve_multi(url, PersonEvent)
+        return self._retrieve_multi(url, PersonEvent, deref = {"person": "id"})
 
 
     def people(self,
@@ -983,7 +1489,7 @@ class DataTracker:
     def email_for_person(self, person: Person) -> Iterator[Email]:
         uri = EmailURI("/api/v1/person/email/")
         uri.params["person"] = str(person.id)
-        return self._retrieve_multi(uri, Email)
+        return self._retrieve_multi(uri, Email, deref = {"person": "id"})
 
 
     def email_history_for_address(self, email_addr: str) -> Iterator[HistoricalEmail]:
@@ -995,7 +1501,7 @@ class DataTracker:
     def email_history_for_person(self, person: Person) -> Iterator[HistoricalEmail]:
         uri = EmailURI("/api/v1/person/historicalemail/")
         uri.params["person"] = person.id
-        return self._retrieve_multi(uri, HistoricalEmail)
+        return self._retrieve_multi(uri, HistoricalEmail, deref = {"person": "id"})
 
 
     def emails(self,
@@ -1041,13 +1547,17 @@ class DataTracker:
             url.params["type"] = doctype.slug
         if group is not None:
             url.params["group"] = group.id
-        return self._retrieve_multi(url, Document)
+        return self._retrieve_multi(url, Document, deref = {"type": "slug", "group": "id"})
 
 
     # Datatracker API endpoints returning information about document aliases:
     # * https://datatracker.ietf.org/api/v1/doc/docalias/?name=/                 - draft that became the given RFC
 
-    def docaliases_from_name(self, alias: str) -> Iterator[DocumentAlias]:
+    def document_alias(self, document_alias_uri: DocumentAliasURI) -> Optional[DocumentAlias]:
+        return self._retrieve(document_alias_uri, DocumentAlias)
+
+
+    def document_aliases(self, name: Optional[str] = None) -> Iterator[DocumentAlias]:
         """
         Returns a list of DocumentAlias objects that correspond to the specified name.
 
@@ -1058,7 +1568,7 @@ class DataTracker:
             A list of DocumentAlias objects
         """
         url = DocumentAliasURI("/api/v1/doc/docalias/")
-        url.params["name"] = alias
+        url.params["name"] = name
         return self._retrieve_multi(url, DocumentAlias)
 
 
@@ -1073,13 +1583,8 @@ class DataTracker:
             A Document object
         """
         assert draft.startswith("draft-")
-        docs = list(self.docaliases_from_name(draft))
-        if len(docs) == 0:
-            return None
-        elif len(docs) == 1:
-            return self.document(docs[0].document)
-        else:
-            raise RuntimeError
+        assert not "," in draft
+        return self.document(DocumentURI("/api/v1/doc/document/" + draft + "/"))
 
 
     def document_from_rfc(self, rfc: str) -> Optional[Document]:
@@ -1093,7 +1598,7 @@ class DataTracker:
             A Document object
         """
         assert rfc.lower().startswith("rfc")
-        docs = list(self.docaliases_from_name(rfc.lower()))
+        docs = list(self.document_aliases(name=rfc.lower()))
         if len(docs) == 0:
             return None
         elif len(docs) == 1:
@@ -1113,7 +1618,7 @@ class DataTracker:
             A list of Document objects
         """
         assert bcp.lower().startswith("bcp")
-        for alias in self.docaliases_from_name(bcp.lower()):
+        for alias in self.document_aliases(name=bcp.lower()):
             doc = self.document(alias.document)
             if doc is not None:
                 yield doc
@@ -1130,7 +1635,7 @@ class DataTracker:
             A list of Document objects
         """
         assert std.lower().startswith("std")
-        for alias in self.docaliases_from_name(std.lower()):
+        for alias in self.document_aliases(name=std.lower()):
             doc = self.document(alias.document)
             if doc is not None:
                 yield doc
@@ -1139,18 +1644,8 @@ class DataTracker:
     # Datatracker API endpoints returning information about document types:
     # * https://datatracker.ietf.org/api/v1/name/doctypename/
 
-    def document_type(self, doctype: str) -> Optional[DocumentType]:
-        """
-        Lookup information about a document type in the datatracker.
-
-        Parameters:
-            doctype : A document type slug (e.g., "draft").
-
-        Returns:
-            A DocumentType object
-        """
-        uri = DocumentTypeURI("/api/v1/name/doctypename/" + doctype + "/")
-        return self._retrieve(uri, DocumentType)
+    def document_type(self, doc_type_uri: DocumentTypeURI) -> Optional[DocumentType]:
+        return self._retrieve(doc_type_uri, DocumentType)
 
 
     def document_types(self) -> Iterator[DocumentType]:
@@ -1169,7 +1664,7 @@ class DataTracker:
         url = DocumentStateURI("/api/v1/doc/state/")
         if state_type is not None:
             url.params["type"] = state_type.slug
-        return self._retrieve_multi(url, DocumentState)
+        return self._retrieve_multi(url, DocumentState, deref = {"type": "slug"})
 
 
     def document_state_type(self, state_type_uri : DocumentStateTypeURI) -> Optional[DocumentStateType]:
@@ -1228,7 +1723,7 @@ class DataTracker:
         if by is not None:
             url.params["by"]   = by.id
         url.params["type"]     = event_type
-        return self._retrieve_multi(url, DocumentEvent)
+        return self._retrieve_multi(url, DocumentEvent, deref = {"doc": "id", "by": "id"})
 
 
     # Datatracker API endpoints returning information about document authorship:
@@ -1239,19 +1734,19 @@ class DataTracker:
     def document_authors(self, document : Document) -> Iterator[DocumentAuthor]:
         url = DocumentAuthorURI("/api/v1/doc/documentauthor/")
         url.params["document"] = document.id
-        return self._retrieve_multi(url, DocumentAuthor)
+        return self._retrieve_multi(url, DocumentAuthor, deref = {"document": "id"})
 
 
     def documents_authored_by_person(self, person : Person) -> Iterator[DocumentAuthor]:
         url = DocumentAuthorURI("/api/v1/doc/documentauthor/")
         url.params["person"] = person.id
-        return self._retrieve_multi(url, DocumentAuthor)
+        return self._retrieve_multi(url, DocumentAuthor, deref = {"document": "id"})
 
 
     def documents_authored_by_email(self, email : Email) -> Iterator[DocumentAuthor]:
         url = DocumentAuthorURI("/api/v1/doc/documentauthor/")
         url.params["email"] = email.address
-        return self._retrieve_multi(url, DocumentAuthor)
+        return self._retrieve_multi(url, DocumentAuthor, deref = {"email" : "address"})
 
 
     # Datatracker API endpoints returning information about related documents:
@@ -1259,9 +1754,9 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/doc/relateddocument/?target=...      - documents that relate to target draft
     #   https://datatracker.ietf.org/api/v1/doc/relateddochistory/
 
-    def related_documents(self, 
-        source               : Optional[Document]         = None, 
-        target               : Optional[DocumentAlias]    = None, 
+    def related_documents(self,
+        source               : Optional[Document]         = None,
+        target               : Optional[DocumentAlias]    = None,
         relationship_type    : Optional[RelationshipType] = None) -> Iterator[RelatedDocument]:
 
         url = RelatedDocumentURI("/api/v1/doc/relateddocument/")
@@ -1271,15 +1766,15 @@ class DataTracker:
             url.params["target"] = target.id
         if relationship_type is not None:
             url.params["relationship"] = relationship_type.slug
-        return self._retrieve_multi(url, RelatedDocument)
-    
-    
+        return self._retrieve_multi(url, RelatedDocument, deref = {"source": "id", "target": "id", "relationship": "slug"})
+
+
     def relationship_type(self, relationship_type_uri: RelationshipTypeURI) -> Optional[RelationshipType]:
         """
         Retrieve a relationship type
 
         Parameters:
-            relationship_type_uri -- The relationship type uri, 
+            relationship_type_uri -- The relationship type uri,
             as found in the resource_uri of a relationship type.
 
         Returns:
@@ -1315,7 +1810,7 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/doc/ballotpositiondocevent/
     # * https://datatracker.ietf.org/api/v1/doc/ballottype/
     # * https://datatracker.ietf.org/api/v1/doc/ballotdocevent/
-    
+
     def ballot_position_name(self, ballot_position_name_uri : BallotPositionNameURI) -> Optional[BallotPositionName]:
         return self._retrieve(ballot_position_name_uri, BallotPositionName)
 
@@ -1332,7 +1827,7 @@ class DataTracker:
         url = BallotPositionNameURI("/api/v1/name/ballotpositionname/")
         return self._retrieve_multi(url, BallotPositionName)
 
- 
+
     def ballot_type(self, ballot_type_uri : BallotTypeURI) -> Optional[BallotType]:
         return self._retrieve(ballot_type_uri, BallotType)
 
@@ -1350,10 +1845,10 @@ class DataTracker:
         url = BallotTypeURI("/api/v1/doc/ballottype/")
         if doc_type is not None:
             url.params["doc_type"] = doc_type.slug
-        return self._retrieve_multi(url, BallotType)
+        return self._retrieve_multi(url, BallotType, deref = {"doc_type": "slug"})
 
 
-    
+
     def ballot_document_event(self, ballot_event_uri : BallotDocumentEventURI) -> Optional[BallotDocumentEvent]:
         return self._retrieve(ballot_event_uri, BallotDocumentEvent)
 
@@ -1389,8 +1884,8 @@ class DataTracker:
         if doc is not None:
             url.params["doc"] = doc.id
         url.params["type"] = event_type
-        return self._retrieve_multi(url, BallotDocumentEvent)
-    
+        return self._retrieve_multi(url, BallotDocumentEvent, deref = {"ballot_type": "id", "by": "id", "doc": "id"})
+
 
     # ----------------------------------------------------------------------------------------------------------------------------
     # Datatracker API endpoints returning information about document submissions:
@@ -1440,7 +1935,7 @@ class DataTracker:
             url.params["by"] = by.id
         if submission is not None:
             url.params["submission"] = submission.id
-        return self._retrieve_multi(url, SubmissionEvent)
+        return self._retrieve_multi(url, SubmissionEvent, deref = {"by": "id", "submission": "id"})
 
     # ----------------------------------------------------------------------------------------------------------------------------
     # Datatracker API endpoints returning miscellaneous information about documents:
@@ -1467,22 +1962,22 @@ class DataTracker:
     # Datatracker API endpoints returning information about working groups:
     # * https://datatracker.ietf.org/api/v1/group/group/                               - list of groups
     # * https://datatracker.ietf.org/api/v1/group/group/2161/                          - info about group 2161
-    #   https://datatracker.ietf.org/api/v1/group/grouphistory/?group=2161             - history
-    #   https://datatracker.ietf.org/api/v1/group/groupurl/?group=2161                 - URLs
-    #   https://datatracker.ietf.org/api/v1/group/groupevent/?group=2161               - events
-    #   https://datatracker.ietf.org/api/v1/group/groupmilestone/?group=2161           - Current milestones
-    #   https://datatracker.ietf.org/api/v1/group/groupmilestonehistory/?group=2161    - Previous milestones
-    #   https://datatracker.ietf.org/api/v1/group/milestonegroupevent/?group=2161      - changed milestones
-    #   https://datatracker.ietf.org/api/v1/group/role/?group=2161                     - The current WG chairs and ADs of a group
-    #   https://datatracker.ietf.org/api/v1/group/role/?person=20209                   - Groups a person is currently involved with
-    #   https://datatracker.ietf.org/api/v1/group/role/?email=csp@csperkins.org        - Groups a person is currently involved with
-    #   https://datatracker.ietf.org/api/v1/group/rolehistory/?group=2161              - The previous WG chairs and ADs of a group
-    #   https://datatracker.ietf.org/api/v1/group/rolehistory/?person=20209            - Groups person was previously involved with
-    #   https://datatracker.ietf.org/api/v1/group/rolehistory/?email=csp@csperkins.org - Groups person was previously involved with
-    #   https://datatracker.ietf.org/api/v1/group/changestategroupevent/?group=2161    - Group state changes
+    # * https://datatracker.ietf.org/api/v1/group/grouphistory/?group=2161             - history
+    # * https://datatracker.ietf.org/api/v1/group/groupurl/?group=2161                 - URLs
+    # * https://datatracker.ietf.org/api/v1/group/groupevent/?group=2161               - events
+    # * https://datatracker.ietf.org/api/v1/group/groupmilestone/?group=2161           - Current milestones
+    # * https://datatracker.ietf.org/api/v1/group/groupmilestonehistory/?group=2161    - Previous milestones
+    # * https://datatracker.ietf.org/api/v1/group/milestonegroupevent/?group=2161      - changed milestones
+    # * https://datatracker.ietf.org/api/v1/group/role/?group=2161                     - The current WG chairs and ADs of a group
+    # * https://datatracker.ietf.org/api/v1/group/role/?person=20209                   - Groups a person is currently involved with
+    # * https://datatracker.ietf.org/api/v1/group/role/?email=csp@csperkins.org        - Groups a person is currently involved with
+    # * https://datatracker.ietf.org/api/v1/group/rolehistory/?group=2161              - The previous WG chairs and ADs of a group
+    # * https://datatracker.ietf.org/api/v1/group/rolehistory/?person=20209            - Groups person was previously involved with
+    # * https://datatracker.ietf.org/api/v1/group/rolehistory/?email=csp@csperkins.org - Groups person was previously involved with
+    # * https://datatracker.ietf.org/api/v1/group/changestategroupevent/?group=2161    - Group state changes
     #   https://datatracker.ietf.org/api/v1/group/groupstatetransitions                - ???
     # * https://datatracker.ietf.org/api/v1/name/groupstatename/
-    #   https://datatracker.ietf.org/api/v1/name/grouptypename/
+    # * https://datatracker.ietf.org/api/v1/name/grouptypename/
 
     def group(self, group_uri: GroupURI) -> Optional[Group]:
         return self._retrieve(group_uri, Group)
@@ -1514,29 +2009,233 @@ class DataTracker:
             url.params["state"] = state.slug
         if parent is not None:
             url.params["parent"] = parent.id
-        return self._retrieve_multi(url, Group)
+        return self._retrieve_multi(url, Group, deref = {"parent": "id", "state": "slug"})
 
 
-    def group_state(self, group_state : str) -> Optional[GroupState]:
+    def group_history(self, group_history_uri: GroupHistoryURI) -> Optional[GroupHistory]:
+        return self._retrieve(group_history_uri, GroupHistory)
+
+
+    def group_histories_from_acronym(self, acronym: str) -> Iterator[GroupHistory]:
+        url = GroupHistoryURI("/api/v1/group/grouphistory/")
+        url.params["acronym"] = acronym
+        return self._retrieve_multi(url, GroupHistory)
+
+
+    def group_histories(self,
+            since         : str                  = "1970-01-01T00:00:00",
+            until         : str                  = "2038-01-19T03:14:07",
+            state         : Optional[GroupState] = None,
+            parent        : Optional[Group]      = None) -> Iterator[GroupHistory]:
+        url = GroupHistoryURI("/api/v1/group/grouphistory/")
+        url.params["time__gt"]       = since
+        url.params["time__lt"]       = until
+        if state is not None:
+            url.params["state"] = state.slug
+        if parent is not None:
+            url.params["parent"] = parent.id
+        return self._retrieve_multi(url, GroupHistory, deref = {"parent": "id", "state": "slug"})
+
+
+    def group_event(self, group_event_uri : GroupEventURI) -> Optional[GroupEvent]:
+        return self._retrieve(group_event_uri, GroupEvent)
+
+
+    def group_events(self,
+            since         : str                  = "1970-01-01T00:00:00",
+            until         : str                  = "2038-01-19T03:14:07",
+            by            : Optional[Person]     = None,
+            group         : Optional[Group]      = None,
+            type          : Optional[str]        = None) -> Iterator[GroupEvent]:
+        url = GroupEventURI("/api/v1/group/groupevent/")
+        url.params["time__gt"]       = since
+        url.params["time__lt"]       = until
+        url.params["type"]           = type
+        if by is not None:
+            url.params["by"] = by.id
+        if group is not None:
+            url.params["group"] = group.id
+        return self._retrieve_multi(url, GroupEvent, deref = {"by": "id", "group": "id"})
+
+    def group_url(self, group_url_uri: GroupUrlURI) -> Optional[GroupUrl]:
+        return self._retrieve(group_url_uri, GroupUrl)
+
+
+    def group_urls(self, group: Optional[Group] = None) -> Iterator[GroupUrl]:
+        url = GroupUrlURI("/api/v1/group/groupurl/")
+        if group is not None:
+            url.params["group"] = group.id
+        return self._retrieve_multi(url, GroupUrl)
+
+
+    def group_milestone_statename(self, group_milestone_statename_uri: GroupMilestoneStateNameURI) -> Optional[GroupMilestoneStateName]:
+        return self._retrieve(group_milestone_statename_uri, GroupMilestoneStateName)
+
+
+    def group_milestone_statenames(self) -> Iterator[GroupMilestoneStateName]:
+        return self._retrieve_multi(GroupMilestoneStateNameURI("/api/v1/name/groupmilestonestatename/"), GroupMilestoneStateName)
+
+
+    def group_milestone(self, group_milestone_uri : GroupMilestoneURI) -> Optional[GroupMilestone]:
+        return self._retrieve(group_milestone_uri, GroupMilestone)
+
+
+    def group_milestones(self,
+            since         : str                               = "1970-01-01T00:00:00",
+            until         : str                               = "2038-01-19T03:14:07",
+            group         : Optional[Group]                   = None,
+            state         : Optional[GroupMilestoneStateName] = None) -> Iterator[GroupMilestone]:
+        url = GroupMilestoneURI("/api/v1/group/groupmilestone/")
+        url.params["time__gt"]       = since
+        url.params["time__lt"]       = until
+        if group is not None:
+            url.params["group"] = group.id
+        if state is not None:
+            url.params["state"] = state.slug
+        return self._retrieve_multi(url, GroupMilestone, deref = {"group": "id", "state": "slug"})
+
+
+    def role_name(self, role_name_uri: RoleNameURI) -> Optional[RoleName]:
+        return self._retrieve(role_name_uri, RoleName)
+
+
+    def role_names(self) -> Iterator[RoleName]:
+        return self._retrieve_multi(RoleNameURI("/api/v1/name/rolename/"), RoleName)
+
+
+    def group_role(self, group_role_uri : GroupRoleURI) -> Optional[GroupRole]:
+        return self._retrieve(group_role_uri, GroupRole)
+
+
+    def group_roles(self,
+            email         : Optional[str]           = None,
+            group         : Optional[Group]         = None,
+            name          : Optional[RoleName]      = None,
+            person        : Optional[Person]        = None) -> Iterator[GroupRole]:
+        url = GroupRoleURI("/api/v1/group/role/")
+        url.params["email"] = email
+        if group is not None:
+            url.params["group"] = group.id
+        if name is not None:
+            url.params["name"] = name.slug
+        if person is not None:
+            url.params["person"] = person.id
+        return self._retrieve_multi(url, GroupRole, deref = {"group": "id", "name": "slug", "person": "id"})
+
+
+    def group_role_history(self, group_role_history_uri : GroupRoleHistoryURI) -> Optional[GroupRoleHistory]:
+        return self._retrieve(group_role_history_uri, GroupRoleHistory)
+
+
+    def group_role_histories(self,
+            email         : Optional[str]           = None,
+            group         : Optional[Group]         = None,
+            name          : Optional[RoleName]      = None,
+            person        : Optional[Person]        = None) -> Iterator[GroupRoleHistory]:
+        url = GroupRoleHistoryURI("/api/v1/group/rolehistory/")
+        url.params["email"] = email
+        if group is not None:
+            url.params["group"] = group.id
+        if name is not None:
+            url.params["name"] = name.slug
+        if person is not None:
+            url.params["person"] = person.id
+        return self._retrieve_multi(url, GroupRoleHistory)
+
+
+    def group_milestone_history(self, group_milestone_history_uri : GroupMilestoneHistoryURI) -> Optional[GroupMilestoneHistory]:
+        return self._retrieve(group_milestone_history_uri, GroupMilestoneHistory)
+
+
+    def group_milestone_histories(self,
+            since         : str                               = "1970-01-01T00:00:00",
+            until         : str                               = "2038-01-19T03:14:07",
+            group         : Optional[Group]                   = None,
+            milestone     : Optional[GroupMilestone]          = None,
+            state         : Optional[GroupMilestoneStateName] = None) -> Iterator[GroupMilestoneHistory]:
+        url = GroupMilestoneHistoryURI("/api/v1/group/groupmilestonehistory/")
+        url.params["time__gt"]       = since
+        url.params["time__lt"]       = until
+        if group is not None:
+            url.params["group"] = group.id
+        if milestone is not None:
+            url.params["milestone"] = milestone.id
+        if state is not None:
+            url.params["state"] = state.slug
+        return self._retrieve_multi(url, GroupMilestoneHistory, deref = {"group": "id", "milestone": "id", "state": "slug"})
+
+
+    def group_milestone_event(self, group_milestone_event_uri : GroupMilestoneEventURI) -> Optional[GroupMilestoneEvent]:
+        return self._retrieve(group_milestone_event_uri, GroupMilestoneEvent)
+
+
+    def group_milestone_events(self,
+            since         : str                        = "1970-01-01T00:00:00",
+            until         : str                        = "2038-01-19T03:14:07",
+            by            : Optional[Person]           = None,
+            group         : Optional[Group]            = None,
+            milestone     : Optional[GroupMilestone]   = None,
+            type          : Optional[str]              = None) -> Iterator[GroupMilestoneEvent]:
+        url = GroupMilestoneEventURI("/api/v1/group/milestonegroupevent/")
+        url.params["time__gt"]       = since
+        url.params["time__lt"]       = until
+        url.params["type"]           = type
+        if by is not None:
+            url.params["by"] = by.id
+        if group is not None:
+            url.params["group"] = group.id
+        if milestone is not None:
+            url.params["milestone"] = milestone.id
+        return self._retrieve_multi(url, GroupMilestoneEvent, deref = {"by": "id", "group": "id"})
+
+
+    def group_state_change_event(self, group_state_change_event_uri : GroupStateChangeEventURI) -> Optional[GroupStateChangeEvent]:
+        return self._retrieve(group_state_change_event_uri, GroupStateChangeEvent)
+
+
+    def group_state_change_events(self,
+            since         : str                        = "1970-01-01T00:00:00",
+            until         : str                        = "2038-01-19T03:14:07",
+            by            : Optional[Person]           = None,
+            group         : Optional[Group]            = None,
+            state         : Optional[GroupState]       = None) -> Iterator[GroupStateChangeEvent]:
+        url = GroupStateChangeEventURI("/api/v1/group/changestategroupevent/")
+        url.params["time__gt"]       = since
+        url.params["time__lt"]       = until
+        if by is not None:
+            url.params["by"] = by.id
+        if group is not None:
+            url.params["group"] = group.id
+        if state is not None:
+            url.params["state"] = state.slug
+        return self._retrieve_multi(url, GroupStateChangeEvent, deref = {"by": "id", "group": "id", "state": "slug"})
+
+
+    def group_state(self, group_state_uri : GroupStateURI) -> Optional[GroupState]:
         """
         Retrieve a GroupState
-
         Parameters:
            group_state -- The group state, as returned in the 'slug' of a GroupState
                            object. Valid group states include "abandon", "active",
                            "bof", "bof-conc", "conclude", "dormant", "proposed",
                            "replaced", and "unknown".
-
         Returns:
             A GroupState object
         """
-        url  = GroupStateURI("/api/v1/name/groupstatename/" + group_state + "/")
-        return self._retrieve(url, GroupState)
+        return self._retrieve(group_state_uri, GroupState)
 
 
     def group_states(self) -> Iterator[GroupState]:
         url = GroupStateURI("/api/v1/name/groupstatename/")
         return self._retrieve_multi(url, GroupState)
+
+
+    def group_type_name(self, group_type_name_uri : GroupTypeNameURI) -> Optional[GroupTypeName]:
+        return self._retrieve(group_type_name_uri, GroupTypeName)
+
+
+    def group_type_names(self) -> Iterator[GroupTypeName]:
+        return self._retrieve_multi(GroupTypeNameURI("/api/v1/name/grouptypename/"), GroupTypeName)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -1577,7 +2276,7 @@ class DataTracker:
         """
         url = SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/")
         url.params["schedule"] = schedule.id
-        return self._retrieve_multi(url, SessionAssignment)
+        return self._retrieve_multi(url, SessionAssignment, deref = {"schedule": "id"})
 
 
     def meeting_schedule(self, schedule_uri : ScheduleURI) -> Optional[Schedule]:
@@ -1609,7 +2308,7 @@ class DataTracker:
         url.params["date__lte"] = end_date
         if meeting_type is not None:
             url.params["type"] = meeting_type.slug
-        return self._retrieve_multi(url, Meeting)
+        return self._retrieve_multi(url, Meeting, deref = {"type": "slug"})
 
 
 
