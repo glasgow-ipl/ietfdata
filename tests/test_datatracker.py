@@ -1081,7 +1081,6 @@ class TestDatatracker(unittest.TestCase):
             self.fail("Cannot find submission event")
 
 
-    # FIXME: this needs to be updated
     def test_document_type(self) -> None:
         doctype = self.dt.document_type(DocumentTypeURI("/api/v1/name/doctypename/draft"))
         if doctype is not None:
@@ -1095,7 +1094,21 @@ class TestDatatracker(unittest.TestCase):
         else:
             self.fail("Cannot find doctype")
 
-    # FIXME: this needs to be updated
+
+    def test_document_type_from_slug(self) -> None:
+        doctype = self.dt.document_type_from_slug("draft")
+        if doctype is not None:
+            self.assertEqual(doctype.resource_uri, DocumentTypeURI("/api/v1/name/doctypename/draft/"))
+            self.assertEqual(doctype.name,         "Draft")
+            self.assertEqual(doctype.used,         True)
+            self.assertEqual(doctype.prefix,       "draft")
+            self.assertEqual(doctype.slug,         "draft")
+            self.assertEqual(doctype.desc,         "")
+            self.assertEqual(doctype.order,        0)
+        else:
+            self.fail("Cannot find doctype")
+
+
     def test_document_types(self) -> None:
         types = list(self.dt.document_types())
         self.assertEqual(len(types), 13)

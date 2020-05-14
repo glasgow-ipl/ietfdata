@@ -1648,6 +1648,10 @@ class DataTracker:
         return self._retrieve(doc_type_uri, DocumentType)
 
 
+    def document_type_from_slug(self, slug: str) -> Optional[DocumentType]:
+        return self._retrieve(DocumentTypeURI(F"/api/v1/name/doctypename/{slug}/"), DocumentType)
+
+
     def document_types(self) -> Iterator[DocumentType]:
         return self._retrieve_multi(DocumentTypeURI("/api/v1/name/doctypename/"), DocumentType)
 
