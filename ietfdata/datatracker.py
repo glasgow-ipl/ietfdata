@@ -1823,6 +1823,10 @@ class DataTracker:
         return self._retrieve(ballot_position_name_uri, BallotPositionName)
 
 
+    def ballot_position_name_from_slug(self, slug: str) -> Optional[BallotPositionName]:
+        return self._retrieve(BallotPositionNameURI(F"/api/v1/name/ballotpositionname/{slug}/"), BallotPositionName)
+
+
     def ballot_position_names(self) -> Iterator[BallotPositionName]:
         """
         A generator returning information about ballot position names. These describe

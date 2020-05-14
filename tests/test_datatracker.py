@@ -927,6 +927,17 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(bp.used,         True)
 
 
+    def test_ballot_position_name_from_slug(self) -> None:
+        bp = self.dt.ballot_position_name_from_slug("moretime")
+        if bp is not None:
+            self.assertEqual(bp.blocking,     False)
+            self.assertEqual(bp.desc,         "")
+            self.assertEqual(bp.order,        0)
+            self.assertEqual(bp.resource_uri, BallotPositionNameURI("/api/v1/name/ballotpositionname/moretime/"))
+            self.assertEqual(bp.slug,         "moretime")
+            self.assertEqual(bp.used,         True)
+
+
     def test_ballot_position_names(self) -> None:
         bps = list(self.dt.ballot_position_names())
         self.assertEqual(len(bps), 9)
