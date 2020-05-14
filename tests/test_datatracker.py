@@ -1371,6 +1371,19 @@ class TestDatatracker(unittest.TestCase):
             self.fail("Cannot find role name")
 
 
+    def test_role_name_from_slug(self) -> None:
+        role_name = self.dt.role_name_from_slug("ceo")
+        if role_name is not None:
+            self.assertEqual(role_name.desc,         "")
+            self.assertEqual(role_name.name,         "CEO")
+            self.assertEqual(role_name.order,        0)
+            self.assertEqual(role_name.resource_uri, RoleNameURI("/api/v1/name/rolename/ceo/"))
+            self.assertEqual(role_name.slug,         "ceo")
+            self.assertEqual(role_name.used,         True)
+        else:
+            self.fail("Cannot find role name")
+
+
     def test_role_names(self) -> None:
         role_names = list(self.dt.role_names())
         self.assertEqual(len(role_names), 25)

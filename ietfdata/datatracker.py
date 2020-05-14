@@ -2111,6 +2111,10 @@ class DataTracker:
         return self._retrieve(role_name_uri, RoleName)
 
 
+    def role_name_from_slug(self, slug: str) -> Optional[RoleName]:
+        return self._retrieve(RoleNameURI(F"/api/v1/name/rolename/{slug}/"), RoleName)
+
+
     def role_names(self) -> Iterator[RoleName]:
         return self._retrieve_multi(RoleNameURI("/api/v1/name/rolename/"), RoleName)
 
