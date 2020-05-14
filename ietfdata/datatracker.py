@@ -2326,19 +2326,12 @@ class DataTracker:
 
 
 
-    def meeting_type(self, meeting_type: str) -> Optional[MeetingType]:
-        """
-        Retrieve a MeetingType
+    def meeting_type(self, meeting_type_uri: MeetingTypeURI) -> Optional[MeetingType]:
+        return self._retrieve(meeting_type_uri, MeetingType)
 
-        Parameters:
-           meeting_type -- The meeting type, as returned in the 'slug' of a MeetingType
-                           object. Valid meeting types include "ietf" and "interim".
 
-        Returns:
-            A MeetingType object
-        """
-        url = MeetingTypeURI("/api/v1/name/meetingtypename/" + meeting_type + "/")
-        return self._retrieve(url, MeetingType)
+    def meeting_type_from_slug(self, slug: str) -> Optional[MeetingType]:
+        return self._retrieve(MeetingTypeURI(F"/api/v1/name/meetingtypename/{slug}/"), MeetingType)
 
 
     def meeting_types(self) -> Iterator[MeetingType]:

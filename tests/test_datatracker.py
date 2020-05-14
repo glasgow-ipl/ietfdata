@@ -1823,11 +1823,38 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_meetings(self) -> None:
-        meetings = list(self.dt.meetings(start_date="2019-01-01", end_date="2019-12-31", meeting_type=self.dt.meeting_type("ietf")))
+        meeting_type = self.dt.meeting_type_from_slug("ietf")
+        meetings = list(self.dt.meetings(start_date="2019-01-01", end_date="2019-12-31", meeting_type=meeting_type))
         self.assertEqual(len(meetings),  3)
         self.assertEqual(meetings[0].city, "Singapore")
         self.assertEqual(meetings[1].city, "Montreal")
         self.assertEqual(meetings[2].city, "Prague")
+
+
+    def test_meeting_type(self) -> None:
+        meeting_type = self.dt.meeting_type(MeetingTypeURI("/api/v1/name/meetingtypename/ietf/"))
+        if meeting_type is not None:
+            self.assertEqual(meeting_type.resource_uri, MeetingTypeURI("/api/v1/name/meetingtypename/ietf/"))
+            self.assertEqual(meeting_type.name,         "IETF")
+            self.assertEqual(meeting_type.order,        0)
+            self.assertEqual(meeting_type.slug,         "ietf")
+            self.assertEqual(meeting_type.desc,         "")
+            self.assertEqual(meeting_type.used,         True)
+        else:
+            self.fail("Cannot find meeting_type")
+
+
+    def test_meeting_type_from_slug(self) -> None:
+        meeting_type = self.dt.meeting_type_from_slug("ietf")
+        if meeting_type is not None:
+            self.assertEqual(meeting_type.resource_uri, MeetingTypeURI("/api/v1/name/meetingtypename/ietf/"))
+            self.assertEqual(meeting_type.name,         "IETF")
+            self.assertEqual(meeting_type.order,        0)
+            self.assertEqual(meeting_type.slug,         "ietf")
+            self.assertEqual(meeting_type.desc,         "")
+            self.assertEqual(meeting_type.used,         True)
+        else:
+            self.fail("Cannot find meeting_type")
 
 
     def test_meeting_types(self) -> None:
