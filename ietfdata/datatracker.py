@@ -2212,16 +2212,6 @@ class DataTracker:
 
 
     def group_state(self, group_state_uri : GroupStateURI) -> Optional[GroupState]:
-        """
-        Retrieve a GroupState
-        Parameters:
-           group_state -- The group state, as returned in the 'slug' of a GroupState
-                           object. Valid group states include "abandon", "active",
-                           "bof", "bof-conc", "conclude", "dormant", "proposed",
-                           "replaced", and "unknown".
-        Returns:
-            A GroupState object
-        """
         return self._retrieve(group_state_uri, GroupState)
 
 
