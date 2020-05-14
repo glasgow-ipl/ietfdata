@@ -1658,6 +1658,19 @@ class TestDatatracker(unittest.TestCase):
             self.fail("Cannot find group state")
 
 
+    def test_group_state_from_slug(self) -> None:
+        state = self.dt.group_state_from_slug("abandon")
+        if state is not None:
+            self.assertEqual(state.desc,         "Formation of the group (most likely a BoF or Proposed WG) was abandoned")
+            self.assertEqual(state.name,         "Abandoned")
+            self.assertEqual(state.order,        0)
+            self.assertEqual(state.resource_uri, GroupStateURI("/api/v1/name/groupstatename/abandon/"))
+            self.assertEqual(state.slug,         "abandon")
+            self.assertEqual(state.used,         True)
+        else:
+            self.fail("Cannot find group state")
+
+
     # FIXME: this needs to be updated
     def test_group_states(self) -> None:
         states = list(self.dt.group_states())

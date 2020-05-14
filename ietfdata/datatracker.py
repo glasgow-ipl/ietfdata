@@ -2231,6 +2231,10 @@ class DataTracker:
         return self._retrieve(group_state_uri, GroupState)
 
 
+    def group_state_from_slug(self, slug : str) -> Optional[GroupState]:
+        return self._retrieve(GroupStateURI(F"/api/v1/name/groupstatename/{slug}/"), GroupState)
+
+
     def group_states(self) -> Iterator[GroupState]:
         url = GroupStateURI("/api/v1/name/groupstatename/")
         return self._retrieve_multi(url, GroupState)
