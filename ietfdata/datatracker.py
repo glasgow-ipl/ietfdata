@@ -2244,6 +2244,10 @@ class DataTracker:
         return self._retrieve(group_type_name_uri, GroupTypeName)
 
 
+    def group_type_name_from_slug(self, slug : str) -> Optional[GroupTypeName]:
+        return self._retrieve(GroupTypeNameURI(F"/api/v1/name/grouptypename/{slug}/"), GroupTypeName)
+
+
     def group_type_names(self) -> Iterator[GroupTypeName]:
         return self._retrieve_multi(GroupTypeNameURI("/api/v1/name/grouptypename/"), GroupTypeName)
 

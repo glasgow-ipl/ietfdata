@@ -1698,6 +1698,18 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(group_type_name.verbose_name, "Ad Hoc Group Type")
 
 
+    def test_group_type_name_from_slug(self) -> None:
+        group_type_name = self.dt.group_type_name_from_slug("adhoc")
+        if group_type_name is not None:
+            self.assertEqual(group_type_name.desc,         "Ad Hoc schedulable Group Type, for instance HotRfc")
+            self.assertEqual(group_type_name.name,         "Ad Hoc")
+            self.assertEqual(group_type_name.order,        0)
+            self.assertEqual(group_type_name.resource_uri, GroupTypeNameURI("/api/v1/name/grouptypename/adhoc/"))
+            self.assertEqual(group_type_name.slug,         "adhoc")
+            self.assertEqual(group_type_name.used,         True)
+            self.assertEqual(group_type_name.verbose_name, "Ad Hoc Group Type")
+
+
     def test_group_type_names(self) -> None:
         group_type_names = list(self.dt.group_type_names())
         self.assertEqual(len(group_type_names), 21)
