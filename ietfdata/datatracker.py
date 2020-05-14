@@ -1787,6 +1787,10 @@ class DataTracker:
         return self._retrieve(relationship_type_uri, RelationshipType)
 
 
+    def relationship_type_from_slug(self, slug: str) -> Optional[RelationshipType]:
+        return self._retrieve(RelationshipTypeURI(F"/api/v1/name/docrelationshipname/{slug}/"), RelationshipType)
+
+
     def relationship_types(self) -> Iterator[RelationshipType]:
         """
         A generator returning the possible relationship types

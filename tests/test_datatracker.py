@@ -1824,7 +1824,7 @@ class TestDatatracker(unittest.TestCase):
     def test_related_documents_all(self) -> None:
         source = self.dt.document(DocumentURI("/api/v1/doc/document/draft-rfced-info-snpp-v3/"))
         target = list(self.dt.document_aliases(name="draft-gwinn-paging-protocol-v3"))[0]
-        rel    = self.dt.relationship_type(RelationshipTypeURI("/api/v1/name/docrelationshipname/replaces/"))
+        rel    = self.dt.relationship_type_from_slug("replaces")
         rdocs  = list(self.dt.related_documents(source=source, target=target, relationship_type=rel))
         self.assertEqual(len(rdocs), 1)
         self.assertEqual(rdocs[0].id, 3)
@@ -1848,7 +1848,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_related_documents_source_relationship(self) -> None:
         source = self.dt.document(DocumentURI("/api/v1/doc/document/draft-rfced-info-snpp-v3/"))
-        rel    = self.dt.relationship_type(RelationshipTypeURI("/api/v1/name/docrelationshipname/replaces/"))
+        rel    = self.dt.relationship_type_from_slug("replaces")
         rdocs  = list(self.dt.related_documents(source=source, relationship_type=rel))
         self.assertEqual(len(rdocs), 1)
         self.assertEqual(rdocs[0].id, 3)
@@ -1860,7 +1860,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_related_documents_target_relationship(self) -> None:
         target = list(self.dt.document_aliases(name="draft-gwinn-paging-protocol-v3"))[0]
-        rel    = self.dt.relationship_type(RelationshipTypeURI("/api/v1/name/docrelationshipname/replaces/"))
+        rel    = self.dt.relationship_type_from_slug("replaces")
         rdocs  = list(self.dt.related_documents(target=target, relationship_type=rel))
         self.assertEqual(len(rdocs), 1)
         self.assertEqual(rdocs[0].id, 3)
@@ -1918,7 +1918,7 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_related_documents_relationship(self) -> None:
-        rel    = self.dt.relationship_type(RelationshipTypeURI("/api/v1/name/docrelationshipname/replaces/"))
+        rel    = self.dt.relationship_type_from_slug("replaces")
         rdocs  = self.dt.related_documents(relationship_type=rel)
         self.assertIsNot(rdocs, None)
 
