@@ -1363,6 +1363,7 @@ class DataTracker:
 
 
     def _retrieve(self, resource_uri: URI, obj_type: Type[T]) -> Optional[T]:
+        # FIXME: after how long should cached data be invalidated and refreshed?
         headers = {'User-Agent': self.ua}
         if self._obj_is_cached(resource_uri):
             obj_json = self._retrieve_from_cache(resource_uri)
@@ -1379,6 +1380,7 @@ class DataTracker:
                 sys.exit(1)
         obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
         return obj
+
 
     def _retrieve_multi(self, resource_uri: URI, obj_type: Type[T], deref: Dict[str, str] = {}, enable_cache=False) -> Iterator[T]:
         # deref is currently unused, but will be needed for the cache
