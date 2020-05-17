@@ -5,13 +5,13 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="ietfdata",
-    version="0.1.6",
+    version="0.2.0",
     author="Colin Perkins",
     author_email="csp@csperkins.org",
     description="Access the IETF Data Tracker and RFC Index",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/csperkins/ietfdata",
+    url="https://github.com/glasgow-ipl/ietfdata",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
