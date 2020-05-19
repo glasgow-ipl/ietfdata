@@ -1278,7 +1278,7 @@ class DataTracker:
         self.http_req = 0
         self.cache_dir = cache_dir
         self.pavlova = Pavlova()
-        # Register a generic parser for all URI types:
+        # Register generic parsers for each URI type:
         for uri_type in URI.__subclasses__():
             self.pavlova.register_parser(uri_type, GenericParser(self.pavlova, uri_type))
 
