@@ -2062,6 +2062,46 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(states[8].slug, "withdrawn")
 
 
+    def test_review_result_type(self) -> None:
+        review_result_type = self.dt.review_result_type(ReviewResultTypeURI("/api/v1/name/reviewresultname/serious-issues/"))
+        if review_result_type is not None:
+            self.assertEqual(review_result_type.resource_uri, ReviewResultTypeURI("/api/v1/name/reviewresultname/serious-issues/"))
+            self.assertEqual(review_result_type.name,         "Serious Issues")
+            self.assertEqual(review_result_type.used,         True)
+            self.assertEqual(review_result_type.slug,         "serious-issues")
+            self.assertEqual(review_result_type.desc,         "")
+            self.assertEqual(review_result_type.order,        1)
+        else:
+            self.fail("Cannot find review result type")
+
+
+    def test_review_result_type_from_slug(self) -> None:
+        review_result_type = self.dt.review_result_type_from_slug("serious-issues")
+        if review_result_type is not None:
+            self.assertEqual(review_result_type.resource_uri, ReviewResultTypeURI("/api/v1/name/reviewresultname/serious-issues/"))
+            self.assertEqual(review_result_type.name,         "Serious Issues")
+            self.assertEqual(review_result_type.used,         True)
+            self.assertEqual(review_result_type.slug,         "serious-issues")
+            self.assertEqual(review_result_type.desc,         "")
+            self.assertEqual(review_result_type.order,        1)
+        else:
+            self.fail("Cannot find review result type")
+
+
+    def test_review_result_types(self) -> None:
+        types = list(self.dt.review_result_types())
+        self.assertEqual(len(types), 9)
+        self.assertEqual(types[0].slug, "serious-issues")
+        self.assertEqual(types[1].slug, "issues")
+        self.assertEqual(types[2].slug, "nits")
+        self.assertEqual(types[3].slug, "not-ready")
+        self.assertEqual(types[4].slug, "right-track")
+        self.assertEqual(types[5].slug, "almost-ready")
+        self.assertEqual(types[6].slug, "ready-issues")
+        self.assertEqual(types[7].slug, "ready-nits")
+        self.assertEqual(types[8].slug, "ready")
+
+
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to mailing lists:
 
