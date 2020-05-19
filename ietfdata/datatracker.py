@@ -558,7 +558,7 @@ class DocumentAuthor(Resource):
                 return "USA"
         # Does it contain a country name?
         for name in [
-                "Algeria", "Argentina", "Austria", "Australia", "Belgium", "Brazil", 
+                "Algeria", "Argentina", "Austria", "Australia", "Belgium", "Brazil",
                  "Canada", "Chile", "China", "Colombia", "Croatia", "Czech Republic",
                  "Denmark", "Egypt", "Finland", "France", "Germany", "Greece", "Hungary",
                  "Ireland", "India", "Israel", "Italy", "Japan", "Lebanon", "Luxembourg",
@@ -1226,6 +1226,114 @@ class Session(Resource):
     modified            : datetime
     comments            : str
 
+# ---------------------------------------------------------------------------------------------------------------------------------
+# Types relating to reviews:
+
+@dataclass(frozen=True)
+class ReviewAssignmentStateURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/name/reviewassignmentstatename/")
+
+
+@dataclass(frozen=True)
+class ReviewAssignmentState(Resource):
+    desc         : str
+    name         : str
+    order        : int
+    resource_uri : ReviewAssignmentStateURI
+    slug         : str
+    used         : bool
+
+
+@dataclass(frozen=True)
+class ReviewResultURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/name/reviewresultname/")
+
+
+@dataclass(frozen=True)
+class ReviewResult(Resource):
+    desc         : str
+    name         : str
+    order        : int
+    resource_uri : ReviewResultURI
+    slug         : str
+    used         : bool
+
+
+@dataclass(frozen=True)
+class ReviewTypeURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/name/reviewtypename/")
+
+
+@dataclass(frozen=True)
+class ReviewType(Resource):
+    desc         : str
+    name         : str
+    order        : int
+    resource_uri : ReviewTypeURI
+    slug         : str
+    used         : bool
+
+
+@dataclass(frozen=True)
+class ReviewRequestStateURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/name/reviewrequeststatename/")
+
+
+@dataclass(frozen=True)
+class ReviewRequestState(Resource):
+    desc         : str
+    name         : str
+    order        : int
+    resource_uri : ReviewTypeURI
+    slug         : str
+    used         : bool
+
+
+@dataclass(frozen=True)
+class ReviewRequestURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/review/reviewrequest/")
+
+
+@dataclass(frozen=True)
+class ReviewRequest(Resource):
+    comment       : str
+    deadline      : str
+    doc           : DocumentURI
+    id            : int
+    requested_by  : PersonURI
+    requested_rev : str
+    resource_uri  : ReviewRequestURI
+    state         : ReviewRequestStateURI
+    team          : GroupURI
+    time          : datetime
+    type          : ReviewTypeURI
+
+
+@dataclass(frozen=True)
+class ReviewAssignmentURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/review/reviewassignment/")
+
+
+@dataclass(frozen=True)
+class ReviewAssignment(Resource):
+    assigned_on    : datetime
+    completed_on   : Optional[datetime]
+    id             : int
+    mailarch_url   : Optional[str] # can type?
+    resource_uri   : ReviewAssignmentURI
+    result         : ReviewResultURI
+    review         : DocumentURI
+    review_request : ReviewRequestURI
+    reviewed_rev   : str
+    reviewer       : PersonURI
+    state          : ReviewAssignmentStateURI
+
 
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to mailing lists:
@@ -1312,6 +1420,7 @@ class DataTracker:
         self.pavlova.register_parser(PersonURI,              GenericParser(self.pavlova, PersonURI))
         self.pavlova.register_parser(RelationshipTypeURI,    GenericParser(self.pavlova, RelationshipTypeURI))
         self.pavlova.register_parser(RelatedDocumentURI,     GenericParser(self.pavlova, RelatedDocumentURI))
+        self.pavlova.register_parser(ReviewAssignmentStateURI, GenericParser(self.pavlova, ReviewAssignmentStateURI))
         self.pavlova.register_parser(RoleNameURI,            GenericParser(self.pavlova, RoleNameURI))
         self.pavlova.register_parser(SessionAssignmentURI,   GenericParser(self.pavlova, SessionAssignmentURI))
         self.pavlova.register_parser(SessionURI,             GenericParser(self.pavlova, SessionURI))
@@ -2405,6 +2514,23 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/review/historicalreviewassignment/
     #   https://datatracker.ietf.org/api/v1/review/reviewsecretarysettings/
 
+    #   https://datatracker.ietf.org/api/v1/name/reviewresultname/
+    # * https://datatracker.ietf.org/api/v1/name/reviewassignmentstatename/
+    #   https://datatracker.ietf.org/api/v1/name/reviewrequeststatename/
+    #   https://datatracker.ietf.org/api/v1/name/reviewtypename/
+
+    def review_assignment_state(self, review_assignment_state_uri: ReviewAssignmentStateURI) -> Optional[ReviewAssignmentState]:
+        return self._retrieve(review_assignment_state_uri, ReviewAssignmentState)
+
+
+    def review_assignment_state_from_slug(self, slug: str) -> Optional[ReviewAssignmentState]:
+        return self._retrieve(ReviewAssignmentStateURI(F"/api/v1/name/reviewassignmentstatename/{slug}/"), ReviewAssignmentState)
+
+
+    def review_assignment_states(self) -> Iterator[ReviewAssignmentState]:
+        return self._retrieve_multi(ReviewAssignmentStateURI("/api/v1/name/reviewassignmentstatename/"), ReviewAssignmentState)
+
+
     # ----------------------------------------------------------------------------------------------------------------------------
     # Datatracker API endpoints returning information about mailing lists:
     #
@@ -2437,11 +2563,8 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/name/docurltagname/
     #   https://datatracker.ietf.org/api/v1/name/formallanguagename/
     #   https://datatracker.ietf.org/api/v1/name/stdlevelname/
-    #   https://datatracker.ietf.org/api/v1/name/reviewrequeststatename/
     #   https://datatracker.ietf.org/api/v1/name/groupmilestonestatename/
     #   https://datatracker.ietf.org/api/v1/name/feedbacktypename/
-    #   https://datatracker.ietf.org/api/v1/name/reviewtypename/
-    #   https://datatracker.ietf.org/api/v1/name/reviewresultname/
     #   https://datatracker.ietf.org/api/v1/name/topicaudiencename/
     #   https://datatracker.ietf.org/api/v1/name/nomineepositionstatename/
     #   https://datatracker.ietf.org/api/v1/name/constraintname/

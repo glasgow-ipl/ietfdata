@@ -2019,6 +2019,52 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(types[14].slug, "updates")
         self.assertEqual(types[15].slug, "refunk")
 
+    # -----------------------------------------------------------------------------------------------------------------------------
+    # Tests relating to reviews:
+
+    def test_review_assignment_state(self) -> None:
+        rev_assign_state = self.dt.review_assignment_state(ReviewAssignmentStateURI("/api/v1/name/reviewassignmentstatename/accepted/"))
+        if rev_assign_state is not None:
+            self.assertEqual(rev_assign_state.resource_uri, ReviewAssignmentStateURI("/api/v1/name/reviewassignmentstatename/accepted/"))
+            self.assertEqual(rev_assign_state.name,         "Accepted")
+            self.assertEqual(rev_assign_state.used,         True)
+            self.assertEqual(rev_assign_state.slug,         "accepted")
+            self.assertEqual(rev_assign_state.desc,         "The reviewer has accepted the assignment")
+            self.assertEqual(rev_assign_state.order,        0)
+        else:
+            self.fail("Cannot find review assignment state")
+
+
+    def test_review_assignment_state_from_slug(self) -> None:
+        rev_assign_state = self.dt.review_assignment_state_from_slug("accepted")
+        if rev_assign_state is not None:
+            self.assertEqual(rev_assign_state.resource_uri, ReviewAssignmentStateURI("/api/v1/name/reviewassignmentstatename/accepted/"))
+            self.assertEqual(rev_assign_state.name,         "Accepted")
+            self.assertEqual(rev_assign_state.used,         True)
+            self.assertEqual(rev_assign_state.slug,         "accepted")
+            self.assertEqual(rev_assign_state.desc,         "The reviewer has accepted the assignment")
+            self.assertEqual(rev_assign_state.order,        0)
+        else:
+            self.fail("Cannot find review assignment state")
+
+
+    def test_review_assignment_states(self) -> None:
+        states = list(self.dt.review_assignment_states())
+        self.assertEqual(len(states), 9)
+        self.assertEqual(states[0].slug, "accepted")
+        self.assertEqual(states[1].slug, "assigned")
+        self.assertEqual(states[2].slug, "completed")
+        self.assertEqual(states[3].slug, "no-response")
+        self.assertEqual(states[4].slug, "overtaken")
+        self.assertEqual(states[5].slug, "part-completed")
+        self.assertEqual(states[6].slug, "rejected")
+        self.assertEqual(states[7].slug, "unknown")
+        self.assertEqual(states[8].slug, "withdrawn")
+
+
+    # -----------------------------------------------------------------------------------------------------------------------------
+    # Tests relating to mailing lists:
+
 
     def test_mailing_list(self) -> None:
         ml = self.dt.mailing_list(MailingListURI("/api/v1/mailinglists/list/461/"))
