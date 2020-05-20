@@ -2179,6 +2179,56 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(states[11].slug, "unknown")
 
 
+    def test_review_request(self) -> None:
+        review_request = self.dt.review_request(ReviewRequestURI("/api/v1/review/reviewrequest/12006/"))
+        if review_request is not None:
+            self.assertEqual(review_request.comment,       "")
+            self.assertEqual(review_request.deadline,      "2019-05-30")
+            self.assertEqual(review_request.doc,           DocumentURI("/api/v1/doc/document/draft-ietf-pce-inter-area-as-applicability/"))
+            self.assertEqual(review_request.id,            12006)
+            self.assertEqual(review_request.requested_by,  PersonURI("/api/v1/person/person/1/"))
+            self.assertEqual(review_request.requested_rev, "")
+            self.assertEqual(review_request.resource_uri,  ReviewRequestURI("/api/v1/review/reviewrequest/12006/"))
+            self.assertEqual(review_request.state,         ReviewRequestStateURI("/api/v1/name/reviewrequeststatename/assigned/"))
+            self.assertEqual(review_request.team,          GroupURI("/api/v1/group/group/1976/"))
+            self.assertEqual(review_request.time,          datetime.fromisoformat("2019-05-16T13:57:00"))
+            self.assertEqual(review_request.type,          ReviewTypeURI("/api/v1/name/reviewtypename/lc/"))
+        else:
+            self.fail("Cannot find review request")
+
+
+    def test_review_requests(self) -> None:
+        review_requests = self.dt.review_requests()
+        self.assertIsNot(review_requests, None)
+
+
+    def test_review_requests_doc(self) -> None:
+        review_requests = list(self.dt.review_requests(doc=self.dt.document(DocumentURI("/api/v1/doc/document/draft-davis-t-langtag-ext/"))))
+        self.assertEqual(len(review_requests), 2)
+        self.assertEqual(review_requests[0].id, 1)
+        self.assertEqual(review_requests[1].id, 4457)
+
+
+    def test_review_requests_requested_by(self) -> None:
+        review_requests = self.dt.review_requests(requested_by=self.dt.person(PersonURI("/api/v1/person/person/1/")))
+        self.assertIsNot(review_requests, None)
+
+
+    def test_review_requests_state(self) -> None:
+        review_requests = self.dt.review_requests(state=self.dt.review_request_state(ReviewRequestStateURI("/api/v1/name/reviewrequeststatename/assigned/")))
+        self.assertIsNot(review_requests, None)
+
+
+    def test_review_requests_team(self) -> None:
+        review_requests = self.dt.review_requests(team=self.dt.group(GroupURI("/api/v1/group/group/1261/")))
+        self.assertIsNot(review_requests, None)
+
+
+    def test_review_requests_type(self) -> None:
+        review_requests = self.dt.review_requests(type=self.dt.review_type(ReviewTypeURI("/api/v1/name/reviewtypename/telechat/")))
+        self.assertIsNot(review_requests, None)
+
+
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to mailing lists:
 

@@ -1423,6 +1423,7 @@ class DataTracker:
         self.pavlova.register_parser(ReviewAssignmentStateURI, GenericParser(self.pavlova, ReviewAssignmentStateURI))
         self.pavlova.register_parser(ReviewResultTypeURI,    GenericParser(self.pavlova, ReviewResultTypeURI))
         self.pavlova.register_parser(ReviewRequestStateURI,  GenericParser(self.pavlova, ReviewRequestStateURI))
+        self.pavlova.register_parser(ReviewRequestURI,       GenericParser(self.pavlova, ReviewRequestURI))
         self.pavlova.register_parser(ReviewTypeURI,          GenericParser(self.pavlova, ReviewTypeURI))
         self.pavlova.register_parser(RoleNameURI,            GenericParser(self.pavlova, RoleNameURI))
         self.pavlova.register_parser(SessionAssignmentURI,   GenericParser(self.pavlova, SessionAssignmentURI))
@@ -2505,7 +2506,7 @@ class DataTracker:
     # Datatracker API endpoints returning information about reviews:
     #
     #   https://datatracker.ietf.org/api/v1/review/reviewassignment/
-    #   https://datatracker.ietf.org/api/v1/review/reviewrequest/
+    # * https://datatracker.ietf.org/api/v1/review/reviewrequest/
     #   https://datatracker.ietf.org/api/v1/review/reviewwish/
     #   https://datatracker.ietf.org/api/v1/review/reviewteamsettings/
     #   https://datatracker.ietf.org/api/v1/review/nextreviewerinteam/
@@ -2568,6 +2569,34 @@ class DataTracker:
 
     def review_request_states(self) -> Iterator[ReviewRequestState]:
         return self._retrieve_multi(ReviewRequestStateURI("/api/v1/name/reviewrequeststatename/"), ReviewRequestState)
+
+
+    def review_request(self, review_request_uri: ReviewRequestURI) -> Optional[ReviewRequest]:
+        return self._retrieve(review_request_uri, ReviewRequest)
+
+
+    def review_requests(self,
+            since         : str                          = "1970-01-01T00:00:00",
+            until         : str                          = "2038-01-19T03:14:07",
+            doc           : Optional[Document]           = None,
+            requested_by  : Optional[Person]             = None,
+            state         : Optional[ReviewRequestState] = None,
+            team          : Optional[Group]              = None,
+            type          : Optional[ReviewType]         = None) -> Iterator[ReviewRequest]:
+        url = ReviewRequestURI("/api/v1/review/reviewrequest/")
+        url.params["time__gt"]       = since
+        url.params["time__lt"]       = until
+        if doc is not None:
+            url.params["doc"] = doc.id
+        if requested_by is not None:
+            url.params["requested_by"] = requested_by.id
+        if state is not None:
+            url.params["state"] = state.slug
+        if team is not None:
+            url.params["team"] = team.id
+        if type is not None:
+            url.params["type"] = type.slug
+        return self._retrieve_multi(url, ReviewRequest, deref = {"doc": "id", "requested_by": "id", "state": "slug", "team": "id", "type": "slug"})
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
