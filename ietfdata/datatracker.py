@@ -1288,7 +1288,7 @@ class ReviewRequestState(Resource):
     desc         : str
     name         : str
     order        : int
-    resource_uri : ReviewTypeURI
+    resource_uri : ReviewRequestStateURI
     slug         : str
     used         : bool
 
@@ -1422,6 +1422,7 @@ class DataTracker:
         self.pavlova.register_parser(RelatedDocumentURI,     GenericParser(self.pavlova, RelatedDocumentURI))
         self.pavlova.register_parser(ReviewAssignmentStateURI, GenericParser(self.pavlova, ReviewAssignmentStateURI))
         self.pavlova.register_parser(ReviewResultTypeURI,    GenericParser(self.pavlova, ReviewResultTypeURI))
+        self.pavlova.register_parser(ReviewRequestStateURI,  GenericParser(self.pavlova, ReviewRequestStateURI))
         self.pavlova.register_parser(ReviewTypeURI,          GenericParser(self.pavlova, ReviewTypeURI))
         self.pavlova.register_parser(RoleNameURI,            GenericParser(self.pavlova, RoleNameURI))
         self.pavlova.register_parser(SessionAssignmentURI,   GenericParser(self.pavlova, SessionAssignmentURI))
@@ -2518,7 +2519,7 @@ class DataTracker:
 
     # * https://datatracker.ietf.org/api/v1/name/reviewresultname/
     # * https://datatracker.ietf.org/api/v1/name/reviewassignmentstatename/
-    #   https://datatracker.ietf.org/api/v1/name/reviewrequeststatename/
+    # * https://datatracker.ietf.org/api/v1/name/reviewrequeststatename/
     # * https://datatracker.ietf.org/api/v1/name/reviewtypename/
 
     def review_assignment_state(self, review_assignment_state_uri: ReviewAssignmentStateURI) -> Optional[ReviewAssignmentState]:
@@ -2555,6 +2556,19 @@ class DataTracker:
 
     def review_types(self) -> Iterator[ReviewType]:
         return self._retrieve_multi(ReviewTypeURI("/api/v1/name/reviewtypename/"), ReviewType)
+
+
+    def review_request_state(self, review_request_state_uri: ReviewRequestStateURI) -> Optional[ReviewRequestState]:
+        return self._retrieve(review_request_state_uri, ReviewRequestState)
+
+
+    def review_request_state_from_slug(self, slug: str) -> Optional[ReviewRequestState]:
+        return self._retrieve(ReviewRequestStateURI(F"/api/v1/name/reviewrequeststatename/{slug}/"), ReviewRequestState)
+
+
+    def review_request_states(self) -> Iterator[ReviewRequestState]:
+        return self._retrieve_multi(ReviewRequestStateURI("/api/v1/name/reviewrequeststatename/"), ReviewRequestState)
+
 
     # ----------------------------------------------------------------------------------------------------------------------------
     # Datatracker API endpoints returning information about mailing lists:

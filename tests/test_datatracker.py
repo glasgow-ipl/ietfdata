@@ -2136,6 +2136,49 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(types[2].slug, "telechat")
 
 
+    def test_review_request_state(self) -> None:
+        review_request_state = self.dt.review_request_state(ReviewRequestStateURI("/api/v1/name/reviewrequeststatename/assigned/"))
+        if review_request_state is not None:
+            self.assertEqual(review_request_state.resource_uri, ReviewRequestStateURI("/api/v1/name/reviewrequeststatename/assigned/"))
+            self.assertEqual(review_request_state.name,         "Assigned")
+            self.assertEqual(review_request_state.used,         True)
+            self.assertEqual(review_request_state.slug,         "assigned")
+            self.assertEqual(review_request_state.desc,         "The ReviewRequest has been assigned to at least one reviewer")
+            self.assertEqual(review_request_state.order,        0)
+        else:
+            self.fail("Cannot find review request state")
+
+
+    def test_review_request_state_from_slug(self) -> None:
+        review_request_state = self.dt.review_request_state_from_slug("assigned")
+        if review_request_state is not None:
+            self.assertEqual(review_request_state.resource_uri, ReviewRequestStateURI("/api/v1/name/reviewrequeststatename/assigned/"))
+            self.assertEqual(review_request_state.name,         "Assigned")
+            self.assertEqual(review_request_state.used,         True)
+            self.assertEqual(review_request_state.slug,         "assigned")
+            self.assertEqual(review_request_state.desc,         "The ReviewRequest has been assigned to at least one reviewer")
+            self.assertEqual(review_request_state.order,        0)
+        else:
+            self.fail("Cannot find review request state")
+
+
+    def test_review_request_states(self) -> None:
+        states = list(self.dt.review_request_states())
+        self.assertEqual(len(states), 12)
+        self.assertEqual(states[ 0].slug, "assigned")
+        self.assertEqual(states[ 1].slug, "requested")
+        self.assertEqual(states[ 2].slug, "accepted")
+        self.assertEqual(states[ 3].slug, "rejected")
+        self.assertEqual(states[ 4].slug, "withdrawn")
+        self.assertEqual(states[ 5].slug, "overtaken")
+        self.assertEqual(states[ 6].slug, "no-response")
+        self.assertEqual(states[ 7].slug, "no-review-version")
+        self.assertEqual(states[ 8].slug, "no-review-document")
+        self.assertEqual(states[ 9].slug, "part-completed")
+        self.assertEqual(states[10].slug, "completed")
+        self.assertEqual(states[11].slug, "unknown")
+
+
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to mailing lists:
 
