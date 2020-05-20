@@ -2229,6 +2229,50 @@ class TestDatatracker(unittest.TestCase):
         self.assertIsNot(review_requests, None)
 
 
+    def test_review_assignment(self) -> None:
+        review_assignment = self.dt.review_assignment(ReviewAssignmentURI("/api/v1/review/reviewassignment/10000/"))
+        if review_assignment is not None:
+            self.assertEqual(review_assignment.assigned_on,    datetime.fromisoformat("2011-01-18T21:58:05"))
+            self.assertEqual(review_assignment.completed_on,   datetime.fromisoformat("2011-02-26T11:33:30"))
+            self.assertEqual(review_assignment.id,             10000)
+            self.assertEqual(review_assignment.mailarch_url,   "http://www.ietf.org/mail-archive/web/secdir/current/msg02466.html")
+            self.assertEqual(review_assignment.resource_uri,   ReviewAssignmentURI("/api/v1/review/reviewassignment/10000/"))
+            self.assertEqual(review_assignment.result,         None)
+            self.assertEqual(review_assignment.review,         DocumentURI("/api/v1/doc/document/review-holsten-about-uri-scheme-secdir-lc-laganier-2011-02-26/"))
+            self.assertEqual(review_assignment.review_request, ReviewRequestURI("/api/v1/review/reviewrequest/4229/"))
+            self.assertEqual(review_assignment.reviewed_rev,   "")
+            self.assertEqual(review_assignment.reviewer,       EmailURI("/api/v1/person/email/julien.ietf@gmail.com/"))
+            self.assertEqual(review_assignment.state,          ReviewAssignmentStateURI("/api/v1/name/reviewassignmentstatename/completed/"))
+        else:
+            self.fail("Cannot find review assignment")
+
+
+    def test_review_assignments(self) -> None:
+        review_assignments = self.dt.review_assignments()
+        self.assertIsNot(review_assignments, None)
+
+
+    def test_review_assignments_result(self) -> None:
+        review_assignments = self.dt.review_assignments(result=self.dt.review_result_type(ReviewResultTypeURI("/api/v1/name/reviewresultname/nits/")))
+        self.assertIsNot(review_assignments, None)
+
+
+    def test_review_assignments_review_request(self) -> None:
+        review_assignments = list(self.dt.review_assignments(review_request=self.dt.review_request(ReviewRequestURI("/api/v1/review/reviewrequest/8354/"))))
+        self.assertEqual(len(review_assignments),  1)
+        self.assertEqual(review_assignments[0].id, 1458)
+
+
+    def test_review_assignments_reviewer(self) -> None:
+        review_assignments = self.dt.review_assignments(reviewer=self.dt.email(EmailURI("/api/v1/person/email/csp@csperkins.org/")))
+        self.assertIsNot(review_assignments, None)
+
+
+    def test_review_assignments_state(self) -> None:
+        review_assignments = self.dt.review_assignments(state=self.dt.review_assignment_state(ReviewAssignmentStateURI("/api/v1/name/reviewassignmentstatename/completed/")))
+        self.assertIsNot(review_assignments, None)
+
+
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to mailing lists:
 

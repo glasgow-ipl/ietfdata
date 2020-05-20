@@ -1327,11 +1327,11 @@ class ReviewAssignment(Resource):
     id             : int
     mailarch_url   : Optional[str] # can type?
     resource_uri   : ReviewAssignmentURI
-    result         : ReviewResultTypeURI
+    result         : Optional[ReviewResultTypeURI]
     review         : DocumentURI
     review_request : ReviewRequestURI
     reviewed_rev   : str
-    reviewer       : PersonURI
+    reviewer       : EmailURI
     state          : ReviewAssignmentStateURI
 
 
@@ -1421,6 +1421,7 @@ class DataTracker:
         self.pavlova.register_parser(RelationshipTypeURI,    GenericParser(self.pavlova, RelationshipTypeURI))
         self.pavlova.register_parser(RelatedDocumentURI,     GenericParser(self.pavlova, RelatedDocumentURI))
         self.pavlova.register_parser(ReviewAssignmentStateURI, GenericParser(self.pavlova, ReviewAssignmentStateURI))
+        self.pavlova.register_parser(ReviewAssignmentURI,    GenericParser(self.pavlova, ReviewAssignmentURI))
         self.pavlova.register_parser(ReviewResultTypeURI,    GenericParser(self.pavlova, ReviewResultTypeURI))
         self.pavlova.register_parser(ReviewRequestStateURI,  GenericParser(self.pavlova, ReviewRequestStateURI))
         self.pavlova.register_parser(ReviewRequestURI,       GenericParser(self.pavlova, ReviewRequestURI))
@@ -2505,7 +2506,7 @@ class DataTracker:
     # ----------------------------------------------------------------------------------------------------------------------------
     # Datatracker API endpoints returning information about reviews:
     #
-    #   https://datatracker.ietf.org/api/v1/review/reviewassignment/
+    # * https://datatracker.ietf.org/api/v1/review/reviewassignment/
     # * https://datatracker.ietf.org/api/v1/review/reviewrequest/
     #   https://datatracker.ietf.org/api/v1/review/reviewwish/
     #   https://datatracker.ietf.org/api/v1/review/reviewteamsettings/
@@ -2597,6 +2598,35 @@ class DataTracker:
         if type is not None:
             url.params["type"] = type.slug
         return self._retrieve_multi(url, ReviewRequest, deref = {"doc": "id", "requested_by": "id", "state": "slug", "team": "id", "type": "slug"})
+
+
+    def review_assignment(self, review_assignment_uri: ReviewAssignmentURI) -> Optional[ReviewAssignment]:
+        return self._retrieve(review_assignment_uri, ReviewAssignment)
+
+
+    def review_assignments(self,
+            assigned_since         : str                             = "1970-01-01T00:00:00",
+            assigned_until         : str                             = "2038-01-19T03:14:07",
+            completed_since        : str                             = "1970-01-01T00:00:00",
+            completed_until        : str                             = "2038-01-19T03:14:07",
+            result                 : Optional[ReviewResultType]      = None,
+            review_request         : Optional[ReviewRequest]         = None,
+            reviewer               : Optional[Email]                 = None,
+            state                  : Optional[ReviewAssignmentState] = None) -> Iterator[ReviewAssignment]:
+        url = ReviewAssignmentURI("/api/v1/review/reviewassignment/")
+        url.params["assigned_on__gt"]       = assigned_since
+        url.params["assigned_on__lt"]       = assigned_until
+        url.params["completed_on__gt"]      = completed_since
+        url.params["completed_on__lt"]      = completed_until
+        if result is not None:
+            url.params["result"] = result.slug
+        if review_request is not None:
+            url.params["review_request"] = review_request.id
+        if reviewer is not None:
+            url.params["reviewer"] = reviewer.address
+        if state is not None:
+            url.params["state"] = state.slug
+        return self._retrieve_multi(url, ReviewAssignment, deref = {"result": "slug", "review_request": "id", "reviewer": "address", "state": "slug"})
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
