@@ -1,6 +1,11 @@
 Change Log -- ietfdata
 ======================
 
+## v0.2.1 -- ??
+
+ - Add API coverage for review requests and assignments
+
+
 ## v0.2.0 -- 2020-05-17
 
  - Greatly expand Datatracker API coverage
