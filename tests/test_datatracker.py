@@ -2102,6 +2102,40 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(types[8].slug, "ready")
 
 
+    def test_review_type(self) -> None:
+        review_type = self.dt.review_type(ReviewTypeURI("/api/v1/name/reviewtypename/early/"))
+        if review_type is not None:
+            self.assertEqual(review_type.resource_uri, ReviewTypeURI("/api/v1/name/reviewtypename/early/"))
+            self.assertEqual(review_type.name,         "Early")
+            self.assertEqual(review_type.used,         True)
+            self.assertEqual(review_type.slug,         "early")
+            self.assertEqual(review_type.desc,         "")
+            self.assertEqual(review_type.order,        1)
+        else:
+            self.fail("Cannot find review type")
+
+
+    def test_review_type_from_slug(self) -> None:
+        review_type = self.dt.review_type_from_slug("early")
+        if review_type is not None:
+            self.assertEqual(review_type.resource_uri, ReviewTypeURI("/api/v1/name/reviewtypename/early/"))
+            self.assertEqual(review_type.name,         "Early")
+            self.assertEqual(review_type.used,         True)
+            self.assertEqual(review_type.slug,         "early")
+            self.assertEqual(review_type.desc,         "")
+            self.assertEqual(review_type.order,        1)
+        else:
+            self.fail("Cannot find review type")
+
+
+    def test_review_types(self) -> None:
+        types = list(self.dt.review_types())
+        self.assertEqual(len(types), 3)
+        self.assertEqual(types[0].slug, "early")
+        self.assertEqual(types[1].slug, "lc")
+        self.assertEqual(types[2].slug, "telechat")
+
+
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to mailing lists:
 
