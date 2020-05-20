@@ -2019,6 +2019,263 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(types[14].slug, "updates")
         self.assertEqual(types[15].slug, "refunk")
 
+    # -----------------------------------------------------------------------------------------------------------------------------
+    # Tests relating to reviews:
+
+    def test_review_assignment_state(self) -> None:
+        rev_assign_state = self.dt.review_assignment_state(ReviewAssignmentStateURI("/api/v1/name/reviewassignmentstatename/accepted/"))
+        if rev_assign_state is not None:
+            self.assertEqual(rev_assign_state.resource_uri, ReviewAssignmentStateURI("/api/v1/name/reviewassignmentstatename/accepted/"))
+            self.assertEqual(rev_assign_state.name,         "Accepted")
+            self.assertEqual(rev_assign_state.used,         True)
+            self.assertEqual(rev_assign_state.slug,         "accepted")
+            self.assertEqual(rev_assign_state.desc,         "The reviewer has accepted the assignment")
+            self.assertEqual(rev_assign_state.order,        0)
+        else:
+            self.fail("Cannot find review assignment state")
+
+
+    def test_review_assignment_state_from_slug(self) -> None:
+        rev_assign_state = self.dt.review_assignment_state_from_slug("accepted")
+        if rev_assign_state is not None:
+            self.assertEqual(rev_assign_state.resource_uri, ReviewAssignmentStateURI("/api/v1/name/reviewassignmentstatename/accepted/"))
+            self.assertEqual(rev_assign_state.name,         "Accepted")
+            self.assertEqual(rev_assign_state.used,         True)
+            self.assertEqual(rev_assign_state.slug,         "accepted")
+            self.assertEqual(rev_assign_state.desc,         "The reviewer has accepted the assignment")
+            self.assertEqual(rev_assign_state.order,        0)
+        else:
+            self.fail("Cannot find review assignment state")
+
+
+    def test_review_assignment_states(self) -> None:
+        states = list(self.dt.review_assignment_states())
+        self.assertEqual(len(states), 9)
+        self.assertEqual(states[0].slug, "accepted")
+        self.assertEqual(states[1].slug, "assigned")
+        self.assertEqual(states[2].slug, "completed")
+        self.assertEqual(states[3].slug, "no-response")
+        self.assertEqual(states[4].slug, "overtaken")
+        self.assertEqual(states[5].slug, "part-completed")
+        self.assertEqual(states[6].slug, "rejected")
+        self.assertEqual(states[7].slug, "unknown")
+        self.assertEqual(states[8].slug, "withdrawn")
+
+
+    def test_review_result_type(self) -> None:
+        review_result_type = self.dt.review_result_type(ReviewResultTypeURI("/api/v1/name/reviewresultname/serious-issues/"))
+        if review_result_type is not None:
+            self.assertEqual(review_result_type.resource_uri, ReviewResultTypeURI("/api/v1/name/reviewresultname/serious-issues/"))
+            self.assertEqual(review_result_type.name,         "Serious Issues")
+            self.assertEqual(review_result_type.used,         True)
+            self.assertEqual(review_result_type.slug,         "serious-issues")
+            self.assertEqual(review_result_type.desc,         "")
+            self.assertEqual(review_result_type.order,        1)
+        else:
+            self.fail("Cannot find review result type")
+
+
+    def test_review_result_type_from_slug(self) -> None:
+        review_result_type = self.dt.review_result_type_from_slug("serious-issues")
+        if review_result_type is not None:
+            self.assertEqual(review_result_type.resource_uri, ReviewResultTypeURI("/api/v1/name/reviewresultname/serious-issues/"))
+            self.assertEqual(review_result_type.name,         "Serious Issues")
+            self.assertEqual(review_result_type.used,         True)
+            self.assertEqual(review_result_type.slug,         "serious-issues")
+            self.assertEqual(review_result_type.desc,         "")
+            self.assertEqual(review_result_type.order,        1)
+        else:
+            self.fail("Cannot find review result type")
+
+
+    def test_review_result_types(self) -> None:
+        types = list(self.dt.review_result_types())
+        self.assertEqual(len(types), 9)
+        self.assertEqual(types[0].slug, "serious-issues")
+        self.assertEqual(types[1].slug, "issues")
+        self.assertEqual(types[2].slug, "nits")
+        self.assertEqual(types[3].slug, "not-ready")
+        self.assertEqual(types[4].slug, "right-track")
+        self.assertEqual(types[5].slug, "almost-ready")
+        self.assertEqual(types[6].slug, "ready-issues")
+        self.assertEqual(types[7].slug, "ready-nits")
+        self.assertEqual(types[8].slug, "ready")
+
+
+    def test_review_type(self) -> None:
+        review_type = self.dt.review_type(ReviewTypeURI("/api/v1/name/reviewtypename/early/"))
+        if review_type is not None:
+            self.assertEqual(review_type.resource_uri, ReviewTypeURI("/api/v1/name/reviewtypename/early/"))
+            self.assertEqual(review_type.name,         "Early")
+            self.assertEqual(review_type.used,         True)
+            self.assertEqual(review_type.slug,         "early")
+            self.assertEqual(review_type.desc,         "")
+            self.assertEqual(review_type.order,        1)
+        else:
+            self.fail("Cannot find review type")
+
+
+    def test_review_type_from_slug(self) -> None:
+        review_type = self.dt.review_type_from_slug("early")
+        if review_type is not None:
+            self.assertEqual(review_type.resource_uri, ReviewTypeURI("/api/v1/name/reviewtypename/early/"))
+            self.assertEqual(review_type.name,         "Early")
+            self.assertEqual(review_type.used,         True)
+            self.assertEqual(review_type.slug,         "early")
+            self.assertEqual(review_type.desc,         "")
+            self.assertEqual(review_type.order,        1)
+        else:
+            self.fail("Cannot find review type")
+
+
+    def test_review_types(self) -> None:
+        types = list(self.dt.review_types())
+        self.assertEqual(len(types), 3)
+        self.assertEqual(types[0].slug, "early")
+        self.assertEqual(types[1].slug, "lc")
+        self.assertEqual(types[2].slug, "telechat")
+
+
+    def test_review_request_state(self) -> None:
+        review_request_state = self.dt.review_request_state(ReviewRequestStateURI("/api/v1/name/reviewrequeststatename/assigned/"))
+        if review_request_state is not None:
+            self.assertEqual(review_request_state.resource_uri, ReviewRequestStateURI("/api/v1/name/reviewrequeststatename/assigned/"))
+            self.assertEqual(review_request_state.name,         "Assigned")
+            self.assertEqual(review_request_state.used,         True)
+            self.assertEqual(review_request_state.slug,         "assigned")
+            self.assertEqual(review_request_state.desc,         "The ReviewRequest has been assigned to at least one reviewer")
+            self.assertEqual(review_request_state.order,        0)
+        else:
+            self.fail("Cannot find review request state")
+
+
+    def test_review_request_state_from_slug(self) -> None:
+        review_request_state = self.dt.review_request_state_from_slug("assigned")
+        if review_request_state is not None:
+            self.assertEqual(review_request_state.resource_uri, ReviewRequestStateURI("/api/v1/name/reviewrequeststatename/assigned/"))
+            self.assertEqual(review_request_state.name,         "Assigned")
+            self.assertEqual(review_request_state.used,         True)
+            self.assertEqual(review_request_state.slug,         "assigned")
+            self.assertEqual(review_request_state.desc,         "The ReviewRequest has been assigned to at least one reviewer")
+            self.assertEqual(review_request_state.order,        0)
+        else:
+            self.fail("Cannot find review request state")
+
+
+    def test_review_request_states(self) -> None:
+        states = list(self.dt.review_request_states())
+        self.assertEqual(len(states), 12)
+        self.assertEqual(states[ 0].slug, "assigned")
+        self.assertEqual(states[ 1].slug, "requested")
+        self.assertEqual(states[ 2].slug, "accepted")
+        self.assertEqual(states[ 3].slug, "rejected")
+        self.assertEqual(states[ 4].slug, "withdrawn")
+        self.assertEqual(states[ 5].slug, "overtaken")
+        self.assertEqual(states[ 6].slug, "no-response")
+        self.assertEqual(states[ 7].slug, "no-review-version")
+        self.assertEqual(states[ 8].slug, "no-review-document")
+        self.assertEqual(states[ 9].slug, "part-completed")
+        self.assertEqual(states[10].slug, "completed")
+        self.assertEqual(states[11].slug, "unknown")
+
+
+    def test_review_request(self) -> None:
+        review_request = self.dt.review_request(ReviewRequestURI("/api/v1/review/reviewrequest/12006/"))
+        if review_request is not None:
+            self.assertEqual(review_request.comment,       "")
+            self.assertEqual(review_request.deadline,      "2019-05-30")
+            self.assertEqual(review_request.doc,           DocumentURI("/api/v1/doc/document/draft-ietf-pce-inter-area-as-applicability/"))
+            self.assertEqual(review_request.id,            12006)
+            self.assertEqual(review_request.requested_by,  PersonURI("/api/v1/person/person/1/"))
+            self.assertEqual(review_request.requested_rev, "")
+            self.assertEqual(review_request.resource_uri,  ReviewRequestURI("/api/v1/review/reviewrequest/12006/"))
+            self.assertEqual(review_request.state,         ReviewRequestStateURI("/api/v1/name/reviewrequeststatename/assigned/"))
+            self.assertEqual(review_request.team,          GroupURI("/api/v1/group/group/1976/"))
+            self.assertEqual(review_request.time,          datetime.fromisoformat("2019-05-16T13:57:00"))
+            self.assertEqual(review_request.type,          ReviewTypeURI("/api/v1/name/reviewtypename/lc/"))
+        else:
+            self.fail("Cannot find review request")
+
+
+    def test_review_requests(self) -> None:
+        review_requests = self.dt.review_requests()
+        self.assertIsNot(review_requests, None)
+
+
+    def test_review_requests_doc(self) -> None:
+        review_requests = list(self.dt.review_requests(doc=self.dt.document(DocumentURI("/api/v1/doc/document/draft-davis-t-langtag-ext/"))))
+        self.assertEqual(len(review_requests), 2)
+        self.assertEqual(review_requests[0].id, 1)
+        self.assertEqual(review_requests[1].id, 4457)
+
+
+    def test_review_requests_requested_by(self) -> None:
+        review_requests = self.dt.review_requests(requested_by=self.dt.person(PersonURI("/api/v1/person/person/1/")))
+        self.assertIsNot(review_requests, None)
+
+
+    def test_review_requests_state(self) -> None:
+        review_requests = self.dt.review_requests(state=self.dt.review_request_state(ReviewRequestStateURI("/api/v1/name/reviewrequeststatename/assigned/")))
+        self.assertIsNot(review_requests, None)
+
+
+    def test_review_requests_team(self) -> None:
+        review_requests = self.dt.review_requests(team=self.dt.group(GroupURI("/api/v1/group/group/1261/")))
+        self.assertIsNot(review_requests, None)
+
+
+    def test_review_requests_type(self) -> None:
+        review_requests = self.dt.review_requests(type=self.dt.review_type(ReviewTypeURI("/api/v1/name/reviewtypename/telechat/")))
+        self.assertIsNot(review_requests, None)
+
+
+    def test_review_assignment(self) -> None:
+        review_assignment = self.dt.review_assignment(ReviewAssignmentURI("/api/v1/review/reviewassignment/10000/"))
+        if review_assignment is not None:
+            self.assertEqual(review_assignment.assigned_on,    datetime.fromisoformat("2011-01-18T21:58:05"))
+            self.assertEqual(review_assignment.completed_on,   datetime.fromisoformat("2011-02-26T11:33:30"))
+            self.assertEqual(review_assignment.id,             10000)
+            self.assertEqual(review_assignment.mailarch_url,   "http://www.ietf.org/mail-archive/web/secdir/current/msg02466.html")
+            self.assertEqual(review_assignment.resource_uri,   ReviewAssignmentURI("/api/v1/review/reviewassignment/10000/"))
+            self.assertEqual(review_assignment.result,         None)
+            self.assertEqual(review_assignment.review,         DocumentURI("/api/v1/doc/document/review-holsten-about-uri-scheme-secdir-lc-laganier-2011-02-26/"))
+            self.assertEqual(review_assignment.review_request, ReviewRequestURI("/api/v1/review/reviewrequest/4229/"))
+            self.assertEqual(review_assignment.reviewed_rev,   "")
+            self.assertEqual(review_assignment.reviewer,       EmailURI("/api/v1/person/email/julien.ietf@gmail.com/"))
+            self.assertEqual(review_assignment.state,          ReviewAssignmentStateURI("/api/v1/name/reviewassignmentstatename/completed/"))
+        else:
+            self.fail("Cannot find review assignment")
+
+
+    def test_review_assignments(self) -> None:
+        review_assignments = self.dt.review_assignments()
+        self.assertIsNot(review_assignments, None)
+
+
+    def test_review_assignments_result(self) -> None:
+        review_assignments = self.dt.review_assignments(result=self.dt.review_result_type(ReviewResultTypeURI("/api/v1/name/reviewresultname/nits/")))
+        self.assertIsNot(review_assignments, None)
+
+
+    def test_review_assignments_review_request(self) -> None:
+        review_assignments = list(self.dt.review_assignments(review_request=self.dt.review_request(ReviewRequestURI("/api/v1/review/reviewrequest/8354/"))))
+        self.assertEqual(len(review_assignments),  1)
+        self.assertEqual(review_assignments[0].id, 1458)
+
+
+    def test_review_assignments_reviewer(self) -> None:
+        review_assignments = self.dt.review_assignments(reviewer=self.dt.email(EmailURI("/api/v1/person/email/csp@csperkins.org/")))
+        self.assertIsNot(review_assignments, None)
+
+
+    def test_review_assignments_state(self) -> None:
+        review_assignments = self.dt.review_assignments(state=self.dt.review_assignment_state(ReviewAssignmentStateURI("/api/v1/name/reviewassignmentstatename/completed/")))
+        self.assertIsNot(review_assignments, None)
+
+
+    # -----------------------------------------------------------------------------------------------------------------------------
+    # Tests relating to mailing lists:
+
 
     def test_mailing_list(self) -> None:
         ml = self.dt.mailing_list(MailingListURI("/api/v1/mailinglists/list/461/"))

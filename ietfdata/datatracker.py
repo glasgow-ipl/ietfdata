@@ -1226,6 +1226,114 @@ class Session(Resource):
     modified            : datetime
     comments            : str
 
+# ---------------------------------------------------------------------------------------------------------------------------------
+# Types relating to reviews:
+
+@dataclass(frozen=True)
+class ReviewAssignmentStateURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/name/reviewassignmentstatename/")
+
+
+@dataclass(frozen=True)
+class ReviewAssignmentState(Resource):
+    desc         : str
+    name         : str
+    order        : int
+    resource_uri : ReviewAssignmentStateURI
+    slug         : str
+    used         : bool
+
+
+@dataclass(frozen=True)
+class ReviewResultTypeURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/name/reviewresultname/")
+
+
+@dataclass(frozen=True)
+class ReviewResultType(Resource):
+    desc         : str
+    name         : str
+    order        : int
+    resource_uri : ReviewResultTypeURI
+    slug         : str
+    used         : bool
+
+
+@dataclass(frozen=True)
+class ReviewTypeURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/name/reviewtypename/")
+
+
+@dataclass(frozen=True)
+class ReviewType(Resource):
+    desc         : str
+    name         : str
+    order        : int
+    resource_uri : ReviewTypeURI
+    slug         : str
+    used         : bool
+
+
+@dataclass(frozen=True)
+class ReviewRequestStateURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/name/reviewrequeststatename/")
+
+
+@dataclass(frozen=True)
+class ReviewRequestState(Resource):
+    desc         : str
+    name         : str
+    order        : int
+    resource_uri : ReviewRequestStateURI
+    slug         : str
+    used         : bool
+
+
+@dataclass(frozen=True)
+class ReviewRequestURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/review/reviewrequest/")
+
+
+@dataclass(frozen=True)
+class ReviewRequest(Resource):
+    comment       : str
+    deadline      : str
+    doc           : DocumentURI
+    id            : int
+    requested_by  : PersonURI
+    requested_rev : str
+    resource_uri  : ReviewRequestURI
+    state         : ReviewRequestStateURI
+    team          : GroupURI
+    time          : datetime
+    type          : ReviewTypeURI
+
+
+@dataclass(frozen=True)
+class ReviewAssignmentURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/review/reviewassignment/")
+
+
+@dataclass(frozen=True)
+class ReviewAssignment(Resource):
+    assigned_on    : datetime
+    completed_on   : Optional[datetime]
+    id             : int
+    mailarch_url   : Optional[str] # can type?
+    resource_uri   : ReviewAssignmentURI
+    result         : Optional[ReviewResultTypeURI]
+    review         : DocumentURI
+    review_request : ReviewRequestURI
+    reviewed_rev   : str
+    reviewer       : EmailURI
+    state          : ReviewAssignmentStateURI
+
 
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to mailing lists:
@@ -2352,8 +2460,8 @@ class DataTracker:
     # ----------------------------------------------------------------------------------------------------------------------------
     # Datatracker API endpoints returning information about reviews:
     #
-    #   https://datatracker.ietf.org/api/v1/review/reviewassignment/
-    #   https://datatracker.ietf.org/api/v1/review/reviewrequest/
+    # * https://datatracker.ietf.org/api/v1/review/reviewassignment/
+    # * https://datatracker.ietf.org/api/v1/review/reviewrequest/
     #   https://datatracker.ietf.org/api/v1/review/reviewwish/
     #   https://datatracker.ietf.org/api/v1/review/reviewteamsettings/
     #   https://datatracker.ietf.org/api/v1/review/nextreviewerinteam/
@@ -2364,6 +2472,116 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/review/historicalreviewersettings/
     #   https://datatracker.ietf.org/api/v1/review/historicalreviewassignment/
     #   https://datatracker.ietf.org/api/v1/review/reviewsecretarysettings/
+
+    # * https://datatracker.ietf.org/api/v1/name/reviewresultname/
+    # * https://datatracker.ietf.org/api/v1/name/reviewassignmentstatename/
+    # * https://datatracker.ietf.org/api/v1/name/reviewrequeststatename/
+    # * https://datatracker.ietf.org/api/v1/name/reviewtypename/
+
+    def review_assignment_state(self, review_assignment_state_uri: ReviewAssignmentStateURI) -> Optional[ReviewAssignmentState]:
+        return self._retrieve(review_assignment_state_uri, ReviewAssignmentState)
+
+
+    def review_assignment_state_from_slug(self, slug: str) -> Optional[ReviewAssignmentState]:
+        return self._retrieve(ReviewAssignmentStateURI(F"/api/v1/name/reviewassignmentstatename/{slug}/"), ReviewAssignmentState)
+
+
+    def review_assignment_states(self) -> Iterator[ReviewAssignmentState]:
+        return self._retrieve_multi(ReviewAssignmentStateURI("/api/v1/name/reviewassignmentstatename/"), ReviewAssignmentState)
+
+
+    def review_result_type(self, review_result_uri: ReviewResultTypeURI) -> Optional[ReviewResultType]:
+        return self._retrieve(review_result_uri, ReviewResultType)
+
+
+    def review_result_type_from_slug(self, slug: str) -> Optional[ReviewResultType]:
+        return self._retrieve(ReviewResultTypeURI(F"/api/v1/name/reviewresultname/{slug}/"), ReviewResultType)
+
+
+    def review_result_types(self) -> Iterator[ReviewResultType]:
+        return self._retrieve_multi(ReviewResultTypeURI("/api/v1/name/reviewresultname/"), ReviewResultType)
+
+
+    def review_type(self, review_type_uri: ReviewTypeURI) -> Optional[ReviewType]:
+        return self._retrieve(review_type_uri, ReviewType)
+
+
+    def review_type_from_slug(self, slug: str) -> Optional[ReviewType]:
+        return self._retrieve(ReviewTypeURI(F"/api/v1/name/reviewtypename/{slug}/"), ReviewType)
+
+
+    def review_types(self) -> Iterator[ReviewType]:
+        return self._retrieve_multi(ReviewTypeURI("/api/v1/name/reviewtypename/"), ReviewType)
+
+
+    def review_request_state(self, review_request_state_uri: ReviewRequestStateURI) -> Optional[ReviewRequestState]:
+        return self._retrieve(review_request_state_uri, ReviewRequestState)
+
+
+    def review_request_state_from_slug(self, slug: str) -> Optional[ReviewRequestState]:
+        return self._retrieve(ReviewRequestStateURI(F"/api/v1/name/reviewrequeststatename/{slug}/"), ReviewRequestState)
+
+
+    def review_request_states(self) -> Iterator[ReviewRequestState]:
+        return self._retrieve_multi(ReviewRequestStateURI("/api/v1/name/reviewrequeststatename/"), ReviewRequestState)
+
+
+    def review_request(self, review_request_uri: ReviewRequestURI) -> Optional[ReviewRequest]:
+        return self._retrieve(review_request_uri, ReviewRequest)
+
+
+    def review_requests(self,
+            since         : str                          = "1970-01-01T00:00:00",
+            until         : str                          = "2038-01-19T03:14:07",
+            doc           : Optional[Document]           = None,
+            requested_by  : Optional[Person]             = None,
+            state         : Optional[ReviewRequestState] = None,
+            team          : Optional[Group]              = None,
+            type          : Optional[ReviewType]         = None) -> Iterator[ReviewRequest]:
+        url = ReviewRequestURI("/api/v1/review/reviewrequest/")
+        url.params["time__gt"]       = since
+        url.params["time__lt"]       = until
+        if doc is not None:
+            url.params["doc"] = doc.id
+        if requested_by is not None:
+            url.params["requested_by"] = requested_by.id
+        if state is not None:
+            url.params["state"] = state.slug
+        if team is not None:
+            url.params["team"] = team.id
+        if type is not None:
+            url.params["type"] = type.slug
+        return self._retrieve_multi(url, ReviewRequest, deref = {"doc": "id", "requested_by": "id", "state": "slug", "team": "id", "type": "slug"})
+
+
+    def review_assignment(self, review_assignment_uri: ReviewAssignmentURI) -> Optional[ReviewAssignment]:
+        return self._retrieve(review_assignment_uri, ReviewAssignment)
+
+
+    def review_assignments(self,
+            assigned_since         : str                             = "1970-01-01T00:00:00",
+            assigned_until         : str                             = "2038-01-19T03:14:07",
+            completed_since        : str                             = "1970-01-01T00:00:00",
+            completed_until        : str                             = "2038-01-19T03:14:07",
+            result                 : Optional[ReviewResultType]      = None,
+            review_request         : Optional[ReviewRequest]         = None,
+            reviewer               : Optional[Email]                 = None,
+            state                  : Optional[ReviewAssignmentState] = None) -> Iterator[ReviewAssignment]:
+        url = ReviewAssignmentURI("/api/v1/review/reviewassignment/")
+        url.params["assigned_on__gt"]       = assigned_since
+        url.params["assigned_on__lt"]       = assigned_until
+        url.params["completed_on__gt"]      = completed_since
+        url.params["completed_on__lt"]      = completed_until
+        if result is not None:
+            url.params["result"] = result.slug
+        if review_request is not None:
+            url.params["review_request"] = review_request.id
+        if reviewer is not None:
+            url.params["reviewer"] = reviewer.address
+        if state is not None:
+            url.params["state"] = state.slug
+        return self._retrieve_multi(url, ReviewAssignment, deref = {"result": "slug", "review_request": "id", "reviewer": "address", "state": "slug"})
+
 
     # ----------------------------------------------------------------------------------------------------------------------------
     # Datatracker API endpoints returning information about mailing lists:
@@ -2397,11 +2615,8 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/name/docurltagname/
     #   https://datatracker.ietf.org/api/v1/name/formallanguagename/
     #   https://datatracker.ietf.org/api/v1/name/stdlevelname/
-    #   https://datatracker.ietf.org/api/v1/name/reviewrequeststatename/
     #   https://datatracker.ietf.org/api/v1/name/groupmilestonestatename/
     #   https://datatracker.ietf.org/api/v1/name/feedbacktypename/
-    #   https://datatracker.ietf.org/api/v1/name/reviewtypename/
-    #   https://datatracker.ietf.org/api/v1/name/reviewresultname/
     #   https://datatracker.ietf.org/api/v1/name/topicaudiencename/
     #   https://datatracker.ietf.org/api/v1/name/nomineepositionstatename/
     #   https://datatracker.ietf.org/api/v1/name/constraintname/
