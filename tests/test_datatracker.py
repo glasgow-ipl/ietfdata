@@ -2273,6 +2273,43 @@ class TestDatatracker(unittest.TestCase):
         self.assertIsNot(review_assignments, None)
 
 
+    def test_review_wish(self) -> None:
+        review_wish = self.dt.review_wish(ReviewWishURI("/api/v1/review/reviewwish/7/"))
+        if review_wish is not None:
+            self.assertEqual(review_wish.doc,          DocumentURI("/api/v1/doc/document/draft-ietf-perc-double/"))
+            self.assertEqual(review_wish.id,           7)
+            self.assertEqual(review_wish.person,       PersonURI("/api/v1/person/person/5376/"))
+            self.assertEqual(review_wish.resource_uri, ReviewWishURI("/api/v1/review/reviewwish/7/"))
+            self.assertEqual(review_wish.team,         GroupURI("/api/v1/group/group/1972/"))
+            self.assertEqual(review_wish.time,         datetime.fromisoformat("2018-05-10T08:41:39"))
+        else:
+            self.fail("Cannot find review wish")
+
+
+    def test_review_wishes(self) -> None:
+        review_wishes = self.dt.review_wishes()
+        self.assertIsNot(review_wishes, None)
+
+
+    def test_review_wishes_doc(self) -> None:
+        review_wishes = list(self.dt.review_wishes(doc=self.dt.document(DocumentURI("/api/v1/doc/document/draft-ietf-perc-double/"))))
+        self.assertEqual(len(review_wishes),  1)
+        self.assertEqual(review_wishes[0].id, 7)
+
+
+    def test_review_wishes_person(self) -> None:
+        review_wishes = list(self.dt.review_wishes(person=self.dt.person(PersonURI("/api/v1/person/person/5376/"))))
+        self.assertEqual(len(review_wishes),  1)
+        self.assertEqual(review_wishes[0].id, 7)
+
+
+    def test_review_wishes_team(self) -> None:
+        review_wishes = list(self.dt.review_wishes(team=self.dt.group(GroupURI("/api/v1/group/group/1972/"))))
+        self.assertEqual(len(review_wishes),  2)
+        self.assertEqual(review_wishes[0].id, 7)
+        self.assertEqual(review_wishes[1].id, 24)
+
+
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to mailing lists:
 
