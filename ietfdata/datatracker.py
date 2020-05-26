@@ -1335,6 +1335,22 @@ class ReviewAssignment(Resource):
     state          : ReviewAssignmentStateURI
 
 
+@dataclass(frozen=True)
+class ReviewWishURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/review/reviewwish/")
+
+
+@dataclass(frozen=True)
+class ReviewWish(Resource):
+    doc          : DocumentURI
+    id           : int
+    person       : PersonURI
+    resource_uri : ReviewWishURI
+    team         : GroupURI
+    time         : datetime
+
+
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to mailing lists:
 
@@ -2581,6 +2597,28 @@ class DataTracker:
         if state is not None:
             url.params["state"] = state.slug
         return self._retrieve_multi(url, ReviewAssignment, deref = {"result": "slug", "review_request": "id", "reviewer": "address", "state": "slug"})
+
+
+    def review_wish(self, review_wish_uri: ReviewWishURI) -> Optional[ReviewWish]:
+        return self._retrieve(review_wish_uri, ReviewWish)
+
+
+    def review_wishes(self,
+            since         : str                          = "1970-01-01T00:00:00",
+            until         : str                          = "2038-01-19T03:14:07",
+            doc           : Optional[Document]           = None,
+            person        : Optional[Person]             = None,
+            team          : Optional[Group]              = None) -> Iterator[ReviewWish]:
+        url = ReviewWishURI("/api/v1/review/reviewwish/")
+        url.params["time__gt"]       = since
+        url.params["time__lt"]       = until
+        if doc is not None:
+            url.params["doc"] = doc.id
+        if person is not None:
+            url.params["person"] = person.id
+        if team is not None:
+            url.params["team"] = team.id
+        return self._retrieve_multi(url, ReviewWish, deref = {"doc": "id", "person": "id", "team": "id"})
 
 
     # ----------------------------------------------------------------------------------------------------------------------------

@@ -3,7 +3,7 @@ Change Log -- ietfdata
 
 ## v0.2.1 -- ??
 
- - Add API coverage for review requests and assignments
+ - Add API coverage for review requests, assignments, and wishes
 
 
 ## v0.2.0 -- 2020-05-17
