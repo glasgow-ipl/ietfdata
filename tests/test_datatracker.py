@@ -2310,6 +2310,36 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(review_wishes[1].id, 24)
 
 
+    def test_unavailable_period(self) -> None:
+        unavailable_period = self.dt.unavailable_period(UnavailablePeriodURI("/api/v1/review/unavailableperiod/1/"))
+        if unavailable_period is not None:
+            self.assertEqual(unavailable_period.availability, "unavailable")
+            self.assertEqual(unavailable_period.end_date,     "2016-12-01")
+            self.assertEqual(unavailable_period.id,           1)
+            self.assertEqual(unavailable_period.person,       PersonURI("/api/v1/person/person/101208/"))
+            self.assertEqual(unavailable_period.reason,       "")
+            self.assertEqual(unavailable_period.resource_uri, UnavailablePeriodURI("/api/v1/review/unavailableperiod/1/"))
+            self.assertEqual(unavailable_period.start_date,   None)
+            self.assertEqual(unavailable_period.team,         GroupURI("/api/v1/group/group/1261/"))
+        else:
+            self.fail("Cannot find unavailable period")
+
+
+    def test_unavailable_periods(self) -> None:
+        unavailable_periods = self.dt.unavailable_periods()
+        self.assertIsNot(unavailable_periods, None)
+
+
+    def test_unavailable_periods_person(self) -> None:
+        unavailable_periods = self.dt.unavailable_periods(person=self.dt.person(PersonURI("/api/v1/person/person/101208/")))
+        self.assertIsNot(unavailable_periods, None)
+
+
+    def test_unavailable_periods_team(self) -> None:
+        unavailable_periods = self.dt.unavailable_periods(team=self.dt.group(GroupURI("/api/v1/group/group/1261/")))
+        self.assertIsNot(unavailable_periods, None)
+
+
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to mailing lists:
 
