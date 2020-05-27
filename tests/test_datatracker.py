@@ -2475,7 +2475,6 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(review_team_settings_all[0].id, 1)
 
 
-
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to mailing lists:
 
