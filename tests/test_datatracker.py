@@ -2310,6 +2310,68 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(review_wishes[1].id, 24)
 
 
+    def test_historical_review_request(self) -> None:
+        historical_review_request = self.dt.historical_review_request(HistoricalReviewRequestURI("/api/v1/review/historicalreviewrequest/836/"))
+        if historical_review_request is not None:
+            self.assertEqual(historical_review_request.comment,               "")
+            self.assertEqual(historical_review_request.deadline,              "2020-06-09")
+            self.assertEqual(historical_review_request.doc,                   DocumentURI("/api/v1/doc/document/draft-ietf-capport-rfc7710bis/"))
+            self.assertEqual(historical_review_request.history_change_reason, "Requested Telechat review by IOTDIR")
+            self.assertEqual(historical_review_request.history_date,          datetime.fromisoformat("2020-05-27T07:12:46.787491"))
+            self.assertEqual(historical_review_request.history_id,            836)
+            self.assertEqual(historical_review_request.history_type,          "+")
+            self.assertEqual(historical_review_request.id,                    13428)
+            self.assertEqual(historical_review_request.requested_by,          PersonURI("/api/v1/person/person/105099/"))
+            self.assertEqual(historical_review_request.requested_rev,         "")
+            self.assertEqual(historical_review_request.resource_uri,          HistoricalReviewRequestURI("/api/v1/review/historicalreviewrequest/836/"))
+            self.assertEqual(historical_review_request.state,                 ReviewRequestStateURI("/api/v1/name/reviewrequeststatename/requested/"))
+            self.assertEqual(historical_review_request.team,                  GroupURI("/api/v1/group/group/1975/"))
+            self.assertEqual(historical_review_request.time,                  datetime.fromisoformat("2020-05-27T07:12:37.060945"))
+            self.assertEqual(historical_review_request.type,                  ReviewTypeURI("/api/v1/name/reviewtypename/telechat/"))
+        else:
+            self.fail("Cannot find historical review request")
+
+
+    def test_historical_review_requests(self) -> None:
+        historical_review_requests = self.dt.historical_review_requests()
+        self.assertIsNot(historical_review_requests, None)
+
+
+    def test_historical_review_requests_history_type(self) -> None:
+        historical_review_requests = self.dt.historical_review_requests(history_type="+")
+        self.assertIsNot(historical_review_requests, None)
+
+
+    def test_historical_review_requests_id(self) -> None:
+        historical_review_requests = self.dt.historical_review_requests(id=13428)
+        self.assertIsNot(historical_review_requests, None)
+
+
+    def test_historical_review_requests_doc(self) -> None:
+        historical_review_requests = self.dt.historical_review_requests(doc=self.dt.document(DocumentURI("/api/v1/doc/document/draft-ietf-capport-rfc7710bis/")))
+        self.assertIsNot(historical_review_requests, None)
+
+
+    def test_historical_review_requests_requested_by(self) -> None:
+        historical_review_requests = self.dt.historical_review_requests(requested_by=self.dt.person(PersonURI("/api/v1/person/person/105099/")))
+        self.assertIsNot(historical_review_requests, None)
+
+
+    def test_historical_review_requests_state(self) -> None:
+        historical_review_requests = self.dt.historical_review_requests(state=self.dt.review_request_state(ReviewRequestStateURI("/api/v1/name/reviewrequeststatename/requested/")))
+        self.assertIsNot(historical_review_requests, None)
+
+
+    def test_historical_review_requests_team(self) -> None:
+        historical_review_requests = self.dt.historical_review_requests(team=self.dt.group(GroupURI("/api/v1/group/group/1975/")))
+        self.assertIsNot(historical_review_requests, None)
+
+
+    def test_historical_review_requests_type(self) -> None:
+        historical_review_requests = self.dt.historical_review_requests(type=self.dt.review_type(ReviewTypeURI("/api/v1/name/reviewtypename/telechat/")))
+        self.assertIsNot(historical_review_requests, None)
+
+
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to mailing lists:
 
