@@ -1351,6 +1351,23 @@ class ReviewWish(Resource):
     time         : datetime
 
 
+@dataclass(frozen=True)
+class ReviewSecretarySettingsURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/review/reviewsecretarysettings/")
+
+
+@dataclass(frozen=True)
+class ReviewSecretarySettings(Resource):
+    days_to_show_in_reviewer_list      : Optional[int]
+    id                                 : int
+    max_items_to_show_in_reviewer_list : Optional[int]
+    person                             : PersonURI
+    remind_days_before_deadline        : int
+    resource_uri                       : ReviewSecretarySettingsURI
+    team                               : GroupURI
+
+
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to mailing lists:
 
@@ -2487,7 +2504,7 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/review/unavailableperiod/
     #   https://datatracker.ietf.org/api/v1/review/historicalreviewersettings/
     #   https://datatracker.ietf.org/api/v1/review/historicalreviewassignment/
-    #   https://datatracker.ietf.org/api/v1/review/reviewsecretarysettings/
+    # * https://datatracker.ietf.org/api/v1/review/reviewsecretarysettings/
 
     # * https://datatracker.ietf.org/api/v1/name/reviewresultname/
     # * https://datatracker.ietf.org/api/v1/name/reviewassignmentstatename/
@@ -2619,6 +2636,21 @@ class DataTracker:
         if team is not None:
             url.params["team"] = team.id
         return self._retrieve_multi(url, ReviewWish, deref = {"doc": "id", "person": "id", "team": "id"})
+
+
+    def review_secretary_settings(self, review_secretary_settings_uri: ReviewSecretarySettingsURI) -> Optional[ReviewSecretarySettings]:
+        return self._retrieve(review_secretary_settings_uri, ReviewSecretarySettings)
+
+
+    def review_secretary_settings_all(self,
+            person        : Optional[Person]             = None,
+            team          : Optional[Group]              = None) -> Iterator[ReviewSecretarySettings]:
+        url = ReviewSecretarySettingsURI("/api/v1/review/reviewsecretarysettings/")
+        if person is not None:
+            url.params["person"] = person.id
+        if team is not None:
+            url.params["team"] = team.id
+        return self._retrieve_multi(url, ReviewSecretarySettings, deref = {"person": "id", "team": "id"})
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
