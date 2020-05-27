@@ -1351,6 +1351,28 @@ class ReviewWish(Resource):
     time         : datetime
 
 
+@dataclass(frozen=True)
+class HistoricalUnavailablePeriodURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/review/historicalunavailableperiod/")
+
+
+@dataclass(frozen=True)
+class HistoricalUnavailablePeriod(Resource):
+    availability          : str
+    end_date              : str
+    history_change_reason : str
+    history_date          : datetime
+    history_id            : int
+    history_type          : str
+    id                    : int
+    person                : PersonURI
+    reason                : str
+    resource_uri          : HistoricalUnavailablePeriodURI
+    start_date            : str
+    team                  : GroupURI
+
+
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to mailing lists:
 
@@ -2481,7 +2503,7 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/review/reviewwish/
     #   https://datatracker.ietf.org/api/v1/review/reviewteamsettings/
     #   https://datatracker.ietf.org/api/v1/review/nextreviewerinteam/
-    #   https://datatracker.ietf.org/api/v1/review/historicalunavailableperiod/
+    # * https://datatracker.ietf.org/api/v1/review/historicalunavailableperiod/
     #   https://datatracker.ietf.org/api/v1/review/historicalreviewrequest/
     #   https://datatracker.ietf.org/api/v1/review/reviewersettings/
     #   https://datatracker.ietf.org/api/v1/review/unavailableperiod/
@@ -2619,6 +2641,31 @@ class DataTracker:
         if team is not None:
             url.params["team"] = team.id
         return self._retrieve_multi(url, ReviewWish, deref = {"doc": "id", "person": "id", "team": "id"})
+
+
+    def historical_unavailable_period(self, historical_unavailable_period_uri: HistoricalUnavailablePeriodURI) -> Optional[HistoricalUnavailablePeriod]:
+        return self._retrieve(historical_unavailable_period_uri, HistoricalUnavailablePeriod)
+
+
+    def historical_unavailable_periods(self,
+            since         : str                          = "1970-01-01T00:00:00",
+            until         : str                          = "2038-01-19T03:14:07",
+            history_type  : Optional[str]                = None,
+            id            : Optional[int]                = None,
+            person        : Optional[Person]             = None,
+            team          : Optional[Group]              = None) -> Iterator[HistoricalUnavailablePeriod]:
+        url = HistoricalUnavailablePeriodURI("/api/v1/review/historicalunavailableperiod/")
+        url.params["time__gt"]       = since
+        url.params["time__lt"]       = until
+        if history_type is not None:
+            url.params["history_type"] = history_type
+        if id is not None:
+            url.params["id"] = id
+        if person is not None:
+            url.params["person"] = person.id
+        if team is not None:
+            url.params["team"] = team.id
+        return self._retrieve_multi(url, HistoricalUnavailablePeriod, deref = {"person": "id", "team": "id"})
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
