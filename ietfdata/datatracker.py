@@ -1372,6 +1372,29 @@ class HistoricalUnavailablePeriod(Resource):
     start_date            : str
     team                  : GroupURI
 
+class HistoricalReviewRequestURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/review/historicalreviewrequest/")
+
+
+@dataclass(frozen=True)
+class HistoricalReviewRequest(Resource):
+    comment               : str
+    deadline              : str
+    doc                   : DocumentURI
+    history_change_reason : str
+    history_date          : datetime
+    history_id            : int
+    history_type          : str
+    id                    : int
+    requested_by          : PersonURI
+    requested_rev         : str
+    resource_uri          : HistoricalReviewRequestURI
+    state                 : ReviewRequestStateURI
+    team                  : GroupURI
+    time                  : datetime
+    type                  : ReviewTypeURI
+
 class NextReviewerInTeamURI(URI):
     def __post_init__(self) -> None:
         assert self.uri.startswith("/api/v1/review/nextreviewerinteam/")
@@ -1400,8 +1423,6 @@ class ReviewTeamSettings(Resource):
     review_results                      : List[ReviewResultTypeURI]
     review_types                        : List[ReviewTypeURI]
     secr_mail_alias                     : str
-
-
 
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to mailing lists:
@@ -2534,7 +2555,7 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/review/reviewteamsettings/
     # * https://datatracker.ietf.org/api/v1/review/nextreviewerinteam/
     # * https://datatracker.ietf.org/api/v1/review/historicalunavailableperiod/
-    #   https://datatracker.ietf.org/api/v1/review/historicalreviewrequest/
+    # * https://datatracker.ietf.org/api/v1/review/historicalreviewrequest/
     #   https://datatracker.ietf.org/api/v1/review/reviewersettings/
     #   https://datatracker.ietf.org/api/v1/review/unavailableperiod/
     #   https://datatracker.ietf.org/api/v1/review/historicalreviewersettings/
@@ -2672,7 +2693,6 @@ class DataTracker:
             url.params["team"] = team.id
         return self._retrieve_multi(url, ReviewWish, deref = {"doc": "id", "person": "id", "team": "id"})
 
-
     def historical_unavailable_period(self, historical_unavailable_period_uri: HistoricalUnavailablePeriodURI) -> Optional[HistoricalUnavailablePeriod]:
         return self._retrieve(historical_unavailable_period_uri, HistoricalUnavailablePeriod)
 
@@ -2698,6 +2718,40 @@ class DataTracker:
         return self._retrieve_multi(url, HistoricalUnavailablePeriod, deref = {"person": "id", "team": "id"})
 
 
+    def historical_review_request(self, historical_review_request_uri: HistoricalReviewRequestURI) -> Optional[HistoricalReviewRequest]:
+        return self._retrieve(historical_review_request_uri, HistoricalReviewRequest)
+
+
+    def historical_review_requests(self,
+            since         : str                          = "1970-01-01T00:00:00",
+            until         : str                          = "2038-01-19T03:14:07",
+            history_since : str                          = "1970-01-01T00:00:00",
+            history_until : str                          = "2038-01-19T03:14:07",
+            history_type  : str                          = None,
+            id            : int                          = None,
+            doc           : Optional[Document]           = None,
+            requested_by  : Optional[Person]             = None,
+            state         : Optional[ReviewRequestState] = None,
+            team          : Optional[Group]              = None,
+            type          : Optional[ReviewType]         = None) -> Iterator[HistoricalReviewRequest]:
+        url = HistoricalReviewRequestURI("/api/v1/review/historicalreviewrequest/")
+        url.params["time__gt"]         = since
+        url.params["time__lt"]         = until
+        url.params["history_date__gt"] = history_since
+        url.params["history_date__lt"] = history_until
+        if doc is not None:
+            url.params["doc"] = doc.id
+        if requested_by is not None:
+            url.params["requested_by"] = requested_by.id
+        if state is not None:
+            url.params["state"] = state.slug
+        if team is not None:
+            url.params["team"] = team.id
+        if type is not None:
+            url.params["type"] = type.slug
+        return self._retrieve_multi(url, HistoricalReviewRequest, deref = {"doc": "id", "requested_by": "id", "state": "slug", "team": "id", "type": "slug"})
+
+
     def next_reviewer_in_team(self, next_reviewer_in_team_uri: NextReviewerInTeamURI) -> Optional[NextReviewerInTeam]:
         return self._retrieve(next_reviewer_in_team_uri, NextReviewerInTeam)
 
@@ -2710,7 +2764,6 @@ class DataTracker:
         return self._retrieve_multi(url, NextReviewerInTeam, deref = {"team": "id"})
 
 
-
     def review_team_settings(self, review_team_settings_uri: ReviewTeamSettingsURI) -> Optional[ReviewTeamSettings]:
         return self._retrieve(review_team_settings_uri, ReviewTeamSettings)
 
@@ -2721,7 +2774,6 @@ class DataTracker:
         if group is not None:
             url.params["group"] = group.id
         return self._retrieve_multi(url, ReviewTeamSettings, deref = {"group": "id"})
-
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
