@@ -1372,6 +1372,7 @@ class HistoricalUnavailablePeriod(Resource):
     start_date            : str
     team                  : GroupURI
 
+
 @dataclass(frozen=True)
 class HistoricalReviewRequestURI(URI):
     def __post_init__(self) -> None:
@@ -1396,6 +1397,7 @@ class HistoricalReviewRequest(Resource):
     time                  : datetime
     type                  : ReviewTypeURI
 
+
 @dataclass(frozen=True)
 class NextReviewerInTeamURI(URI):
     def __post_init__(self) -> None:
@@ -1408,6 +1410,7 @@ class NextReviewerInTeam(Resource):
     next_reviewer : PersonURI
     resource_uri  : NextReviewerInTeamURI
     team          : GroupURI
+
 
 @dataclass(frozen=True)
 class ReviewTeamSettingsURI(URI):
@@ -1465,6 +1468,32 @@ class UnavailablePeriod(Resource):
     resource_uri : UnavailablePeriodURI
     start_date   : Optional[str]
     team         : GroupURI
+
+
+@dataclass(frozen=True)
+class HistoricalReviewerSettingsURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/review/historicalreviewersettings/")
+
+
+@dataclass(frozen=True)
+class HistoricalReviewerSettings(Resource):
+    expertise                   : str
+    filter_re                   : str
+    history_change_reason       : Optional[str]
+    history_date                : datetime
+    history_id                  : int
+    history_type                : str
+    history_user                : str
+    id                          : int
+    min_interval                : Optional[int]
+    person                      : PersonURI
+    remind_days_before_deadline : Optional[int]
+    remind_days_open_reviews    : Optional[int]
+    request_assignment_next     : bool
+    resource_uri                : HistoricalReviewerSettingsURI
+    skip_next                   : int
+    team                        : GroupURI
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------
@@ -2601,7 +2630,7 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/review/historicalreviewrequest/
     # * https://datatracker.ietf.org/api/v1/review/reviewersettings/
     # * https://datatracker.ietf.org/api/v1/review/unavailableperiod/
-    #   https://datatracker.ietf.org/api/v1/review/historicalreviewersettings/
+    # * https://datatracker.ietf.org/api/v1/review/historicalreviewersettings/
     #   https://datatracker.ietf.org/api/v1/review/historicalreviewassignment/
     #   https://datatracker.ietf.org/api/v1/review/reviewsecretarysettings/
 
@@ -2847,6 +2876,28 @@ class DataTracker:
         if team is not None:
             url.params["team"] = team.id
         return self._retrieve_multi(url, UnavailablePeriod, deref = {"person": "id", "team": "id"})
+
+
+    def historical_reviewer_settings(self, historical_reviewer_settings_uri: HistoricalReviewerSettingsURI) -> Optional[HistoricalReviewerSettings]:
+        return self._retrieve(historical_reviewer_settings_uri, HistoricalReviewerSettings)
+
+
+    def historical_reviewer_settings_all(self,
+            history_since : str                          = "1970-01-01T00:00:00",
+            history_until : str                          = "2038-01-19T03:14:07",
+            id            : int                          = None,
+            person        : Optional[Person]             = None,
+            team          : Optional[Group]              = None) -> Iterator[HistoricalReviewerSettings]:
+        url = HistoricalReviewerSettingsURI("/api/v1/review/historicalreviewersettings/")
+        url.params["history_date__gt"]       = history_since
+        url.params["history_date__lt"]       = history_until
+        if id is not None:
+            url.params["id"] = id
+        if person is not None:
+            url.params["person"] = person.id
+        if team is not None:
+            url.params["team"] = team.id
+        return self._retrieve_multi(url, HistoricalReviewerSettings, deref = {"person": "id", "team": "id"})
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
