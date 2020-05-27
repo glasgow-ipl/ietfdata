@@ -2478,7 +2478,7 @@ class DataTracker:
     #
     # * https://datatracker.ietf.org/api/v1/review/reviewassignment/
     # * https://datatracker.ietf.org/api/v1/review/reviewrequest/
-    #   https://datatracker.ietf.org/api/v1/review/reviewwish/
+    # * https://datatracker.ietf.org/api/v1/review/reviewwish/
     #   https://datatracker.ietf.org/api/v1/review/reviewteamsettings/
     #   https://datatracker.ietf.org/api/v1/review/nextreviewerinteam/
     #   https://datatracker.ietf.org/api/v1/review/historicalunavailableperiod/
