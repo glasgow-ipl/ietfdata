@@ -2310,6 +2310,49 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(review_wishes[1].id, 24)
 
 
+    def test_historical_unavailable_period(self) -> None:
+        historical_unavailable_period = self.dt.historical_unavailable_period(HistoricalUnavailablePeriodURI("/api/v1/review/historicalunavailableperiod/29/"))
+        if historical_unavailable_period is not None:
+            self.assertEqual(historical_unavailable_period.availability,          "unavailable")
+            self.assertEqual(historical_unavailable_period.end_date,              "2020-05-15")
+            self.assertEqual(historical_unavailable_period.history_change_reason, "Set end date of unavailability period: Francis Dupont is unavailable in genart 2020-03-16 - 2020-05-15")
+            self.assertEqual(historical_unavailable_period.history_date,          datetime.fromisoformat("2020-05-11T03:40:02.891938"))
+            self.assertEqual(historical_unavailable_period.history_id,            29)
+            self.assertEqual(historical_unavailable_period.history_type,          "~")
+            self.assertEqual(historical_unavailable_period.id,                    334)
+            self.assertEqual(historical_unavailable_period.person,                PersonURI("/api/v1/person/person/106670/"))
+            self.assertEqual(historical_unavailable_period.reason,                "")
+            self.assertEqual(historical_unavailable_period.resource_uri,          HistoricalUnavailablePeriodURI("/api/v1/review/historicalunavailableperiod/29/"))
+            self.assertEqual(historical_unavailable_period.start_date,            "2020-03-16")
+            self.assertEqual(historical_unavailable_period.team,                  GroupURI("/api/v1/group/group/1972/"))
+        else:
+            self.fail("Cannot find historical unavailable period")
+
+
+    def test_historical_unavailable_periods(self) -> None:
+        historical_unavailable_periods = self.dt.historical_unavailable_periods()
+        self.assertIsNot(historical_unavailable_periods, None)
+
+
+    def test_historical_unavailable_periods_history_type(self) -> None:
+        historical_unavailable_periods = self.dt.historical_unavailable_periods(history_type="~")
+        self.assertIsNot(historical_unavailable_periods, None)
+
+
+    def test_historical_unavailable_periods_id(self) -> None:
+        historical_unavailable_periods = list(self.dt.historical_unavailable_periods(id=328))
+        self.assertEqual(len(historical_unavailable_periods),          1)
+        self.assertEqual(historical_unavailable_periods[0].history_id, 14)
+
+
+    def test_historical_unavailable_periods_person(self) -> None:
+        historical_unavailable_periods = self.dt.historical_unavailable_periods(person=self.dt.person(PersonURI("/api/v1/person/person/119822/")))
+        self.assertIsNot(historical_unavailable_periods, None)
+
+
+    def test_historical_unavailable_periods_team(self) -> None:
+        historical_unavailable_periods = self.dt.historical_unavailable_periods(team=self.dt.group(GroupURI("/api/v1/group/group/1261/")))
+        self.assertIsNot(historical_unavailable_periods, None)
 
     def test_next_reviewer_in_team(self) -> None:
         next_reviewer_in_team = self.dt.next_reviewer_in_team(NextReviewerInTeamURI("/api/v1/review/nextreviewerinteam/1/"))
