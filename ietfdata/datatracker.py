@@ -1351,6 +1351,31 @@ class ReviewWish(Resource):
     time         : datetime
 
 
+@dataclass(frozen=True)
+class HistoricalReviewAssignmentURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/review/historicalreviewassignment/")
+
+
+@dataclass(frozen=True)
+class HistoricalReviewAssignment(Resource):
+    assigned_on           : datetime
+    completed_on          : datetime
+    history_change_reason : str
+    history_date          : datetime
+    history_id            : int
+    history_type          : str
+    id                    : int
+    mailarch_url          : Optional[str]
+    resource_uri          : HistoricalReviewAssignmentURI
+    result                : ReviewResultTypeURI
+    review                : DocumentURI
+    review_request        : ReviewRequestURI
+    reviewed_rev          : str
+    reviewer              : EmailURI
+    state                 : ReviewAssignmentStateURI
+
+
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to mailing lists:
 
@@ -2486,7 +2511,7 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/review/reviewersettings/
     #   https://datatracker.ietf.org/api/v1/review/unavailableperiod/
     #   https://datatracker.ietf.org/api/v1/review/historicalreviewersettings/
-    #   https://datatracker.ietf.org/api/v1/review/historicalreviewassignment/
+    # * https://datatracker.ietf.org/api/v1/review/historicalreviewassignment/
     #   https://datatracker.ietf.org/api/v1/review/reviewsecretarysettings/
 
     # * https://datatracker.ietf.org/api/v1/name/reviewresultname/
@@ -2619,6 +2644,38 @@ class DataTracker:
         if team is not None:
             url.params["team"] = team.id
         return self._retrieve_multi(url, ReviewWish, deref = {"doc": "id", "person": "id", "team": "id"})
+
+
+    def historical_review_assignment(self, historical_review_assignment_uri: HistoricalReviewAssignmentURI) -> Optional[HistoricalReviewAssignment]:
+        return self._retrieve(historical_review_assignment_uri, HistoricalReviewAssignment)
+
+
+    def historical_review_assignments(self,
+            assigned_since         : str                             = "1970-01-01T00:00:00",
+            assigned_until         : str                             = "2038-01-19T03:14:07",
+            completed_since        : str                             = "1970-01-01T00:00:00",
+            completed_until        : str                             = "2038-01-19T03:14:07",
+            id                     : int                             = None,
+            result                 : Optional[ReviewResultType]      = None,
+            review_request         : Optional[ReviewRequest]         = None,
+            reviewer               : Optional[Email]                 = None,
+            state                  : Optional[ReviewAssignmentState] = None) -> Iterator[HistoricalReviewAssignment]:
+        url = HistoricalReviewAssignmentURI("/api/v1/review/historicalreviewassignment/")
+        url.params["assigned_on__gt"]       = assigned_since
+        url.params["assigned_on__lt"]       = assigned_until
+        url.params["completed_on__gt"]      = completed_since
+        url.params["completed_on__lt"]      = completed_until
+        if id is not None:
+            url.params["id"] = id
+        if result is not None:
+            url.params["result"] = result.slug
+        if review_request is not None:
+            url.params["review_request"] = review_request.id
+        if reviewer is not None:
+            url.params["reviewer"] = reviewer.address
+        if state is not None:
+            url.params["state"] = state.slug
+        return self._retrieve_multi(url, HistoricalReviewAssignment, deref = {"result": "slug", "review_request": "id", "reviewer": "address", "state": "slug"})
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
