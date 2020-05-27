@@ -2776,44 +2776,6 @@ class DataTracker:
         return self._retrieve_multi(url, ReviewTeamSettings, deref = {"group": "id"})
 
 
-    def historical_review_request(self, historical_review_request_uri: HistoricalReviewRequestURI) -> Optional[HistoricalReviewRequest]:
-        return self._retrieve(historical_review_request_uri, HistoricalReviewRequest)
-
-
-    def historical_review_requests(self,
-            since         : str                          = "1970-01-01T00:00:00",
-            until         : str                          = "2038-01-19T03:14:07",
-            history_since : str                          = "1970-01-01T00:00:00",
-            history_until : str                          = "2038-01-19T03:14:07",
-            history_type  : str                          = None,
-            id            : int                          = None,
-            doc           : Optional[Document]           = None,
-            requested_by  : Optional[Person]             = None,
-            state         : Optional[ReviewRequestState] = None,
-            team          : Optional[Group]              = None,
-            type          : Optional[ReviewType]         = None) -> Iterator[HistoricalReviewRequest]:
-        url = HistoricalReviewRequestURI("/api/v1/review/historicalreviewrequest/")
-        url.params["time__gt"]         = since
-        url.params["time__lt"]         = until
-        url.params["history_date__gt"] = history_since
-        url.params["history_date__lt"] = history_until
-        if history_type is not None:
-            url.params["history_type"] = history_type
-        if id is not None:
-            url.params["id"] = id
-        if doc is not None:
-            url.params["doc"] = doc.id
-        if requested_by is not None:
-            url.params["requested_by"] = requested_by.id
-        if state is not None:
-            url.params["state"] = state.slug
-        if team is not None:
-            url.params["team"] = team.id
-        if type is not None:
-            url.params["type"] = type.slug
-        return self._retrieve_multi(url, HistoricalReviewRequest, deref = {"doc": "id", "requested_by": "id", "state": "slug", "team": "id", "type": "slug"})
-
-
     # ----------------------------------------------------------------------------------------------------------------------------
     # Datatracker API endpoints returning information about mailing lists:
     #
