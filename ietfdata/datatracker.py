@@ -1352,7 +1352,6 @@ class ReviewWish(Resource):
 
 
 @dataclass(frozen=True)
-<<<<<<< HEAD
 class HistoricalUnavailablePeriodURI(URI):
     def __post_init__(self) -> None:
         assert self.uri.startswith("/api/v1/review/historicalunavailableperiod/")
@@ -1373,8 +1372,6 @@ class HistoricalUnavailablePeriod(Resource):
     start_date            : str
     team                  : GroupURI
 
-=======
->>>>>>> 38d4018582e37be5d79cbc7b6a6b5fab3fc1f988
 class HistoricalReviewRequestURI(URI):
     def __post_init__(self) -> None:
         assert self.uri.startswith("/api/v1/review/historicalreviewrequest/")
@@ -1398,7 +1395,6 @@ class HistoricalReviewRequest(Resource):
     time                  : datetime
     type                  : ReviewTypeURI
 
-<<<<<<< HEAD
 class NextReviewerInTeamURI(URI):
     def __post_init__(self) -> None:
         assert self.uri.startswith("/api/v1/review/nextreviewerinteam/")
@@ -1427,8 +1423,6 @@ class ReviewTeamSettings(Resource):
     review_results                      : List[ReviewResultTypeURI]
     review_types                        : List[ReviewTypeURI]
     secr_mail_alias                     : str
-=======
->>>>>>> 38d4018582e37be5d79cbc7b6a6b5fab3fc1f988
 
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to mailing lists:
@@ -2558,15 +2552,9 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/review/reviewassignment/
     # * https://datatracker.ietf.org/api/v1/review/reviewrequest/
     # * https://datatracker.ietf.org/api/v1/review/reviewwish/
-<<<<<<< HEAD
     # * https://datatracker.ietf.org/api/v1/review/reviewteamsettings/
     # * https://datatracker.ietf.org/api/v1/review/nextreviewerinteam/
     # * https://datatracker.ietf.org/api/v1/review/historicalunavailableperiod/
-=======
-    #   https://datatracker.ietf.org/api/v1/review/reviewteamsettings/
-    #   https://datatracker.ietf.org/api/v1/review/nextreviewerinteam/
-    #   https://datatracker.ietf.org/api/v1/review/historicalunavailableperiod/
->>>>>>> 38d4018582e37be5d79cbc7b6a6b5fab3fc1f988
     # * https://datatracker.ietf.org/api/v1/review/historicalreviewrequest/
     #   https://datatracker.ietf.org/api/v1/review/reviewersettings/
     #   https://datatracker.ietf.org/api/v1/review/unavailableperiod/
