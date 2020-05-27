@@ -2310,6 +2310,49 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(review_wishes[1].id, 24)
 
 
+    def test_historical_reviewer_settings(self) -> None:
+        historical_reviewer_settings = self.dt.historical_reviewer_settings(HistoricalReviewerSettingsURI("/api/v1/review/historicalreviewersettings/733/"))
+        if historical_reviewer_settings is not None:
+            self.assertEqual(historical_reviewer_settings.expertise,                   "")
+            self.assertEqual(historical_reviewer_settings.filter_re,                   "^draft-(weber).*$")
+            self.assertEqual(historical_reviewer_settings.history_change_reason,       None)
+            self.assertEqual(historical_reviewer_settings.history_date,                datetime.fromisoformat("2020-05-27T08:15:54.053936"))
+            self.assertEqual(historical_reviewer_settings.history_id,                  733)
+            self.assertEqual(historical_reviewer_settings.history_type,                "~")
+            self.assertEqual(historical_reviewer_settings.history_user,                "")
+            self.assertEqual(historical_reviewer_settings.id,                          97)
+            self.assertEqual(historical_reviewer_settings.min_interval,                None)
+            self.assertEqual(historical_reviewer_settings.person,                      PersonURI("/api/v1/person/person/110404/"))
+            self.assertEqual(historical_reviewer_settings.remind_days_before_deadline, None)
+            self.assertEqual(historical_reviewer_settings.remind_days_open_reviews,    None)
+            self.assertEqual(historical_reviewer_settings.request_assignment_next,     False)
+            self.assertEqual(historical_reviewer_settings.resource_uri,                HistoricalReviewerSettingsURI("/api/v1/review/historicalreviewersettings/733/"))
+            self.assertEqual(historical_reviewer_settings.skip_next,                   0)
+            self.assertEqual(historical_reviewer_settings.team,                        GroupURI("/api/v1/group/group/1974/"))
+        else:
+            self.fail("Cannot find historical reviewer settings")
+
+
+    def test_historical_reviewer_settings_all(self) -> None:
+        historical_reviewer_settings = self.dt.historical_reviewer_settings_all()
+        self.assertIsNot(historical_reviewer_settings, None)
+
+
+    def test_historical_reviewer_settings_all_id(self) -> None:
+        historical_reviewer_settings = self.dt.historical_reviewer_settings_all(id=97)
+        self.assertIsNot(historical_reviewer_settings, None)
+
+
+    def test_historical_reviewer_settings_all_person(self) -> None:
+        historical_reviewer_settings = self.dt.historical_reviewer_settings_all(person=self.dt.person(PersonURI("/api/v1/person/person/110404/")))
+        self.assertIsNot(historical_reviewer_settings, None)
+
+
+    def test_historical_reviewer_settings_all_team(self) -> None:
+        historical_reviewer_settings = self.dt.historical_reviewer_settings_all(team=self.dt.group(GroupURI("/api/v1/group/group/1974/")))
+        self.assertIsNot(historical_reviewer_settings, None)
+
+
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to mailing lists:
 
