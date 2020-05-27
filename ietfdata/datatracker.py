@@ -1351,7 +1351,6 @@ class ReviewWish(Resource):
     time         : datetime
 
 
-@dataclass(frozen=True)
 class HistoricalUnavailablePeriodURI(URI):
     def __post_init__(self) -> None:
         assert self.uri.startswith("/api/v1/review/historicalunavailableperiod/")
@@ -1426,6 +1425,7 @@ class ReviewTeamSettings(Resource):
     review_results                      : List[ReviewResultTypeURI]
     review_types                        : List[ReviewTypeURI]
     secr_mail_alias                     : str
+
 
 @dataclass(frozen=True)
 class ReviewerSettingsURI(URI):
