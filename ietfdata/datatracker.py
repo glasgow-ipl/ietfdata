@@ -1448,6 +1448,24 @@ class ReviewerSettings(Resource):
     team                        : GroupURI
 
 
+@dataclass(frozen=True)
+class UnavailablePeriodURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/review/unavailableperiod/")
+
+
+@dataclass(frozen=True)
+class UnavailablePeriod(Resource):
+    availability : str
+    end_date     : str
+    id           : int
+    person       : PersonURI
+    reason       : str
+    resource_uri : UnavailablePeriodURI
+    start_date   : Optional[str]
+    team         : GroupURI
+
+
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to mailing lists:
 
@@ -2581,7 +2599,7 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/review/historicalunavailableperiod/
     # * https://datatracker.ietf.org/api/v1/review/historicalreviewrequest/
     # * https://datatracker.ietf.org/api/v1/review/reviewersettings/
-    #   https://datatracker.ietf.org/api/v1/review/unavailableperiod/
+    # * https://datatracker.ietf.org/api/v1/review/unavailableperiod/
     #   https://datatracker.ietf.org/api/v1/review/historicalreviewersettings/
     #   https://datatracker.ietf.org/api/v1/review/historicalreviewassignment/
     #   https://datatracker.ietf.org/api/v1/review/reviewsecretarysettings/
@@ -2813,6 +2831,21 @@ class DataTracker:
         if team is not None:
             url.params["team"] = team.id
         return self._retrieve_multi(url, ReviewerSettings, deref = {"person": "id", "team": "id"})
+
+
+    def unavailable_period(self, unavailable_period_uri: UnavailablePeriodURI) -> Optional[UnavailablePeriod]:
+        return self._retrieve(unavailable_period_uri, UnavailablePeriod)
+
+
+    def unavailable_periods(self,
+            person        : Optional[Person]             = None,
+            team          : Optional[Group]              = None) -> Iterator[UnavailablePeriod]:
+        url = UnavailablePeriodURI("/api/v1/review/unavailableperiod/")
+        if person is not None:
+            url.params["person"] = person.id
+        if team is not None:
+            url.params["team"] = team.id
+        return self._retrieve_multi(url, UnavailablePeriod, deref = {"person": "id", "team": "id"})
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
