@@ -2354,6 +2354,65 @@ class TestDatatracker(unittest.TestCase):
         historical_unavailable_periods = self.dt.historical_unavailable_periods(team=self.dt.group(GroupURI("/api/v1/group/group/1261/")))
         self.assertIsNot(historical_unavailable_periods, None)
 
+    def test_next_reviewer_in_team(self) -> None:
+        next_reviewer_in_team = self.dt.next_reviewer_in_team(NextReviewerInTeamURI("/api/v1/review/nextreviewerinteam/1/"))
+        if next_reviewer_in_team is not None:
+            self.assertEqual(next_reviewer_in_team.id,            1)
+            self.assertEqual(next_reviewer_in_team.next_reviewer, PersonURI("/api/v1/person/person/106670/"))
+            self.assertEqual(next_reviewer_in_team.resource_uri,  NextReviewerInTeamURI("/api/v1/review/nextreviewerinteam/1/"))
+            self.assertEqual(next_reviewer_in_team.team,          GroupURI("/api/v1/group/group/1972/"))
+        else:
+            self.fail("Cannot find next reviewer in team")
+
+
+    def test_next_reviewers_in_teams(self) -> None:
+        next_reviewers_in_teams = self.dt.next_reviewers_in_teams()
+        self.assertIsNot(next_reviewers_in_teams, None)
+
+
+    def test_next_reviewers_in_teams_team(self) -> None:
+        next_reviewers_in_teams = list(self.dt.next_reviewers_in_teams(team=self.dt.group(GroupURI("/api/v1/group/group/1972/"))))
+        self.assertEqual(len(next_reviewers_in_teams),  1)
+        self.assertEqual(next_reviewers_in_teams[0].id, 1)
+
+    def test_review_team_settings(self) -> None:
+        review_team_settings = self.dt.review_team_settings(ReviewTeamSettingsURI("/api/v1/review/reviewteamsettings/1/"))
+        if review_team_settings is not None:
+            self.assertEqual(review_team_settings.autosuggest,                      True)
+            self.assertEqual(review_team_settings.group,                            GroupURI("/api/v1/group/group/1261/"))
+            self.assertEqual(review_team_settings.id,                               1)
+            self.assertEqual(len(review_team_settings.notify_ad_when),              3)
+            self.assertEqual(review_team_settings.notify_ad_when[0],                ReviewResultTypeURI("/api/v1/name/reviewresultname/serious-issues/"))
+            self.assertEqual(review_team_settings.notify_ad_when[1],                ReviewResultTypeURI("/api/v1/name/reviewresultname/issues/"))
+            self.assertEqual(review_team_settings.notify_ad_when[2],                ReviewResultTypeURI("/api/v1/name/reviewresultname/not-ready/"))
+            self.assertIs(review_team_settings.remind_days_unconfirmed_assignments, None)
+            self.assertEqual(review_team_settings.resource_uri,                     ReviewTeamSettingsURI("/api/v1/review/reviewteamsettings/1/"))
+            self.assertEqual(len(review_team_settings.review_results),              5)
+            self.assertEqual(review_team_settings.review_results[0],                ReviewResultTypeURI("/api/v1/name/reviewresultname/serious-issues/"))
+            self.assertEqual(review_team_settings.review_results[1],                ReviewResultTypeURI("/api/v1/name/reviewresultname/issues/"))
+            self.assertEqual(review_team_settings.review_results[2],                ReviewResultTypeURI("/api/v1/name/reviewresultname/nits/"))
+            self.assertEqual(review_team_settings.review_results[3],                ReviewResultTypeURI("/api/v1/name/reviewresultname/not-ready/"))
+            self.assertEqual(review_team_settings.review_results[4],                ReviewResultTypeURI("/api/v1/name/reviewresultname/ready/"))
+            self.assertEqual(len(review_team_settings.review_types),                3)
+            self.assertEqual(review_team_settings.review_types[0],                  ReviewTypeURI("/api/v1/name/reviewtypename/early/"))
+            self.assertEqual(review_team_settings.review_types[1],                  ReviewTypeURI("/api/v1/name/reviewtypename/lc/"))
+            self.assertEqual(review_team_settings.review_types[2],                  ReviewTypeURI("/api/v1/name/reviewtypename/telechat/"))
+            self.assertEqual(review_team_settings.secr_mail_alias,                  "")
+        else:
+            self.fail("Cannot find review team settings")
+
+
+    def test_review_team_settings_all(self) -> None:
+        review_team_settings_all = self.dt.review_team_settings_all()
+        self.assertIsNot(review_team_settings_all, None)
+
+
+    def test_review_team_settings_all_group(self) -> None:
+        review_team_settings_all = list(self.dt.review_team_settings_all(group=self.dt.group(GroupURI("/api/v1/group/group/1261/"))))
+        self.assertEqual(len(review_team_settings_all),  1)
+        self.assertEqual(review_team_settings_all[0].id, 1)
+
+
 
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to mailing lists:
