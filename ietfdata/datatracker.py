@@ -1371,6 +1371,56 @@ class ReviewerSettings(Resource):
     skip_next                   : int
     team                        : GroupURI
 
+class HistoricalUnavailablePeriodURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/review/historicalunavailableperiod/")
+
+
+@dataclass(frozen=True)
+class HistoricalUnavailablePeriod(Resource):
+    availability          : str
+    end_date              : str
+    history_change_reason : str
+    history_date          : datetime
+    history_id            : int
+    history_type          : str
+    id                    : int
+    person                : PersonURI
+    reason                : str
+    resource_uri          : HistoricalUnavailablePeriodURI
+    start_date            : str
+    team                  : GroupURI
+
+class NextReviewerInTeamURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/review/nextreviewerinteam/")
+
+
+@dataclass(frozen=True)
+class NextReviewerInTeam(Resource):
+    id            : int
+    next_reviewer : PersonURI
+    resource_uri  : NextReviewerInTeamURI
+    team          : GroupURI
+
+class ReviewTeamSettingsURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/review/reviewteamsettings/")
+
+
+@dataclass(frozen=True)
+class ReviewTeamSettings(Resource):
+    autosuggest                         : bool
+    group                               : GroupURI
+    id                                  : int
+    notify_ad_when                      : List[ReviewResultTypeURI]
+    remind_days_unconfirmed_assignments : Optional[int]
+    resource_uri                        : ReviewTeamSettingsURI
+    review_results                      : List[ReviewResultTypeURI]
+    review_types                        : List[ReviewTypeURI]
+    secr_mail_alias                     : str
+
+
 
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to mailing lists:
@@ -2500,9 +2550,9 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/review/reviewassignment/
     # * https://datatracker.ietf.org/api/v1/review/reviewrequest/
     # * https://datatracker.ietf.org/api/v1/review/reviewwish/
-    #   https://datatracker.ietf.org/api/v1/review/reviewteamsettings/
-    #   https://datatracker.ietf.org/api/v1/review/nextreviewerinteam/
-    #   https://datatracker.ietf.org/api/v1/review/historicalunavailableperiod/
+    # * https://datatracker.ietf.org/api/v1/review/reviewteamsettings/
+    # * https://datatracker.ietf.org/api/v1/review/nextreviewerinteam/
+    # * https://datatracker.ietf.org/api/v1/review/historicalunavailableperiod/
     #   https://datatracker.ietf.org/api/v1/review/historicalreviewrequest/
     # * https://datatracker.ietf.org/api/v1/review/reviewersettings/
     #   https://datatracker.ietf.org/api/v1/review/unavailableperiod/
@@ -2650,11 +2700,58 @@ class DataTracker:
             person        : Optional[Person]             = None,
             team          : Optional[Group]              = None) -> Iterator[ReviewerSettings]:
         url = ReviewerSettingsURI("/api/v1/review/reviewersettings/")
+        return self._retrieve_multi(url, ReviewerSettings, deref = {"person": "id", "team": "id"})
+
+        
+    def historical_unavailable_period(self, historical_unavailable_period_uri: HistoricalUnavailablePeriodURI) -> Optional[HistoricalUnavailablePeriod]:
+        return self._retrieve(historical_unavailable_period_uri, HistoricalUnavailablePeriod)
+
+
+    def historical_unavailable_periods(self,
+            since         : str                          = "1970-01-01T00:00:00",
+            until         : str                          = "2038-01-19T03:14:07",
+            history_type  : Optional[str]                = None,
+            id            : Optional[int]                = None,
+            person        : Optional[Person]             = None,
+            team          : Optional[Group]              = None) -> Iterator[HistoricalUnavailablePeriod]:
+        url = HistoricalUnavailablePeriodURI("/api/v1/review/historicalunavailableperiod/")
+        url.params["time__gt"]       = since
+        url.params["time__lt"]       = until
+        if history_type is not None:
+            url.params["history_type"] = history_type
+        if id is not None:
+            url.params["id"] = id
         if person is not None:
             url.params["person"] = person.id
         if team is not None:
             url.params["team"] = team.id
-        return self._retrieve_multi(url, ReviewerSettings, deref = {"person": "id", "team": "id"})
+        return self._retrieve_multi(url, HistoricalUnavailablePeriod, deref = {"person": "id", "team": "id"})
+
+
+    def next_reviewer_in_team(self, next_reviewer_in_team_uri: NextReviewerInTeamURI) -> Optional[NextReviewerInTeam]:
+        return self._retrieve(next_reviewer_in_team_uri, NextReviewerInTeam)
+
+
+    def next_reviewers_in_teams(self,
+            team          : Optional[Group] = None) -> Iterator[NextReviewerInTeam]:
+        url = NextReviewerInTeamURI("/api/v1/review/nextreviewerinteam/")
+        if team is not None:
+            url.params["team"] = team.id
+        return self._retrieve_multi(url, NextReviewerInTeam, deref = {"team": "id"})
+
+
+
+    def review_team_settings(self, review_team_settings_uri: ReviewTeamSettingsURI) -> Optional[ReviewTeamSettings]:
+        return self._retrieve(review_team_settings_uri, ReviewTeamSettings)
+
+
+    def review_team_settings_all(self,
+            group                    : Optional[Group] = None) -> Iterator[ReviewTeamSettings]:
+        url = ReviewTeamSettingsURI("/api/v1/review/reviewteamsettings/")
+        if group is not None:
+            url.params["group"] = group.id
+        return self._retrieve_multi(url, ReviewTeamSettings, deref = {"group": "id"})
+
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
