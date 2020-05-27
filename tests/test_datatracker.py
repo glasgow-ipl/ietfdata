@@ -2310,6 +2310,28 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(review_wishes[1].id, 24)
 
 
+
+    def test_next_reviewer_in_team(self) -> None:
+        next_reviewer_in_team = self.dt.next_reviewer_in_team(NextReviewerInTeamURI("/api/v1/review/nextreviewerinteam/1/"))
+        if next_reviewer_in_team is not None:
+            self.assertEqual(next_reviewer_in_team.id,            1)
+            self.assertEqual(next_reviewer_in_team.next_reviewer, PersonURI("/api/v1/person/person/106670/"))
+            self.assertEqual(next_reviewer_in_team.resource_uri,  NextReviewerInTeamURI("/api/v1/review/nextreviewerinteam/1/"))
+            self.assertEqual(next_reviewer_in_team.team,          GroupURI("/api/v1/group/group/1972/"))
+        else:
+            self.fail("Cannot find next reviewer in team")
+
+
+    def test_next_reviewers_in_teams(self) -> None:
+        next_reviewers_in_teams = self.dt.next_reviewers_in_teams()
+        self.assertIsNot(next_reviewers_in_teams, None)
+
+
+    def test_next_reviewers_in_teams_team(self) -> None:
+        next_reviewers_in_teams = list(self.dt.next_reviewers_in_teams(team=self.dt.group(GroupURI("/api/v1/group/group/1972/"))))
+        self.assertEqual(len(next_reviewers_in_teams),  1)
+        self.assertEqual(next_reviewers_in_teams[0].id, 1)
+
     def test_review_team_settings(self) -> None:
         review_team_settings = self.dt.review_team_settings(ReviewTeamSettingsURI("/api/v1/review/reviewteamsettings/1/"))
         if review_team_settings is not None:
@@ -2346,6 +2368,7 @@ class TestDatatracker(unittest.TestCase):
         review_team_settings_all = list(self.dt.review_team_settings_all(group=self.dt.group(GroupURI("/api/v1/group/group/1261/"))))
         self.assertEqual(len(review_team_settings_all),  1)
         self.assertEqual(review_team_settings_all[0].id, 1)
+
 
 
     # -----------------------------------------------------------------------------------------------------------------------------

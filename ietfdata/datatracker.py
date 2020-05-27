@@ -1352,6 +1352,19 @@ class ReviewWish(Resource):
 
 
 @dataclass(frozen=True)
+
+class NextReviewerInTeamURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/review/nextreviewerinteam/")
+
+
+@dataclass(frozen=True)
+class NextReviewerInTeam(Resource):
+    id            : int
+    next_reviewer : PersonURI
+    resource_uri  : NextReviewerInTeamURI
+    team          : GroupURI
+
 class ReviewTeamSettingsURI(URI):
     def __post_init__(self) -> None:
         assert self.uri.startswith("/api/v1/review/reviewteamsettings/")
@@ -1368,6 +1381,7 @@ class ReviewTeamSettings(Resource):
     review_results                      : List[ReviewResultTypeURI]
     review_types                        : List[ReviewTypeURI]
     secr_mail_alias                     : str
+
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------
@@ -2499,7 +2513,7 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/review/reviewrequest/
     # * https://datatracker.ietf.org/api/v1/review/reviewwish/
     # * https://datatracker.ietf.org/api/v1/review/reviewteamsettings/
-    #   https://datatracker.ietf.org/api/v1/review/nextreviewerinteam/
+    # * https://datatracker.ietf.org/api/v1/review/nextreviewerinteam/
     #   https://datatracker.ietf.org/api/v1/review/historicalunavailableperiod/
     #   https://datatracker.ietf.org/api/v1/review/historicalreviewrequest/
     #   https://datatracker.ietf.org/api/v1/review/reviewersettings/
@@ -2640,6 +2654,20 @@ class DataTracker:
         return self._retrieve_multi(url, ReviewWish, deref = {"doc": "id", "person": "id", "team": "id"})
 
 
+
+    def next_reviewer_in_team(self, next_reviewer_in_team_uri: NextReviewerInTeamURI) -> Optional[NextReviewerInTeam]:
+        return self._retrieve(next_reviewer_in_team_uri, NextReviewerInTeam)
+
+
+    def next_reviewers_in_teams(self,
+            team          : Optional[Group] = None) -> Iterator[NextReviewerInTeam]:
+        url = NextReviewerInTeamURI("/api/v1/review/nextreviewerinteam/")
+        if team is not None:
+            url.params["team"] = team.id
+        return self._retrieve_multi(url, NextReviewerInTeam, deref = {"team": "id"})
+
+
+
     def review_team_settings(self, review_team_settings_uri: ReviewTeamSettingsURI) -> Optional[ReviewTeamSettings]:
         return self._retrieve(review_team_settings_uri, ReviewTeamSettings)
 
@@ -2650,6 +2678,7 @@ class DataTracker:
         if group is not None:
             url.params["group"] = group.id
         return self._retrieve_multi(url, ReviewTeamSettings, deref = {"group": "id"})
+
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
