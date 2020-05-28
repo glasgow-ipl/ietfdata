@@ -2582,6 +2582,58 @@ class TestDatatracker(unittest.TestCase):
         self.assertIsNot(historical_reviewer_settings, None)
 
 
+    def test_historical_review_assignment(self) -> None:
+        historical_review_assignment = self.dt.historical_review_assignment(HistoricalReviewAssignmentURI("/api/v1/review/historicalreviewassignment/1130/"))
+        if historical_review_assignment is not None:
+            self.assertEqual(historical_review_assignment.assigned_on,           datetime.fromisoformat("2020-05-19T08:35:44.263003"))
+            self.assertEqual(historical_review_assignment.completed_on,          datetime.fromisoformat("2020-05-27T08:17:03.891532"))
+            self.assertEqual(historical_review_assignment.history_change_reason, "Request for Last Call review by OPSDIR Completed: Not Ready. Reviewer: Scott Bradner.")
+            self.assertEqual(historical_review_assignment.history_date,          datetime.fromisoformat("2020-05-27T08:17:03.897813"))
+            self.assertEqual(historical_review_assignment.history_id,            1130)
+            self.assertEqual(historical_review_assignment.history_type,          "~")
+            self.assertEqual(historical_review_assignment.id,                    11544)
+            self.assertEqual(historical_review_assignment.mailarch_url,          None)
+            self.assertEqual(historical_review_assignment.resource_uri,          HistoricalReviewAssignmentURI("/api/v1/review/historicalreviewassignment/1130/"))
+            self.assertEqual(historical_review_assignment.result,                ReviewResultTypeURI("/api/v1/name/reviewresultname/not-ready/"))
+            self.assertEqual(historical_review_assignment.review,                DocumentURI("/api/v1/doc/document/review-ietf-ospf-te-link-attr-reuse-12-opsdir-lc-bradner-2020-05-27/"))
+            self.assertEqual(historical_review_assignment.review_request,        ReviewRequestURI("/api/v1/review/reviewrequest/13398/"))
+            self.assertEqual(historical_review_assignment.reviewed_rev,          "12")
+            self.assertEqual(historical_review_assignment.reviewer,              EmailURI("/api/v1/person/email/sob@sobco.com/"))
+            self.assertEqual(historical_review_assignment.state,                 ReviewAssignmentStateURI("/api/v1/name/reviewassignmentstatename/completed/"))
+        else:
+            self.fail("Cannot find historical review assignment")
+
+
+    def test_historical_review_assignments(self) -> None:
+        historical_review_assignments = self.dt.historical_review_assignments()
+        self.assertIsNot(historical_review_assignments, None)
+
+
+    def test_historical_review_assignments_id(self) -> None:
+        historical_review_assignments = self.dt.historical_review_assignments(id=11544)
+        self.assertIsNot(historical_review_assignments, None)
+
+
+    def test_historical_review_assignments_result(self) -> None:
+        historical_review_assignments = self.dt.historical_review_assignments(result=self.dt.review_result_type(ReviewResultTypeURI("/api/v1/name/reviewresultname/nits/")))
+        self.assertIsNot(historical_review_assignments, None)
+
+
+    def test_historical_review_assignments_review_request(self) -> None:
+        historical_review_assignments = list(self.dt.historical_review_assignments(review_request=self.dt.review_request(ReviewRequestURI("/api/v1/review/reviewrequest/13398/"))))
+        self.assertIsNot(historical_review_assignments, None)
+
+
+    def test_historical_review_assignments_reviewer(self) -> None:
+        historical_review_assignments = self.dt.historical_review_assignments(reviewer=self.dt.email(EmailURI("/api/v1/person/email/csp@csperkins.org/")))
+        self.assertIsNot(historical_review_assignments, None)
+
+
+    def test_historical_review_assignments_state(self) -> None:
+        historical_review_assignments = self.dt.historical_review_assignments(state=self.dt.review_assignment_state(ReviewAssignmentStateURI("/api/v1/name/reviewassignmentstatename/completed/")))
+        self.assertIsNot(historical_review_assignments, None)
+
+
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to mailing lists:
 
