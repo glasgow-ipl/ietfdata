@@ -2310,6 +2310,40 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(review_wishes[1].id, 24)
 
 
+    def test_reviewer_settings(self) -> None:
+        reviewer_settings = self.dt.reviewer_settings(ReviewerSettingsURI("/api/v1/review/reviewersettings/1/"))
+        if reviewer_settings is not None:
+            self.assertEqual(reviewer_settings.expertise,                   "")
+            self.assertEqual(reviewer_settings.filter_re,                   "^draft-carpenter-.*$")
+            self.assertEqual(reviewer_settings.id,                          1)
+            self.assertEqual(reviewer_settings.min_interval,                14)
+            self.assertEqual(reviewer_settings.person,                      PersonURI("/api/v1/person/person/1958/"))
+            self.assertEqual(reviewer_settings.remind_days_before_deadline, 3)
+            self.assertEqual(reviewer_settings.remind_days_open_reviews,    None)
+            self.assertEqual(reviewer_settings.request_assignment_next,     False)
+            self.assertEqual(reviewer_settings.resource_uri,                ReviewerSettingsURI("/api/v1/review/reviewersettings/1/"))
+            self.assertEqual(reviewer_settings.skip_next,                   0)
+            self.assertEqual(reviewer_settings.team,                        GroupURI("/api/v1/group/group/1972/"))
+        else:
+            self.fail("Cannot find reviewer settings")
+
+
+    def test_reviewer_settings_all(self) -> None:
+        reviewer_settings = self.dt.reviewer_settings_all()
+        self.assertIsNot(reviewer_settings, None)
+
+
+    def test_reviewer_settings_all_person(self) -> None:
+        reviewer_settings = list(self.dt.reviewer_settings_all(person=self.dt.person(PersonURI("/api/v1/person/person/1958/"))))
+        self.assertEqual(len(reviewer_settings),  1)
+        self.assertEqual(reviewer_settings[0].id, 1)
+
+
+    def test_reviewer_settings_all_team(self) -> None:
+        reviewer_settings = self.dt.reviewer_settings_all(team=self.dt.group(GroupURI("/api/v1/group/group/1972/")))
+        self.assertIsNot(reviewer_settings, None)
+
+
     def test_historical_unavailable_period(self) -> None:
         historical_unavailable_period = self.dt.historical_unavailable_period(HistoricalUnavailablePeriodURI("/api/v1/review/historicalunavailableperiod/29/"))
         if historical_unavailable_period is not None:

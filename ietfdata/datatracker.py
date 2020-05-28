@@ -1351,7 +1351,6 @@ class ReviewWish(Resource):
     time         : datetime
 
 
-@dataclass(frozen=True)
 class HistoricalUnavailablePeriodURI(URI):
     def __post_init__(self) -> None:
         assert self.uri.startswith("/api/v1/review/historicalunavailableperiod/")
@@ -1372,6 +1371,7 @@ class HistoricalUnavailablePeriod(Resource):
     start_date            : str
     team                  : GroupURI
 
+@dataclass(frozen=True)
 class HistoricalReviewRequestURI(URI):
     def __post_init__(self) -> None:
         assert self.uri.startswith("/api/v1/review/historicalreviewrequest/")
@@ -1395,6 +1395,7 @@ class HistoricalReviewRequest(Resource):
     time                  : datetime
     type                  : ReviewTypeURI
 
+@dataclass(frozen=True)
 class NextReviewerInTeamURI(URI):
     def __post_init__(self) -> None:
         assert self.uri.startswith("/api/v1/review/nextreviewerinteam/")
@@ -1407,6 +1408,7 @@ class NextReviewerInTeam(Resource):
     resource_uri  : NextReviewerInTeamURI
     team          : GroupURI
 
+@dataclass(frozen=True)
 class ReviewTeamSettingsURI(URI):
     def __post_init__(self) -> None:
         assert self.uri.startswith("/api/v1/review/reviewteamsettings/")
@@ -1423,6 +1425,28 @@ class ReviewTeamSettings(Resource):
     review_results                      : List[ReviewResultTypeURI]
     review_types                        : List[ReviewTypeURI]
     secr_mail_alias                     : str
+
+
+@dataclass(frozen=True)
+class ReviewerSettingsURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/review/reviewersettings/")
+
+
+@dataclass(frozen=True)
+class ReviewerSettings(Resource):
+    expertise                   : str
+    filter_re                   : str
+    id                          : int
+    min_interval                : Optional[int]
+    person                      : PersonURI
+    remind_days_before_deadline : Optional[int]
+    remind_days_open_reviews    : Optional[int]
+    request_assignment_next     : bool
+    resource_uri                : ReviewerSettingsURI
+    skip_next                   : int
+    team                        : GroupURI
+
 
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to mailing lists:
@@ -2556,7 +2580,7 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/review/nextreviewerinteam/
     # * https://datatracker.ietf.org/api/v1/review/historicalunavailableperiod/
     # * https://datatracker.ietf.org/api/v1/review/historicalreviewrequest/
-    #   https://datatracker.ietf.org/api/v1/review/reviewersettings/
+    # * https://datatracker.ietf.org/api/v1/review/reviewersettings/
     #   https://datatracker.ietf.org/api/v1/review/unavailableperiod/
     #   https://datatracker.ietf.org/api/v1/review/historicalreviewersettings/
     #   https://datatracker.ietf.org/api/v1/review/historicalreviewassignment/
@@ -2774,6 +2798,21 @@ class DataTracker:
         if group is not None:
             url.params["group"] = group.id
         return self._retrieve_multi(url, ReviewTeamSettings, deref = {"group": "id"})
+
+
+    def reviewer_settings(self, reviewer_settings_uri: ReviewerSettingsURI) -> Optional[ReviewerSettings]:
+        return self._retrieve(reviewer_settings_uri, ReviewerSettings)
+
+
+    def reviewer_settings_all(self,
+            person        : Optional[Person]             = None,
+            team          : Optional[Group]              = None) -> Iterator[ReviewerSettings]:
+        url = ReviewerSettingsURI("/api/v1/review/reviewersettings/")
+        if person is not None:
+            url.params["person"] = person.id
+        if team is not None:
+            url.params["team"] = team.id
+        return self._retrieve_multi(url, ReviewerSettings, deref = {"person": "id", "team": "id"})
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
