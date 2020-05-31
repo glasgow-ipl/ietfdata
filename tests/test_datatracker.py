@@ -2019,6 +2019,33 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(types[14].slug, "updates")
         self.assertEqual(types[15].slug, "refunk")
 
+
+    # -----------------------------------------------------------------------------------------------------------------------------
+    # Tests relating to IPR disclosures:
+
+    def test_ipr_disclosure_state(self) -> None:
+        ipr_disclosure_state = self.dt.ipr_disclosure_state(IPRDisclosureStateURI("/api/v1/name/iprdisclosurestatename/pending/"))
+        if ipr_disclosure_state is not None:
+            self.assertEqual(ipr_disclosure_state.resource_uri, IPRDisclosureStateURI("/api/v1/name/iprdisclosurestatename/pending/"))
+            self.assertEqual(ipr_disclosure_state.name,         "Pending")
+            self.assertEqual(ipr_disclosure_state.used,         True)
+            self.assertEqual(ipr_disclosure_state.slug,         "pending")
+            self.assertEqual(ipr_disclosure_state.desc,         "")
+            self.assertEqual(ipr_disclosure_state.order,        0)
+        else:
+            self.fail("Cannot find IPR disclosure state")
+
+
+    def test_ipr_disclosure_states(self) -> None:
+        states = list(self.dt.ipr_disclosure_states())
+        self.assertEqual(len(states), 5)
+        self.assertEqual(states[0].slug,  "pending")
+        self.assertEqual(states[1].slug,  "parked")
+        self.assertEqual(states[2].slug,  "posted")
+        self.assertEqual(states[3].slug,  "rejected")
+        self.assertEqual(states[4].slug,  "removed")
+
+
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to reviews:
 
@@ -2661,7 +2688,6 @@ class TestDatatracker(unittest.TestCase):
     def test_review_secretary_settings_all_team(self) -> None:
         review_secretary_settings = self.dt.review_secretary_settings_all(team=self.dt.group(GroupURI("/api/v1/group/group/1982/")))
         self.assertIsNot(review_secretary_settings, None)
-
 
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to mailing lists:

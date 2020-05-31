@@ -1226,6 +1226,25 @@ class Session(Resource):
     modified            : datetime
     comments            : str
 
+
+# ---------------------------------------------------------------------------------------------------------------------------------
+# Types relating to IPR disclosures:
+
+class IPRDisclosureStateURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/name/iprdisclosurestatename/")
+
+
+@dataclass(frozen=True)
+class IPRDisclosureState(Resource):
+    desc         : str
+    name         : str
+    order        : int
+    resource_uri : IPRDisclosureStateURI
+    slug         : str
+    used         : bool
+
+
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to reviews:
 
@@ -2635,11 +2654,16 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/ipr/iprevent/
     #   https://datatracker.ietf.org/api/v1/ipr/legacymigrationiprevent/
     #
-    #   https://datatracker.ietf.org/api/v1/name/iprdisclosurestatename/
+    # * https://datatracker.ietf.org/api/v1/name/iprdisclosurestatename/
     #   https://datatracker.ietf.org/api/v1/name/ipreventtypename/
     #   https://datatracker.ietf.org/api/v1/name/iprlicensetypename/
 
-    # FIXME: implement these
+    def ipr_disclosure_state(self, ipr_disclosure_state_uri: IPRDisclosureStateURI) -> Optional[IPRDisclosureState]:
+        return self._retrieve(ipr_disclosure_state_uri, IPRDisclosureState)
+
+
+    def ipr_disclosure_states(self) -> Iterator[IPRDisclosureState]:
+        return self._retrieve_multi(IPRDisclosureStateURI("/api/v1/name/iprdisclosurestatename/"), IPRDisclosureState)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
