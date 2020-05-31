@@ -1230,6 +1230,7 @@ class Session(Resource):
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to IPR disclosures:
 
+@dataclass(frozen=True)
 class IPRDisclosureStateURI(URI):
     def __post_init__(self) -> None:
         assert self.uri.startswith("/api/v1/name/iprdisclosurestatename/")
@@ -1245,6 +1246,7 @@ class IPRDisclosureState(Resource):
     used         : bool
 
 
+@dataclass(frozen=True)
 class IPRDisclosureBaseURI(URI):
     def __post_init__(self) -> None:
         assert self.uri.startswith("/api/v1/ipr/iprdisclosurebase/")
