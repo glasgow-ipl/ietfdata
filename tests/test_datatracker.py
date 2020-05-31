@@ -2019,6 +2019,84 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(types[14].slug, "updates")
         self.assertEqual(types[15].slug, "refunk")
 
+
+    # -----------------------------------------------------------------------------------------------------------------------------
+    # Tests relating to IPR disclosures:
+
+    def test_ipr_disclosure_state(self) -> None:
+        ipr_disclosure_state = self.dt.ipr_disclosure_state(IPRDisclosureStateURI("/api/v1/name/iprdisclosurestatename/pending/"))
+        if ipr_disclosure_state is not None:
+            self.assertEqual(ipr_disclosure_state.resource_uri, IPRDisclosureStateURI("/api/v1/name/iprdisclosurestatename/pending/"))
+            self.assertEqual(ipr_disclosure_state.name,         "Pending")
+            self.assertEqual(ipr_disclosure_state.used,         True)
+            self.assertEqual(ipr_disclosure_state.slug,         "pending")
+            self.assertEqual(ipr_disclosure_state.desc,         "")
+            self.assertEqual(ipr_disclosure_state.order,        0)
+        else:
+            self.fail("Cannot find IPR disclosure state")
+
+
+    def test_ipr_disclosure_states(self) -> None:
+        states = list(self.dt.ipr_disclosure_states())
+        self.assertEqual(len(states), 5)
+        self.assertEqual(states[0].slug,  "pending")
+        self.assertEqual(states[1].slug,  "parked")
+        self.assertEqual(states[2].slug,  "posted")
+        self.assertEqual(states[3].slug,  "rejected")
+        self.assertEqual(states[4].slug,  "removed")
+
+
+    def test_ipr_disclosure_base(self) -> None:
+        ipr_disclosure_base = self.dt.ipr_disclosure_base(IPRDisclosureBaseURI("/api/v1/ipr/iprdisclosurebase/4169/"))
+        if ipr_disclosure_base is not None:
+            self.assertEqual(ipr_disclosure_base.by,                 PersonURI("/api/v1/person/person/1/"))
+            self.assertEqual(ipr_disclosure_base.compliant,          True)
+            self.assertEqual(ipr_disclosure_base.docs,               [])
+            self.assertEqual(ipr_disclosure_base.holder_legal_name,  "Patent and IP Recoveries llc as use licensee for US6370629 & US6393126")
+            self.assertEqual(ipr_disclosure_base.id,                 4169)
+            self.assertEqual(ipr_disclosure_base.notes,              "See update #4099 for specifics")
+            self.assertEqual(ipr_disclosure_base.other_designations, "")
+            self.assertEqual(ipr_disclosure_base.rel,                [IPRDisclosureBaseURI("/api/v1/ipr/iprdisclosurebase/4102/")])
+            self.assertEqual(ipr_disclosure_base.resource_uri,       IPRDisclosureBaseURI("/api/v1/ipr/iprdisclosurebase/4169/"))
+            self.assertEqual(ipr_disclosure_base.state,              IPRDisclosureStateURI("/api/v1/name/iprdisclosurestatename/pending/"))
+            self.assertEqual(ipr_disclosure_base.submitter_email,    "tglassey1@protonmail.com")
+            self.assertEqual(ipr_disclosure_base.submitter_name,     "Todd Glassey")
+            self.assertEqual(ipr_disclosure_base.time,               datetime.fromisoformat("2020-05-30T16:11:44"))
+            self.assertEqual(ipr_disclosure_base.title,              "Patent and IP Recoveries llc as use licensee for US6370629 & US6393126's General License Statement")
+        else:
+            self.fail("Cannot find IPR disclosure base")
+
+
+    def test_ipr_disclosure_bases(self) -> None:
+        ipr_disclosure_bases = self.dt.ipr_disclosure_bases()
+        self.assertIsNot(ipr_disclosure_bases, None)
+
+
+    def test_ipr_disclosure_bases_by(self) -> None:
+        ipr_disclosure_bases = self.dt.ipr_disclosure_bases(by=self.dt.person(PersonURI("/api/v1/person/person/1/")))
+        self.assertIsNot(ipr_disclosure_bases, None)
+
+
+    def test_ipr_disclosure_bases_holder_legal_name(self) -> None:
+        ipr_disclosure_bases = self.dt.ipr_disclosure_bases(holder_legal_name="Patent and IP Recoveries llc as use licensee for US6370629 & US6393126")
+        self.assertIsNot(ipr_disclosure_bases, None)
+
+
+    def test_ipr_disclosure_bases_state(self) -> None:
+        ipr_disclosure_bases = self.dt.ipr_disclosure_bases(state=self.dt.ipr_disclosure_state(IPRDisclosureStateURI("/api/v1/name/iprdisclosurestatename/pending/")))
+        self.assertIsNot(ipr_disclosure_bases, None)
+
+
+    def test_ipr_disclosure_bases_submitter_email(self) -> None:
+        ipr_disclosure_bases = self.dt.ipr_disclosure_bases(submitter_email="tglassey1@protonmail.com")
+        self.assertIsNot(ipr_disclosure_bases, None)
+
+
+    def test_ipr_disclosure_bases_submitter_name(self) -> None:
+        ipr_disclosure_bases = self.dt.ipr_disclosure_bases(submitter_name="Todd Glassey")
+        self.assertIsNot(ipr_disclosure_bases, None)
+
+
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to reviews:
 
@@ -2661,7 +2739,6 @@ class TestDatatracker(unittest.TestCase):
     def test_review_secretary_settings_all_team(self) -> None:
         review_secretary_settings = self.dt.review_secretary_settings_all(team=self.dt.group(GroupURI("/api/v1/group/group/1982/")))
         self.assertIsNot(review_secretary_settings, None)
-
 
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to mailing lists:

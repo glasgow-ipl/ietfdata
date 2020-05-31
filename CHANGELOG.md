@@ -3,7 +3,7 @@ Change Log -- ietfdata
 
 ## v0.2.1 -- ??
 
- - Add API coverage for reviews
+ - Add API coverage for reviews and IPR disclosures
 
 
 ## v0.2.0 -- 2020-05-17
