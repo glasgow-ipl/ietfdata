@@ -2698,7 +2698,7 @@ class DataTracker:
             until              : str                             = "2038-01-19T03:14:07",
             by                 : Optional[Person]                = None,
             holder_legal_name  : Optional[str]                   = None,
-            state              : Optional[IPRDisclosureStateURI] = None,
+            state              : Optional[IPRDisclosureState]    = None,
             submitter_email    : Optional[str]                   = None,
             submitter_name     : Optional[str]                   = None) -> Iterator[IPRDisclosureBase]:
         url = IPRDisclosureBaseURI("/api/v1/ipr/iprdisclosurebase/")

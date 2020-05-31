@@ -2047,7 +2047,7 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_ipr_disclosure_base(self) -> None:
-        ipr_disclosure_base = self.dt.ipr_disclosure_base(IPRDisclosureStateURI("/api/v1/ipr/iprdisclosurebase/4169/"))
+        ipr_disclosure_base = self.dt.ipr_disclosure_base(IPRDisclosureBaseURI("/api/v1/ipr/iprdisclosurebase/4169/"))
         if ipr_disclosure_base is not None:
             self.assertEqual(ipr_disclosure_base.by,                 PersonURI("/api/v1/person/person/1/"))
             self.assertEqual(ipr_disclosure_base.compliant,          True)
