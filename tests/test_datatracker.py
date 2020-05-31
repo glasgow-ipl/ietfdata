@@ -2097,6 +2097,67 @@ class TestDatatracker(unittest.TestCase):
         self.assertIsNot(ipr_disclosure_bases, None)
 
 
+    def test_generic_ipr_disclosure(self) -> None:
+        generic_ipr_disclosure = self.dt.generic_ipr_disclosure(GenericIPRDisclosureURI("/api/v1/ipr/genericiprdisclosure/4061/"))
+        if generic_ipr_disclosure is not None:
+            self.assertEqual(generic_ipr_disclosure.by,                    PersonURI("/api/v1/person/person/1/"))
+            self.assertEqual(generic_ipr_disclosure.compliant,             True)
+            self.assertEqual(generic_ipr_disclosure.docs,                  [])
+            self.assertEqual(generic_ipr_disclosure.holder_contact_email,  "kayew@i-dns.net")
+            self.assertEqual(generic_ipr_disclosure.holder_contact_info,   "Legal Counsel\r\ni-DNS.net International, Inc.\r\n#24-02 Suntec Tower Three\r\nSingapore 038988\r\nT: (65) 2486-163\r\nF: (65) 2486-199\r\n")
+            self.assertEqual(generic_ipr_disclosure.holder_contact_name,   "Ka Yew Leong")
+            self.assertEqual(generic_ipr_disclosure.holder_legal_name,     "i-DNS.net International,")
+            self.assertEqual(generic_ipr_disclosure.id,                    4061)
+            self.assertEqual(generic_ipr_disclosure.iprdisclosurebase_ptr, IPRDisclosureBaseURI("/api/v1/ipr/iprdisclosurebase/4061/"))
+            self.assertEqual(generic_ipr_disclosure.notes,                 "More information can be found in i-DNS.net International Technology Position\r\nPaper at http://www.i-DNS.net/tech/techposition.html")
+            self.assertEqual(generic_ipr_disclosure.other_designations,    "")
+            self.assertEqual(generic_ipr_disclosure.rel,                   [IPRDisclosureBaseURI("/api/v1/ipr/iprdisclosurebase/3150/")])
+            self.assertEqual(generic_ipr_disclosure.resource_uri,          GenericIPRDisclosureURI("/api/v1/ipr/genericiprdisclosure/4061/"))
+            self.assertEqual(generic_ipr_disclosure.state,                 IPRDisclosureStateURI("/api/v1/name/iprdisclosurestatename/parked/"))
+            self.assertEqual(generic_ipr_disclosure.statement,             "\r\nThe Patent Holder states that its position with respect to licensing any patent claims\r\ncontained in the patent(s) or patent application(s) disclosed above that would necessarily\r\nbe infringed by implementation of the technology required by the relevant IETF\r\nspecification (\"Necessary Patent Claims\"), for the purpose of implementing such\r\nspecification, is as follows(select one licensing declaration option only):\r\n\r\n\r\n    See text box below for licensing declaration.\r\n\r\n\r\nLicensing information, comments, notes or URL for further information:\r\n\r\nIn accordance with Section 10 of RFC 2026, i-DNS.net International, Inc.\r\n  (i-DNS.net) hereby states that if i-DNS.net&#39;s contribution is incorporated\r\n  into an IETF standard and i-DNS.net has patents or patent applications over\r\n  such contribution, i-DNS.net is willing to grant a license to such patent\r\n  rights to the extent it is necessary to the implementation of the standard\r\n  and on fair, reasonable and non-discriminatory terms based on reciprocity.\r\n")
+            self.assertEqual(generic_ipr_disclosure.submitter_email,       "kayew@i-dns.net")
+            self.assertEqual(generic_ipr_disclosure.submitter_name,        "Ka Yew Leong")
+            self.assertEqual(generic_ipr_disclosure.time,                  datetime.fromisoformat("2020-03-21T04:35:16"))
+            self.assertEqual(generic_ipr_disclosure.title,                 "i-DNS.net International,'s General License Statement")
+        else:
+            self.fail("Cannot find generic IPR disclosure")
+
+
+    def test_generic_ipr_disclosures(self) -> None:
+        generic_ipr_disclosures = self.dt.generic_ipr_disclosures()
+        self.assertIsNot(generic_ipr_disclosures, None)
+
+
+    def test_generic_ipr_disclosures_by(self) -> None:
+        generic_ipr_disclosures = self.dt.generic_ipr_disclosures(by=self.dt.person(PersonURI("/api/v1/person/person/1/")))
+        self.assertIsNot(generic_ipr_disclosures, None)
+
+
+    def test_generic_ipr_disclosures_holder_legal_name(self) -> None:
+        generic_ipr_disclosures = self.dt.generic_ipr_disclosures(holder_legal_name="i-DNS.net International,")
+        self.assertIsNot(generic_ipr_disclosures, None)
+
+
+    def test_generic_ipr_disclosures_holder_contact_name(self) -> None:
+        generic_ipr_disclosures = self.dt.generic_ipr_disclosures(holder_contact_name="Ka Yew Leong")
+        self.assertIsNot(generic_ipr_disclosures, None)
+
+
+    def test_generic_ipr_disclosures_state(self) -> None:
+        generic_ipr_disclosures = self.dt.generic_ipr_disclosures(state=self.dt.ipr_disclosure_state(IPRDisclosureStateURI("/api/v1/name/iprdisclosurestatename/parked/")))
+        self.assertIsNot(generic_ipr_disclosures, None)
+
+
+    def test_generic_ipr_disclosures_submitter_email(self) -> None:
+        generic_ipr_disclosures = self.dt.generic_ipr_disclosures(submitter_email="kayew@i-dns.net")
+        self.assertIsNot(generic_ipr_disclosures, None)
+
+
+    def test_generic_ipr_disclosures_submitter_name(self) -> None:
+        generic_ipr_disclosures = self.dt.generic_ipr_disclosures(submitter_name="Ka Yew Leong")
+        self.assertIsNot(generic_ipr_disclosures, None)
+
+
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to reviews:
 
