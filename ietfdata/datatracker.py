@@ -1245,6 +1245,29 @@ class IPRDisclosureState(Resource):
     used         : bool
 
 
+class IPRDisclosureBaseURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/ipr/iprdisclosurebase/")
+
+
+@dataclass(frozen=True)
+class IPRDisclosureBase(Resource):
+    by                 : PersonURI
+    compliant          : bool
+    docs               : List[DocumentURI]
+    holder_legal_name  : str
+    id                 : int
+    notes              : str
+    other_designations : str
+    rel                : List[IPRDisclosureBaseURI]
+    resource_uri       : IPRDisclosureBaseURI
+    state              : IPRDisclosureStateURI
+    submitter_email    : str
+    submitter_name     : str
+    time               : datetime
+    title              : str
+
+
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to reviews:
 
@@ -2642,7 +2665,7 @@ class DataTracker:
     # Datatracker API endpoints returning information about IPR disclosures:
     #
     #   https://datatracker.ietf.org/api/v1/ipr/iprdocrel/
-    #   https://datatracker.ietf.org/api/v1/ipr/iprdisclosurebase/
+    # * https://datatracker.ietf.org/api/v1/ipr/iprdisclosurebase/
     #
     #   https://datatracker.ietf.org/api/v1/ipr/genericiprdisclosure/
     #   https://datatracker.ietf.org/api/v1/ipr/holderiprdisclosure/
@@ -2664,6 +2687,34 @@ class DataTracker:
 
     def ipr_disclosure_states(self) -> Iterator[IPRDisclosureState]:
         return self._retrieve_multi(IPRDisclosureStateURI("/api/v1/name/iprdisclosurestatename/"), IPRDisclosureState)
+
+
+    def ipr_disclosure_base(self, ipr_disclosure_base_uri: IPRDisclosureBaseURI) -> Optional[IPRDisclosureBase]:
+        return self._retrieve(ipr_disclosure_base_uri, IPRDisclosureBase)
+
+
+    def ipr_disclosure_bases(self,
+            since              : str                             = "1970-01-01T00:00:00",
+            until              : str                             = "2038-01-19T03:14:07",
+            by                 : Optional[Person]                = None,
+            holder_legal_name  : Optional[str]                   = None,
+            state              : Optional[IPRDisclosureStateURI] = None,
+            submitter_email    : Optional[str]                   = None,
+            submitter_name     : Optional[str]                   = None) -> Iterator[IPRDisclosureBase]:
+        url = IPRDisclosureBaseURI("/api/v1/ipr/iprdisclosurebase/")
+        url.params["time__gt"]       = since
+        url.params["time__lt"]       = until
+        if by is not None:
+            url.params["by"] = by.id
+        if holder_legal_name is not None:
+            url.params["holder_legal_name"] = holder_legal_name
+        if state is not None:
+            url.params["state"] = state.slug
+        if submitter_email is not None:
+            url.params["submitter_email"] = submitter_email
+        if submitter_name is not None:
+            url.params["submitter_name"] = submitter_name
+        return self._retrieve_multi(url, IPRDisclosureBase, deref = {"by": "id", "state": "slug"})
 
 
     # ----------------------------------------------------------------------------------------------------------------------------

@@ -2046,6 +2046,57 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(states[4].slug,  "removed")
 
 
+    def test_ipr_disclosure_base(self) -> None:
+        ipr_disclosure_base = self.dt.ipr_disclosure_base(IPRDisclosureStateURI("/api/v1/ipr/iprdisclosurebase/4169/"))
+        if ipr_disclosure_base is not None:
+            self.assertEqual(ipr_disclosure_base.by,                 PersonURI("/api/v1/person/person/1/"))
+            self.assertEqual(ipr_disclosure_base.compliant,          True)
+            self.assertEqual(ipr_disclosure_base.docs,               [])
+            self.assertEqual(ipr_disclosure_base.holder_legal_name,  "Patent and IP Recoveries llc as use licensee for US6370629 & US6393126")
+            self.assertEqual(ipr_disclosure_base.id,                 4169)
+            self.assertEqual(ipr_disclosure_base.notes,              "See update #4099 for specifics")
+            self.assertEqual(ipr_disclosure_base.other_designations, "")
+            self.assertEqual(ipr_disclosure_base.rel,                [IPRDisclosureBaseURI("/api/v1/ipr/iprdisclosurebase/4102/")])
+            self.assertEqual(ipr_disclosure_base.resource_uri,       IPRDisclosureBaseURI("/api/v1/ipr/iprdisclosurebase/4169/"))
+            self.assertEqual(ipr_disclosure_base.state,              IPRDisclosureStateURI("/api/v1/name/iprdisclosurestatename/pending/"))
+            self.assertEqual(ipr_disclosure_base.submitter_email,    "tglassey1@protonmail.com")
+            self.assertEqual(ipr_disclosure_base.submitter_name,     "Todd Glassey")
+            self.assertEqual(ipr_disclosure_base.time,               datetime.fromisoformat("2020-05-30T16:11:44"))
+            self.assertEqual(ipr_disclosure_base.title,              "Patent and IP Recoveries llc as use licensee for US6370629 & US6393126's General License Statement")
+        else:
+            self.fail("Cannot find IPR disclosure base")
+
+
+    def test_ipr_disclosure_bases(self) -> None:
+        ipr_disclosure_bases = self.dt.ipr_disclosure_bases()
+        self.assertIsNot(ipr_disclosure_bases, None)
+
+
+    def test_ipr_disclosure_bases_by(self) -> None:
+        ipr_disclosure_bases = self.dt.ipr_disclosure_bases(by=self.dt.person(PersonURI("/api/v1/person/person/1/")))
+        self.assertIsNot(ipr_disclosure_bases, None)
+
+
+    def test_ipr_disclosure_bases_holder_legal_name(self) -> None:
+        ipr_disclosure_bases = self.dt.ipr_disclosure_bases(holder_legal_name="Patent and IP Recoveries llc as use licensee for US6370629 & US6393126")
+        self.assertIsNot(ipr_disclosure_bases, None)
+
+
+    def test_ipr_disclosure_bases_state(self) -> None:
+        ipr_disclosure_bases = self.dt.ipr_disclosure_bases(state=self.dt.ipr_disclosure_state(IPRDisclosureStateURI("/api/v1/name/iprdisclosurestatename/pending/")))
+        self.assertIsNot(ipr_disclosure_bases, None)
+
+
+    def test_ipr_disclosure_bases_submitter_email(self) -> None:
+        ipr_disclosure_bases = self.dt.ipr_disclosure_bases(submitter_email="tglassey1@protonmail.com")
+        self.assertIsNot(ipr_disclosure_bases, None)
+
+
+    def test_ipr_disclosure_bases_submitter_name(self) -> None:
+        ipr_disclosure_bases = self.dt.ipr_disclosure_bases(submitter_name="Todd Glassey")
+        self.assertIsNot(ipr_disclosure_bases, None)
+
+
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to reviews:
 
