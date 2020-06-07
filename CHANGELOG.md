@@ -1,7 +1,7 @@
 Change Log -- ietfdata
 ======================
 
-## v0.2.1 -- ??
+## v0.3.0 -- 2020-06-07
 
  - Add DataTrackerExt` helper class
  - Add API coverage for reviews and IPR disclosures
