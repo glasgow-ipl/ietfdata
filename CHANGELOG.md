@@ -3,6 +3,7 @@ Change Log -- ietfdata
 
 ## v0.2.1 -- ??
 
+ - Add `datatracker_helper` module
  - Add API coverage for reviews and IPR disclosures
  - Update Submission class to use datetime objects where appropriate
 
