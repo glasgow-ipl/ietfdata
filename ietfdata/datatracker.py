@@ -274,7 +274,7 @@ class Submission(Resource):
     auth_key        : str
     authors         : str   # See the parse_authors() method
     checks          : List[SubmissionCheckURI]
-    document_date   : str   # FIXME: this should be a date object
+    document_date   : datetime
     draft           : DocumentURI
     file_size       : Optional[int]
     file_types      : str   # e.g., ".txt,.xml"
@@ -290,7 +290,7 @@ class Submission(Resource):
     resource_uri    : SubmissionURI
     rev             : str
     state           : str   # FIXME: this should be a URI subtype
-    submission_date : str   # FIXME: this should be a date object
+    submission_date : datetime
     submitter       : str
     title           : str
     words           : Optional[int]
