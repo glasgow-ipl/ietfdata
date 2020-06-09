@@ -2601,16 +2601,17 @@ class DataTracker:
     # Datatracker API endpoints returning information about meetings:
     # * https://datatracker.ietf.org/api/v1/meeting/meeting/                        - list of meetings
     # * https://datatracker.ietf.org/api/v1/meeting/meeting/747/                    - information about meeting number 747
-    #   https://datatracker.ietf.org/api/v1/meeting/session/                        - list of all sessions in meetings
-    #   https://datatracker.ietf.org/api/v1/meeting/session/25886/                  - a session in a meeting
-    #   https://datatracker.ietf.org/api/v1/meeting/session/?meeting=747            - sessions in meeting number 747
-    #   https://datatracker.ietf.org/api/v1/meeting/session/?meeting=747&group=2161 - sessions in meeting number 747 for group 2161
+    # * https://datatracker.ietf.org/api/v1/meeting/schedule/791/                   - a version of the meeting agenda
+    # * https://datatracker.ietf.org/api/v1/meeting/session/25886/                  - a session within a meeting
+    # * https://datatracker.ietf.org/api/v1/meeting/session/                        - list of sessions within meetings
+    # * https://datatracker.ietf.org/api/v1/meeting/session/?meeting=747            - sessions in meeting number 747
+    # * https://datatracker.ietf.org/api/v1/meeting/session/?meeting=747&group=2161 - sessions in meeting number 747 for group 2161
     # * https://datatracker.ietf.org/api/v1/meeting/schedtimesessassignment/59003/  - a schededuled session within a meeting
+    #   https://datatracker.ietf.org/api/v1/meeting/schedulingevent/                - sessions being scheduled
     #   https://datatracker.ietf.org/api/v1/meeting/timeslot/9480/                  - a time slot within a meeting (time, duration, location)
-    # * https://datatracker.ietf.org/api/v1/meeting/schedule/791/                   - a draft of the meeting agenda
+    #
     #   https://datatracker.ietf.org/api/v1/meeting/room/537/                       - a room at a meeting
     #   https://datatracker.ietf.org/api/v1/meeting/floorplan/14/                   - floor plan for a meeting venue
-    #   https://datatracker.ietf.org/api/v1/meeting/schedulingevent/                - meetings being scheduled
     #
     #   https://datatracker.ietf.org/meeting/107/agenda.json
     #   https://datatracker.ietf.org/meeting/interim-2020-hrpc-01/agenda.json
@@ -2630,12 +2631,26 @@ class DataTracker:
 
     def meeting_session_assignments(self, schedule : Schedule) -> Iterator[SessionAssignment]:
         """
-        The assignment of sessions to timeslots in a particular version of the
-        meeting schedule.
+        The assignment of sessions to timeslots in a meeting schedule.
         """
         url = SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/")
         url.params["schedule"] = schedule.id
         return self._retrieve_multi(url, SessionAssignment, deref = {"schedule": "id"})
+
+
+    def meeting_session(self, session_uri : SessionURI) -> Optional[Session]:
+        return self._retrieve(session_uri, Session)
+
+
+    def meeting_sessions(self,
+            meeting : Optional[Meeting],
+            group   : Optional[Group]) -> Iterator[Session]:
+        url = SessionURI("/api/v1/meeting/session/")
+        if meeting is not None:
+            url.params["meeting"] = meeting.id
+        if group is not None:
+            url.params["group"] = group.id
+        return self._retrieve_multi(url, Session, deref = {"meeting": "id", "group": "id"})
 
 
     def meeting_schedule(self, schedule_uri : ScheduleURI) -> Optional[Schedule]:
@@ -2651,6 +2666,11 @@ class DataTracker:
     def meeting(self, meeting_uri : MeetingURI) -> Optional[Meeting]:
         """
         Information about a meeting.
+
+        A meeting comprises a number of `Session`s organised into a `Schedule`.
+        Use `meeting_sessions()` to find the sessions that occurred during the
+        meeting. Use `meeting_session_assignments()` to find the timeslots when
+        those sessions occurred. 
         """
         return self._retrieve(meeting_uri, Meeting)
 

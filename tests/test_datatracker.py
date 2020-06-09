@@ -1740,21 +1740,6 @@ class TestDatatracker(unittest.TestCase):
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to meetings:
 
-    def test_meeting_schedule(self) -> None:
-        schedule = self.dt.meeting_schedule(ScheduleURI("/api/v1/meeting/schedule/209/"))
-        if schedule is not None:
-            self.assertEqual(schedule.id,           209)
-            self.assertEqual(schedule.resource_uri, ScheduleURI("/api/v1/meeting/schedule/209/"))
-            self.assertEqual(schedule.meeting,      MeetingURI("/api/v1/meeting/meeting/365/"))
-            self.assertEqual(schedule.owner,        PersonURI("/api/v1/person/person/109129/"))
-            self.assertEqual(schedule.name,         "prelim-fix")
-            self.assertEqual(schedule.visible,      True)
-            self.assertEqual(schedule.public,       True)
-            self.assertEqual(schedule.badness,      None)
-        else:
-            self.fail("cannot find meeting schedule")
-
-
     def test_meeting_session_assignment(self) -> None:
         assignment = self.dt.meeting_session_assignment(SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/61212/"))
         if assignment is not None:
@@ -1784,6 +1769,85 @@ class TestDatatracker(unittest.TestCase):
                 self.fail("Cannot find schedule")
         else:
             self.fail("Cannot find meeting")
+
+
+    def test_meeting_session(self) -> None:
+        session = self.dt.meeting_session(SessionURI("/api/v1/meeting/session/25907/"))
+        if session is not None:
+            self.assertEqual(session.resource_uri,        SessionURI("/api/v1/meeting/session/25907/"))
+            self.assertEqual(session.id,                  25907)
+            self.assertEqual(session.type,                "/api/v1/name/timeslottypename/regular/")
+            self.assertEqual(session.name,                "")
+            self.assertEqual(session.meeting,             MeetingURI("/api/v1/meeting/meeting/747/"))
+            self.assertEqual(session.group,               GroupURI("/api/v1/group/group/1803/"))
+            self.assertEqual(session.materials,           [DocumentURI("/api/v1/doc/document/agenda-100-homenet/"), 
+                                                           DocumentURI("/api/v1/doc/document/slides-100-homenet-chair-slides/"),
+                                                           DocumentURI("/api/v1/doc/document/slides-100-homenet-support-for-hncp-in-ipv6-ce-routers/"),
+                                                           DocumentURI("/api/v1/doc/document/slides-100-homenet-homenet-security/"),
+                                                           DocumentURI("/api/v1/doc/document/slides-100-homenet-naming/"),
+                                                           DocumentURI("/api/v1/doc/document/recording-100-homenet-1/"),
+                                                           DocumentURI("/api/v1/doc/document/minutes-100-homenet/"),
+                                                           DocumentURI("/api/v1/doc/document/bluesheets-100-homenet-201711131550/"),
+                                                           DocumentURI("/api/v1/doc/document/recording-100-homenet-2/")])
+            self.assertEqual(session.scheduled,           "2017-10-20T17:24:10")
+            self.assertEqual(session.requested_duration,  "1:30:00")
+            self.assertEqual(session.resources,           [])
+            self.assertEqual(session.agenda_note,         "")
+            self.assertEqual(session.assignments,         [SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/57892/"), 
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/58170/"), 
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/59755/"), 
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/58279/"), 
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/58458/"), 
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/58623/"), 
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/58832/"), 
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/59092/"), 
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/59259/"), 
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/59424/"), 
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/59585/"), 
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/59937/"), 
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/60151/"), 
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/60325/"), 
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/60509/"), 
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/60692/"), 
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/60867/"), 
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/61041/"), 
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/61212/"), 
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/61405/"), 
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/61595/"), 
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/61765/"), 
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/61939/"), 
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/67156/")])
+            self.assertEqual(session.remote_instructions, "")
+            self.assertEqual(session.short,               "")
+            self.assertEqual(session.attendees,           120)
+            self.assertEqual(session.modified,            datetime.fromisoformat("2017-10-20T17:24:10"))
+            self.assertEqual(session.comments,            "")
+        else:
+            self.fail("cannot find meeting session")
+
+
+    def test_meeting_sessions(self) -> None:
+        ietf90  = self.dt.meeting(MeetingURI("/api/v1/meeting/meeting/365/")) # IETF 90 in Toronto
+        tsvwg   = self.dt.group_from_acronym("tsvwg")
+        sessions = list(self.dt.meeting_sessions(meeting=ietf90, group=tsvwg))
+        self.assertEqual(len(sessions), 2)
+        self.assertEqual(sessions[0].id, 23197)
+        self.assertEqual(sessions[1].id, 23198)
+
+
+    def test_meeting_schedule(self) -> None:
+        schedule = self.dt.meeting_schedule(ScheduleURI("/api/v1/meeting/schedule/209/"))
+        if schedule is not None:
+            self.assertEqual(schedule.id,           209)
+            self.assertEqual(schedule.resource_uri, ScheduleURI("/api/v1/meeting/schedule/209/"))
+            self.assertEqual(schedule.meeting,      MeetingURI("/api/v1/meeting/meeting/365/"))
+            self.assertEqual(schedule.owner,        PersonURI("/api/v1/person/person/109129/"))
+            self.assertEqual(schedule.name,         "prelim-fix")
+            self.assertEqual(schedule.visible,      True)
+            self.assertEqual(schedule.public,       True)
+            self.assertEqual(schedule.badness,      None)
+        else:
+            self.fail("cannot find meeting schedule")
 
 
     def test_meeting(self) -> None:

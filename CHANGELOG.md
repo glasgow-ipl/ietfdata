@@ -1,6 +1,11 @@
 Change Log -- ietfdata
 ======================
 
+## v0.3.1 -- ??
+
+ - Expand API coverage for Meetings
+
+
 ## v0.3.0 -- 2020-06-07
 
  - Add DataTrackerExt` helper class
