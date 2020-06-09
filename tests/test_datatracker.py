@@ -1789,7 +1789,7 @@ class TestDatatracker(unittest.TestCase):
                                                            DocumentURI("/api/v1/doc/document/minutes-100-homenet/"),
                                                            DocumentURI("/api/v1/doc/document/bluesheets-100-homenet-201711131550/"),
                                                            DocumentURI("/api/v1/doc/document/recording-100-homenet-2/")])
-            self.assertEqual(session.scheduled,           "2017-10-20T17:24:10")
+            self.assertEqual(session.scheduled,           datetime.fromisoformat("2017-10-20T17:24:10"))
             self.assertEqual(session.requested_duration,  "1:30:00")
             self.assertEqual(session.resources,           [])
             self.assertEqual(session.agenda_note,         "")
@@ -1860,7 +1860,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(meeting.country,                          "CA")
             self.assertEqual(meeting.venue_name,                       "Fairmont Royal York Hotel")
             self.assertEqual(meeting.venue_addr,                       "100 Front Street W\r\nToronto, Ontario, Canada M5J 1E3")
-            self.assertEqual(meeting.date,                             "2014-07-20")
+            self.assertEqual(meeting.date,                             datetime.fromisoformat("2014-07-20T00:00:00"))
             self.assertEqual(meeting.days,                             6)
             self.assertEqual(meeting.time_zone,                        "America/Toronto")
             self.assertEqual(meeting.idsubmit_cutoff_day_offset_00,    20)

@@ -1119,7 +1119,7 @@ class Meeting(Resource):
     city                             : str
     venue_name                       : str
     venue_addr                       : str
-    date                             : str  # FIXME: this should be a date object
+    date                             : datetime
     days                             : int  # FIXME: this should be a timedelta object
     time_zone                        : str
     acknowledgements                 : str
@@ -1145,8 +1145,8 @@ class Meeting(Resource):
 
     def status(self) -> MeetingStatus:
         now = datetime.now()
-        meeting_start = datetime.strptime(self.date, "%Y-%m-%d")
-        meeting_end   = meeting_start + timedelta(days = self.days - 1)
+        meeting_start = self.date
+        meeting_end   = self.date + timedelta(days = self.days - 1)
         if meeting_start > now:
             return MeetingStatus.FUTURE
         elif meeting_end < now:
@@ -1215,7 +1215,7 @@ class Session(Resource):
     meeting             : MeetingURI
     group               : GroupURI
     materials           : List[DocumentURI]
-    scheduled           : str          # Date scheduled
+    scheduled           : datetime
     requested_duration  : str
     resources           : List[str]    # FIXME
     agenda_note         : str
