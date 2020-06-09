@@ -11,7 +11,7 @@
 #    notice, this list of conditions and the following disclaimer in the
 #    documentation and/or other materials provided with the distribution.
 #
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT thirdpartyS AND CONTRIBUTORS "AS IS"
 # AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 # IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
 # ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
@@ -2329,6 +2329,73 @@ class TestDatatracker(unittest.TestCase):
     def test_holder_ipr_disclosures_submitter_name(self) -> None:
         holder_ipr_disclosures = self.dt.holder_ipr_disclosures(submitter_name="Francesco Battipede")
         self.assertIsNot(holder_ipr_disclosures, None)
+
+
+    def test_thirdparty_ipr_disclosure(self) -> None:
+        thirdparty_ipr_disclosure = self.dt.thirdparty_ipr_disclosure(ThirdPartyIPRDisclosureURI("/api/v1/ipr/thirdpartyiprdisclosure/4153/"))
+        if thirdparty_ipr_disclosure is not None:
+            self.assertEqual(thirdparty_ipr_disclosure.by,                                   PersonURI("/api/v1/person/person/1/"))
+            self.assertEqual(thirdparty_ipr_disclosure.compliant,                            True)
+            self.assertEqual(thirdparty_ipr_disclosure.docs,                                 [DocumentAliasURI("/api/v1/doc/docalias/draft-mattsson-cfrg-det-sigs-with-noise/")])
+            self.assertEqual(thirdparty_ipr_disclosure.has_patent_pending,                   False)
+            self.assertEqual(thirdparty_ipr_disclosure.holder_legal_name,                    "QUALCOMM Incorporated")
+            self.assertEqual(thirdparty_ipr_disclosure.id,                                   4153)
+            self.assertEqual(thirdparty_ipr_disclosure.ietfer_contact_email,                 "bbrumley@gmail.com")
+            self.assertEqual(thirdparty_ipr_disclosure.ietfer_contact_info,                  "")
+            self.assertEqual(thirdparty_ipr_disclosure.ietfer_name,                          "Billy Brumley")
+            self.assertEqual(thirdparty_ipr_disclosure.iprdisclosurebase_ptr,                IPRDisclosureBaseURI("/api/v1/ipr/iprdisclosurebase/4153/"))
+            self.assertEqual(thirdparty_ipr_disclosure.notes,                                "")
+            self.assertEqual(thirdparty_ipr_disclosure.other_designations,                   "")
+            self.assertEqual(thirdparty_ipr_disclosure.patent_info,                          "Number: US9621525B2\nInventor: Billy Bob Brumley\nTitle: Semi-deterministic digital signature generation\nDate: 2014-06-02")
+            self.assertEqual(thirdparty_ipr_disclosure.rel,                                  [])
+            self.assertEqual(thirdparty_ipr_disclosure.resource_uri,                         ThirdPartyIPRDisclosureURI("/api/v1/ipr/thirdpartyiprdisclosure/4153/"))
+            self.assertEqual(thirdparty_ipr_disclosure.state,                                IPRDisclosureStateURI("/api/v1/name/iprdisclosurestatename/pending/"))
+            self.assertEqual(thirdparty_ipr_disclosure.submitter_email,                      "bbrumley@gmail.com")
+            self.assertEqual(thirdparty_ipr_disclosure.submitter_name,                       "Billy Brumley")
+            self.assertEqual(thirdparty_ipr_disclosure.time,                                 datetime.fromisoformat("2020-05-14T20:32:24"))
+            self.assertEqual(thirdparty_ipr_disclosure.title,                                "Billy Brumley's Statement about IPR related to draft-mattsson-cfrg-det-sigs-with-noise belonging to QUALCOMM Incorporated")
+        else:
+            self.fail("Cannot find third party IPR disclosure")
+
+
+    def test_thirdparty_ipr_disclosures(self) -> None:
+        thirdparty_ipr_disclosures = self.dt.thirdparty_ipr_disclosures()
+        self.assertIsNot(thirdparty_ipr_disclosures, None)
+
+
+    def test_thirdparty_ipr_disclosures_by(self) -> None:
+        thirdparty_ipr_disclosures = self.dt.thirdparty_ipr_disclosures(by=self.dt.person(PersonURI("/api/v1/person/person/1/")))
+        self.assertIsNot(thirdparty_ipr_disclosures, None)
+
+
+    def test_thirdparty_ipr_disclosures_holder_legal_name(self) -> None:
+        thirdparty_ipr_disclosures = self.dt.thirdparty_ipr_disclosures(holder_legal_name="QUALCOMM Incorporated")
+        self.assertIsNot(thirdparty_ipr_disclosures, None)
+
+
+    def test_thirdparty_ipr_disclosures_ietfer_contact_email(self) -> None:
+        thirdparty_ipr_disclosures = self.dt.thirdparty_ipr_disclosures(ietfer_contact_email="bbrumley@gmail.com")
+        self.assertIsNot(thirdparty_ipr_disclosures, None)
+
+
+    def test_thirdparty_ipr_disclosures_ietfer_name(self) -> None:
+        thirdparty_ipr_disclosures = self.dt.thirdparty_ipr_disclosures(ietfer_name="Billy Brumley")
+        self.assertIsNot(thirdparty_ipr_disclosures, None)
+
+
+    def test_thirdparty_ipr_disclosures_state(self) -> None:
+        thirdparty_ipr_disclosures = self.dt.thirdparty_ipr_disclosures(state=self.dt.ipr_disclosure_state(IPRDisclosureStateURI("/api/v1/name/iprdisclosurestatename/pending/")))
+        self.assertIsNot(thirdparty_ipr_disclosures, None)
+
+
+    def test_thirdparty_ipr_disclosures_submitter_email(self) -> None:
+        thirdparty_ipr_disclosures = self.dt.thirdparty_ipr_disclosures(submitter_email="bbrumley@gmail.com")
+        self.assertIsNot(thirdparty_ipr_disclosures, None)
+
+
+    def test_thirdparty_ipr_disclosures_submitter_name(self) -> None:
+        thirdparty_ipr_disclosures = self.dt.thirdparty_ipr_disclosures(submitter_name="Billy Brumley")
+        self.assertIsNot(thirdparty_ipr_disclosures, None)
 
 
     # -----------------------------------------------------------------------------------------------------------------------------
