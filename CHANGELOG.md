@@ -3,7 +3,7 @@ Change Log -- ietfdata
 
 ## v0.3.1 -- ??
 
- - Expand API coverage for Meetings
+ - Expand API coverage for Meetings and IPR disclosures
 
 
 ## v0.3.0 -- 2020-06-07
