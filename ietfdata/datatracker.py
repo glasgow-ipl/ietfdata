@@ -1299,6 +1299,58 @@ class GenericIPRDisclosure(Resource):
     title                 : str
 
 
+@dataclass(frozen=True)
+class IPRLicenseTypeURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/name/iprlicensetypename/")
+
+
+@dataclass(frozen=True)
+class IPRLicenseType(Resource):
+    desc         : str
+    name         : str
+    order        : int
+    resource_uri : IPRLicenseTypeURI
+    slug         : str
+    used         : bool
+
+
+@dataclass(frozen=True)
+class HolderIPRDisclosureURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/ipr/holderiprdisclosure/")
+
+
+@dataclass(frozen=True)
+class HolderIPRDisclosure(Resource):
+    by                                   : PersonURI
+    compliant                            : bool
+    docs                                 : List[DocumentAliasURI]
+    has_patent_pending                   : bool
+    holder_contact_email                 : str
+    holder_contact_info                  : str
+    holder_contact_name                  : str
+    holder_legal_name                    : str
+    id                                   : int
+    ietfer_contact_email                 : str
+    ietfer_contact_info                  : str
+    ietfer_name                          : str
+    iprdisclosurebase_ptr                : IPRDisclosureBaseURI
+    licensing                            : IPRLicenseTypeURI
+    licensing_comments                   : str
+    notes                                : str
+    other_designations                   : str
+    patent_info                          : str
+    rel                                  : List[IPRDisclosureBaseURI]
+    resource_uri                         : HolderIPRDisclosureURI
+    state                                : IPRDisclosureStateURI
+    submitter_claims_all_terms_disclosed : bool
+    submitter_email                      : str
+    submitter_name                       : str
+    time                                 : datetime
+    title                                : str
+
+
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to reviews:
 
@@ -2670,7 +2722,7 @@ class DataTracker:
         A meeting comprises a number of `Session`s organised into a `Schedule`.
         Use `meeting_sessions()` to find the sessions that occurred during the
         meeting. Use `meeting_session_assignments()` to find the timeslots when
-        those sessions occurred. 
+        those sessions occurred.
         """
         return self._retrieve(meeting_uri, Meeting)
 
@@ -2719,7 +2771,7 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/ipr/iprdisclosurebase/
     #
     # * https://datatracker.ietf.org/api/v1/ipr/genericiprdisclosure/
-    #   https://datatracker.ietf.org/api/v1/ipr/holderiprdisclosure/
+    # * https://datatracker.ietf.org/api/v1/ipr/holderiprdisclosure/
     #   https://datatracker.ietf.org/api/v1/ipr/thirdpartyiprdisclosure
     #
     #   https://datatracker.ietf.org/api/v1/ipr/nondocspecificiprdisclosure/
@@ -2730,7 +2782,7 @@ class DataTracker:
     #
     # * https://datatracker.ietf.org/api/v1/name/iprdisclosurestatename/
     #   https://datatracker.ietf.org/api/v1/name/ipreventtypename/
-    #   https://datatracker.ietf.org/api/v1/name/iprlicensetypename/
+    # * https://datatracker.ietf.org/api/v1/name/iprlicensetypename/
 
     def ipr_disclosure_state(self, ipr_disclosure_state_uri: IPRDisclosureStateURI) -> Optional[IPRDisclosureState]:
         return self._retrieve(ipr_disclosure_state_uri, IPRDisclosureState)
@@ -2797,6 +2849,54 @@ class DataTracker:
         if submitter_name is not None:
             url.params["submitter_name"] = submitter_name
         return self._retrieve_multi(url, GenericIPRDisclosure, deref = {"by": "id", "state": "slug"})
+
+
+    def ipr_license_type(self, ipr_license_type_uri: IPRLicenseTypeURI) -> Optional[IPRLicenseType]:
+        return self._retrieve(ipr_license_type_uri, IPRLicenseType)
+
+
+    def ipr_license_types(self) -> Iterator[IPRLicenseType]:
+        return self._retrieve_multi(IPRLicenseTypeURI("/api/v1/name/iprlicensetypename/"), IPRLicenseType)
+
+
+    def holder_ipr_disclosure(self, holder_ipr_disclosure_uri: HolderIPRDisclosureURI) -> Optional[HolderIPRDisclosure]:
+        return self._retrieve(holder_ipr_disclosure_uri, HolderIPRDisclosure)
+
+
+    def holder_ipr_disclosures(self,
+            since                : str                             = "1970-01-01T00:00:00",
+            until                : str                             = "2038-01-19T03:14:07",
+            by                   : Optional[Person]                = None,
+            holder_legal_name    : Optional[str]                   = None,
+            holder_contact_name  : Optional[str]                   = None,
+            ietfer_contact_email : Optional[str]                   = None,
+            ietfer_name          : Optional[str]                   = None,
+            licensing            : Optional[IPRLicenseType]        = None,
+            state                : Optional[IPRDisclosureState]    = None,
+            submitter_email      : Optional[str]                   = None,
+            submitter_name       : Optional[str]                   = None) -> Iterator[HolderIPRDisclosure]:
+        url = HolderIPRDisclosureURI("/api/v1/ipr/holderiprdisclosure/")
+        url.params["time__gt"]       = since
+        url.params["time__lt"]       = until
+        if by is not None:
+            url.params["by"] = by.id
+        if holder_legal_name is not None:
+            url.params["holder_legal_name"] = holder_legal_name
+        if holder_contact_name is not None:
+            url.params["holder_contact_name"] = holder_contact_name
+        if ietfer_contact_email is not None:
+            url.params["ietfer_contact_email"] = ietfer_contact_email
+        if ietfer_name is not None:
+            url.params["ietfer_name"] = ietfer_name
+        if licensing is not None:
+            url.params["licensing"] = licensing.slug
+        if state is not None:
+            url.params["state"] = state.slug
+        if submitter_email is not None:
+            url.params["submitter_email"] = submitter_email
+        if submitter_name is not None:
+            url.params["submitter_name"] = submitter_name
+        return self._retrieve_multi(url, HolderIPRDisclosure, deref = {"by": "id", "licensing": "slug", "state": "slug"})
 
 
     # ----------------------------------------------------------------------------------------------------------------------------

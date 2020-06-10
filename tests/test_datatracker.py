@@ -1780,7 +1780,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(session.name,                "")
             self.assertEqual(session.meeting,             MeetingURI("/api/v1/meeting/meeting/747/"))
             self.assertEqual(session.group,               GroupURI("/api/v1/group/group/1803/"))
-            self.assertEqual(session.materials,           [DocumentURI("/api/v1/doc/document/agenda-100-homenet/"), 
+            self.assertEqual(session.materials,           [DocumentURI("/api/v1/doc/document/agenda-100-homenet/"),
                                                            DocumentURI("/api/v1/doc/document/slides-100-homenet-chair-slides/"),
                                                            DocumentURI("/api/v1/doc/document/slides-100-homenet-support-for-hncp-in-ipv6-ce-routers/"),
                                                            DocumentURI("/api/v1/doc/document/slides-100-homenet-homenet-security/"),
@@ -1793,29 +1793,29 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(session.requested_duration,  "1:30:00")
             self.assertEqual(session.resources,           [])
             self.assertEqual(session.agenda_note,         "")
-            self.assertEqual(session.assignments,         [SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/57892/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/58170/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/59755/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/58279/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/58458/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/58623/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/58832/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/59092/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/59259/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/59424/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/59585/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/59937/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/60151/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/60325/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/60509/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/60692/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/60867/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/61041/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/61212/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/61405/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/61595/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/61765/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/61939/"), 
+            self.assertEqual(session.assignments,         [SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/57892/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/58170/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/59755/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/58279/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/58458/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/58623/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/58832/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/59092/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/59259/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/59424/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/59585/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/59937/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/60151/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/60325/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/60509/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/60692/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/60867/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/61041/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/61212/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/61405/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/61595/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/61765/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/61939/"),
                                                            SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/67156/")])
             self.assertEqual(session.remote_instructions, "")
             self.assertEqual(session.short,               "")
@@ -2221,6 +2221,114 @@ class TestDatatracker(unittest.TestCase):
     def test_generic_ipr_disclosures_submitter_name(self) -> None:
         generic_ipr_disclosures = self.dt.generic_ipr_disclosures(submitter_name="Ka Yew Leong")
         self.assertIsNot(generic_ipr_disclosures, None)
+
+
+    def test_ipr_license_type(self) -> None:
+        ipr_license_type = self.dt.ipr_license_type(IPRLicenseTypeURI("/api/v1/name/iprlicensetypename/no-license/"))
+        if ipr_license_type is not None:
+            self.assertEqual(ipr_license_type.resource_uri, IPRLicenseTypeURI("/api/v1/name/iprlicensetypename/no-license/"))
+            self.assertEqual(ipr_license_type.name,         "No License")
+            self.assertEqual(ipr_license_type.used,         True)
+            self.assertEqual(ipr_license_type.slug,         "no-license")
+            self.assertEqual(ipr_license_type.desc,         "a) No License Required for Implementers")
+            self.assertEqual(ipr_license_type.order,        1)
+        else:
+            self.fail("Cannot find IPR license type")
+
+
+    def test_ipr_license_types(self) -> None:
+        types = list(self.dt.ipr_license_types())
+        self.assertEqual(len(types), 7)
+        self.assertEqual(types[0].slug,  "none-selected")
+        self.assertEqual(types[1].slug,  "no-license")
+        self.assertEqual(types[2].slug,  "royalty-free")
+        self.assertEqual(types[3].slug,  "reasonable")
+        self.assertEqual(types[4].slug,  "provided-later")
+        self.assertEqual(types[5].slug,  "unwilling-to-commit")
+        self.assertEqual(types[6].slug,  "see-below")
+
+
+    def test_holder_ipr_disclosure(self) -> None:
+        holder_ipr_disclosure = self.dt.holder_ipr_disclosure(HolderIPRDisclosureURI("/api/v1/ipr/holderiprdisclosure/4176/"))
+        if holder_ipr_disclosure is not None:
+            self.assertEqual(holder_ipr_disclosure.by,                                   PersonURI("/api/v1/person/person/1/"))
+            self.assertEqual(holder_ipr_disclosure.compliant,                            True)
+            self.assertEqual(holder_ipr_disclosure.docs,                                 [DocumentAliasURI("/api/v1/doc/docalias/draft-gandhi-spring-twamp-srpm/")])
+            self.assertEqual(holder_ipr_disclosure.has_patent_pending,                   False)
+            self.assertEqual(holder_ipr_disclosure.holder_contact_email,                 "francesco.battipede@telecomitalia.it")
+            self.assertEqual(holder_ipr_disclosure.holder_contact_info,                  "Technology Innovation-Patents\r\nVia G. Reiss Romoli 274\r\n10148 Torino - Italy\r\nT: +39 011 228 5580")
+            self.assertEqual(holder_ipr_disclosure.holder_contact_name,                  "Francesco Battipede")
+            self.assertEqual(holder_ipr_disclosure.holder_legal_name,                    "Telecom Italia SpA")
+            self.assertEqual(holder_ipr_disclosure.id,                                   4176)
+            self.assertEqual(holder_ipr_disclosure.ietfer_contact_email,                 "mauro.cociglio@telecomitalia.it")
+            self.assertEqual(holder_ipr_disclosure.ietfer_contact_info,                  "Technology Innovation\r\nVia G. Reiss Romoli 274\r\n10148 Torino - Italy\r\nT: +39 011 228 5028")
+            self.assertEqual(holder_ipr_disclosure.ietfer_name,                          "Mauro Cociglio")
+            self.assertEqual(holder_ipr_disclosure.iprdisclosurebase_ptr,                IPRDisclosureBaseURI("/api/v1/ipr/iprdisclosurebase/4176/"))
+            self.assertEqual(holder_ipr_disclosure.licensing,                            IPRLicenseTypeURI("/api/v1/name/iprlicensetypename/reasonable/"))
+            self.assertEqual(holder_ipr_disclosure.licensing_comments,                   "This undertaking is made subject to the condition that those who seek licences agree to reciprocate.")
+            self.assertEqual(holder_ipr_disclosure.notes,                                "")
+            self.assertEqual(holder_ipr_disclosure.other_designations,                   "")
+            self.assertEqual(holder_ipr_disclosure.patent_info,                          "Number: AR074847B1, CN2008801327719, EP2374241B, KR101475347, US8451734\nInventor: Mauro Cociglio, Luca Maria Castaldelli, Domenico Laforgia\nTitle: Measurement of data loss in a communication network\nDate: 2008-12-22\nNotes: EP2374241B: validated in DE, FI, FR, GB, IT, NL, SE")
+            self.assertEqual(holder_ipr_disclosure.rel,                                  [])
+            self.assertEqual(holder_ipr_disclosure.resource_uri,                         HolderIPRDisclosureURI("/api/v1/ipr/holderiprdisclosure/4176/"))
+            self.assertEqual(holder_ipr_disclosure.state,                                IPRDisclosureStateURI("/api/v1/name/iprdisclosurestatename/posted/"))
+            self.assertEqual(holder_ipr_disclosure.submitter_claims_all_terms_disclosed, False)
+            self.assertEqual(holder_ipr_disclosure.submitter_email,                      "francesco.battipede@telecomitalia.it")
+            self.assertEqual(holder_ipr_disclosure.submitter_name,                       "Francesco Battipede")
+            self.assertEqual(holder_ipr_disclosure.time,                                 datetime.fromisoformat("2020-06-08T02:44:12"))
+            self.assertEqual(holder_ipr_disclosure.title,                                "Telecom Italia SpA's Statement about IPR related to draft-gandhi-spring-twamp-srpm")
+        else:
+            self.fail("Cannot find holder IPR disclosure")
+
+
+    def test_holder_ipr_disclosures(self) -> None:
+        holder_ipr_disclosures = self.dt.holder_ipr_disclosures()
+        self.assertIsNot(holder_ipr_disclosures, None)
+
+
+    def test_holder_ipr_disclosures_by(self) -> None:
+        holder_ipr_disclosures = self.dt.holder_ipr_disclosures(by=self.dt.person(PersonURI("/api/v1/person/person/1/")))
+        self.assertIsNot(holder_ipr_disclosures, None)
+
+
+    def test_holder_ipr_disclosures_holder_legal_name(self) -> None:
+        holder_ipr_disclosures = self.dt.holder_ipr_disclosures(holder_legal_name="Telecom Italia SpA")
+        self.assertIsNot(holder_ipr_disclosures, None)
+
+
+    def test_holder_ipr_disclosures_holder_contact_name(self) -> None:
+        holder_ipr_disclosures = self.dt.holder_ipr_disclosures(holder_contact_name="Francesco Battipede")
+        self.assertIsNot(holder_ipr_disclosures, None)
+
+
+    def test_holder_ipr_disclosures_ietfer_contact_email(self) -> None:
+        holder_ipr_disclosures = self.dt.holder_ipr_disclosures(ietfer_contact_email="mauro.cociglio@telecomitalia.it")
+        self.assertIsNot(holder_ipr_disclosures, None)
+
+
+    def test_holder_ipr_disclosures_ietfer_name(self) -> None:
+        holder_ipr_disclosures = self.dt.holder_ipr_disclosures(ietfer_name="Mauro Cociglio")
+        self.assertIsNot(holder_ipr_disclosures, None)
+
+
+    def test_holder_ipr_disclosures_licensing(self) -> None:
+        holder_ipr_disclosures = self.dt.holder_ipr_disclosures(licensing=self.dt.ipr_license_type(IPRLicenseTypeURI("/api/v1/name/iprlicensetypename/reasonable/")))
+        self.assertIsNot(holder_ipr_disclosures, None)
+
+
+    def test_holder_ipr_disclosures_state(self) -> None:
+        holder_ipr_disclosures = self.dt.holder_ipr_disclosures(state=self.dt.ipr_disclosure_state(IPRDisclosureStateURI("/api/v1/name/iprdisclosurestatename/posted/")))
+        self.assertIsNot(holder_ipr_disclosures, None)
+
+
+    def test_holder_ipr_disclosures_submitter_email(self) -> None:
+        holder_ipr_disclosures = self.dt.holder_ipr_disclosures(submitter_email="francesco.battipede@telecomitalia.it")
+        self.assertIsNot(holder_ipr_disclosures, None)
+
+
+    def test_holder_ipr_disclosures_submitter_name(self) -> None:
+        holder_ipr_disclosures = self.dt.holder_ipr_disclosures(submitter_name="Francesco Battipede")
+        self.assertIsNot(holder_ipr_disclosures, None)
 
 
     # -----------------------------------------------------------------------------------------------------------------------------
