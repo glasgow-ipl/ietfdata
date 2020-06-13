@@ -117,9 +117,9 @@ for rfc in ri.rfcs():
             elif len(matching) == 1:
                 print_dt_person(rfc.doc_id, matching[0])
             else:
-                print("Multiple authors match")
-                print(matching)
-                sys.exit()
+                # Multiple people in the datatracker with the same initial
+                # and surname
+                pass
 
 
 
