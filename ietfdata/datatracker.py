@@ -1215,14 +1215,14 @@ class Session(Resource):
     meeting             : MeetingURI
     group               : GroupURI
     materials           : List[DocumentURI]
-    scheduled           : datetime
+    scheduled           : Optional[datetime]
     requested_duration  : str
     resources           : List[str]    # FIXME
     agenda_note         : str
     assignments         : List[SessionAssignmentURI]
     remote_instructions : str
     short               : str
-    attendees           : int
+    attendees           : Optional[int]
     modified            : datetime
     comments            : str
 
@@ -2725,11 +2725,10 @@ class DataTracker:
 
 
     def meeting_sessions(self,
-            meeting : Optional[Meeting],
-            group   : Optional[Group]) -> Iterator[Session]:
+            meeting : Meeting,
+            group   : Optional[Group] = None) -> Iterator[Session]:
         url = SessionURI("/api/v1/meeting/session/")
-        if meeting is not None:
-            url.params["meeting"] = meeting.id
+        url.params["meeting"] = meeting.id
         if group is not None:
             url.params["group"] = group.id
         return self._retrieve_multi(url, Session, deref = {"meeting": "id", "group": "id"})
