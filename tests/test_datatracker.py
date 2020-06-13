@@ -1572,7 +1572,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_email(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(email="csp@csperkins.org"))
-        self.assertEqual(len(group_role_histories), 25)
+        self.assertEqual(len(group_role_histories), 27)
 
 
     def test_group_role_histories_group(self) -> None:
@@ -1591,7 +1591,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_person(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(person=self.dt.person(PersonURI("/api/v1/person/person/20209/"))))
-        self.assertEqual(len(group_role_histories), 25)
+        self.assertEqual(len(group_role_histories), 27)
 
 
     def test_group_state_change_event(self) -> None:
@@ -1829,10 +1829,13 @@ class TestDatatracker(unittest.TestCase):
     def test_meeting_sessions(self) -> None:
         ietf90  = self.dt.meeting(MeetingURI("/api/v1/meeting/meeting/365/")) # IETF 90 in Toronto
         tsvwg   = self.dt.group_from_acronym("tsvwg")
-        sessions = list(self.dt.meeting_sessions(meeting=ietf90, group=tsvwg))
-        self.assertEqual(len(sessions), 2)
-        self.assertEqual(sessions[0].id, 23197)
-        self.assertEqual(sessions[1].id, 23198)
+        if ietf90 is not None and tsvwg is not None:
+            sessions = list(self.dt.meeting_sessions(meeting=ietf90, group=tsvwg))
+            self.assertEqual(len(sessions), 2)
+            self.assertEqual(sessions[0].id, 23197)
+            self.assertEqual(sessions[1].id, 23198)
+        else:
+            self.fail("cannot find ietf90 or tsvwg")
 
 
     def test_meeting_schedule(self) -> None:
