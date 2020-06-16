@@ -1643,6 +1643,32 @@ class MailingListSubscriptions(Resource):
     time         : datetime
 
 
+# ---------------------------------------------------------------------------------------------------------------------------------
+# Types relating to statistics:
+
+
+@dataclass(frozen=True)
+class MeetingRegistrationURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/stats/meetingregistration/")
+
+
+@dataclass(frozen=True)
+class MeetingRegistration(Resource):
+    affiliation  : str
+    attended     : bool
+    country_code : str
+    email        : str
+    first_name   : str
+    id           : int
+    last_name    : str
+    meeting      : MeetingURI
+    person       : Optional[PersonURI]
+    reg_type     : str
+    resource_uri : MeetingRegistrationURI
+    ticket_type  : str
+
+
 # =================================================================================================================================
 # A class to represent the datatracker:
 
@@ -2670,7 +2696,7 @@ class DataTracker:
         A meeting comprises a number of `Session`s organised into a `Schedule`.
         Use `meeting_sessions()` to find the sessions that occurred during the
         meeting. Use `meeting_session_assignments()` to find the timeslots when
-        those sessions occurred. 
+        those sessions occurred.
         """
         return self._retrieve(meeting_uri, Meeting)
 
@@ -3186,6 +3212,52 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/name/intendedstdlevelname/
     #   https://datatracker.ietf.org/api/v1/name/draftsubmissionstatename/
     #   https://datatracker.ietf.org/api/v1/name/rolename/
+
+    # ----------------------------------------------------------------------------------------------------------------------------
+    # Datatracker API endpoints returning information about statistics:
+    #
+    #   https://datatracker.ietf.org/api/v1/stats/affiliationalias/
+    #   https://datatracker.ietf.org/api/v1/stats/affiliationignoredending/
+    #   https://datatracker.ietf.org/api/v1/stats/countryalias/
+    #   https://datatracker.ietf.org/api/v1/stats/meetingregistration/
+
+    def meeting_registration(self, meeting_registration_uri: MeetingRegistrationURI) -> Optional[MeetingRegistration]:
+        return self._retrieve(meeting_registration_uri, MeetingRegistration)
+
+
+    def meeting_registrations(self,
+                affiliation   : Optional[str]             = None,
+                attended      : Optional[bool]            = None,
+                country_code  : Optional[str]             = None,
+                email         : Optional[str]             = None,
+                first_name    : Optional[str]             = None,
+                last_name     : Optional[str]             = None,
+                meeting       : Optional[Meeting]         = None,
+                person        : Optional[Person]          = None,
+                reg_type      : Optional[str]             = None,
+                ticket_type   : Optional[str]             = None) -> Iterator[MeetingRegistration]:
+        url = MeetingRegistrationURI("/api/v1/stats/meetingregistration/")
+        if affiliation is not None:
+            url.params["affiliation"] = affiliation
+        if attended is not None:
+            url.params["attended"] = attended
+        if country_code is not None:
+            url.params["country_code"] = country_code
+        if email is not None:
+            url.params["email"] = email
+        if first_name is not None:
+            url.params["first_name"] = first_name
+        if last_name is not None:
+            url.params["last_name"] = last_name
+        if meeting is not None:
+            url.params["meeting"] = meeting.id
+        if person is not None:
+            url.params["person"] = person.id
+        if reg_type is not None:
+            url.params["reg_type"] = reg_type
+        if ticket_type is not None:
+            url.params["ticket_type"] = ticket_type
+        return self._retrieve_multi(url, MeetingRegistration, deref = {"meeting": "id", "person": "id"})
 
 # =================================================================================================================================
 # vim: set tw=0 ai:

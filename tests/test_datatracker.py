@@ -1780,7 +1780,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(session.name,                "")
             self.assertEqual(session.meeting,             MeetingURI("/api/v1/meeting/meeting/747/"))
             self.assertEqual(session.group,               GroupURI("/api/v1/group/group/1803/"))
-            self.assertEqual(session.materials,           [DocumentURI("/api/v1/doc/document/agenda-100-homenet/"), 
+            self.assertEqual(session.materials,           [DocumentURI("/api/v1/doc/document/agenda-100-homenet/"),
                                                            DocumentURI("/api/v1/doc/document/slides-100-homenet-chair-slides/"),
                                                            DocumentURI("/api/v1/doc/document/slides-100-homenet-support-for-hncp-in-ipv6-ce-routers/"),
                                                            DocumentURI("/api/v1/doc/document/slides-100-homenet-homenet-security/"),
@@ -1793,29 +1793,29 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(session.requested_duration,  "1:30:00")
             self.assertEqual(session.resources,           [])
             self.assertEqual(session.agenda_note,         "")
-            self.assertEqual(session.assignments,         [SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/57892/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/58170/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/59755/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/58279/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/58458/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/58623/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/58832/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/59092/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/59259/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/59424/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/59585/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/59937/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/60151/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/60325/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/60509/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/60692/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/60867/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/61041/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/61212/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/61405/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/61595/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/61765/"), 
-                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/61939/"), 
+            self.assertEqual(session.assignments,         [SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/57892/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/58170/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/59755/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/58279/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/58458/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/58623/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/58832/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/59092/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/59259/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/59424/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/59585/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/59937/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/60151/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/60325/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/60509/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/60692/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/60867/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/61041/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/61212/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/61405/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/61595/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/61765/"),
+                                                           SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/61939/"),
                                                            SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/67156/")])
             self.assertEqual(session.remote_instructions, "")
             self.assertEqual(session.short,               "")
@@ -2897,6 +2897,83 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(subs[0].resource_uri, MailingListSubscriptionsURI(uri="/api/v1/mailinglists/subscribed/66700/"))
         self.assertEqual(subs[0].email,        "colin.perkins@glasgow.ac.uk")
         self.assertEqual(subs[0].lists[0],     MailingListURI("/api/v1/mailinglists/list/461/"))
+
+    # -----------------------------------------------------------------------------------------------------------------------------
+    # Tests relating to statistics:
+
+
+    def test_meeting_registration(self) -> None:
+        reg = self.dt.meeting_registration(MeetingRegistrationURI("/api/v1/stats/meetingregistration/42206/"))
+        if reg is not None:
+            self.assertEqual(reg.affiliation,  "University of Glasgow")
+            self.assertEqual(reg.attended,     True)
+            self.assertEqual(reg.country_code, "GB")
+            self.assertEqual(reg.email,        "sm@smcquistin.uk")
+            self.assertEqual(reg.first_name,   "Stephen")
+            self.assertEqual(reg.id,           42206)
+            self.assertEqual(reg.last_name,    "McQuistin")
+            self.assertEqual(reg.meeting,      MeetingURI("/api/v1/meeting/meeting/1003/"))
+            self.assertEqual(reg.person,       None)
+            self.assertEqual(reg.reg_type,     "remote")
+            self.assertEqual(reg.resource_uri, MeetingRegistrationURI("/api/v1/stats/meetingregistration/42206/"))
+            self.assertEqual(reg.ticket_type,  "full_week_pass")
+        else:
+            self.fail("Cannot find meeting registration")
+
+
+    def test_meeting_registrations(self) -> None:
+        regs = self.dt.meeting_registrations()
+        self.assertIsNot(regs, None)
+
+
+    def test_meeting_registrations_affiliation(self) -> None:
+        regs = self.dt.meeting_registrations(affiliation="University of Glasgow")
+        self.assertIsNot(regs, None)
+
+
+    def test_meeting_registrations_attended(self) -> None:
+        regs = self.dt.meeting_registrations(attended=True)
+        self.assertIsNot(regs, None)
+
+
+    def test_meeting_registrations_country_code(self) -> None:
+        regs = self.dt.meeting_registrations(country_code="GB")
+        self.assertIsNot(regs, None)
+
+
+    def test_meeting_registrations_email(self) -> None:
+        regs = self.dt.meeting_registrations(email="sm@smcquistin.uk")
+        self.assertIsNot(regs, None)
+
+
+    def test_meeting_registrations_first_name(self) -> None:
+        regs = self.dt.meeting_registrations(first_name="Stephen")
+        self.assertIsNot(regs, None)
+
+
+    def test_meeting_registrations_last_name(self) -> None:
+        regs = self.dt.meeting_registrations(last_name="McQuistin")
+        self.assertIsNot(regs, None)
+
+
+    def test_meeting_registrations_meeting(self) -> None:
+        regs = self.dt.meeting_registrations(meeting=self.dt.meeting(MeetingURI("/api/v1/meeting/meeting/1003/")))
+        self.assertIsNot(regs, None)
+
+
+    def test_meeting_registrations_person(self) -> None:
+        regs = self.dt.meeting_registrations(person=self.dt.person(PersonURI("/api/v1/person/person/117769/")))
+        self.assertIsNot(regs, None)
+
+
+    def test_meeting_registrations_reg_type(self) -> None:
+        regs = self.dt.meeting_registrations(reg_type="remote")
+        self.assertIsNot(regs, None)
+
+
+    def test_meeting_registrations_ticket_type(self) -> None:
+        regs = self.dt.meeting_registrations(ticket_type="one_day")
+        self.assertIsNot(regs, None)
 
 
 if __name__ == '__main__':
