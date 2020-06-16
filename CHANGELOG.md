@@ -1,10 +1,14 @@
 Change Log -- ietfdata
 ======================
 
-## v0.3.1 -- ??
+## v0.3.2 -- ??
 
- - Expand API coverage for Meetings and MeetingRegistrations
+ - Expand API coverage for meeting registrations
 
+## v0.3.1 -- 2020-06-13
+
+ - Expand API coverage for Meetings and IPR disclosures
+ - Include the PEP 561 py.typed marker in the generated package
 
 ## v0.3.0 -- 2020-06-07
 
