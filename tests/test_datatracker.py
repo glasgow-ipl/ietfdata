@@ -3076,6 +3076,83 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(subs[0].email,        "colin.perkins@glasgow.ac.uk")
         self.assertEqual(subs[0].lists[0],     MailingListURI("/api/v1/mailinglists/list/461/"))
 
+    # -----------------------------------------------------------------------------------------------------------------------------
+    # Tests relating to statistics:
+
+
+    def test_meeting_registration(self) -> None:
+        reg = self.dt.meeting_registration(MeetingRegistrationURI("/api/v1/stats/meetingregistration/42206/"))
+        if reg is not None:
+            self.assertEqual(reg.affiliation,  "University of Glasgow")
+            self.assertEqual(reg.attended,     True)
+            self.assertEqual(reg.country_code, "GB")
+            self.assertEqual(reg.email,        "sm@smcquistin.uk")
+            self.assertEqual(reg.first_name,   "Stephen")
+            self.assertEqual(reg.id,           42206)
+            self.assertEqual(reg.last_name,    "McQuistin")
+            self.assertEqual(reg.meeting,      MeetingURI("/api/v1/meeting/meeting/1003/"))
+            self.assertEqual(reg.person,       None)
+            self.assertEqual(reg.reg_type,     "remote")
+            self.assertEqual(reg.resource_uri, MeetingRegistrationURI("/api/v1/stats/meetingregistration/42206/"))
+            self.assertEqual(reg.ticket_type,  "full_week_pass")
+        else:
+            self.fail("Cannot find meeting registration")
+
+
+    def test_meeting_registrations(self) -> None:
+        regs = self.dt.meeting_registrations()
+        self.assertIsNot(regs, None)
+
+
+    def test_meeting_registrations_affiliation(self) -> None:
+        regs = self.dt.meeting_registrations(affiliation="University of Glasgow")
+        self.assertIsNot(regs, None)
+
+
+    def test_meeting_registrations_attended(self) -> None:
+        regs = self.dt.meeting_registrations(attended=True)
+        self.assertIsNot(regs, None)
+
+
+    def test_meeting_registrations_country_code(self) -> None:
+        regs = self.dt.meeting_registrations(country_code="GB")
+        self.assertIsNot(regs, None)
+
+
+    def test_meeting_registrations_email(self) -> None:
+        regs = self.dt.meeting_registrations(email="sm@smcquistin.uk")
+        self.assertIsNot(regs, None)
+
+
+    def test_meeting_registrations_first_name(self) -> None:
+        regs = self.dt.meeting_registrations(first_name="Stephen")
+        self.assertIsNot(regs, None)
+
+
+    def test_meeting_registrations_last_name(self) -> None:
+        regs = self.dt.meeting_registrations(last_name="McQuistin")
+        self.assertIsNot(regs, None)
+
+
+    def test_meeting_registrations_meeting(self) -> None:
+        regs = self.dt.meeting_registrations(meeting=self.dt.meeting(MeetingURI("/api/v1/meeting/meeting/1003/")))
+        self.assertIsNot(regs, None)
+
+
+    def test_meeting_registrations_person(self) -> None:
+        regs = self.dt.meeting_registrations(person=self.dt.person(PersonURI("/api/v1/person/person/117769/")))
+        self.assertIsNot(regs, None)
+
+
+    def test_meeting_registrations_reg_type(self) -> None:
+        regs = self.dt.meeting_registrations(reg_type="remote")
+        self.assertIsNot(regs, None)
+
+
+    def test_meeting_registrations_ticket_type(self) -> None:
+        regs = self.dt.meeting_registrations(ticket_type="one_day")
+        self.assertIsNot(regs, None)
+
 
 if __name__ == '__main__':
     unittest.main()
