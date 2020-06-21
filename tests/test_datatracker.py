@@ -1630,13 +1630,14 @@ class TestDatatracker(unittest.TestCase):
 
     def test_groups_state(self) -> None:
         groups = list(self.dt.groups(state=self.dt.group_state(GroupStateURI("/api/v1/name/groupstatename/abandon"))))
-        self.assertEqual(len(groups), 6)
+        self.assertEqual(len(groups), 7)
         self.assertEqual(groups[0].id, 1949)
         self.assertEqual(groups[1].id, 2009)
         self.assertEqual(groups[2].id, 2018)
         self.assertEqual(groups[3].id, 2155)
         self.assertEqual(groups[4].id, 2190)
         self.assertEqual(groups[5].id, 2200)
+        self.assertEqual(groups[6].id, 2275)    # SHMO was renamed to SHMOO while chartering
 
 
     def test_groups_parent(self) -> None:
