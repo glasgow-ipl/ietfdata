@@ -1248,9 +1248,12 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(group_histories[1].id, 2257)
 
 
-    def test_group_histories(self) -> None:
-        group_histories = self.dt.group_histories()
-        self.assertIsNot(group_histories, None)
+    def test_group_histories_group(self) -> None:
+        avt = self.dt.group_from_acronym("spud")
+        group_histories = list(self.dt.group_histories(group=avt))
+        self.assertEqual(len(group_histories), 2)
+        self.assertEqual(group_histories[0].id, 2179)
+        self.assertEqual(group_histories[1].id, 2257)
 
 
     def test_group_event(self) -> None:

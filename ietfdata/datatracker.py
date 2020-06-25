@@ -1764,7 +1764,7 @@ class DataTracker:
             cache_dir      -- If set, use this directory as a cache for Datatracker objects
         """
         self.session  = requests.Session()
-        self.ua       = "glasgow-ietfdata/0.3.2"          # Update when making a new relaase
+        self.ua       = "glasgow-ietfdata/0.3.3"          # Update when making a new relaase
         self.base_url = "https://datatracker.ietf.org"
         self.http_req = 0
         self.cache_dir = cache_dir
@@ -2490,16 +2490,19 @@ class DataTracker:
     def group_histories(self,
             since         : str                  = "1970-01-01T00:00:00",
             until         : str                  = "2038-01-19T03:14:07",
+            group         : Optional[Group]      = None,
             state         : Optional[GroupState] = None,
             parent        : Optional[Group]      = None) -> Iterator[GroupHistory]:
         url = GroupHistoryURI("/api/v1/group/grouphistory/")
-        url.params["time__gt"]       = since
-        url.params["time__lt"]       = until
+        url.params["time__gt"]  = since
+        url.params["time__lt"]  = until
+        if group is not None:
+            url.params["group"] = group.id
         if state is not None:
             url.params["state"] = state.slug
         if parent is not None:
             url.params["parent"] = parent.id
-        return self._retrieve_multi(url, GroupHistory, deref = {"parent": "id", "state": "slug"})
+        return self._retrieve_multi(url, GroupHistory, deref = {"group": "id", "parent": "id", "state": "slug"})
 
 
     def group_event(self, group_event_uri : GroupEventURI) -> Optional[GroupEvent]:
