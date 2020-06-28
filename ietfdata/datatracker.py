@@ -1133,8 +1133,8 @@ class Meeting(Resource):
     submission_start_day_offset      : int
     submission_cutoff_day_offset     : int
     submission_correction_day_offset : int
-    agenda                           : ScheduleURI  # An alias for schedule
-    schedule                         : ScheduleURI  # The current meeting schedule (i.e., the agenda)
+    agenda                           : Optional[ScheduleURI]  # An alias for schedule
+    schedule                         : Optional[ScheduleURI]  # The current meeting schedule (i.e., the agenda)
     number                           : str
     break_area                       : str
     reg_area                         : str
