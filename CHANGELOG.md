@@ -1,10 +1,11 @@
 Change Log -- ietfdata
 ======================
 
-## v0.3.3 -- ???
+## v0.3.3 -- 2020-06-28
 
  - Update `group_histories()` to take a `group` parameter
- - Meeting schedule is optional
+ - Update `Meeting` to note that the `schedule` is optional
+ - Update tests
 
 
 ## v0.3.2 -- 2020-06-21
