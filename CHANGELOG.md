@@ -1,9 +1,9 @@
 Change Log -- ietfdata
 ======================
 
-## v0.3.4 -- ???
+## v0.4.0 -- ???
 
- - 
+ - Add support for accessing the IETF mail archive
 
 
 ## v0.3.3 -- 2020-06-28

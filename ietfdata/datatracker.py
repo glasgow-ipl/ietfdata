@@ -1483,7 +1483,7 @@ class ReviewAssignment(Resource):
     mailarch_url   : Optional[str] # can type?
     resource_uri   : ReviewAssignmentURI
     result         : Optional[ReviewResultTypeURI]
-    review         : DocumentURI
+    review         : Optional[DocumentURI]
     review_request : ReviewRequestURI
     reviewed_rev   : str
     reviewer       : EmailURI
@@ -1764,7 +1764,7 @@ class DataTracker:
             cache_dir      -- If set, use this directory as a cache for Datatracker objects
         """
         self.session  = requests.Session()
-        self.ua       = "glasgow-ietfdata/0.3.4"          # Update when making a new relaase
+        self.ua       = "glasgow-ietfdata/0.4.0"          # Update when making a new relaase
         self.base_url = "https://datatracker.ietf.org"
         self.http_req = 0
         self.cache_dir = cache_dir
