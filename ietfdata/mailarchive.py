@@ -32,7 +32,7 @@ import email
 from datetime      import datetime
 from typing        import List, Optional, Tuple, Dict, Iterator, Type, TypeVar, Any
 from pathlib       import Path
-from email.message import EmailMessage
+from email.message import Message
 from imapclient    import IMAPClient
 from progress.bar  import Bar
 
@@ -56,13 +56,22 @@ class MailingList:
     _cache_dir    : Path
     _cache_folder : Path
     _last_updated : datetime
+    _num_messages : int
+    _archive_urls : Dict[str, int]
 
 
     def __init__(self, cache_dir: Path, list_name: str):
         self._list_name    = list_name
         self._cache_dir    = cache_dir
-        self._cache_folder = Path(self._cache_dir, "mailing-lists", "imap", self._list_name)
+        self._cache_folder = Path(self._cache_dir, "mailing-lists", self._list_name)
         self._cache_folder.mkdir(parents=True, exist_ok=True)
+        self._num_messages = 0
+        self._archive_urls = {}
+        for msg in self.messages():
+            self._num_messages += 1
+            if msg["Archived-At"] is not None:
+                list_name, msg_hash = _parse_archive_url(msg["Archived-At"])
+                self._archive_urls[msg_hash] = self._num_messages
 
 
     def name(self) -> str:
@@ -70,19 +79,25 @@ class MailingList:
 
 
     def num_messages(self) -> int:
-        pass
+        return self._num_messages
 
 
-    def message(self, index:int) -> EmailMessage:
-        pass
+    def message(self, index:int) -> Message:
+        cache_file = Path(self._cache_folder, "{:06d}.msg".format(index))
+        with open(cache_file, "rb") as inf:
+            return email.message_from_binary_file(inf)
 
 
-    def messages(self) -> Iterator[EmailMessage]:
-        pass
+    def message_from_archive_url(self, archive_url:str) -> Message:
+        list_name, msg_hash = _parse_archive_url(archive_url)
+        assert list_name == self._list_name
+        return self.message(self._archive_urls[msg_hash])
 
 
-    def message_from_archive_url(self, url:str) -> EmailMessage:
-        pass
+    def messages(self) -> Iterator[Message]:
+        for msg_path in sorted(self._cache_folder.glob("*.msg")):
+            with open(msg_path, "rb") as inf:
+                yield email.message_from_binary_file(inf)
 
 
     def update(self) -> List[int]:
@@ -91,21 +106,21 @@ class MailingList:
         imap.login("anonymous", "anonymous")
         imap.select_folder("Shared Folders/" + self._list_name, readonly=True)
         msg_list = imap.search()
-        progress = Bar("{:20}".format(self._list_name), max = len(msg_list))
+        progress = Bar("Updating mailing list: {:20}".format(self._list_name), max = len(msg_list))
         for msg_id in msg_list:
-            progress.next()
             cache_file = Path(self._cache_folder, "{:06d}.msg".format(msg_id))
-            if not cache_file.exists():
+            if not cache_file.exists() or cache_file.stat().st_size == 0:
                 msg = imap.fetch(msg_id, ["RFC822"])
-                e = email.message_from_bytes(msg[msg_id][b"RFC822"])
-                if e["Archived-At"] is not None:
-                    mailing_list, message_hash = _parse_archive_url(e["Archived-At"])
-                    archive_file = Path(self._cache_dir, "mailing-lists", "arch", "msg", mailing_list, message_hash)
-                    archive_file.parent.mkdir(parents=True, exist_ok=True)
-                    archive_file.symlink_to(F"../../../imap/{mailing_list}/{msg_id:06}.msg")
                 with open(cache_file, "wb") as outf:
                     outf.write(msg[msg_id][b"RFC822"])
+                e = email.message_from_bytes(msg[msg_id][b"RFC822"])
+                if e["Archived-At"] is not None:
+                    list_name, msg_hash = _parse_archive_url(e["Archived-At"])
+                    self._archive_urls[msg_hash] = msg_id
+                self._num_messages += 1
                 new_msgs.append(msg_id)
+            progress.next()
+
         progress.finish()
         imap.unselect_folder()
         imap.logout()
@@ -145,10 +160,13 @@ class MailArchive:
         return self._mailing_lists[mailing_list_name]
 
 
-    def message_from_archive_url(self, archive_url: str) -> EmailMessage:
+    def message_from_archive_url(self, archive_url: str) -> Message:
         if "//www.ietf.org/mail-archive/web/" in archive_url:
             # This is a legacy mail archive URL. If we retrieve it, the
             # server should redirect us to the current archive location.
+            # Unfortunately this will then fail, because messages in the
+            # legacy archive are missing the "Archived-At:" header.
+            print(archive_url)
             response = requests.get(archive_url)
             assert "//mailarchive.ietf.org/arch/msg" in response.url
             return self.message_from_archive_url(response.url)
@@ -179,14 +197,4 @@ class MailArchive:
     # has access to the datatracker, RFC index, and mailing list archives.
 
 # =================================================================================================
-
-if __name__ == '__main__':
-    archive = MailArchive(cache_dir=Path("cache"))
-    for ml_name in ["rfced-future", "taps", "rmcat", "secdir"]:
-        ml = archive.mailing_list(ml_name)
-        ml.update()
-
-    m = archive.message_from_archive_url("http://www.ietf.org/mail-archive/web/secdir/current/msg02466.html")
-    print(m)
-
 # vim: set tw=0 ai:
