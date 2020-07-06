@@ -170,7 +170,7 @@ class EmailURI(URI):
 @dataclass(frozen=True)
 class Email(Resource):
     resource_uri : EmailURI
-    person       : PersonURI
+    person       : Optional[PersonURI]
     address      : str # The email address
     time         : datetime
     origin       : str
@@ -1883,7 +1883,7 @@ class DataTracker:
 
     def person_from_email(self, email_addr: str) -> Optional[Person]:
         email = self.email(EmailURI("/api/v1/person/email/" + email_addr + "/"))
-        if email is not None:
+        if email is not None and email.person is not None:
             return self.person(email.person)
         else:
             return None
