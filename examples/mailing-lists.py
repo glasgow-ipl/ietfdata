@@ -28,12 +28,27 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from pathlib              import Path
-from ietfdata.mailarchive import *
+from pathlib                  import Path
+from ietfdata.mailarchive_ext import *
+from ietfdata.datatracker     import *
 
-archive = MailArchive(cache_dir=Path("cache"))
+archive = MailArchiveExt(cache_dir=Path("cache"))
+dt = DataTracker(cache_dir=Path("cache"))
+
+def pretty_print_message_metadata(message_metadata: MessageMetadata):
+    subject = im.msg["Subject"].replace('\n', "\\n")
+    return f"{im.from_name:50s} | {im.from_addr:30s} | {str(im.person.id) if im.person is not None else '--':6s} | {im.timestamp:%Y-%m-%d %H:%M} | {subject:30s} )"
+
 for ml_name in ["rfced-future"]:
     ml = archive.mailing_list(ml_name)
     ml.update()
-    for im in ml.ietf_messages():
-        print(f"{im.from_name}, {im.from_addr}, {im.dt_person_uri}")
+    print(ml_name)
+    for im in ml.messages_metadata():
+        print(f"  {pretty_print_message_metadata(im)}")
+
+    print()
+
+    # filter by Person
+    print("Filter by Person")
+    for im in ml.messages_metadata(person=dt.person_from_email("csp@csperkins.org")):
+        print(f"  {pretty_print_message_metadata(im)}")
