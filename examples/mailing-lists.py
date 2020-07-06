@@ -37,7 +37,7 @@ dt = DataTracker(cache_dir=Path("cache"))
 
 def pretty_print_message_metadata(message_metadata: MessageMetadata):
     subject = im.msg["Subject"].replace('\n', "\\n")
-    return f"{im.from_name:50s} | {im.from_addr:30s} | {str(im.person.id) if im.person is not None else '--':6s} | {im.timestamp:%Y-%m-%d %H:%M} | {subject:30s} )"
+    return f"{im.from_name:50s} | {im.from_addr:30s} | {str(im.person.id) if im.person is not None else '--':6s} | {im.timestamp:%Y-%m-%d %H:%M} | {subject:30s}"
 
 for ml_name in ["rfced-future"]:
     ml = archive.mailing_list(ml_name)
