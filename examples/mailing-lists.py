@@ -35,9 +35,16 @@ from ietfdata.datatracker     import *
 archive = MailArchiveExt(cache_dir=Path("cache"))
 dt = DataTracker(cache_dir=Path("cache"))
 
+
 def pretty_print_message_metadata(message_metadata: MessageMetadata):
     subject = im.msg["Subject"].replace('\n', "\\n")
-    return f"{im.from_name:50s} | {im.from_addr:30s} | {str(im.person.id) if im.person is not None else '--':6s} | {im.timestamp:%Y-%m-%d %H:%M} | {subject:30s}"
+    string = f"{im.from_name:50s} | {im.from_addr:30s} | {str(im.person.id) if im.person is not None else '--':6s} | {im.timestamp:%Y-%m-%d %H:%M} | {subject:30s}"
+    for document in im.docs:
+        name = document.name
+        if document.rfc is not None:
+            name = f"RFC{document.rfc}"
+        string += f"\n\tRelated Document: {document.title} ({name})"
+    return string
 
 for ml_name in ["rfced-future"]:
     ml = archive.mailing_list(ml_name)
@@ -51,4 +58,11 @@ for ml_name in ["rfced-future"]:
     # filter by Person
     print("Filter by Person")
     for im in ml.messages_metadata(person=dt.person_from_email("csp@csperkins.org")):
+        print(f"  {pretty_print_message_metadata(im)}")
+
+    print()
+
+    # filter by Document
+    print("Filter by Document")
+    for im in ml.messages_metadata(document=dt.document_from_draft("draft-carpenter-rfc-principles")):
         print(f"  {pretty_print_message_metadata(im)}")
