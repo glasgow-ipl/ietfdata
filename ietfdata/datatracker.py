@@ -170,7 +170,7 @@ class EmailURI(URI):
 @dataclass(frozen=True)
 class Email(Resource):
     resource_uri : EmailURI
-    person       : PersonURI
+    person       : Optional[PersonURI]
     address      : str # The email address
     time         : datetime
     origin       : str
