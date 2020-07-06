@@ -51,69 +51,6 @@ def _parse_archive_url(archive_url:str) -> Tuple[str, str]:
 
 # =================================================================================================
 
-class IETFMessage:
-    from_name          : str
-    from_addr          : str
-    dt_person_uri      : Optional[dt.PersonURI]
-    mailing_list_name  : str
-    msg_id             : int
-
-
-    def __init__(self, mailing_list_name: str, msg_id: int, message: Message, datatracker: dt.DataTracker, cache_dir: Path):
-        cache_filepath = Path(cache_dir, "mailing-lists-metadata", mailing_list_name, f"{msg_id:06d}.json")
-        if cache_filepath.exists():
-            with open(cache_filepath, "r") as cache_file:
-                msg_json = json.load(cache_file)
-                self.from_name         = msg_json["from_name"]
-                self.from_addr         = msg_json["from_addr"]
-                self.dt_person_uri     = dt.PersonURI(msg_json["dt_person_uri"]) if msg_json["dt_person_uri"] != "" else None
-                self.mailing_list_name = msg_json["mailing_list_name"]
-                self.msg_id            = msg_json["msg_id"]
-        else:
-            self.from_name, self.from_addr = email.utils.parseaddr(message["From"])
-            self.mailing_list_name = mailing_list_name
-            self.msg_id = msg_id
-            dt_person = datatracker.person_from_email(self.from_addr)
-            if dt_person is not None:
-                self.dt_person_uri = dt_person.resource_uri
-            else:
-                self.dt_person_uri = None
-            self._cache_obj(cache_dir)
-
-
-    def _cache_obj(self, cache_file: Path) -> None:
-        cache_dir = Path(cache_file, "mailing-lists-metadata", self.mailing_list_name)
-        cache_dir.mkdir(parents=True, exist_ok=True)
-        cache_filepath = Path(cache_dir, f"{self.msg_id:06d}" + ".json")
-        with open(cache_filepath, "w+") as cache_file:
-            json.dump({"from_name"          : self.from_name,
-                       "from_addr"          : self.from_addr,
-                       "dt_person_uri"      : self.dt_person_uri.uri if self.dt_person_uri is not None else "",
-                       "mailing_list_name"  : self.mailing_list_name,
-                       "msg_id"             : self.msg_id},
-                      cache_file)
-
-    # Formal messages that can be searched for:
-    # - "I-D Action:"
-    # - "Document Action:"
-    # - "Protocol Action:"
-    # - "WG Action:"
-    # - "WG Review:"
-    # - "Last Call:"
-    # - "<wg name> Virtual Meeting"
-    # - "RFCxxxx on"
-    # - RFC errata announcements
-    # - <directorate> last call review
-    # - <directorate> telechat review
-    # - IESG ballot position announcements
-    # (all sometime preceded by "Correction:" or "REVISED")
-    # From: addresses have varied over time
-    # many of these will need to be implemented in a helper class, that
-    # has access to the datatracker, RFC index, and mailing list archives.
-
-
-# =================================================================================================
-
 class MailingList:
     _list_name    : str
     _cache_dir    : Path
@@ -121,16 +58,15 @@ class MailingList:
     _last_updated : datetime
     _num_messages : int
     _archive_urls : Dict[str, int]
-    _datatracker  : dt.DataTracker
 
-    def __init__(self, cache_dir: Path, list_name: str, datatracker: dt.DataTracker):
+
+    def __init__(self, cache_dir: Path, list_name: str):
         self._list_name    = list_name
         self._cache_dir    = cache_dir
         self._cache_folder = Path(self._cache_dir, "mailing-lists", self._list_name)
         self._cache_folder.mkdir(parents=True, exist_ok=True)
         self._num_messages = 0
         self._archive_urls = {}
-        self._datatracker  = datatracker
         for msg in self.messages():
             self._num_messages += 1
             if msg["Archived-At"] is not None:
@@ -164,16 +100,6 @@ class MailingList:
                 yield email.message_from_binary_file(inf)
 
 
-    def ietf_message(self, index:int) -> IETFMessage:
-        return IETFMessage(self._list_name, index, self.message(index), self._datatracker, self._cache_dir)
-
-
-    def ietf_messages(self) -> Iterator[IETFMessage]:
-        for msg_path in sorted(self._cache_folder.glob("*.msg")):
-            msg_id = int(str(msg_path)[str(msg_path).rfind('/')+1:-4])
-            yield self.ietf_message(msg_id)
-
-
     def update(self) -> List[int]:
         new_msgs = []
         imap = IMAPClient(host='imap.ietf.org', ssl=False, use_uid=True)
@@ -188,7 +114,6 @@ class MailingList:
                 with open(cache_file, "wb") as outf:
                     outf.write(msg[msg_id][b"RFC822"])
                 e = email.message_from_bytes(msg[msg_id][b"RFC822"])
-                im = self.ietf_message(msg_id)
                 if e["Archived-At"] is not None:
                     list_name, msg_hash = _parse_archive_url(e["Archived-At"])
                     self._archive_urls[msg_hash] = msg_id
@@ -212,13 +137,11 @@ class MailingList:
 class MailArchive:
     _cache_dir     : Path
     _mailing_lists : Dict[str,MailingList]
-    _datatracker   : dt.DataTracker
 
 
     def __init__(self, cache_dir: Path):
         self._cache_dir     = cache_dir
         self._mailing_lists = {}
-        self._datatracker   = dt.DataTracker(self._cache_dir)
 
 
     def mailing_list_names(self) -> Iterator[str]:
@@ -233,7 +156,7 @@ class MailArchive:
 
     def mailing_list(self, mailing_list_name: str) -> MailingList:
         if not mailing_list_name in self._mailing_lists:
-            self._mailing_lists[mailing_list_name] = MailingList(self._cache_dir, mailing_list_name, self._datatracker)
+            self._mailing_lists[mailing_list_name] = MailingList(self._cache_dir, mailing_list_name)
         return self._mailing_lists[mailing_list_name]
 
 
