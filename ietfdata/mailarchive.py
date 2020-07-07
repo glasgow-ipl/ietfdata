@@ -28,6 +28,7 @@ import json
 import re
 import requests
 import email
+import ietfdata.datatracker as dt
 
 from datetime      import datetime
 from typing        import List, Optional, Tuple, Dict, Iterator, Type, TypeVar, Any
@@ -47,7 +48,6 @@ def _parse_archive_url(archive_url:str) -> Tuple[str, str]:
     message_hash = aa_uri[aa_uri.find("/")+1:]
 
     return (mailing_list, message_hash)
-
 
 # =================================================================================================
 
@@ -176,25 +176,7 @@ class MailArchive:
             return mailing_list.message_from_archive_url(archive_url)
         else:
             raise RuntimeError("Cannot resolve mail archive URL")
-        
 
-    # Formal messages that can be searched for:
-    # - "I-D Action:"
-    # - "Document Action:"
-    # - "Protocol Action:"
-    # - "WG Action:"
-    # - "WG Review:"
-    # - "Last Call:"
-    # - "<wg name> Virtual Meeting"
-    # - "RFCxxxx on"
-    # - RFC errata announcements
-    # - <directorate> last call review
-    # - <directorate> telechat review 
-    # - IESG ballot position announcements
-    # (all sometime preceded by "Correction:" or "REVISED")
-    # From: addresses have varied over time
-    # many of these will need to be implemented in a helper class, that
-    # has access to the datatracker, RFC index, and mailing list archives.
 
 # =================================================================================================
 # vim: set tw=0 ai:
