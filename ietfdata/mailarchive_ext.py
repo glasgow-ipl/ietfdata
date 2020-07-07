@@ -36,6 +36,7 @@ from ietfdata.mailarchive import *
 class MessageMetadata:
     from_name          : str
     from_addr          : str
+    # FIXME: Does this want to be `from_person`, to allow for also `to_people` and `cc_people`?
     person             : Optional[dt.Person]
     timestamp          : datetime
     mailing_list_name  : str
@@ -83,6 +84,8 @@ class MessageMetadata:
                       cache_file)
 
     def scan_message(self, datatracker: dt.DataTracker) -> None:
+        # FIXME: Does this find messages with a document in the subject line?
+        # FIXME: It would be interesting to also find people mentioned in messages
         draft_matches = re.findall(r'draft-(?P<name>[a-zA-Z0-9_\-]+)-(?P<revision>[0-9_\-]+)', self.msg.as_string())
         for draft_match in draft_matches:
             doc = datatracker.document_from_draft(f"draft-{draft_match[0]}")
