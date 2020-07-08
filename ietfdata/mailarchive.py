@@ -215,7 +215,7 @@ class MailArchive:
             raise RuntimeError("Cannot resolve mail archive URL")
             
     
-    def update(self):
+    def update(self) -> None:
         for mailing_list_name in self.mailing_list_names():
             self.mailing_list(mailing_list_name).update()
 
