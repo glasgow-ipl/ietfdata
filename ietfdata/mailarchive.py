@@ -213,6 +213,11 @@ class MailArchive:
             return mailing_list.message_from_archive_url(archive_url)
         else:
             raise RuntimeError("Cannot resolve mail archive URL")
+            
+    
+    def update(self):
+        for mailing_list_name in self.mailing_list_names():
+            self.mailing_list(mailing_list_name).update()
 
 
 # =================================================================================================
