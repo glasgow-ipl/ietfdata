@@ -126,6 +126,10 @@ class MailingListExt(MailingList):
         self._datatracker = dt.DataTracker(cache_dir)
 
 
+    def message_metadata(self, index: int) -> MessageMetadata:
+        return MessageMetadata(self._list_name, index, self.message(index), self._datatracker, self._cache_dir)
+
+
     def messages_metadata(self,
                           person   : Optional[dt.Person]   = None,
                           document : Optional[dt.Document] = None) -> Iterator[MessageMetadata]:

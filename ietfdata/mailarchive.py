@@ -51,6 +51,27 @@ def _parse_archive_url(archive_url:str) -> Tuple[str, str]:
 
 # =================================================================================================
 
+class MessageThread:
+    _msg_ids : List[str]
+    messages: List[Tuple[int, Message]]
+    
+    def __init__(self, index: int, first_message: Message):
+        self._msg_ids =  [first_message['Message-ID']]
+        self.messages = [(index, first_message)]
+
+        
+    def should_contain(self, msg: Message):
+        return msg["In-Reply-To"] in self._msg_ids
+
+    
+    def append(self, index: int, msg: Message):
+        assert self.should_contain(msg)
+        self._msg_ids.append(msg["Message-ID"])
+        self.messages.append((index, msg))
+    
+
+# =================================================================================================
+
 class MailingList:
     _list_name    : str
     _cache_dir    : Path
@@ -67,7 +88,7 @@ class MailingList:
         self._cache_folder.mkdir(parents=True, exist_ok=True)
         self._num_messages = 0
         self._archive_urls = {}
-        for msg in self.messages():
+        for index, msg in self.messages():
             self._num_messages += 1
             if msg["Archived-At"] is not None:
                 list_name, msg_hash = _parse_archive_url(msg["Archived-At"])
@@ -97,7 +118,23 @@ class MailingList:
     def messages(self) -> Iterator[Message]:
         for msg_path in sorted(self._cache_folder.glob("*.msg")):
             with open(msg_path, "rb") as inf:
-                yield email.message_from_binary_file(inf)
+                msg_path = str(msg_path)
+                yield int(msg_path[msg_path.rfind('/')+1:-4]), email.message_from_binary_file(inf)
+
+
+    def threads(self) -> Iterator[MessageThread]:
+        threads = []
+        for index, message in self.messages():
+            threaded = False
+            for thread in threads:
+                if thread.should_contain(message):
+                    thread.append(index, message)
+                    threaded = True
+                if threaded:
+                    break
+            if not threaded:
+                threads.append(MessageThread(index, message))
+        return threads
 
 
     def update(self) -> List[int]:

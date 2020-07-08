@@ -35,8 +35,7 @@ from ietfdata.datatracker     import *
 archive = MailArchiveExt(cache_dir=Path("cache"))
 dt = DataTracker(cache_dir=Path("cache"))
 
-
-def pretty_print_message_metadata(message_metadata: MessageMetadata):
+def pretty_print_message_metadata(im: MessageMetadata):
     subject = im.msg["Subject"].replace('\n', "\\n")
     string = f"{im.from_name:50s} | {im.from_addr:30s} | {str(im.person.id) if im.person is not None else '--':6s} | {im.timestamp:%Y-%m-%d %H:%M} | {subject:30s}"
     for document in im.docs:
@@ -49,9 +48,12 @@ def pretty_print_message_metadata(message_metadata: MessageMetadata):
 for ml_name in ["rfced-future"]:
     ml = archive.mailing_list(ml_name)
     ml.update()
-    print(ml_name)
-    for im in ml.messages_metadata():
-        print(f"  {pretty_print_message_metadata(im)}")
+    for thread in ml.threads():
+        first_index, first_message = thread.messages[0]
+        print("--|", pretty_print_message_metadata(ml.message_metadata(first_index)))
+        for index, message in thread.messages[1:]:
+            print("  |", pretty_print_message_metadata(ml.message_metadata(index)))
+        print()
 
     print()
 
