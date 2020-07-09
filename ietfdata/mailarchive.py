@@ -109,10 +109,13 @@ class MailingList:
         progress = Bar("Updating mailing list: {:20}".format(self._list_name), max = len(msg_list))
         for msg_id in msg_list:
             cache_file = Path(self._cache_folder, "{:06d}.msg".format(msg_id))
-            if not cache_file.exists() or cache_file.stat().st_size == 0:
+            fetch_file = Path(self._cache_folder, "{:06d}.msg.download".format(msg_id))
+            if not cache_file.exists():
                 msg = imap.fetch(msg_id, ["RFC822"])
-                with open(cache_file, "wb") as outf:
+                with open(fetch_file, "wb") as outf:
                     outf.write(msg[msg_id][b"RFC822"])
+                fetch_file.rename(cache_file)
+
                 e = email.message_from_bytes(msg[msg_id][b"RFC822"])
                 if e["Archived-At"] is not None:
                     list_name, msg_hash = _parse_archive_url(e["Archived-At"])
