@@ -187,6 +187,23 @@ class MailArchive:
         else:
             raise RuntimeError("Cannot resolve mail archive URL")
 
+    def download_all_messages(self):
+        """
+        Download all messages.
+
+        WARNING: as of July 2020, this fetches ~26GBytes of data. Use with care!
+        """
+        ml_names = list(self.mailing_list_names())
+        num_list = len(ml_names)
+
+        imap = IMAPClient(host='imap.ietf.org', ssl=False, use_uid=True)
+        imap.login("anonymous", "anonymous")
+        for index, ml_name in enumerate(ml_names):
+            print(F"Updating list {index+1:4d}/{num_list:4d}: {ml_name} ", end="", flush=True)
+            ml = self.mailing_list(ml_name)
+            nm = ml.update(_reuse_imap=imap)
+            print(F"({ml.num_messages()} messages; {len(nm)} new)")
+        imap.logout()
 
 # =================================================================================================
 # vim: set tw=0 ai:
