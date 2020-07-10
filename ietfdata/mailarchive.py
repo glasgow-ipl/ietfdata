@@ -100,33 +100,40 @@ class MailingList:
                 yield email.message_from_binary_file(inf)
 
 
-    def update(self) -> List[int]:
+    def update(self, _reuse_imap=None) -> List[int]:
         new_msgs = []
-        imap = IMAPClient(host='imap.ietf.org', ssl=False, use_uid=True)
-        imap.login("anonymous", "anonymous")
+        if _reuse_imap is None:
+            imap = IMAPClient(host='imap.ietf.org', ssl=False, use_uid=True)
+            imap.login("anonymous", "anonymous")
+        else:
+            imap = _reuse_imap
         imap.select_folder("Shared Folders/" + self._list_name, readonly=True)
-        msg_list = imap.search()
-        progress = Bar("Updating mailing list: {:20}".format(self._list_name), max = len(msg_list))
+
+        msg_list  = imap.search()
+        msg_fetch = []
         for msg_id in msg_list:
+            cache_file = Path(self._cache_folder, "{:06d}.msg".format(msg_id))
+            if not cache_file.exists():
+                msg_fetch.append(msg_id)
+
+        for msg_id, msg in imap.fetch(msg_fetch, "RFC822").items():
             cache_file = Path(self._cache_folder, "{:06d}.msg".format(msg_id))
             fetch_file = Path(self._cache_folder, "{:06d}.msg.download".format(msg_id))
             if not cache_file.exists():
-                msg = imap.fetch(msg_id, ["RFC822"])
                 with open(fetch_file, "wb") as outf:
-                    outf.write(msg[msg_id][b"RFC822"])
+                    outf.write(msg[b"RFC822"])
                 fetch_file.rename(cache_file)
 
-                e = email.message_from_bytes(msg[msg_id][b"RFC822"])
+                e = email.message_from_bytes(msg[b"RFC822"])
                 if e["Archived-At"] is not None:
                     list_name, msg_hash = _parse_archive_url(e["Archived-At"])
                     self._archive_urls[msg_hash] = msg_id
                 self._num_messages += 1
                 new_msgs.append(msg_id)
-            progress.next()
 
-        progress.finish()
         imap.unselect_folder()
-        imap.logout()
+        if _reuse_imap is None:
+            imap.logout()
         self._last_updated = datetime.now()
         return new_msgs
 
