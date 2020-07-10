@@ -61,6 +61,7 @@ class MailingList:
 
 
     def __init__(self, cache_dir: Path, list_name: str):
+        # FIXME: this is very slow for large lists, since it parses all the messages
         self._list_name    = list_name
         self._cache_dir    = cache_dir
         self._cache_folder = Path(self._cache_dir, "mailing-lists", self._list_name)
