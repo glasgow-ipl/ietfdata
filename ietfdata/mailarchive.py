@@ -61,18 +61,28 @@ class MailingList:
 
 
     def __init__(self, cache_dir: Path, list_name: str):
-        # FIXME: this is very slow for large lists, since it parses all the messages
         self._list_name    = list_name
         self._cache_dir    = cache_dir
         self._cache_folder = Path(self._cache_dir, "mailing-lists", self._list_name)
         self._cache_folder.mkdir(parents=True, exist_ok=True)
-        self._num_messages = 0
+        self._num_messages = len(list(self._cache_folder.glob("*.msg")))
         self._archive_urls = {}
-        for msg in self.messages():
-            self._num_messages += 1
-            if msg["Archived-At"] is not None:
-                list_name, msg_hash = _parse_archive_url(msg["Archived-At"])
-                self._archive_urls[msg_hash] = self._num_messages
+
+        aa_cache     = Path(self._cache_folder, "aa-cache.json")
+        aa_cache_tmp = Path(self._cache_folder, "aa-cache.json.tmp")
+        if aa_cache.exists():
+            with open(aa_cache, "r") as cache_file:
+                self._archive_urls = json.load(cache_file)
+        else:
+            msg_id = 0
+            for msg in self.messages():
+                msg_id += 1
+                if msg["Archived-At"] is not None:
+                    list_name, msg_hash = _parse_archive_url(msg["Archived-At"])
+                    self._archive_urls[msg_hash] = msg_id
+            with open(aa_cache_tmp, "w") as cache_file:
+                json.dump(self._archive_urls, cache_file, indent=4)
+            aa_cache_tmp.rename(aa_cache)
 
 
     def name(self) -> str:
@@ -117,20 +127,29 @@ class MailingList:
             if not cache_file.exists():
                 msg_fetch.append(msg_id)
 
-        for msg_id, msg in imap.fetch(msg_fetch, "RFC822").items():
-            cache_file = Path(self._cache_folder, "{:06d}.msg".format(msg_id))
-            fetch_file = Path(self._cache_folder, "{:06d}.msg.download".format(msg_id))
-            if not cache_file.exists():
-                with open(fetch_file, "wb") as outf:
-                    outf.write(msg[b"RFC822"])
-                fetch_file.rename(cache_file)
+        if len(msg_fetch) > 0:
+            aa_cache     = Path(self._cache_folder, "aa-cache.json")
+            aa_cache_tmp = Path(self._cache_folder, "aa-cache.json.tmp")
+            aa_cache.unlink()   
 
-                e = email.message_from_bytes(msg[b"RFC822"])
-                if e["Archived-At"] is not None:
-                    list_name, msg_hash = _parse_archive_url(e["Archived-At"])
-                    self._archive_urls[msg_hash] = msg_id
-                self._num_messages += 1
-                new_msgs.append(msg_id)
+            for msg_id, msg in imap.fetch(msg_fetch, "RFC822").items():
+                cache_file = Path(self._cache_folder, "{:06d}.msg".format(msg_id))
+                fetch_file = Path(self._cache_folder, "{:06d}.msg.download".format(msg_id))
+                if not cache_file.exists():
+                    with open(fetch_file, "wb") as outf:
+                        outf.write(msg[b"RFC822"])
+                    fetch_file.rename(cache_file)
+
+                    e = email.message_from_bytes(msg[b"RFC822"])
+                    if e["Archived-At"] is not None:
+                        list_name, msg_hash = _parse_archive_url(e["Archived-At"])
+                        self._archive_urls[msg_hash] = msg_id
+                    self._num_messages += 1
+                    new_msgs.append(msg_id)
+
+            with open(aa_cache_tmp, "w") as cache_file:
+                json.dump(self._archive_urls, cache_file)
+            aa_cache_tmp.rename(aa_cache)
 
         imap.unselect_folder()
         if _reuse_imap is None:
