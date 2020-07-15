@@ -98,12 +98,10 @@ class MailingList:
             with open(aa_cache, "r") as cache_file:
                 self._archive_urls = json.load(cache_file)
         else:
-            msg_id = 0
-            for msg in self.messages():
-                msg_id += 1
+            for index, msg in self.messages():
                 if msg["Archived-At"] is not None:
                     list_name, msg_hash = _parse_archive_url(msg["Archived-At"])
-                    self._archive_urls[msg_hash] = msg_id
+                    self._archive_urls[msg_hash] = index
             with open(aa_cache_tmp, "w") as cache_file:
                 json.dump(self._archive_urls, cache_file, indent=4)
             aa_cache_tmp.rename(aa_cache)
@@ -129,7 +127,7 @@ class MailingList:
         return self.message(self._archive_urls[msg_hash])
 
 
-    def messages(self) -> Iterator[Message]:
+    def messages(self) -> Iterator[Tuple[int, Message]]:
         for msg_path in sorted(self._cache_folder.glob("*.msg")):
             with open(msg_path, "rb") as inf:
                 msg_path = str(msg_path)
