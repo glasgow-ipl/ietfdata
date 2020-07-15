@@ -1146,7 +1146,7 @@ class Meeting(Resource):
     def status(self) -> MeetingStatus:
         now = datetime.now()
         meeting_start = self.date
-        meeting_end   = self.date + timedelta(days = self.days - 1)
+        meeting_end   = self.date + timedelta(days = self.days)
         if meeting_start > now:
             return MeetingStatus.FUTURE
         elif meeting_end < now:
@@ -1225,6 +1225,22 @@ class Session(Resource):
     attendees           : Optional[int]
     modified            : datetime
     comments            : str
+
+
+@dataclass(frozen=True)
+class SchedulingEventURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/meeting/schedulingevent/")
+
+
+@dataclass(frozen=True)
+class SchedulingEvent(Resource):
+    id           : int
+    session      : SessionURI
+    status       : str
+    by           : PersonURI
+    resource_uri : SchedulingEventURI
+    time         : datetime
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------
@@ -2718,7 +2734,7 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/meeting/session/?meeting=747            - sessions in meeting number 747
     # * https://datatracker.ietf.org/api/v1/meeting/session/?meeting=747&group=2161 - sessions in meeting number 747 for group 2161
     # * https://datatracker.ietf.org/api/v1/meeting/schedtimesessassignment/59003/  - a schededuled session within a meeting
-    #   https://datatracker.ietf.org/api/v1/meeting/schedulingevent/                - sessions being scheduled
+    # * https://datatracker.ietf.org/api/v1/meeting/schedulingevent/                - sessions being scheduled
     #   https://datatracker.ietf.org/api/v1/meeting/timeslot/9480/                  - a time slot within a meeting (time, duration, location)
     #
     #   https://datatracker.ietf.org/api/v1/meeting/room/537/                       - a room at a meeting
@@ -2761,6 +2777,25 @@ class DataTracker:
         if group is not None:
             url.params["group"] = group.id
         return self._retrieve_multi(url, Session, deref = {"meeting": "id", "group": "id"})
+
+
+    def meeting_timeslot(self, timeslot_uri: TimeslotURI) -> Optional[Timeslot]:
+        return self._retrieve(timeslot_uri, Timeslot)
+
+
+    def meeting_scheduling_event(self, scheduling_event_uri: SchedulingEventURI) -> Optional[SchedulingEvent]:
+        return self._retrieve(scheduling_event_uri, SchedulingEvent)
+
+
+    def meeting_scheduling_events(self,
+            by      : Optional[Person]  = None,
+            session : Optional[Session] = None) -> Iterator[SchedulingEvent]:
+        url = SchedulingEventURI("/api/v1/meeting/schedulingevent/")
+        if session is not None:
+            url.params["session"] = session.id
+        if by is not None:
+            url.params["by"] = by.id
+        return self._retrieve_multi(url, SchedulingEvent, deref = {"session": "id", "by": "id"})
 
 
     def meeting_schedule(self, schedule_uri : ScheduleURI) -> Optional[Schedule]:

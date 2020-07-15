@@ -4,6 +4,7 @@ Change Log -- ietfdata
 ## v0.4.0 -- ???
 
  - Add support for accessing the IETF mail archive
+ - Add support for meeting scheduling events
 
 
 ## v0.3.3 -- 2020-06-28
