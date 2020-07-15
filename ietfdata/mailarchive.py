@@ -35,7 +35,6 @@ from typing        import List, Optional, Tuple, Dict, Iterator, Type, TypeVar, 
 from pathlib       import Path
 from email.message import Message
 from imapclient    import IMAPClient
-from progress.bar  import Bar
 
 # =================================================================================================
 # Private helper functions:
