@@ -245,7 +245,7 @@ class MailArchive:
         else:
             raise RuntimeError("Cannot resolve mail archive URL")
 
-    def download_all_messages(self):
+    def download_all_messages(self) -> None:
         """
         Download all messages.
 
