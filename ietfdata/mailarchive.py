@@ -86,13 +86,24 @@ class MailingList:
         self._cache_dir    = cache_dir
         self._cache_folder = Path(self._cache_dir, "mailing-lists", self._list_name)
         self._cache_folder.mkdir(parents=True, exist_ok=True)
-        self._num_messages = 0
+        self._num_messages = len(list(self._cache_folder.glob("*.msg")))
         self._archive_urls = {}
-        for index, msg in self.messages():
-            self._num_messages += 1
-            if msg["Archived-At"] is not None:
-                list_name, msg_hash = _parse_archive_url(msg["Archived-At"])
-                self._archive_urls[msg_hash] = self._num_messages
+
+        aa_cache     = Path(self._cache_folder, "aa-cache.json")
+        aa_cache_tmp = Path(self._cache_folder, "aa-cache.json.tmp")
+        if aa_cache.exists():
+            with open(aa_cache, "r") as cache_file:
+                self._archive_urls = json.load(cache_file)
+        else:
+            msg_id = 0
+            for msg in self.messages():
+                msg_id += 1
+                if msg["Archived-At"] is not None:
+                    list_name, msg_hash = _parse_archive_url(msg["Archived-At"])
+                    self._archive_urls[msg_hash] = msg_id
+            with open(aa_cache_tmp, "w") as cache_file:
+                json.dump(self._archive_urls, cache_file, indent=4)
+            aa_cache_tmp.rename(aa_cache)
 
 
     def name(self) -> str:
@@ -137,30 +148,49 @@ class MailingList:
         return threads
 
 
-    def update(self) -> List[int]:
+    def update(self, _reuse_imap=None) -> List[int]:
         new_msgs = []
-        imap = IMAPClient(host='imap.ietf.org', ssl=False, use_uid=True)
-        imap.login("anonymous", "anonymous")
+        if _reuse_imap is None:
+            imap = IMAPClient(host='imap.ietf.org', ssl=False, use_uid=True)
+            imap.login("anonymous", "anonymous")
+        else:
+            imap = _reuse_imap
         imap.select_folder("Shared Folders/" + self._list_name, readonly=True)
-        msg_list = imap.search()
-        progress = Bar("Updating mailing list: {:20}".format(self._list_name), max = len(msg_list))
+
+        msg_list  = imap.search()
+        msg_fetch = []
         for msg_id in msg_list:
             cache_file = Path(self._cache_folder, "{:06d}.msg".format(msg_id))
-            if not cache_file.exists() or cache_file.stat().st_size == 0:
-                msg = imap.fetch(msg_id, ["RFC822"])
-                with open(cache_file, "wb") as outf:
-                    outf.write(msg[msg_id][b"RFC822"])
-                e = email.message_from_bytes(msg[msg_id][b"RFC822"])
-                if e["Archived-At"] is not None:
-                    list_name, msg_hash = _parse_archive_url(e["Archived-At"])
-                    self._archive_urls[msg_hash] = msg_id
-                self._num_messages += 1
-                new_msgs.append(msg_id)
-            progress.next()
+            if not cache_file.exists():
+                msg_fetch.append(msg_id)
 
-        progress.finish()
+        if len(msg_fetch) > 0:
+            aa_cache     = Path(self._cache_folder, "aa-cache.json")
+            aa_cache_tmp = Path(self._cache_folder, "aa-cache.json.tmp")
+            aa_cache.unlink()   
+
+            for msg_id, msg in imap.fetch(msg_fetch, "RFC822").items():
+                cache_file = Path(self._cache_folder, "{:06d}.msg".format(msg_id))
+                fetch_file = Path(self._cache_folder, "{:06d}.msg.download".format(msg_id))
+                if not cache_file.exists():
+                    with open(fetch_file, "wb") as outf:
+                        outf.write(msg[b"RFC822"])
+                    fetch_file.rename(cache_file)
+
+                    e = email.message_from_bytes(msg[b"RFC822"])
+                    if e["Archived-At"] is not None:
+                        list_name, msg_hash = _parse_archive_url(e["Archived-At"])
+                        self._archive_urls[msg_hash] = msg_id
+                    self._num_messages += 1
+                    new_msgs.append(msg_id)
+
+            with open(aa_cache_tmp, "w") as cache_file:
+                json.dump(self._archive_urls, cache_file)
+            aa_cache_tmp.rename(aa_cache)
+
         imap.unselect_folder()
-        imap.logout()
+        if _reuse_imap is None:
+            imap.logout()
         self._last_updated = datetime.now()
         return new_msgs
 
@@ -214,6 +244,23 @@ class MailArchive:
         else:
             raise RuntimeError("Cannot resolve mail archive URL")
 
+    def download_all_messages(self):
+        """
+        Download all messages.
+
+        WARNING: as of July 2020, this fetches ~26GBytes of data. Use with care!
+        """
+        ml_names = list(self.mailing_list_names())
+        num_list = len(ml_names)
+
+        imap = IMAPClient(host='imap.ietf.org', ssl=False, use_uid=True)
+        imap.login("anonymous", "anonymous")
+        for index, ml_name in enumerate(ml_names):
+            print(F"Updating list {index+1:4d}/{num_list:4d}: {ml_name} ", end="", flush=True)
+            ml = self.mailing_list(ml_name)
+            nm = ml.update(_reuse_imap=imap)
+            print(F"({ml.num_messages()} messages; {len(nm)} new)")
+        imap.logout()
 
 # =================================================================================================
 # vim: set tw=0 ai:
