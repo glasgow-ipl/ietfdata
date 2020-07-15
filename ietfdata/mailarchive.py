@@ -63,7 +63,8 @@ class MessageThread:
     def should_contain(self, msg: Message) -> bool:
         if "References" in msg:
             for msg_id in msg["References"].split():
-                return msg_id in self._msg_ids
+                if msg_id in self._msg_ids:
+                    return msg_id in self._msg_ids
         return msg["In-Reply-To"] in self._msg_ids
 
     
