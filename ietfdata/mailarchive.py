@@ -60,14 +60,14 @@ class MessageThread:
         self.messages = [(index, first_message)]
 
         
-    def should_contain(self, msg: Message):
+    def should_contain(self, msg: Message) -> bool:
         if "References" in msg:
             for msg_id in msg["References"].split():
                 return msg_id in self._msg_ids
         return msg["In-Reply-To"] in self._msg_ids
 
     
-    def append(self, index: int, msg: Message):
+    def append(self, index: int, msg: Message) -> None:
         assert self.should_contain(msg)
         self._msg_ids.append(msg["Message-ID"])
         self.messages.append((index, msg))
@@ -134,8 +134,8 @@ class MailingList:
                 yield int(msg_path[msg_path.rfind('/')+1:-4]), email.message_from_binary_file(inf)
 
 
-    def threads(self) -> Iterator[MessageThread]:
-        threads = []
+    def threads(self) -> List[MessageThread]:
+        threads : List[MessageThread] = []
         for index, message in self.messages():
             threaded = False
             for thread in threads:
