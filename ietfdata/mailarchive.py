@@ -51,6 +51,31 @@ def _parse_archive_url(archive_url:str) -> Tuple[str, str]:
 
 # =================================================================================================
 
+class MessageThread:
+    _msg_ids : List[str]
+    messages: List[Tuple[int, Message]]
+    
+    def __init__(self, index: int, first_message: Message):
+        self._msg_ids =  [first_message['Message-ID']]
+        self.messages = [(index, first_message)]
+
+        
+    def should_contain(self, msg: Message) -> bool:
+        if "References" in msg:
+            for msg_id in msg["References"].split():
+                if msg_id in self._msg_ids:
+                    return msg_id in self._msg_ids
+        return msg["In-Reply-To"] in self._msg_ids
+
+    
+    def append(self, index: int, msg: Message) -> None:
+        assert self.should_contain(msg)
+        self._msg_ids.append(msg["Message-ID"])
+        self.messages.append((index, msg))
+    
+
+# =================================================================================================
+
 class MailingList:
     _list_name    : str
     _cache_dir    : Path
@@ -74,12 +99,10 @@ class MailingList:
             with open(aa_cache, "r") as cache_file:
                 self._archive_urls = json.load(cache_file)
         else:
-            msg_id = 0
-            for msg in self.messages():
-                msg_id += 1
+            for index, msg in self.messages():
                 if msg["Archived-At"] is not None:
                     list_name, msg_hash = _parse_archive_url(msg["Archived-At"])
-                    self._archive_urls[msg_hash] = msg_id
+                    self._archive_urls[msg_hash] = index
             with open(aa_cache_tmp, "w") as cache_file:
                 json.dump(self._archive_urls, cache_file, indent=4)
             aa_cache_tmp.rename(aa_cache)
@@ -105,10 +128,26 @@ class MailingList:
         return self.message(self._archive_urls[msg_hash])
 
 
-    def messages(self) -> Iterator[Message]:
+    def messages(self) -> Iterator[Tuple[int, Message]]:
         for msg_path in sorted(self._cache_folder.glob("*.msg")):
             with open(msg_path, "rb") as inf:
-                yield email.message_from_binary_file(inf)
+                msg_path = str(msg_path)
+                yield int(msg_path[msg_path.rfind('/')+1:-4]), email.message_from_binary_file(inf)
+
+
+    def threads(self) -> List[MessageThread]:
+        threads : List[MessageThread] = []
+        for index, message in self.messages():
+            threaded = False
+            for thread in threads:
+                if thread.should_contain(message):
+                    thread.append(index, message)
+                    threaded = True
+                if threaded:
+                    break
+            if not threaded:
+                threads.append(MessageThread(index, message))
+        return threads
 
 
     def update(self, _reuse_imap=None) -> List[int]:
