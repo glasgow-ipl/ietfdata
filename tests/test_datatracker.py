@@ -3184,7 +3184,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(reg.id,           42206)
             self.assertEqual(reg.last_name,    "McQuistin")
             self.assertEqual(reg.meeting,      MeetingURI("/api/v1/meeting/meeting/1003/"))
-            self.assertEqual(reg.person,       None)
+            self.assertEqual(reg.person,       PersonURI(uri="/api/v1/person/person/117769/"))
             self.assertEqual(reg.reg_type,     "remote")
             self.assertEqual(reg.resource_uri, MeetingRegistrationURI("/api/v1/stats/meetingregistration/42206/"))
             self.assertEqual(reg.ticket_type,  "full_week_pass")
