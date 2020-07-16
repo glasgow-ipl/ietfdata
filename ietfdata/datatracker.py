@@ -1208,6 +1208,14 @@ class SessionAssignment(Resource):
 
 @dataclass(frozen=True)
 class Session(Resource):
+    """
+    A session within a meeting.
+
+    Note that a Session object is created, and will be assigned to a
+    Timeslot, when a Meeting is requested, not when it is scheduled.
+    Use the `meeting_session_status()` method to check if the session
+    was actually scheduled to take place.
+    """
     id                  : int
     type                : str           # FIXME: this is a URI
     name                : str
@@ -1228,6 +1236,22 @@ class Session(Resource):
 
 
 @dataclass(frozen=True)
+class SessionStatusNameURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/name/sessionstatusname/")
+
+
+@dataclass(frozen=True)
+class SessionStatusName(Resource):
+    order        : int
+    slug         : str
+    resource_uri : SessionStatusNameURI
+    used         : bool
+    desc         : str
+    name         : str
+
+
+@dataclass(frozen=True)
 class SchedulingEventURI(URI):
     def __post_init__(self) -> None:
         assert self.uri.startswith("/api/v1/meeting/schedulingevent/")
@@ -1237,7 +1261,7 @@ class SchedulingEventURI(URI):
 class SchedulingEvent(Resource):
     id           : int
     session      : SessionURI
-    status       : str
+    status       : SessionStatusNameURI
     by           : PersonURI
     resource_uri : SchedulingEventURI
     time         : datetime
@@ -2743,7 +2767,7 @@ class DataTracker:
     #   https://datatracker.ietf.org/meeting/107/agenda.json
     #   https://datatracker.ietf.org/meeting/interim-2020-hrpc-01/agenda.json
     #
-    #   https://datatracker.ietf.org/api/v1/name/sessionstatusname/
+    # * https://datatracker.ietf.org/api/v1/name/sessionstatusname/
     #   https://datatracker.ietf.org/api/v1/name/agendatypename/
     #   https://datatracker.ietf.org/api/v1/name/timeslottypename/
     #   https://datatracker.ietf.org/api/v1/name/roomresourcename/
@@ -2763,6 +2787,25 @@ class DataTracker:
         url = SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/")
         url.params["schedule"] = schedule.id
         return self._retrieve_multi(url, SessionAssignment, deref = {"schedule": "id"})
+
+
+    def meeting_session_status(self, session: Session) -> SessionStatusName:
+        last_event  = list(self.meeting_scheduling_events(session=session))[-1]
+        status_name = self.meeting_session_status_name(last_event.status)
+        assert status_name is not None
+        return status_name
+
+
+    def meeting_session_status_name(self, ssn_uri: SessionStatusNameURI) -> Optional[SessionStatusName]:
+        return self._retrieve(ssn_uri, SessionStatusName)
+
+
+    def meeting_session_status_name_from_slug(self, slug: str) -> Optional[SessionStatusName]:
+        return self._retrieve(SessionStatusNameURI(F"/api/v1/name/sessionstatusname/{slug}/"), SessionStatusName)
+
+
+    def meeting_session_status_names(self) -> Iterator[SessionStatusName]:
+        return self._retrieve_multi(SessionStatusNameURI("/api/v1/name/sessionstatusname/"), SessionStatusName)
 
 
     def meeting_session(self, session_uri : SessionURI) -> Optional[Session]:

@@ -1775,6 +1775,56 @@ class TestDatatracker(unittest.TestCase):
             self.fail("Cannot find meeting")
 
 
+    def test_meeting_session_status(self) -> None:
+        session = self.dt.meeting_session(SessionURI("/api/v1/meeting/session/25907/"))
+        if session is not None:
+            status  = self.dt.meeting_session_status(session)
+            self.assertEqual(status.slug, "sched")
+        else:
+            self.fail("Cannot find session")
+
+
+    def test_meeting_session_status_name(self) -> None:
+        ssn = self.dt.meeting_session_status_name(SessionStatusNameURI("/api/v1/name/sessionstatusname/sched/"))
+        if ssn is not None:
+            self.assertEqual(ssn.order,        0)
+            self.assertEqual(ssn.slug,         "sched")
+            self.assertEqual(ssn.resource_uri, SessionStatusNameURI("/api/v1/name/sessionstatusname/sched/"))
+            self.assertEqual(ssn.used,         True)
+            self.assertEqual(ssn.desc,         "")
+            self.assertEqual(ssn.name,         "Scheduled")
+        else:
+            self.fail("Cannot find meeting session status name")
+
+
+    def test_meeting_session_status_name_from_slug(self) -> None:
+        ssn = self.dt.meeting_session_status_name_from_slug("sched")
+        if ssn is not None:
+            self.assertEqual(ssn.order,        0)
+            self.assertEqual(ssn.slug,         "sched")
+            self.assertEqual(ssn.resource_uri, SessionStatusNameURI("/api/v1/name/sessionstatusname/sched/"))
+            self.assertEqual(ssn.used,         True)
+            self.assertEqual(ssn.desc,         "")
+            self.assertEqual(ssn.name,         "Scheduled")
+        else:
+            self.fail("Cannot find meeting session status name")
+
+
+    def test_meeting_session_status_names(self) -> None:
+        status_names  = list(self.dt.meeting_session_status_names())
+        self.assertEqual(len(status_names),  10)
+        self.assertEqual(status_names[0].slug, "appr")       # Approved
+        self.assertEqual(status_names[1].slug, "canceled")   # Cancelled
+        self.assertEqual(status_names[2].slug, "canceledpa") # Cancelled - Pre Announcement
+        self.assertEqual(status_names[3].slug, "deleted")    # Deleted
+        self.assertEqual(status_names[4].slug, "disappr")    # Disapproved
+        self.assertEqual(status_names[5].slug, "notmeet")    # Not meeting
+        self.assertEqual(status_names[6].slug, "sched")      # Scheduled
+        self.assertEqual(status_names[7].slug, "scheda")     # Scheduled - Announcement to be sent
+        self.assertEqual(status_names[8].slug, "apprw")      # Waiting for Approval
+        self.assertEqual(status_names[9].slug, "schedw")     # Waiting for Scheduling
+
+
     def test_meeting_session(self) -> None:
         session = self.dt.meeting_session(SessionURI("/api/v1/meeting/session/25907/"))
         if session is not None:
@@ -1866,7 +1916,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(se.resource_uri, SchedulingEventURI("/api/v1/meeting/schedulingevent/16203/"))
             self.assertEqual(se.id,           16203)
             self.assertEqual(se.session,      SessionURI("/api/v1/meeting/session/28208/"))
-            self.assertEqual(se.status,       "/api/v1/name/sessionstatusname/sched/")
+            self.assertEqual(se.status,       SessionStatusNameURI("/api/v1/name/sessionstatusname/sched/"))
             self.assertEqual(se.by,           PersonURI("/api/v1/person/person/106460/"))
             self.assertEqual(se.time,         datetime.fromisoformat("2020-06-12T13:01:38.605460"))
         else:
