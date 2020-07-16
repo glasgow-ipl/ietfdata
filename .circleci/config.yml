@@ -14,12 +14,7 @@ jobs:
           command: |
             sudo pip install pipenv
             pipenv install --dev
-            pipenv run mypy ietfdata/rfcindex.py
-            pipenv run mypy ietfdata/datatracker.py
-            pipenv run mypy ietfdata/mailarchive.py
-            pipenv run mypy tests/test_rfcindex.py
-            pipenv run mypy tests/test_datatracker.py
-            pipenv run python3 -m unittest discover -s tests/ -v
+            pipenv run make test
             pipenv run coverage run --source ietfdata tests/test_rfcindex.py
             pipenv run coverage run -a --source ietfdata tests/test_datatracker.py 
             pipenv run coverage report
