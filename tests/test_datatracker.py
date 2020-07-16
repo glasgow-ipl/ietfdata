@@ -1842,6 +1842,24 @@ class TestDatatracker(unittest.TestCase):
             self.fail("cannot find ietf90 or tsvwg")
 
 
+    def test_meeting_timeslot(self) -> None:
+        ts = self.dt.meeting_timeslot(TimeslotURI("/api/v1/meeting/timeslot/12857/"))
+        if ts is not None:
+            self.assertEqual(ts.resource_uri,   TimeslotURI("/api/v1/meeting/timeslot/12857/"))
+            self.assertEqual(ts.id,             12857)
+            self.assertEqual(ts.type,           "/api/v1/name/timeslottypename/regular/")
+            self.assertEqual(ts.meeting,       MeetingURI("/api/v1/meeting/meeting/1211/"))
+            self.assertEqual(ts.sessions,      [SessionURI("/api/v1/meeting/session/28208/")])
+            self.assertEqual(ts.name,          "")
+            self.assertEqual(ts.time,          datetime.fromisoformat("2020-08-05T15:00:00"))
+            self.assertEqual(ts.duration,      "2:30:00")
+            self.assertEqual(ts.location,      None)
+            self.assertEqual(ts.show_location, True)
+            self.assertEqual(ts.modified,      datetime.fromisoformat("2020-06-12T05:48:44"))
+        else:
+            self.fail("cannot find timeslot")
+
+
     def test_meeting_schedule(self) -> None:
         schedule = self.dt.meeting_schedule(ScheduleURI("/api/v1/meeting/schedule/209/"))
         if schedule is not None:
