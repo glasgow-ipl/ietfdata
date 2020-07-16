@@ -16,6 +16,7 @@ jobs:
             pipenv install --dev
             pipenv run mypy ietfdata/rfcindex.py
             pipenv run mypy ietfdata/datatracker.py
+            pipenv run mypy ietfdata/mailarchive.py
             pipenv run mypy tests/test_rfcindex.py
             pipenv run mypy tests/test_datatracker.py
             pipenv run python3 -m unittest discover -s tests/ -v
