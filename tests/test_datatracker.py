@@ -1860,6 +1860,27 @@ class TestDatatracker(unittest.TestCase):
             self.fail("cannot find timeslot")
 
 
+    def test_meeting_scheduling_event(self) -> None:
+        se = self.dt.meeting_scheduling_event(SchedulingEventURI("/api/v1/meeting/schedulingevent/16203/"))
+        if se is not None:
+            self.assertEqual(se.resource_uri, SchedulingEventURI("/api/v1/meeting/schedulingevent/16203/"))
+            self.assertEqual(se.id,           16203)
+            self.assertEqual(se.session,      SessionURI("/api/v1/meeting/session/28208/"))
+            self.assertEqual(se.status,       "/api/v1/name/sessionstatusname/sched/")
+            self.assertEqual(se.by,           PersonURI("/api/v1/person/person/106460/"))
+            self.assertEqual(se.time,         datetime.fromisoformat("2020-06-12T13:01:38.605460"))
+        else:
+            self.fail("Cannot find scheduling event")
+
+
+    def test_meeting_scheduling_events(self) -> None:
+        session = self.dt.meeting_session(SessionURI("/api/v1/meeting/session/28208/"))
+        events  = list(self.dt.meeting_scheduling_events(session=session))
+        self.assertEqual(len(events),  2)
+        self.assertEqual(events[0].id, 16192)
+        self.assertEqual(events[1].id, 16203)
+
+
     def test_meeting_schedule(self) -> None:
         schedule = self.dt.meeting_schedule(ScheduleURI("/api/v1/meeting/schedule/209/"))
         if schedule is not None:
