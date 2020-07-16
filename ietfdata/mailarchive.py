@@ -35,7 +35,6 @@ from typing        import List, Optional, Tuple, Dict, Iterator, Type, TypeVar, 
 from pathlib       import Path
 from email.message import Message
 from imapclient    import IMAPClient
-from progress.bar  import Bar
 
 # =================================================================================================
 # Private helper functions:
@@ -131,8 +130,8 @@ class MailingList:
     def messages(self) -> Iterator[Tuple[int, Message]]:
         for msg_path in sorted(self._cache_folder.glob("*.msg")):
             with open(msg_path, "rb") as inf:
-                msg_path = str(msg_path)
-                yield int(msg_path[msg_path.rfind('/')+1:-4]), email.message_from_binary_file(inf)
+                msg_path_str = str(msg_path)
+                yield int(msg_path_str[msg_path_str.rfind('/')+1:-4]), email.message_from_binary_file(inf)
 
 
     def threads(self) -> List[MessageThread]:
@@ -186,8 +185,8 @@ class MailingList:
                     self._num_messages += 1
                     new_msgs.append(msg_id)
 
-            with open(aa_cache_tmp, "w") as cache_file:
-                json.dump(self._archive_urls, cache_file)
+            with open(aa_cache_tmp, "w") as aa_cache_file:
+                json.dump(self._archive_urls, aa_cache_file)
             aa_cache_tmp.rename(aa_cache)
 
         imap.unselect_folder()
@@ -246,7 +245,7 @@ class MailArchive:
         else:
             raise RuntimeError("Cannot resolve mail archive URL")
 
-    def download_all_messages(self):
+    def download_all_messages(self) -> None:
         """
         Download all messages.
 
