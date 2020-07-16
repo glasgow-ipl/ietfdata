@@ -24,10 +24,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 test:
-	mypy ietfdata/rfcindex.py
-	mypy ietfdata/datatracker.py
-	mypy ietfdata/mailarchive.py
-	mypy tests/test_rfcindex.py
-	mypy tests/test_datatracker.py
+	mypy ietfdata/*.py
+	mypy tests/*.py
 	@python3 -m unittest discover -s tests/ -v
 
