@@ -1177,7 +1177,7 @@ class Timeslot(Resource):
     name          : str
     time          : datetime
     duration      : str               # FIXME: this should be a timedelta object
-    location      : str               # FIXME: this is a URI "/api/v1/meeting/room/668
+    location      : Optional[str]     # FIXME: this is a URI "/api/v1/meeting/room/668"
     show_location : bool
     modified      : datetime
 
