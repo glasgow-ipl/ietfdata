@@ -56,7 +56,12 @@ class MessageMetadata:
                 self.mailing_list_name = msg_json["mailing_list_name"]
                 self.msg_id            = msg_json["msg_id"]
                 self.msg               = message
-                self.docs              = [datatracker.document(dt.DocumentURI(doc_uri)) for doc_uri in msg_json["docs"]]
+
+                self.docs = []
+                for doc_uri in msg_json["docs"]:
+                    doc = datatracker.document(dt.DocumentURI(doc_uri))
+                    if doc is not None:
+                        self.docs.append(doc)
         else:
             self.from_name, self.from_addr = email.utils.parseaddr(message["From"])
             self.mailing_list_name = mailing_list_name
