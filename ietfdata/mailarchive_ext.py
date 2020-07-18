@@ -63,7 +63,7 @@ class MessageMetadata:
             self.msg_id = msg_id
             self.msg = message
             self.person = datatracker.person_from_email(self.from_addr)
-            self.timestamp = datetime.fromtimestamp(time.mktime(email.utils.parsedate(message["Date"])))
+            self.timestamp = message["Date"].datetime
             self.docs = []
             self.scan_message(datatracker)
             self._cache_obj(cache_dir)
