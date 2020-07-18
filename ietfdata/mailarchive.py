@@ -245,6 +245,7 @@ class MailArchive:
         else:
             raise RuntimeError("Cannot resolve mail archive URL")
 
+
     def download_all_messages(self) -> None:
         """
         Download all messages.
@@ -262,6 +263,7 @@ class MailArchive:
             nm = ml.update(_reuse_imap=imap)
             print(F"({ml.num_messages()} messages; {len(nm)} new)")
         imap.logout()
+
 
 # =================================================================================================
 # vim: set tw=0 ai:
