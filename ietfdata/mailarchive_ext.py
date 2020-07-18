@@ -78,7 +78,7 @@ class MessageMetadata:
         cache_dir = Path(cache_file, "mailing-lists-metadata", self.mailing_list_name)
         cache_dir.mkdir(parents=True, exist_ok=True)
         cache_filepath = Path(cache_dir, f"{self.msg_id:06d}" + ".json")
-        with open(cache_filepath, "w+") as cache_file:
+        with open(cache_filepath, "w+") as outf:
             json.dump({"from_name"          : self.from_name,
                        "from_addr"          : self.from_addr,
                        "person_uri"         : self.person.resource_uri.uri if self.person is not None else "",
@@ -86,7 +86,7 @@ class MessageMetadata:
                        "msg_id"             : self.msg_id,
                        "docs"               : [doc.resource_uri.uri for doc in self.docs],
                        "timestamp"          : self.timestamp.isoformat()},
-                      cache_file)
+                      outf)
 
     def scan_message(self, datatracker: dt.DataTracker) -> None:
         # FIXME: Does this find messages with a document in the subject line?
