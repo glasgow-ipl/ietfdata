@@ -365,8 +365,11 @@ class Document(Resource):
             # FIXME: should be "/meeting/{meeting.number}/materials/{doc.name}-{doc.rev}" ???
             # FIXME: This doesn't work for interim meetings
             # FIXME: This doesn't work for PDF agenda files
+            # FIXME: Older items are under, e.g., https://www.ietf.org/proceedings/90/agenda/agenda-90-precis.txt
             mtg = self.name.split("-")[1]
+            # Recent documents are in the datatracker, older ones on the proceedings site
             url = "https://datatracker.ietf.org/meeting/" + mtg + "/materials/" + self.uploaded_filename
+            url = "https://www.ietf.org/proceedings/" + mtg + "/agenda/" + self.uploaded_filename
         elif self.type == DocumentTypeURI("/api/v1/name/doctypename/bluesheets/"):
             # FIXME: should be "https://www.ietf.org/proceedings/{meeting.number}/bluesheets/{doc.uploaded_filename}" ???
             mtg = self.name.split("-")[1]
@@ -382,9 +385,10 @@ class Document(Resource):
         elif self.type == DocumentTypeURI("/api/v1/name/doctypename/liai-att/"):
             url = "https://www.ietf.org/lib/dt/documents/LIAISON/" + self.uploaded_filename
         elif self.type == DocumentTypeURI("/api/v1/name/doctypename/minutes/"):
-            # FIXME: should be "/meeting/{meeting.number}/materials/{doc.name}-{doc.rev}" ???
             mtg = self.name.split("-")[1]
+            # Recent documents are in the datatracker, older ones on the proceedings site
             url = "https://datatracker.ietf.org/meeting/" + mtg + "/materials/" + self.uploaded_filename
+            url = "https://www.ietf.org/proceedings/" + mtg + "/minutes/" + self.uploaded_filename
         elif self.type == DocumentTypeURI("/api/v1/name/doctypename/recording/"):
             url = self.external_url
         elif self.type == DocumentTypeURI("/api/v1/name/doctypename/review/"):

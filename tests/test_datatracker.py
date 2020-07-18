@@ -305,7 +305,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.external_url,       "")
 
             url = d.url()
-            self.assertEqual(url, "https://datatracker.ietf.org/meeting/90/materials/agenda-90-precis.txt")
+            self.assertEqual(url, "https://www.ietf.org/proceedings/90/agenda/agenda-90-precis.txt")
             self.assertEqual(self.dt.session.get(url).status_code, 200)
         else:
             self.fail("Cannot find document")
@@ -571,7 +571,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.states,             [DocumentStateURI("/api/v1/doc/state/79/")])
 
             url = d.url()
-            self.assertEqual(url, "https://datatracker.ietf.org/meeting/89/materials/minutes-89-cfrg.txt")
+            self.assertEqual(url, "https://www.ietf.org/proceedings/89/minutes/minutes-89-cfrg.txt")
             self.assertEqual(self.dt.session.get(url).status_code, 200)
         else:
             self.fail("Cannot find document")
