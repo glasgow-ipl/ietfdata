@@ -23,8 +23,14 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-test:
+.PHONY: test typecheck runtests
+
+test: typecheck testsuite
+
+typecheck:
 	mypy ietfdata/*.py
 	mypy tests/*.py
+
+testsuite:
 	@python3 -m unittest discover -s tests/ -v
 
