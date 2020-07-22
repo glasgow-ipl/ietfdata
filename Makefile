@@ -25,12 +25,12 @@
 
 .PHONY: test typecheck runtests
 
-test: typecheck testsuite
+test: typecheck runtests
 
 typecheck:
 	mypy ietfdata/*.py
 	mypy tests/*.py
 
-testsuite:
+runtests:
 	@python3 -m unittest discover -s tests/ -v
 
