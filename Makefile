@@ -25,7 +25,7 @@
 
 .PHONY: test typecheck runtests
 
-test: typecheck runtests
+test: runtests typecheck 
 
 typecheck:
 	mypy ietfdata/*.py
