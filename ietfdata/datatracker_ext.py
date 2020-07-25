@@ -137,6 +137,30 @@ class DataTrackerExt(DataTracker):
             return []
 
 
+    def iab_chair(self) -> Person:
+        chairs = list(self.group_roles(group = self.group_from_acronym("IAB"), name = self.role_name_from_slug("chair")))
+        assert(len(chairs) == 1)   # There is only one IAB chair
+        chair = self.person(chairs[0].person)
+        assert chair is not None
+        return chair
+
+
+    def ietf_chair(self) -> Person:
+        chairs = list(self.group_roles(group = self.group_from_acronym("IETF"), name = self.role_name_from_slug("chair")))
+        assert(len(chairs) == 1)   # There is only one IETF chair
+        chair = self.person(chairs[0].person)
+        assert chair is not None
+        return chair
+
+
+    def irtf_chair(self) -> Person:
+        chairs = list(self.group_roles(group = self.group_from_acronym("IRTF"), name = self.role_name_from_slug("chair")))
+        assert(len(chairs) == 1)   # There is only one IRTF chair
+        chair = self.person(chairs[0].person)
+        assert chair is not None
+        return chair
+
+
     def active_research_groups(self) -> Iterator[Group]:
         for group in self.groups(parent = self.group_from_acronym("IRTF")):
             t = self.group_type_name(group.type)
