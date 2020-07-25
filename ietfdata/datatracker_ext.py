@@ -176,7 +176,7 @@ class DataTrackerExt(DataTracker):
                 yield group
 
 
-    def concluded_research_groups(self) -> List[Group]:
+    def concluded_research_groups(self) -> Iterator[Group]:
         for group in self.groups(parent = self.group_from_acronym("IRTF")):
             t = self.group_type_name(group.type)
             s = self.group_state(group.state)
