@@ -153,5 +153,15 @@ class DataTrackerExt(DataTracker):
                 yield group
 
 
+    def active_working_groups(self) -> Iterator[Group]:
+        for area in self.groups(parent = self.group_from_acronym("IESG")):
+            if self.group_state(area.state) == self.group_state_from_slug("active"):
+                for group in self.groups(parent = area):
+                    t = self.group_type_name(group.type)
+                    s = self.group_state(group.state)
+                    if s == self.group_state_from_slug("active") and t == self.group_type_name_from_slug("wg"):
+                        yield group
+
+
 # =================================================================================================================================
 # vim: set tw=0 ai:
