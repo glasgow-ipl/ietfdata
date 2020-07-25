@@ -137,5 +137,13 @@ class DataTrackerExt(DataTracker):
             return []
 
 
+    def active_research_groups(self) -> Iterator[Group]:
+        for group in self.groups(parent = self.group_from_acronym("IRTF")):
+            t = self.group_type_name(group.type)
+            s = self.group_state(group.state)
+            if s == self.group_state_from_slug("active") and t == self.group_type_name_from_slug("rg"):
+                yield group
+
+
 # =================================================================================================================================
 # vim: set tw=0 ai:
