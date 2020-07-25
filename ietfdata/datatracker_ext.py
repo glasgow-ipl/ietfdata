@@ -145,6 +145,13 @@ class DataTrackerExt(DataTracker):
         return chair
 
 
+    def iab_members(self) -> Iterator[Person]:
+        for member in self.group_roles(group = self.group_from_acronym("IAB")):
+            person = self.person(member.person)
+            assert person is not None
+            yield  person
+
+
     def ietf_chair(self) -> Person:
         chairs = list(self.group_roles(group = self.group_from_acronym("IETF"), name = self.role_name_from_slug("chair")))
         assert(len(chairs) == 1)   # There is only one IETF chair
