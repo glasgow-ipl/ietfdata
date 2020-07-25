@@ -175,6 +175,13 @@ class DataTrackerExt(DataTracker):
         return chair
 
 
+    def irsg_members(self) -> Iterator[Person]:
+        for member in self.group_roles(group = self.group_from_acronym("IRSG")):
+            person = self.person(member.person)
+            assert person is not None
+            yield  person
+
+
     def active_research_groups(self) -> Iterator[Group]:
         for group in self.groups(parent = self.group_from_acronym("IRTF")):
             t = self.group_type_name(group.type)
