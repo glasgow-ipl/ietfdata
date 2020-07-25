@@ -146,7 +146,14 @@ class DataTrackerExt(DataTracker):
 
 
     def iab_members(self) -> Iterator[Person]:
-        for member in self.group_roles(group = self.group_from_acronym("IAB")):
+        for member in self.group_roles(group = self.group_from_acronym("IAB"), name = self.role_name_from_slug("member")):
+            person = self.person(member.person)
+            assert person is not None
+            yield  person
+
+
+    def iesg_members(self) -> Iterator[Person]:
+        for member in self.group_roles(group = self.group_from_acronym("IESG"), name = self.role_name_from_slug("ad")):
             person = self.person(member.person)
             assert person is not None
             yield  person
