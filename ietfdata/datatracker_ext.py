@@ -190,6 +190,18 @@ class DataTrackerExt(DataTracker):
                 yield group
 
 
+    def research_group_chairs(self) -> Iterator[Person]:
+        chairs = []
+        for group in self.active_research_groups():
+            for role in self.group_roles(group = group, name = self.role_name_from_slug("chair")):
+                person = self.person(role.person)
+                assert person is not None
+                if person not in chairs:   # people can chair more than one group
+                    chairs.append(person)
+        for chair in chairs:
+            yield chair
+
+
     def concluded_research_groups(self) -> Iterator[Group]:
         for group in self.groups(parent = self.group_from_acronym("IRTF")):
             t = self.group_type_name(group.type)
@@ -206,6 +218,18 @@ class DataTrackerExt(DataTracker):
                     s = self.group_state(group.state)
                     if s == self.group_state_from_slug("active") and t == self.group_type_name_from_slug("wg"):
                         yield group
+
+
+    def working_group_chairs(self) -> Iterator[Person]:
+        chairs = []
+        for group in self.active_working_groups():
+            for role in self.group_roles(group = group, name = self.role_name_from_slug("chair")):
+                person = self.person(role.person)
+                assert person is not None
+                if person not in chairs:   # people can chair more than one group
+                    chairs.append(person)
+        for chair in chairs:
+            yield chair
 
 
 # =================================================================================================================================
