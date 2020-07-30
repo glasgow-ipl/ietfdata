@@ -1720,7 +1720,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_type_names(self) -> None:
         group_type_names = list(self.dt.group_type_names())
-        self.assertEqual(len(group_type_names), 21)
+        self.assertEqual(len(group_type_names), 22)
         self.assertEqual(group_type_names[0].slug,  "adhoc")
         self.assertEqual(group_type_names[1].slug,  "admin")
         self.assertEqual(group_type_names[2].slug,  "ag")
@@ -1737,11 +1737,12 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(group_type_names[13].slug, "isoc")
         self.assertEqual(group_type_names[14].slug, "nomcom")
         self.assertEqual(group_type_names[15].slug, "program")
-        self.assertEqual(group_type_names[16].slug, "rfcedtyp")
-        self.assertEqual(group_type_names[17].slug, "rg")
-        self.assertEqual(group_type_names[18].slug, "sdo")
-        self.assertEqual(group_type_names[19].slug, "team")
-        self.assertEqual(group_type_names[20].slug, "wg")
+        self.assertEqual(group_type_names[16].slug, "rag")
+        self.assertEqual(group_type_names[17].slug, "rfcedtyp")
+        self.assertEqual(group_type_names[18].slug, "rg")
+        self.assertEqual(group_type_names[19].slug, "sdo")
+        self.assertEqual(group_type_names[20].slug, "team")
+        self.assertEqual(group_type_names[21].slug, "wg")
 
 
     # -----------------------------------------------------------------------------------------------------------------------------
