@@ -52,7 +52,6 @@ def _parse_archive_url(archive_url:str) -> Tuple[str, str]:
 
 # =================================================================================================
 
-
 class MailingListMessage:
     message   : Message
     _metadata : Dict[str, Any]
@@ -74,7 +73,6 @@ class MailingListMessage:
         if not self.has_metadata(name):
             raise Exception(f"Message does not have a metadata field named {name}")
         return self._metadata.get(name)
->>>>>>> Restructure mail message metadata
 
 # =================================================================================================
 
