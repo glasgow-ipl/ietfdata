@@ -29,8 +29,7 @@ import re
 import requests
 import email
 import ietfdata.datatracker as dt
-
-from ietfdata.mailarchive_helper import *
+import abc
 
 from datetime      import datetime
 from typing        import List, Optional, Tuple, Dict, Iterator, Type, TypeVar, Any
@@ -49,6 +48,33 @@ def _parse_archive_url(archive_url:str) -> Tuple[str, str]:
     message_hash = aa_uri[aa_uri.find("/")+1:]
 
     return (mailing_list, message_hash)
+
+# =================================================================================================
+# MailArchiveHelper interface:
+
+class MailArchiveHelper(abc.ABC):
+    """
+    Abstract class for mail archive helpers.
+    """
+
+    @abc.abstractmethod
+    def scan_message(self, msg: "MailingListMessage") -> None:
+        pass
+
+
+    @abc.abstractmethod
+    def filter(self, message : "MailingListMessage", **kwargs) -> bool:
+        pass
+
+
+    @abc.abstractmethod
+    def serialise(self, msg: "MailingListMessage") -> Dict[str, str]:
+        pass
+
+
+    @abc.abstractmethod
+    def deserialise(self, msg: "MailingListMessage", cache_data: Dict[str, str]) -> None:
+        pass
 
 # =================================================================================================
 
@@ -101,8 +127,8 @@ class MailingList:
                 self._archive_urls = json.load(cache_file)
         else:
             for index, msg in self.messages():
-                if msg["Archived-At"] is not None:
-                    list_name, msg_hash = _parse_archive_url(msg["Archived-At"])
+                if msg.message["Archived-At"] is not None:
+                    list_name, msg_hash = _parse_archive_url(msg.message["Archived-At"])
                     self._archive_urls[msg_hash] = index
             with open(aa_cache_tmp, "w") as cache_file:
                 json.dump(self._archive_urls, cache_file, indent=4)
@@ -157,7 +183,7 @@ class MailingList:
         return self.message(self._archive_urls[msg_hash])
 
 
-    def messages(self, **kwargs) -> Iterator[MailingListMessage]:
+    def messages(self, **kwargs) -> Iterator[Tuple[int, MailingListMessage]]:
         for msg_path in sorted(self._cache_folder.glob("*.msg")):
             msg_id = int(str(msg_path).split("/")[-1][:-4])
             msg = self.message(msg_id)
@@ -167,7 +193,7 @@ class MailingList:
                     include_msg = False
                     break
             if include_msg:
-                yield self.message(msg_id)
+                yield msg_id, self.message(msg_id)
 
 
     def update(self, _reuse_imap=None) -> List[int]:
