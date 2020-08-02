@@ -52,18 +52,23 @@ for ml_name in ["rfced-future"]:
     ml = archive.mailing_list(ml_name)
     ml.update()
     print(ml_name)
-    for im in ml.messages():
-        print(f"  {pretty_print_message_metadata(im)}")
+    
+    for thread in ml.threads():
+        first_index, first_message = thread.messages[0]
+        print("--|", pretty_print_message_metadata(ml.message(first_index)))
+        for index, message in thread.messages[1:]:
+            print("  |", pretty_print_message_metadata(ml.message(index)))
+        print()
 
     print()
 
     # filter by Person
     print("Filter by Person")
-    for im in ml.messages(from_person=dt.person_from_email("csp@csperkins.org")):
+    for index, im in ml.messages(from_person=dt.person_from_email("csp@csperkins.org")):
         print(f"  {pretty_print_message_metadata(im)}")
     print()
 
     # filter by Document
     print("Filter by Document")
-    for im in ml.messages(related_doc=dt.document_from_draft("draft-carpenter-rfc-principles")):
+    for index, im in ml.messages(related_doc=dt.document_from_draft("draft-carpenter-rfc-principles")):
         print(f"  {pretty_print_message_metadata(im)}")

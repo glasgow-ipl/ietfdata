@@ -100,6 +100,29 @@ class MailingListMessage:
             raise Exception(f"Message does not have a metadata field named {name}")
         return self._metadata.get(name)
 
+
+class MessageThread:
+    _msg_ids : List[str]
+    messages: List[Tuple[int, MailingListMessage]]
+    
+    def __init__(self, index: int, first_message: MailingListMessage):
+        self._msg_ids =  [first_message.message['Message-ID']]
+        self.messages = [(index, first_message)]
+
+
+    def should_contain(self, msg: MailingListMessage) -> bool:
+        if "References" in msg.message:
+            for msg_id in msg.message["References"].split():
+                if msg_id in self._msg_ids:
+                    return msg_id in self._msg_ids
+        return msg.message["In-Reply-To"] in self._msg_ids
+
+
+    def append(self, index: int, msg: MailingListMessage) -> None:
+        assert self.should_contain(msg)
+        self._msg_ids.append(msg.message["Message-ID"])
+        self.messages.append((index, msg))
+
 # =================================================================================================
 
 class MailingList:
@@ -194,6 +217,21 @@ class MailingList:
                     break
             if include_msg:
                 yield msg_id, self.message(msg_id)
+
+
+    def threads(self) -> List[MessageThread]:
+        threads : List[MessageThread] = []
+        for index, message in self.messages():
+            threaded = False
+            for thread in threads:
+                if thread.should_contain(message):
+                    thread.append(index, message)
+                    threaded = True
+                if threaded:
+                    break
+            if not threaded:
+                threads.append(MessageThread(index, message))
+        return threads
 
 
     def update(self, _reuse_imap=None) -> List[int]:
