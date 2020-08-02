@@ -26,7 +26,6 @@
 import ietfdata.datatracker as dt
 
 from ietfdata.mailarchive        import *
-from ietfdata.mailarchive_helper import *
 
 class DatatrackerMetadata(MailArchiveHelper):
     def __init__(self):

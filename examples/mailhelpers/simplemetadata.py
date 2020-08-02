@@ -27,7 +27,6 @@ import email.utils
 import time
 
 from ietfdata.mailarchive        import *
-from ietfdata.mailarchive_helper import *
 
 class SimpleMetadata(MailArchiveHelper):
     def scan_message(self, msg: "MailingListMessage") -> None:
