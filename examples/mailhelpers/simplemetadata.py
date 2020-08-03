@@ -31,16 +31,14 @@ from ietfdata.mailarchive        import *
 class SimpleMetadata(MailArchiveHelper):
     metadata_fields = ["from_name", "from_addr", "timestamp"]
 
-    def scan_message(self, msg: "MailingListMessage") -> None:
-        from_name, from_addr = email.utils.parseaddr(msg.message["From"])
-        msg_date = email.utils.parsedate(msg.message["Date"])
+    def scan_message(self, msg: Message) -> Dict[str, Any]:
+        from_name, from_addr = email.utils.parseaddr(msg["From"])
+        msg_date = email.utils.parsedate(msg["Date"])
         if msg_date is not None:
             timestamp = datetime.fromtimestamp(time.mktime(msg_date))
         else:
             timestamp = datetime.now()
-        msg.add_metadata("from_name", from_name)
-        msg.add_metadata("from_addr", from_addr)
-        msg.add_metadata("timestamp", timestamp)
+        return {"from_name": from_name, "from_addr": from_addr, "timestamp": timestamp}
 
 
     def filter(self,
@@ -54,16 +52,11 @@ class SimpleMetadata(MailArchiveHelper):
                (timestamp is None or message.metadata("timestamp") == timestamp))
 
 
-    def serialise(self, msg: "MailingListMessage") -> Dict[str, str]:
-        if not msg.has_metadata("from_name"):
-            self.scan_message(msg)
-        return {"from_name"  : msg.metadata("from_name"),
-                "from_addr" : msg.metadata("from_addr"),
-                "timestamp" : msg.metadata("timestamp").isoformat()}
+    def serialise(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
+        return {"from_name"  : metadata["from_name"],
+                "from_addr" : metadata["from_addr"],
+                "timestamp" : metadata["timestamp"].isoformat()}
 
 
-    def deserialise(self, msg: "MailingListMessage", cache_data: Dict[str, str]) -> None:
-        msg.add_metadata("from_name", cache_data["from_name"])
-        msg.add_metadata("from_addr", cache_data["from_addr"])
-        msg.add_metadata("timestamp", datetime.fromisoformat(cache_data["timestamp"]))
-        
+    def deserialise(self, metadata: Dict[str, str]) -> Dict[str, Any]:
+        return {"from_name": metadata["from_name"], "from_addr": metadata["from_addr"], "timestamp": datetime.fromisoformat(metadata["timestamp"])}        

@@ -65,7 +65,7 @@ class MailArchiveHelper(abc.ABC):
 
 
     @abc.abstractmethod
-    def scan_message(self, msg: "MailingListMessage") -> None:
+    def scan_message(self, msg: Message) -> Dict[str, Any]:
         pass
 
 
@@ -75,29 +75,23 @@ class MailArchiveHelper(abc.ABC):
 
 
     @abc.abstractmethod
-    def serialise(self, msg: "MailingListMessage") -> Dict[str, str]:
+    def serialise(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
         pass
 
 
     @abc.abstractmethod
-    def deserialise(self, msg: "MailingListMessage", cache_data: Dict[str, str]) -> None:
+    def deserialise(self, metadata: Dict[str, str]) -> Dict[str, Any]:
         pass
 
 # =================================================================================================
 
 class MailingListMessage:
     message       : Message
-    mailing_list  : "MailingList"
     _metadata     : Dict[str, Any]
      
-    def __init__(self, message: Message, mailing_list : "MailingList"):
+    def __init__(self, message: Message, metadata: Dict[str, Any]):
         self.message = message
-        self.mailing_list = mailing_list
-        self._metadata = {}
-
-
-    def add_metadata(self, name: str, metadata: Any) -> None:
-        self._metadata[name] = metadata
+        self._metadata = metadata
 
 
     def has_metadata(self, name: str) -> bool:
@@ -105,10 +99,6 @@ class MailingListMessage:
 
 
     def metadata(self, name: str) -> Any:
-        if not self.has_metadata(name):
-            for helper in self.mailing_list._helpers:
-                if name in helper.metadata_fields:
-                    helper.scan_message(self)
         if not self.has_metadata(name):
             raise Exception(f"Message does not have a metadata field named {name}")
         return self._metadata.get(name)
@@ -146,6 +136,7 @@ class MailingList:
     _num_messages : int
     _archive_urls : Dict[str, int]
     _helpers      : List[MailArchiveHelper]
+    _msg_metadata : Dict[int, Dict[str, str]]
 
     def __init__(self, cache_dir: Path, list_name: str, helpers: List[MailArchiveHelper] = []):
         self._list_name    = list_name
@@ -155,6 +146,7 @@ class MailingList:
         self._num_messages = len(list(self._cache_folder.glob("*.msg")))
         self._archive_urls = {}
         self._helpers = helpers
+        self._msg_metadata = {}
 
         aa_cache     = Path(self._cache_folder, "aa-cache.json")
         aa_cache_tmp = Path(self._cache_folder, "aa-cache.json.tmp")
@@ -169,6 +161,33 @@ class MailingList:
             with open(aa_cache_tmp, "w") as cache_file:
                 json.dump(self._archive_urls, cache_file, indent=4)
             aa_cache_tmp.rename(aa_cache)
+            
+        metadata_cache = Path(self._cache_folder, "metadata.json")
+        metadata_cache_tmp = Path(self._cache_folder, "metadata.json.tmp")
+        if metadata_cache.exists():
+            with open(metadata_cache, "r") as metadata_file:
+                serialised_metadata = json.load(metadata_file)
+                for msg_id in serialised_metadata:
+                    metadata : Dict[str, Any] = {}
+                    for helper in self._helpers:
+                        metadata = {**metadata, **(helper.deserialise(serialised_metadata[msg_id]))}
+                    self._msg_metadata[int(msg_id)] = metadata
+        else:
+            for index in self.message_indices():
+                self._msg_metadata[index] = {}
+
+        for msg_id in self._msg_metadata:
+            message_text = None
+            for helper in self._helpers:
+                if not all(metadata_field in self._msg_metadata[msg_id] for metadata_field in helper.metadata_fields):
+                    if message_text is None:
+                        message_text = self.raw_message(msg_id)
+                    self._msg_metadata[msg_id] = {**(helper.scan_message(message_text)), **(self._msg_metadata[msg_id])}
+
+        with open(metadata_cache_tmp, "w") as metadata_file:
+            serialised_metadata = {msg_id : self.serialise_message(msg_id) for msg_id in self._msg_metadata}
+            json.dump(serialised_metadata, metadata_file, indent=4)
+        metadata_cache_tmp.rename(metadata_cache)
 
 
     def name(self) -> str:
@@ -179,45 +198,32 @@ class MailingList:
         return self._num_messages
 
 
-    def serialise_message(self, msg_id: int, msg: MailingListMessage) -> None:
-        metadata_cache     = Path(self._cache_folder, "{:06d}.json".format(msg_id))
-        metadata_cache_tmp = Path(self._cache_folder, "{:06d}.json.tmp".format(msg_id))
-
+    def serialise_message(self, msg_id: int) -> Dict[str, str]:
         metadata : Dict[str, str] = {}
         for helper in self._helpers:
-            metadata = {**metadata, **(helper.serialise(msg))}
-            
-        with open(metadata_cache_tmp, "w") as metadata_cache_file:
-            json.dump(metadata, metadata_cache_file)
-        metadata_cache_tmp.rename(metadata_cache)
+            metadata = {**metadata, **(helper.serialise(self._msg_metadata[msg_id]))}
+        return metadata 
 
 
-    def deserialise_message(self, msg_id: int) -> MailingListMessage:
+    def raw_message(self, msg_id: int) -> Message:
         cache_file = Path(self._cache_folder, "{:06d}.msg".format(msg_id))
         with open(cache_file, "rb") as inf:
             message = email.message_from_binary_file(inf)
-        ml_message = MailingListMessage(message, self)
-        metadata_cache = Path(self._cache_folder, "{:06d}.json".format(msg_id))
-        if metadata_cache.exists():
-            metadata_cache.touch()
-            metadata = {}
-            with open(metadata_cache, "rb") as metadata_file:
-                metadata = json.load(metadata_file)
-                for helper in self._helpers:
-                    helper.deserialise(ml_message, metadata)
-        return ml_message
+        return message
 
 
-    def message(self, msg_id: int) -> MailingListMessage:
-        msg = self.deserialise_message(msg_id)
-        self.serialise_message(msg_id, msg)
-        return msg
+    def message_indices(self) -> List[int]:
+        return [int(str(msg_path).split("/")[-1][:-4]) for msg_path in sorted(self._cache_folder.glob("*.msg"))]
 
 
     def message_from_archive_url(self, archive_url:str) -> MailingListMessage:
         list_name, msg_hash = _parse_archive_url(archive_url)
         assert list_name == self._list_name
         return self.message(self._archive_urls[msg_hash])
+
+
+    def message(self, msg_id: int) -> MailingListMessage:
+        return MailingListMessage(self.raw_message(msg_id), self._msg_metadata[msg_id])
 
 
     def messages(self, **kwargs) -> Iterator[Tuple[int, MailingListMessage]]:
@@ -230,7 +236,7 @@ class MailingList:
                     include_msg = False
                     break
             if include_msg:
-                yield msg_id, self.message(msg_id)
+                yield msg_id, msg
 
 
     def threads(self) -> List[MessageThread]:
@@ -284,16 +290,19 @@ class MailingList:
                     self._num_messages += 1
                     new_msgs.append(msg_id)
                     
-                    ml_msg = MailingListMessage(msg, self)
-            
                     for helper in self._helpers:
-                        helper.scan_message(ml_msg)
-
-                    self.serialise_message(msg_id, ml_msg)
+                        self._msg_metadata[msg_id] = {**(helper.scan_message(e)), **(self._msg_metadata[msg_id])}
 
             with open(aa_cache_tmp, "w") as aa_cache_file:
                 json.dump(self._archive_urls, aa_cache_file)
             aa_cache_tmp.rename(aa_cache)
+
+        metadata_cache = Path(self._cache_folder, "metadata.json")
+        metadata_cache_tmp = Path(self._cache_folder, "metadata.json.tmp")
+        with open(metadata_cache_tmp, "w") as metadata_file:
+            serialised_metadata = {msg_id : self.serialise_message(msg_id) for msg_id in self._msg_metadata}
+            json.dump(serialised_metadata, metadata_file, indent=4)
+        metadata_cache_tmp.rename(metadata_cache)
 
         imap.unselect_folder()
         if _reuse_imap is None:

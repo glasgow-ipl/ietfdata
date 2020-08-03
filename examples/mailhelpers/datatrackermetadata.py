@@ -33,24 +33,23 @@ class DatatrackerMetadata(MailArchiveHelper):
     def __init__(self):
         self.dt = dt.DataTracker(cache_dir=Path("cache"))
         
-    def scan_message(self, msg: MailingListMessage) -> None:
-        from_name, from_addr = email.utils.parseaddr(msg.message["From"])
+    def scan_message(self, msg: Message) -> Dict[str, Any]:
+        from_name, from_addr = email.utils.parseaddr(msg["From"])
         from_person = self.dt.person_from_email(from_addr)
         docs = []
         # FIXME: Does this find messages with a document in the subject line?
         # FIXME: It would be interesting to also find people mentioned in messages
-        draft_matches = re.findall(r'draft-(?P<name>[a-zA-Z0-9_\-]+)-(?P<revision>[0-9_\-]+)', msg.message.as_string())
+        draft_matches = re.findall(r'draft-(?P<name>[a-zA-Z0-9_\-]+)-(?P<revision>[0-9_\-]+)', msg.as_string())
         for draft_match in draft_matches:
             doc = self.dt.document_from_draft(f"draft-{draft_match[0]}")
             if doc is not None and doc not in docs:
                 docs.append(doc)
-        rfc_matches = re.findall(r'(rfc|RFC)(\s)?(?P<number>[0-9]+)', msg.message.as_string())
+        rfc_matches = re.findall(r'(rfc|RFC)(\s)?(?P<number>[0-9]+)', msg.as_string())
         for rfc_match in rfc_matches:
             doc = self.dt.document_from_rfc(f"rfc{rfc_match[-1]}")
             if doc is not None and doc not in docs:
                 docs.append(doc)
-        msg.add_metadata("from_person", from_person)
-        msg.add_metadata("related_docs", docs)
+        return {"from_person": from_person, "related_docs": docs}
 
 
     def filter(self,
@@ -61,13 +60,12 @@ class DatatrackerMetadata(MailArchiveHelper):
         return (from_person is None or message.metadata("from_person") == from_person) and (related_doc is None or related_doc in message.metadata("related_docs"))
 
 
-    def serialise(self, msg: MailingListMessage) -> Dict[str, str]:
-        if not msg.has_metadata("from_person"):
-            self.scan_message(msg)
-        return {"from_person"  : msg.metadata("from_person").resource_uri.uri if msg.metadata("from_person") is not None else "",
-                "related_docs" : str([str(doc.resource_uri.uri) for doc in msg.metadata("related_docs")])}
+    def serialise(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
+        return {"from_person"  : metadata["from_person"].resource_uri.uri if metadata["from_person"] is not None else "",
+                "related_docs" : [str(doc.resource_uri.uri) for doc in metadata["related_docs"]]}
 
 
-    def deserialise(self, msg: MailingListMessage, cache_data: Dict[str, str]) -> None:
-        msg.add_metadata("from_person", self.dt.person(dt.PersonURI(cache_data["from_person"])) if cache_data["from_person"] != "" else None)
-        msg.add_metadata("related_docs", [self.dt.document(dt.DocumentURI(doc_uri)) for doc_uri in cache_data["related_docs"]])
+    def deserialise(self, metadata: Dict[str, str]) -> Dict[str, Any]:
+        from_person = self.dt.person(dt.PersonURI(metadata["from_person"])) if metadata["from_person"] != "" else None
+        related_docs = [self.dt.document(dt.DocumentURI(doc_uri)) for doc_uri in metadata["related_docs"]]
+        return {"from_person" : from_person, "related_docs" : related_docs}
