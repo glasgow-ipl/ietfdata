@@ -28,6 +28,8 @@ import ietfdata.datatracker as dt
 from ietfdata.mailarchive        import *
 
 class DatatrackerMetadata(MailArchiveHelper):
+    metadata_fields = ["from_person", "related_docs"]
+
     def __init__(self):
         self.dt = dt.DataTracker(cache_dir=Path("cache"))
         

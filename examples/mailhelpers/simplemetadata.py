@@ -29,6 +29,8 @@ import time
 from ietfdata.mailarchive        import *
 
 class SimpleMetadata(MailArchiveHelper):
+    metadata_fields = ["from_name", "from_addr", "timestamp"]
+
     def scan_message(self, msg: "MailingListMessage") -> None:
         from_name, from_addr = email.utils.parseaddr(msg.message["From"])
         timestamp            = datetime.fromtimestamp(time.mktime(email.utils.parsedate(msg.message["Date"])))

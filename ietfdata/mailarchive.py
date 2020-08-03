@@ -57,6 +57,13 @@ class MailArchiveHelper(abc.ABC):
     Abstract class for mail archive helpers.
     """
 
+    @property
+    @classmethod
+    @abc.abstractmethod
+    def metadata_fields(cls):
+        return NotImplementedError
+
+
     @abc.abstractmethod
     def scan_message(self, msg: "MailingListMessage") -> None:
         pass
@@ -177,7 +184,8 @@ class MailingList:
         with open(metadata_cache_tmp, "w") as metadata_cache_file:
             json.dump(metadata, metadata_cache_file)
         metadata_cache_tmp.rename(metadata_cache)
-    
+
+
     def deserialise_message(self, msg_id: int) -> MailingListMessage:
         cache_file = Path(self._cache_folder, "{:06d}.msg".format(msg_id))
         with open(cache_file, "rb") as inf:
