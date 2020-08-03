@@ -176,7 +176,9 @@ class MailingList:
             for index in self.message_indices():
                 self._msg_metadata[index] = {}
 
-        for msg_id in self._msg_metadata:
+        for msg_id in self.message_indices():
+            if msg_id not in self._msg_metadata:
+                self._msg_metadata[msg_id] = {}
             message_text = None
             for helper in self._helpers:
                 if not all(metadata_field in self._msg_metadata[msg_id] for metadata_field in helper.metadata_fields):
@@ -184,10 +186,7 @@ class MailingList:
                         message_text = self.raw_message(msg_id)
                     self._msg_metadata[msg_id] = {**(helper.scan_message(message_text)), **(self._msg_metadata[msg_id])}
 
-        with open(metadata_cache_tmp, "w") as metadata_file:
-            serialised_metadata = {msg_id : self.serialise_message(msg_id) for msg_id in self._msg_metadata}
-            json.dump(serialised_metadata, metadata_file, indent=4)
-        metadata_cache_tmp.rename(metadata_cache)
+        self.serialise_metadata()
 
 
     def name(self) -> str:
@@ -196,6 +195,15 @@ class MailingList:
 
     def num_messages(self) -> int:
         return self._num_messages
+
+
+    def serialise_metadata(self) -> None:
+        metadata_cache = Path(self._cache_folder, "metadata.json")
+        metadata_cache_tmp = Path(self._cache_folder, "metadata.json.tmp")
+        with open(metadata_cache_tmp, "w") as metadata_file:
+            serialised_metadata = {msg_id : self.serialise_message(msg_id) for msg_id in self._msg_metadata}
+            json.dump(serialised_metadata, metadata_file, indent=4)
+        metadata_cache_tmp.rename(metadata_cache)
 
 
     def serialise_message(self, msg_id: int) -> Dict[str, str]:
@@ -227,8 +235,7 @@ class MailingList:
 
 
     def messages(self, **kwargs) -> Iterator[Tuple[int, MailingListMessage]]:
-        for msg_path in sorted(self._cache_folder.glob("*.msg")):
-            msg_id = int(str(msg_path).split("/")[-1][:-4])
+        for msg_id in self.message_indices():
             include_msg = True
             for helper in self._helpers:
                 if not helper.filter(self._msg_metadata[msg_id], **kwargs):
@@ -289,6 +296,7 @@ class MailingList:
                     self._num_messages += 1
                     new_msgs.append(msg_id)
                     
+                    self._msg_metadata[msg_id] = {}
                     for helper in self._helpers:
                         self._msg_metadata[msg_id] = {**(helper.scan_message(e)), **(self._msg_metadata[msg_id])}
 
@@ -296,12 +304,7 @@ class MailingList:
                 json.dump(self._archive_urls, aa_cache_file)
             aa_cache_tmp.rename(aa_cache)
 
-        metadata_cache = Path(self._cache_folder, "metadata.json")
-        metadata_cache_tmp = Path(self._cache_folder, "metadata.json.tmp")
-        with open(metadata_cache_tmp, "w") as metadata_file:
-            serialised_metadata = {msg_id : self.serialise_message(msg_id) for msg_id in self._msg_metadata}
-            json.dump(serialised_metadata, metadata_file, indent=4)
-        metadata_cache_tmp.rename(metadata_cache)
+        self.serialise_metadata()
 
         imap.unselect_folder()
         if _reuse_imap is None:
