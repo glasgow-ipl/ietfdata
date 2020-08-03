@@ -70,7 +70,7 @@ class MailArchiveHelper(abc.ABC):
 
 
     @abc.abstractmethod
-    def filter(self, message : "MailingListMessage", **kwargs) -> bool:
+    def filter(self, metadata: Dict[str, Any], **kwargs) -> bool:
         pass
 
 
@@ -229,14 +229,13 @@ class MailingList:
     def messages(self, **kwargs) -> Iterator[Tuple[int, MailingListMessage]]:
         for msg_path in sorted(self._cache_folder.glob("*.msg")):
             msg_id = int(str(msg_path).split("/")[-1][:-4])
-            msg = self.message(msg_id)
             include_msg = True
             for helper in self._helpers:
-                if not helper.filter(msg, **kwargs):
+                if not helper.filter(self._msg_metadata[msg_id], **kwargs):
                     include_msg = False
                     break
             if include_msg:
-                yield msg_id, msg
+                yield msg_id, self.message(msg_id)
 
 
     def threads(self) -> List[MessageThread]:

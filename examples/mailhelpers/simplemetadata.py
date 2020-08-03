@@ -42,14 +42,14 @@ class SimpleMetadata(MailArchiveHelper):
 
 
     def filter(self,
-               message   : "MailingListMessage",
-               from_name : Optional[str] = None,
-               from_addr : Optional[str] = None,
-               timestamp : Optional[str] = None,
+               metadata   : Dict[str, Any],
+               from_name  : Optional[str] = None,
+               from_addr  : Optional[str] = None,
+               timestamp  : Optional[str] = None,
                **kwargs) -> bool:
-        return ((from_name is None or message.metadata("from_name") == from_name) and
-               (from_addr is None or message.metadata("from_addr") == from_addr) and
-               (timestamp is None or message.metadata("timestamp") == timestamp))
+        return ((from_name is None or metadata["from_name"] == from_name) and
+               (from_addr is None or metadata["from_addr"] == from_addr) and
+               (timestamp is None or metadata["timestamp"] == timestamp))
 
 
     def serialise(self, metadata: Dict[str, Any]) -> Dict[str, Any]:

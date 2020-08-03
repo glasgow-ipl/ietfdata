@@ -53,11 +53,11 @@ class DatatrackerMetadata(MailArchiveHelper):
 
 
     def filter(self,
-               message : MailingListMessage,
+               metadata    : Dict[str, Any],
                from_person : Optional[dt.Person] = None,
                related_doc : Optional[dt.Document] = None,
                **kwargs) -> bool:
-        return (from_person is None or message.metadata("from_person") == from_person) and (related_doc is None or related_doc in message.metadata("related_docs"))
+        return (from_person is None or metadata["from_person"] == from_person) and (related_doc is None or related_doc in metadata["related_docs"])
 
 
     def serialise(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
