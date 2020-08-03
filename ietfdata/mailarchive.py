@@ -86,11 +86,13 @@ class MailArchiveHelper(abc.ABC):
 # =================================================================================================
 
 class MailingListMessage:
-    message   : Message
-    _metadata : Dict[str, Any]
-
-    def __init__(self, message: Message):
+    message       : Message
+    mailing_list  : "MailingList"
+    _metadata     : Dict[str, Any]
+     
+    def __init__(self, message: Message, mailing_list : "MailingList"):
         self.message = message
+        self.mailing_list = mailing_list
         self._metadata = {}
 
 
@@ -103,6 +105,10 @@ class MailingListMessage:
 
 
     def metadata(self, name: str) -> Any:
+        if not self.has_metadata(name):
+            for helper in self.mailing_list._helpers:
+                if name in helper.metadata_fields:
+                    helper.scan_message(self)
         if not self.has_metadata(name):
             raise Exception(f"Message does not have a metadata field named {name}")
         return self._metadata.get(name)
@@ -190,7 +196,7 @@ class MailingList:
         cache_file = Path(self._cache_folder, "{:06d}.msg".format(msg_id))
         with open(cache_file, "rb") as inf:
             message = email.message_from_binary_file(inf)
-        ml_message = MailingListMessage(message)
+        ml_message = MailingListMessage(message, self)
         metadata_cache = Path(self._cache_folder, "{:06d}.json".format(msg_id))
         if metadata_cache.exists():
             metadata_cache.touch()
@@ -278,7 +284,7 @@ class MailingList:
                     self._num_messages += 1
                     new_msgs.append(msg_id)
                     
-                    ml_msg = MailingListMessage(msg)
+                    ml_msg = MailingListMessage(msg, self)
             
                     for helper in self._helpers:
                         helper.scan_message(ml_msg)
