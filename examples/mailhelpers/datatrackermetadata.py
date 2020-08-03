@@ -65,7 +65,7 @@ class DatatrackerMetadata(MailArchiveHelper):
         if not msg.has_metadata("from_person"):
             self.scan_message(msg)
         return {"from_person"  : msg.metadata("from_person").resource_uri.uri if msg.metadata("from_person") is not None else "",
-                "related_docs" : [doc.resource_uri.uri for doc in msg.metadata("related_docs")]}
+                "related_docs" : str([str(doc.resource_uri.uri) for doc in msg.metadata("related_docs")])}
 
 
     def deserialise(self, msg: MailingListMessage, cache_data: Dict[str, str]) -> None:

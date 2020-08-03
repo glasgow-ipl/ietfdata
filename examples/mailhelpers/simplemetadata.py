@@ -33,7 +33,11 @@ class SimpleMetadata(MailArchiveHelper):
 
     def scan_message(self, msg: "MailingListMessage") -> None:
         from_name, from_addr = email.utils.parseaddr(msg.message["From"])
-        timestamp            = datetime.fromtimestamp(time.mktime(email.utils.parsedate(msg.message["Date"])))
+        msg_date = email.utils.parsedate(msg.message["Date"])
+        if msg_date is not None:
+            timestamp = datetime.fromtimestamp(time.mktime(msg_date))
+        else:
+            timestamp = datetime.now()
         msg.add_metadata("from_name", from_name)
         msg.add_metadata("from_addr", from_addr)
         msg.add_metadata("timestamp", timestamp)

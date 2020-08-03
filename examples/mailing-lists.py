@@ -29,16 +29,17 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from pathlib                  import Path
-from ietfdata.mailarchive     import *
-from ietfdata.datatracker     import *
 
-from mailhelpers.simplemetadata      import *
-from mailhelpers.datatrackermetadata import *
+import ietfdata.datatracker as dt
+import ietfdata.mailarchive as mailarchive
 
-dt = DataTracker(cache_dir=Path("cache"))
-archive = MailArchive(cache_dir=Path("cache"), helpers=[SimpleMetadata(), DatatrackerMetadata()])
+from examples.mailhelpers.simplemetadata      import *
+from examples.mailhelpers.datatrackermetadata import *
 
-def pretty_print_message_metadata(msg: MailingListMessage):
+datatracker = dt.DataTracker(cache_dir=Path("cache"))
+archive = mailarchive.MailArchive(cache_dir=Path("cache"), helpers=[SimpleMetadata(), DatatrackerMetadata()])
+
+def pretty_print_message_metadata(msg: mailarchive.MailingListMessage):
     subject = msg.message["Subject"].replace('\n', "\\n")
     string = f"{msg.metadata('from_name'):50s} | {msg.metadata('from_addr'):30s} | {str(msg.metadata('from_person').id) if msg.metadata('from_person') is not None else '--':6s} | {msg.metadata('timestamp'):%Y-%m-%d %H:%M} | {subject:30s}"
     for document in msg.metadata("related_docs"):
@@ -64,11 +65,11 @@ for ml_name in ["rfced-future"]:
 
     # filter by Person
     print("Filter by Person")
-    for index, im in ml.messages(from_person=dt.person_from_email("csp@csperkins.org")):
+    for index, im in ml.messages(from_person=datatracker.person_from_email("csp@csperkins.org")):
         print(f"  {pretty_print_message_metadata(im)}")
     print()
 
     # filter by Document
     print("Filter by Document")
-    for index, im in ml.messages(related_doc=dt.document_from_draft("draft-carpenter-rfc-principles")):
+    for index, im in ml.messages(related_doc=datatracker.document_from_draft("draft-carpenter-rfc-principles")):
         print(f"  {pretty_print_message_metadata(im)}")
