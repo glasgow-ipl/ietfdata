@@ -1909,7 +1909,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(ts.duration,      "2:30:00")
             self.assertEqual(ts.location,      None)
             self.assertEqual(ts.show_location, True)
-            self.assertEqual(ts.modified,      datetime.fromisoformat("2020-06-12T05:48:44"))
+            self.assertEqual(ts.modified,      datetime.fromisoformat("2020-07-30T01:28:28"))
         else:
             self.fail("cannot find timeslot")
 
@@ -2223,7 +2223,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(ipr_disclosure_base.other_designations, "")
             self.assertEqual(ipr_disclosure_base.rel,                [IPRDisclosureBaseURI("/api/v1/ipr/iprdisclosurebase/4102/")])
             self.assertEqual(ipr_disclosure_base.resource_uri,       IPRDisclosureBaseURI("/api/v1/ipr/iprdisclosurebase/4169/"))
-            self.assertEqual(ipr_disclosure_base.state,              IPRDisclosureStateURI("/api/v1/name/iprdisclosurestatename/pending/"))
+            self.assertEqual(ipr_disclosure_base.state,              IPRDisclosureStateURI("/api/v1/name/iprdisclosurestatename/parked/"))
             self.assertEqual(ipr_disclosure_base.submitter_email,    "tglassey1@protonmail.com")
             self.assertEqual(ipr_disclosure_base.submitter_name,     "Todd Glassey")
             self.assertEqual(ipr_disclosure_base.time,               datetime.fromisoformat("2020-05-30T16:11:44"))
@@ -2449,7 +2449,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(thirdparty_ipr_disclosure.patent_info,                          "Number: US9621525B2\nInventor: Billy Bob Brumley\nTitle: Semi-deterministic digital signature generation\nDate: 2014-06-02")
             self.assertEqual(thirdparty_ipr_disclosure.rel,                                  [])
             self.assertEqual(thirdparty_ipr_disclosure.resource_uri,                         ThirdPartyIPRDisclosureURI("/api/v1/ipr/thirdpartyiprdisclosure/4153/"))
-            self.assertEqual(thirdparty_ipr_disclosure.state,                                IPRDisclosureStateURI("/api/v1/name/iprdisclosurestatename/pending/"))
+            self.assertEqual(thirdparty_ipr_disclosure.state,                                IPRDisclosureStateURI("/api/v1/name/iprdisclosurestatename/parked/"))
             self.assertEqual(thirdparty_ipr_disclosure.submitter_email,                      "bbrumley@gmail.com")
             self.assertEqual(thirdparty_ipr_disclosure.submitter_name,                       "Billy Brumley")
             self.assertEqual(thirdparty_ipr_disclosure.time,                                 datetime.fromisoformat("2020-05-14T20:32:24"))
