@@ -33,11 +33,11 @@ from pathlib                  import Path
 import ietfdata.datatracker as dt
 import ietfdata.mailarchive as mailarchive
 
-from examples.mailhelpers.simplemetadata      import *
-from examples.mailhelpers.datatrackermetadata import *
+from ietfdata.mailhelper_headerdata      import *
+from ietfdata.mailhelper_datatracker     import *
 
 datatracker = dt.DataTracker(cache_dir=Path("cache"))
-archive = mailarchive.MailArchive(cache_dir=Path("cache"), helpers=[SimpleMetadata(), DatatrackerMetadata()])
+archive = mailarchive.MailArchive(cache_dir=Path("cache"), helpers=[HeaderDataMailHelper(), DatatrackerMailHelper()])
 
 def pretty_print_message_metadata(msg: mailarchive.MailingListMessage):
     subject = msg.message["Subject"].replace('\n', "\\n")

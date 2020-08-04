@@ -28,7 +28,7 @@ import time
 
 from ietfdata.mailarchive        import *
 
-class SimpleMetadata(MailArchiveHelper):
+class HeaderDataMailHelper(MailArchiveHelper):
     metadata_fields = ["from_name", "from_addr", "timestamp"]
 
     def scan_message(self, msg: Message) -> Dict[str, Any]:

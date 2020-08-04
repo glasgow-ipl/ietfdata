@@ -27,7 +27,7 @@ import ietfdata.datatracker as dt
 
 from ietfdata.mailarchive        import *
 
-class DatatrackerMetadata(MailArchiveHelper):
+class DatatrackerMailHelper(MailArchiveHelper):
     metadata_fields = ["from_person", "related_docs"]
 
     def __init__(self):
