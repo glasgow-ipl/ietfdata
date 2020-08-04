@@ -329,6 +329,7 @@ class MailArchive:
         self._mailing_lists = {}
         self._helpers       = helpers
 
+
     def mailing_list_names(self) -> Iterator[str]:
         imap = IMAPClient(host='imap.ietf.org', ssl=False, use_uid=True)
         imap.login("anonymous", "anonymous")
@@ -380,6 +381,12 @@ class MailArchive:
             nm = ml.update(_reuse_imap=imap)
             print(F"({ml.num_messages()} messages; {len(nm)} new)")
         imap.logout()
+    
+    
+    def messages(self, **kwargs) -> Iterator[Tuple[Tuple[str, int], MailingListMessage]]:
+        for mailing_list in self._mailing_lists:
+            for msg_id, msg in self._mailing_lists[mailing_list].messages(**kwargs):
+                yield ((mailing_list, msg_id), msg)
 
 
 # =================================================================================================
