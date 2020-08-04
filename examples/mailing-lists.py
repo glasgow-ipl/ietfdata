@@ -78,6 +78,7 @@ print()
 
 # archive-wide searching
 ml = archive.mailing_list("fdt")
+ml.update()
 ml = archive.mailing_list("abnf-discuss")
 ml.update()
 
