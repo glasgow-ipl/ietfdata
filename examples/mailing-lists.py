@@ -73,3 +73,15 @@ for ml_name in ["rfced-future"]:
     print("Filter by Document")
     for index, im in ml.messages(related_doc=datatracker.document_from_draft("draft-carpenter-rfc-principles")):
         print(f"  {pretty_print_message_metadata(im)}")
+
+print()
+
+# archive-wide searching
+ml = archive.mailing_list("fdt")
+ml = archive.mailing_list("abnf-discuss")
+ml.update()
+
+print("Archive-wide searching")
+for msg_id, msg in archive.messages(from_addr="Stephen.McQuistin@glasgow.ac.uk"):
+    list_name, msg_index = msg_id
+    print(f"{list_name:15s} | {pretty_print_message_metadata(msg)}")
