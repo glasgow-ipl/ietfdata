@@ -3510,5 +3510,15 @@ class DataTracker:
             url.params["ticket_type"] = ticket_type
         return self._retrieve_multi(url, MeetingRegistration, deref = {"meeting": "id", "person": "id"})
 
+
+    # ----------------------------------------------------------------------------------------------------------------------------
+    # Datatracker API endpoints returning information about messages:
+    #
+    #   https://datatracker.ietf.org/api/v1/message/announcementfrom/
+    #   https://datatracker.ietf.org/api/v1/message/message/
+    #   https://datatracker.ietf.org/api/v1/message/messageattachment/
+    #   https://datatracker.ietf.org/api/v1/message/sendqueue/
+
+
 # =================================================================================================================================
 # vim: set tw=0 ai:
