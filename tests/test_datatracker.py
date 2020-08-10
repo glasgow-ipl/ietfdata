@@ -3251,6 +3251,58 @@ class TestDatatracker(unittest.TestCase):
         self.assertIsNot(regs, None)
 
 
+    # -----------------------------------------------------------------------------------------------------------------------------
+    # Tests relating to messages:
+
+    def test_announcement_from(self) -> None:
+        announcement_from = self.dt.announcement_from(AnnouncementFromURI("/api/v1/message/announcementfrom/1/"))
+        if announcement_from is not None:
+            self.assertEqual(announcement_from.address,      "IETF Chair <chair@ietf.org>")
+            self.assertEqual(announcement_from.group,        GroupURI("/api/v1/group/group/1/"))
+            self.assertEqual(announcement_from.id,           1)
+            self.assertEqual(announcement_from.name,         RoleNameURI("/api/v1/name/rolename/chair/"))
+            self.assertEqual(announcement_from.resource_uri, AnnouncementFromURI("/api/v1/message/announcementfrom/1/"))
+        else:
+            self.fail("Cannot find announcement from metadata")
+
+
+    def test_announcements_from(self) -> None:
+        announcements_from = self.dt.announcements_from()
+        self.assertIsNot(announcements_from, None)
+
+
+    def test_announcements_from_address(self) -> None:
+        announcements_from = list(self.dt.announcements_from(address="IETF Chair <chair@ietf.org>"))
+        self.assertEqual(len(announcements_from),  1)
+        self.assertEqual(announcements_from[0].id, 1)
+
+
+    def test_announcements_from_group(self) -> None:
+        announcements_from = list(self.dt.announcements_from(group=self.dt.group(GroupURI("/api/v1/group/group/1/"))))
+        self.assertEqual(len(announcements_from),  6)
+        self.assertEqual(announcements_from[0].id, 1)
+        self.assertEqual(announcements_from[1].id, 2)
+        self.assertEqual(announcements_from[2].id, 7)
+        self.assertEqual(announcements_from[3].id, 8)
+        self.assertEqual(announcements_from[4].id, 28)
+        self.assertEqual(announcements_from[5].id, 27)
+
+
+    def test_announcements_from_name(self) -> None:
+        announcements_from = list(self.dt.announcements_from(name=self.dt.role_name(RoleNameURI("/api/v1/name/rolename/chair/"))))
+        self.assertEqual(len(announcements_from),  10)
+        self.assertEqual(announcements_from[0].id, 1)
+        self.assertEqual(announcements_from[1].id, 2)
+        self.assertEqual(announcements_from[2].id, 3)
+        self.assertEqual(announcements_from[3].id, 10)
+        self.assertEqual(announcements_from[4].id, 12)
+        self.assertEqual(announcements_from[5].id, 13)
+        self.assertEqual(announcements_from[6].id, 15)
+        self.assertEqual(announcements_from[7].id, 16)
+        self.assertEqual(announcements_from[8].id, 24)
+        self.assertEqual(announcements_from[9].id, 26)
+        
+
 if __name__ == '__main__':
     unittest.main()
 

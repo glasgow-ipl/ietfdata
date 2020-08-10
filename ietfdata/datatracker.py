@@ -1795,6 +1795,25 @@ class MeetingRegistration(Resource):
     ticket_type  : str
 
 
+# ---------------------------------------------------------------------------------------------------------------------------------
+# Types relating to messages:
+
+
+@dataclass(frozen=True)
+class AnnouncementFromURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/message/announcementfrom/")
+
+
+@dataclass(frozen=True)
+class AnnouncementFrom(Resource):
+    address      : str
+    group        : GroupURI
+    id           : int
+    name         : RoleNameURI
+    resource_uri : AnnouncementFromURI
+
+
 # =================================================================================================================================
 # A class to represent the datatracker:
 
@@ -3514,10 +3533,27 @@ class DataTracker:
     # ----------------------------------------------------------------------------------------------------------------------------
     # Datatracker API endpoints returning information about messages:
     #
-    #   https://datatracker.ietf.org/api/v1/message/announcementfrom/
+    # * https://datatracker.ietf.org/api/v1/message/announcementfrom/
     #   https://datatracker.ietf.org/api/v1/message/message/
     #   https://datatracker.ietf.org/api/v1/message/messageattachment/
     #   https://datatracker.ietf.org/api/v1/message/sendqueue/
+
+    def announcement_from(self, announcement_from_uri: AnnouncementFromURI) -> Optional[AnnouncementFrom]:
+        return self._retrieve(announcement_from_uri, AnnouncementFrom)
+
+
+    def announcements_from(self,
+                address : Optional[str]          = None,
+                group   : Optional[Group]        = None,
+                name    : Optional[RoleName]     = None) -> Iterator[AnnouncementFrom]:
+        url = AnnouncementFromURI("/api/v1/message/announcementfrom/")
+        if address is not None:
+            url.params["address"] = address
+        if group is not None:
+            url.params["group"] = group.id
+        if name is not None:
+            url.params["name"] = name.slug
+        return self._retrieve_multi(url, AnnouncementFrom, deref = {"group": "id", "name": "slug"})
 
 
 # =================================================================================================================================
