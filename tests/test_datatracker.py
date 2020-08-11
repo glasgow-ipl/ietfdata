@@ -3357,6 +3357,37 @@ class TestDatatracker(unittest.TestCase):
         self.assertIsNot(messages, None)
 
 
+    def test_send_queue_entry(self) -> None:
+        send_queue_entry = self.dt.send_queue_entry(SendQueueURI("/api/v1/message/sendqueue/1/"))
+        if send_queue_entry is not None:
+            self.assertEqual(send_queue_entry.by,           PersonURI("/api/v1/person/person/105651/"))
+            self.assertEqual(send_queue_entry.id,           1)
+            self.assertEqual(send_queue_entry.message,      MessageURI("/api/v1/message/message/4001/"))
+            self.assertEqual(send_queue_entry.note,         "")
+            self.assertEqual(send_queue_entry.resource_uri, SendQueueURI("/api/v1/message/sendqueue/1/"))
+            self.assertEqual(send_queue_entry.send_at,      None)
+            self.assertEqual(send_queue_entry.sent_at,      datetime.fromisoformat("2005-04-27T22:21:09"))
+            self.assertEqual(send_queue_entry.time,         datetime.fromisoformat("2005-04-26T22:21:09"))
+        else:
+            self.fail("Cannot find send queue entry")
+
+
+    def test_send_queue(self) -> None:
+        send_queue = self.dt.send_queue()
+        self.assertIsNot(send_queue, None)
+
+
+    def test_send_queue_by(self) -> None:
+        send_queue = self.dt.send_queue(by=self.dt.person(PersonURI("/api/v1/person/person/105651/")))
+        self.assertIsNot(send_queue, None)
+
+
+    def test_send_queue_message(self) -> None:
+        send_queue = list(self.dt.send_queue(message=self.dt.message(MessageURI("/api/v1/message/message/4001/"))))
+        self.assertEqual(len(send_queue),  1)
+        self.assertEqual(send_queue[0].id, 1)
+
+
 if __name__ == '__main__':
     unittest.main()
 

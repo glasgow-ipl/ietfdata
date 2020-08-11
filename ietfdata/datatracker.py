@@ -1840,6 +1840,24 @@ class Message(Resource):
     to             : str
 
 
+@dataclass(frozen=True)
+class SendQueueURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/message/sendqueue/")
+
+
+@dataclass(frozen=True)
+class SendQueueEntry(Resource):
+    by             : PersonURI
+    id             : int
+    message        : MessageURI
+    note           : str
+    resource_uri   : SendQueueURI
+    send_at        : Optional[datetime]
+    sent_at        : Optional[datetime]
+    time           : datetime
+
+
 # =================================================================================================================================
 # A class to represent the datatracker:
 
@@ -3562,7 +3580,7 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/message/announcementfrom/
     # * https://datatracker.ietf.org/api/v1/message/message/
     # - https://datatracker.ietf.org/api/v1/message/messageattachment/ [not used]
-    #   https://datatracker.ietf.org/api/v1/message/sendqueue/
+    # * https://datatracker.ietf.org/api/v1/message/sendqueue/
 
     def announcement_from(self, announcement_from_uri: AnnouncementFromURI) -> Optional[AnnouncementFrom]:
         return self._retrieve(announcement_from_uri, AnnouncementFrom)
@@ -3595,6 +3613,8 @@ class DataTracker:
                 subject_contains : Optional[str]      = None,
                 body_contains    : Optional[str]      = None) -> Iterator[Message]:
         url = MessageURI("/api/v1/message/message/")
+        url.params["time__gt"]       = since
+        url.params["time__lt"]       = until
         if by is not None:
             url.params["by"] = by.id
         if frm is not None:
@@ -3606,6 +3626,25 @@ class DataTracker:
         if body_contains is not None:
             url.params["body__contains"] = body_contains
         return self._retrieve_multi(url, Message, deref = {"by": "id", "related_doc": "id"})
+
+
+    def send_queue_entry(self, send_queue_uri: SendQueueURI) -> Optional[SendQueueEntry]:
+        return self._retrieve(send_queue_uri, SendQueueEntry)
+
+
+    def send_queue(self,
+                since : str                           = "1970-01-01T00:00:00",
+                until : str                           = "2038-01-19T03:14:07",
+                by               : Optional[Person]   = None,
+                message          : Optional[Message]  = None) -> Iterator[SendQueueEntry]:
+        url = SendQueueURI("/api/v1/message/sendqueue/")
+        url.params["time__gt"]       = since
+        url.params["time__lt"]       = until
+        if by is not None:
+            url.params["by"] = by.id
+        if message is not None:
+            url.params["message"] = message.id
+        return self._retrieve_multi(url, SendQueueEntry, deref = {"by": "id", "message": "id"})
 
 
 # =================================================================================================================================
