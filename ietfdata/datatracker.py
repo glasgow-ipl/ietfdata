@@ -1795,6 +1795,69 @@ class MeetingRegistration(Resource):
     ticket_type  : str
 
 
+# ---------------------------------------------------------------------------------------------------------------------------------
+# Types relating to messages:
+
+
+@dataclass(frozen=True)
+class AnnouncementFromURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/message/announcementfrom/")
+
+
+@dataclass(frozen=True)
+class AnnouncementFrom(Resource):
+    address      : str
+    group        : GroupURI
+    id           : int
+    name         : RoleNameURI
+    resource_uri : AnnouncementFromURI
+
+
+@dataclass(frozen=True)
+class MessageURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/message/message/")
+
+
+@dataclass(frozen=True)
+class Message(Resource):
+    bcc            : str
+    body           : str
+    by             : PersonURI
+    cc             : str
+    content_type   : str
+    frm            : str
+    id             : int
+    msgid          : str
+    related_docs   : List[DocumentURI]
+    related_groups : List[GroupURI]
+    reply_to       : str
+    resource_uri   : MessageURI
+    sent           : datetime
+    subject        : str
+    time           : datetime
+    to             : str
+
+
+@dataclass(frozen=True)
+class SendQueueURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/message/sendqueue/")
+
+
+@dataclass(frozen=True)
+class SendQueueEntry(Resource):
+    by             : PersonURI
+    id             : int
+    message        : MessageURI
+    note           : str
+    resource_uri   : SendQueueURI
+    send_at        : Optional[datetime]
+    sent_at        : Optional[datetime]
+    time           : datetime
+
+
 # =================================================================================================================================
 # A class to represent the datatracker:
 
@@ -3509,6 +3572,80 @@ class DataTracker:
         if ticket_type is not None:
             url.params["ticket_type"] = ticket_type
         return self._retrieve_multi(url, MeetingRegistration, deref = {"meeting": "id", "person": "id"})
+
+
+    # ----------------------------------------------------------------------------------------------------------------------------
+    # Datatracker API endpoints returning information about messages:
+    #
+    # * https://datatracker.ietf.org/api/v1/message/announcementfrom/
+    # * https://datatracker.ietf.org/api/v1/message/message/
+    # - https://datatracker.ietf.org/api/v1/message/messageattachment/ [not used]
+    # * https://datatracker.ietf.org/api/v1/message/sendqueue/
+
+    def announcement_from(self, announcement_from_uri: AnnouncementFromURI) -> Optional[AnnouncementFrom]:
+        return self._retrieve(announcement_from_uri, AnnouncementFrom)
+
+
+    def announcements_from(self,
+                address : Optional[str]          = None,
+                group   : Optional[Group]        = None,
+                name    : Optional[RoleName]     = None) -> Iterator[AnnouncementFrom]:
+        url = AnnouncementFromURI("/api/v1/message/announcementfrom/")
+        if address is not None:
+            url.params["address"] = address
+        if group is not None:
+            url.params["group"] = group.id
+        if name is not None:
+            url.params["name"] = name.slug
+        return self._retrieve_multi(url, AnnouncementFrom, deref = {"group": "id", "name": "slug"})
+
+
+    def message(self, message_uri: MessageURI) -> Optional[Message]:
+        return self._retrieve(message_uri, Message)
+
+
+    def messages(self,
+                since : str                           = "1970-01-01T00:00:00",
+                until : str                           = "2038-01-19T03:14:07",
+                by               : Optional[Person]   = None,
+                frm              : Optional[str]      = None,
+                related_doc      : Optional[Document] = None,
+                subject_contains : Optional[str]      = None,
+                body_contains    : Optional[str]      = None) -> Iterator[Message]:
+        url = MessageURI("/api/v1/message/message/")
+        url.params["time__gt"]       = since
+        url.params["time__lt"]       = until
+        if by is not None:
+            url.params["by"] = by.id
+        if frm is not None:
+            url.params["frm"] = frm
+        if related_doc is not None:
+            url.params["related_docs__contains"] = related_doc.id
+        if subject_contains is not None:
+            url.params["subject__contains"] = subject_contains
+        if body_contains is not None:
+            url.params["body__contains"] = body_contains
+        return self._retrieve_multi(url, Message, deref = {"by": "id", "related_doc": "id"})
+
+
+    def send_queue_entry(self, send_queue_uri: SendQueueURI) -> Optional[SendQueueEntry]:
+        return self._retrieve(send_queue_uri, SendQueueEntry)
+
+
+    def send_queue(self,
+                since : str                           = "1970-01-01T00:00:00",
+                until : str                           = "2038-01-19T03:14:07",
+                by               : Optional[Person]   = None,
+                message          : Optional[Message]  = None) -> Iterator[SendQueueEntry]:
+        url = SendQueueURI("/api/v1/message/sendqueue/")
+        url.params["time__gt"]       = since
+        url.params["time__lt"]       = until
+        if by is not None:
+            url.params["by"] = by.id
+        if message is not None:
+            url.params["message"] = message.id
+        return self._retrieve_multi(url, SendQueueEntry, deref = {"by": "id", "message": "id"})
+
 
 # =================================================================================================================================
 # vim: set tw=0 ai:
