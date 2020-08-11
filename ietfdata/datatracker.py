@@ -3561,7 +3561,7 @@ class DataTracker:
     #
     # * https://datatracker.ietf.org/api/v1/message/announcementfrom/
     # * https://datatracker.ietf.org/api/v1/message/message/
-    #   https://datatracker.ietf.org/api/v1/message/messageattachment/
+    # - https://datatracker.ietf.org/api/v1/message/messageattachment/ [not used]
     #   https://datatracker.ietf.org/api/v1/message/sendqueue/
 
     def announcement_from(self, announcement_from_uri: AnnouncementFromURI) -> Optional[AnnouncementFrom]:
