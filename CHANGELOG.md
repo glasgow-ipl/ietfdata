@@ -5,6 +5,7 @@ Change Log -- ietfdata
 
  - Add support for accessing the IETF mail archive
  - Add support for meeting scheduling events
+ - Add support for Datatracker messages
 
 
 ## v0.3.3 -- 2020-06-28
