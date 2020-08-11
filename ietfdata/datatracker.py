@@ -1814,6 +1814,32 @@ class AnnouncementFrom(Resource):
     resource_uri : AnnouncementFromURI
 
 
+@dataclass(frozen=True)
+class MessageURI(URI):
+    def __post_init__(self) -> None:
+        assert self.uri.startswith("/api/v1/message/message/")
+
+
+@dataclass(frozen=True)
+class Message(Resource):
+    bcc            : str
+    body           : str
+    by             : PersonURI
+    cc             : str
+    content_type   : str
+    frm            : str
+    id             : int
+    msgid          : str
+    related_docs   : List[DocumentURI]
+    related_groups : List[GroupURI]
+    reply_to       : str
+    resource_uri   : MessageURI
+    sent           : datetime
+    subject        : str
+    time           : datetime
+    to             : str
+
+
 # =================================================================================================================================
 # A class to represent the datatracker:
 
@@ -3534,7 +3560,7 @@ class DataTracker:
     # Datatracker API endpoints returning information about messages:
     #
     # * https://datatracker.ietf.org/api/v1/message/announcementfrom/
-    #   https://datatracker.ietf.org/api/v1/message/message/
+    # * https://datatracker.ietf.org/api/v1/message/message/
     #   https://datatracker.ietf.org/api/v1/message/messageattachment/
     #   https://datatracker.ietf.org/api/v1/message/sendqueue/
 
@@ -3554,6 +3580,32 @@ class DataTracker:
         if name is not None:
             url.params["name"] = name.slug
         return self._retrieve_multi(url, AnnouncementFrom, deref = {"group": "id", "name": "slug"})
+
+
+    def message(self, message_uri: MessageURI) -> Optional[Message]:
+        return self._retrieve(message_uri, Message)
+
+
+    def messages(self,
+                since : str                           = "1970-01-01T00:00:00",
+                until : str                           = "2038-01-19T03:14:07",
+                by               : Optional[Person]   = None,
+                frm              : Optional[str]      = None,
+                related_doc      : Optional[Document] = None,
+                subject_contains : Optional[str]      = None,
+                body_contains    : Optional[str]      = None) -> Iterator[Message]:
+        url = MessageURI("/api/v1/message/message/")
+        if by is not None:
+            url.params["by"] = by.id
+        if frm is not None:
+            url.params["frm"] = frm
+        if related_doc is not None:
+            url.params["related_docs__contains"] = related_doc.id
+        if subject_contains is not None:
+            url.params["subject__contains"] = subject_contains
+        if body_contains is not None:
+            url.params["body__contains"] = body_contains
+        return self._retrieve_multi(url, Message, deref = {"by": "id", "related_doc": "id"})
 
 
 # =================================================================================================================================
