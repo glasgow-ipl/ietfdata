@@ -169,8 +169,14 @@ class MailingList:
                 serialised_metadata = json.load(metadata_file)
                 for msg_id in serialised_metadata:
                     metadata : Dict[str, Any] = {}
+                    message_text = None
                     for helper in self._helpers:
-                        metadata = {**metadata, **(helper.deserialise(serialised_metadata[msg_id]))}
+                        if not all(metadata_field in metadata for metadata_field in helper.metadata_fields):
+                            if message_text is None:
+                                message_text = self.raw_message(int(msg_id))
+                                metadata = {**metadata, **(helper.scan_message(message_text))}
+                        else:
+                            metadata = {**metadata, **(helper.deserialise(serialised_metadata[msg_id]))}
                     self._msg_metadata[int(msg_id)] = metadata
         else:
             for index in self.message_indices():
