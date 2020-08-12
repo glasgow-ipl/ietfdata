@@ -1798,11 +1798,24 @@ class MeetingRegistration(Resource):
 # =================================================================================================================================
 # A class to represent the datatracker:
 
+def _parent_uri(uri: URI) -> URI:
+    separator = uri.uri[:-1].rfind("/")
+    return URI(uri.uri[:separator + 1])
+
+
+@dataclass
+class CacheMetadata:
+    created : datetime
+    updated : datetime
+    partial : bool
+    queries : List[URI]
+
+
 class DataTracker:
     """
     A class for interacting with the IETF DataTracker.
     """
-    def __init__(self, cache_dir: Optional[Path] = None):
+    def __init__(self, cache_dir: Path):
         """
         Parameters:
             cache_dir      -- If set, use this directory as a cache for Datatracker objects
@@ -1812,41 +1825,101 @@ class DataTracker:
         self.base_url = "https://datatracker.ietf.org"
         self.http_req = 0
         self.cache_dir = cache_dir
+        self.cache_req = 0
+        self.cache_hit = 0
+        self.get_count = 0
         self.pavlova = Pavlova()
         # Register generic parsers for each URI type:
         for uri_type in URI.__subclasses__():
             self.pavlova.register_parser(uri_type, GenericParser(self.pavlova, uri_type))
+        self.pavlova.register_parser(CacheMetadata, GenericParser(self.pavlova, CacheMetadata))
 
 
     def __del__(self):
+        print(F"Cache requests: {self.cache_req}")
+        if self.cache_req == 0:
+            print(F"Cache hit rate: -")
+        else:
+            print(F"Cache hit rate: {self.cache_hit / self.cache_req * 100.0:.1f}%")
+        print(F"HTTP GET calls: {self.get_count}")
         self.session.close()
 
 
-    def _cache_filepath(self, resource_uri: URI) -> Path:
-        assert self.cache_dir is not None
-        return Path(self.cache_dir, resource_uri.uri[1:-1] + ".json")
+    # ----------------------------------------------------------------------------------------------------------------------------
+    # Private methods to manage the local cache:
+
+    def _cache_update(self, obj_type_uri: URI, obj_type: Type[T]) -> None:
+        pass
 
 
-    def _obj_is_cached(self, resource_uri: URI) -> bool:
-        if self.cache_dir is None:
-            return False
-        return self._cache_filepath(resource_uri).exists()
+    def _cache_load_metadata(self, obj_type_uri: URI) -> CacheMetadata:
+        pass
 
 
-    def _retrieve_from_cache(self, resource_uri: URI) -> Dict[Any, Any]:
+    def _cache_save_metadata(self, obj_type_uri: URI, cm: CacheMetadata) -> None:
+        cache_filepath = Path(self.cache_dir, obj_type_uri.uri[1:-1], "_cache_info.json")
+        with open(cache_filepath, "w") as cache_file:
+            data : Dict[str, Any] = {}
+            data["created"] = cm.created.isoformat()
+            data["updated"] = cm.updated.isoformat()
+            data["partial"] = cm.partial
+            data["queries"] = cm.queries
+            json.dump(data, cache_file)
+
+
+    def _cache_create(self, obj_type_uri: URI) -> None:
+        cache_filepath = Path(self.cache_dir, obj_type_uri.uri[1:-1])
+        if not cache_filepath.exists():
+            cache_filepath.mkdir(parents=True, exist_ok=True)
+            created = datetime.now()
+            updated = created
+            cm = CacheMetadata(created, updated, False, [])
+            self._cache_save_metadata(obj_type_uri, cm)
+
+
+    def _cache_has_object(self, obj_uri: URI) -> bool:
+        # FIXME: add support for caching that an object is known not to exist in the tracker
+        cache_filepath = Path(self.cache_dir, obj_uri.uri[1:-1] + ".json")
+        return cache_filepath.exists()
+
+
+    def _cache_get_object(self, obj_uri: URI, obj_type: Type[T]) -> Optional[T]:
+        # FIXME: add support for caching that an object is known not to exist in the tracker
         obj_json = {}
-        with open(self._cache_filepath(resource_uri)) as cache_file:
+        cache_filepath = Path(self.cache_dir, obj_uri.uri[1:-1] + ".json")
+        with open(cache_filepath) as cache_file:
             obj_json = json.load(cache_file)
-        return obj_json
+        obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
+        return obj
 
 
-    def _cache_obj(self, resource_uri: URI, obj_json: Dict[Any, Any]) -> None:
-        if self.cache_dir is not None:
-            cache_filepath = self._cache_filepath(resource_uri)
-            cache_filepath.parent.mkdir(parents=True, exist_ok=True)
-            with open(cache_filepath, "w") as cache_file:
-                json.dump(obj_json, cache_file)
+    def _cache_put_object(self, obj_uri: URI, obj_json: Dict[Any, Any]) -> None:
+        # FIXME: add support for caching that an object is known not to exist in the tracker
+        cache_filepath = Path(self.cache_dir, obj_uri.uri[1:-1] + ".json")
+        if not cache_filepath.parent.exists():
+            self._cache_create(_parent_uri(obj_uri))
+        with open(cache_filepath, "w") as cache_file:
+            json.dump(obj_json, cache_file)
 
+
+    def _cache_has_all_objects(self, obj_type_uri: URI):
+        pass
+
+
+    def _cache_has_objects(self):
+        pass
+
+
+    def _cache_get_objects(self):
+        pass
+
+
+    def cache_put_objects(self):
+        pass
+
+
+    # ----------------------------------------------------------------------------------------------------------------------------
+    # Private methods to retrieve objects from the datatracker:
 
     def _rate_limit(self) -> None:
         # A trivial rate limiter. Called before every HTTP GET to the datatracker.
@@ -1857,49 +1930,60 @@ class DataTracker:
             self.session.close()
 
 
-    def _retrieve(self, resource_uri: URI, obj_type: Type[T]) -> Optional[T]:
-        # FIXME: after how long should cached data be invalidated and refreshed?
-        headers = {'User-Agent': self.ua}
-        if self._obj_is_cached(resource_uri):
-            obj_json = self._retrieve_from_cache(resource_uri)
+    def _retrieve(self, obj_uri: URI, obj_type: Type[T]) -> Optional[T]:
+        self._cache_update(_parent_uri(obj_uri), obj_type)
+
+        self.cache_req += 1
+        if self._cache_has_object(obj_uri):
+            self.cache_hit += 1
+            return self._cache_get_object(obj_uri, obj_type)
         else:
             self._rate_limit()
-            r = self.session.get(self.base_url + resource_uri.uri, params=resource_uri.params, headers=headers, verify=True, stream=False)
+            self.get_count += 1
+            req_url     = self.base_url + obj_uri.uri
+            req_headers = {'User-Agent': self.ua}
+            req_params  = obj_uri.params
+            r = self.session.get(req_url, params = req_params, headers = req_headers, verify = True, stream = False)
             if r.status_code == 200:
                 obj_json = r.json()
-                self._cache_obj(resource_uri, obj_json)
+                self._cache_put_object(obj_uri, obj_json)
+                obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
+                return obj
             elif r.status_code == 404:
+                # FIXME: add support for caching that an object is known not to exist in the tracker
                 return None
             else:
-                print("_retrieve failed: {} {}".format(r.status_code, self.base_url + resource_uri.uri))
+                print("_retrieve failed: {} {}".format(r.status_code, self.base_url + obj_uri.uri))
                 sys.exit(1)
-        obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
-        return obj
 
 
-    def _retrieve_multi(self, resource_uri: URI, obj_type: Type[T], deref: Dict[str, str] = {}, enable_cache=False) -> Iterator[T]:
+    def _retrieve_multi(self, obj_uri: URI, obj_type: Type[T], deref: Dict[str, str] = {}, enable_cache=False) -> Iterator[T]:
         # deref is currently unused, but will be needed for the cache
         # enable_cache is a temporary addition for testing
-        if enable_cache and (self.cache_dir is not None):
+        if enable_cache:
             print("not implemented")
             sys.exit()
         else:
             headers = {'user-agent': self.ua}
-            resource_uri.params["limit"] = "100"
-            while resource_uri.uri is not None:
+            obj_uri.params["limit"] = "100"
+            while obj_uri.uri is not None:
                 self._rate_limit()
                 retry = True
                 retry_time = 1.875
                 while retry:
                     retry = False
-                    r = self.session.get(self.base_url + resource_uri.uri, params=resource_uri.params, headers=headers, verify=True, stream=False)
+                    self.get_count += 1
+                    req_url     = self.base_url + obj_uri.uri
+                    req_headers = {'User-Agent': self.ua}
+                    req_params  = obj_uri.params
+                    r = self.session.get(req_url, params = req_params, headers = req_headers, verify = True, stream = False)
                     if r.status_code == 200:
                         meta = r.json()['meta']
                         objs = r.json()['objects']
-                        resource_uri  = URI(meta['next'])
+                        obj_uri  = URI(meta['next'])
                         for obj_json in objs:
                             obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
-                            self._cache_obj(obj.resource_uri, obj_json)
+                            self._cache_put_object(obj.resource_uri, obj_json)
                             yield obj
                     elif r.status_code == 500:
                         if retry_time > 60:
