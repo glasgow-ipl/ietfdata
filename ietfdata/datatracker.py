@@ -1986,7 +1986,8 @@ class DataTracker:
 
 
     def _cache_has_all_objects(self, obj_type_uri: URI):
-        pass
+        meta = self._cache_load_metadata(obj_type_uri)
+        return not meta.partial
 
 
     def _cache_has_objects(self):
