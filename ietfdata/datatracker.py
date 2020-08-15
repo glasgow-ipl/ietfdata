@@ -1941,23 +1941,27 @@ class DataTracker:
 
 
     def _cache_has_object(self, obj_uri: URI) -> bool:
-        # FIXME: add support for caching that an object is known not to exist in the tracker
         cache_filepath = Path(self.cache_dir, obj_uri.uri[1:-1] + ".json")
-        return cache_filepath.exists()
+        if cache_filepath.exists():
+            return True       # Object is in the local cache
+        else:
+            if self._cache_has_all_objects(_parent_uri(obj_uri)):
+                return True   # Object is known not to exist
+            else:
+                return False  # Object is not in the cache
 
 
     def _cache_get_object(self, obj_uri: URI, obj_type: Type[T]) -> Optional[T]:
-        # FIXME: add support for caching that an object is known not to exist in the tracker
-        obj_json = {}
         cache_filepath = Path(self.cache_dir, obj_uri.uri[1:-1] + ".json")
-        with open(cache_filepath) as cache_file:
-            obj_json = json.load(cache_file)
-        obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
-        return obj
+        if cache_filepath.exists():
+            with open(cache_filepath) as cache_file:
+                obj = self.pavlova.from_mapping(json.load(cache_file), obj_type) # type: T
+                return obj
+        else:
+            return None
 
 
     def _cache_put_object(self, obj_uri: URI, obj_json: Dict[Any, Any]) -> None:
-        # FIXME: add support for caching that an object is known not to exist in the tracker
         cache_filepath = Path(self.cache_dir, obj_uri.uri[1:-1] + ".json")
         if not cache_filepath.parent.exists():
             self._cache_create(_parent_uri(obj_uri))
