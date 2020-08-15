@@ -1927,14 +1927,14 @@ class DataTracker:
             return self.pavlova.from_mapping(json.load(cache_file), CacheMetadata)
 
 
-    def _cache_save_metadata(self, obj_type_uri: URI, cm: CacheMetadata) -> None:
+    def _cache_save_metadata(self, obj_type_uri: URI, meta: CacheMetadata) -> None:
         cache_filepath = Path(self.cache_dir, obj_type_uri.uri[1:-1], "_cache_info.json")
         with open(cache_filepath, "w") as cache_file:
             data : Dict[str, Any] = {}
-            data["created"] = cm.created.isoformat()
-            data["updated"] = cm.updated.isoformat()
-            data["partial"] = cm.partial
-            data["queries"] = cm.queries
+            data["created"] = meta.created.isoformat()
+            data["updated"] = meta.updated.isoformat()
+            data["partial"] = meta.partial
+            data["queries"] = meta.queries
             json.dump(data, cache_file)
 
 
@@ -1944,8 +1944,8 @@ class DataTracker:
             cache_filepath.mkdir(parents=True, exist_ok=True)
             created = datetime.now()
             updated = created
-            cm = CacheMetadata(created, updated, False, [])
-            self._cache_save_metadata(obj_type_uri, cm)
+            meta = CacheMetadata(created, updated, True, [])
+            self._cache_save_metadata(obj_type_uri, meta)
 
 
     def _cache_record_query(self, obj_type_uri: URI, obj_uri: URI) -> None:
