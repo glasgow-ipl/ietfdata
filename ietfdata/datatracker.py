@@ -1876,7 +1876,7 @@ class CacheMetadata:
     created : datetime
     updated : datetime
     partial : bool
-    queries : List[URI]
+    queries : List[str]
 
 
 class DataTracker:
@@ -1943,6 +1943,14 @@ class DataTracker:
             updated = created
             cm = CacheMetadata(created, updated, False, [])
             self._cache_save_metadata(obj_type_uri, cm)
+
+
+    def _cache_record_query(self, obj_type_uri: URI, obj_uri: URI) -> None:
+        meta  = self._cache_load_metadata(obj_type_uri)
+        query = str(obj_uri)
+        if query not in meta.queries:
+            meta.queries.append(query)
+            self._cache_save_metadata(obj_type_uri, meta)
 
 
     def _cache_has_object(self, obj_uri: URI) -> bool:
@@ -2019,6 +2027,7 @@ class DataTracker:
             if r.status_code == 200:
                 obj_json = r.json()
                 self._cache_put_object(obj_uri, obj_json)
+                self._cache_record_query(_parent_uri(obj_uri), obj_uri)
                 obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
                 return obj
             elif r.status_code == 404:
