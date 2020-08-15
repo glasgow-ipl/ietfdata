@@ -1917,7 +1917,8 @@ class DataTracker:
     # Private methods to manage the local cache:
 
     def _cache_update(self, obj_type_uri: URI, obj_type: Type[T]) -> None:
-        pass
+        self._cache_create(obj_type_uri)
+        # FIXME: update the cache
 
 
     def _cache_load_metadata(self, obj_type_uri: URI) -> CacheMetadata:
