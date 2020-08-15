@@ -71,6 +71,11 @@ class URI:
     uri    : str
     params : Dict[str, Any] = field(default_factory=dict)
 
+    def __str__(self) -> str:
+        # FIXME to include params
+        return self.uri
+
+
 
 @dataclass(frozen=True)
 class DocumentURI(URI):
