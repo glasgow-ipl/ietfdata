@@ -1922,7 +1922,9 @@ class DataTracker:
 
 
     def _cache_load_metadata(self, obj_type_uri: URI) -> CacheMetadata:
-        pass
+        cache_filepath = Path(self.cache_dir, obj_type_uri.uri[1:-1], "_cache_info.json")
+        with open(cache_filepath, "r") as cache_file:
+            return self.pavlova.from_mapping(json.load(cache_file), CacheMetadata)
 
 
     def _cache_save_metadata(self, obj_type_uri: URI, cm: CacheMetadata) -> None:
