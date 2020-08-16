@@ -59,6 +59,7 @@ import requests
 import re
 import sys
 import time
+import urllib.parse
 
 # =================================================================================================================================
 # Classes to represent the JSON-serialised objects returned by the Datatracker API:
@@ -72,9 +73,10 @@ class URI:
     params : Dict[str, Any] = field(default_factory=dict)
 
     def __str__(self) -> str:
-        # FIXME to include params
-        return self.uri
-
+        if len(self.params) > 0:
+            return F"{self.uri}?{urllib.parse.urlencode(self.params)}"
+        else:
+            return self.uri
 
 
 @dataclass(frozen=True)
@@ -2043,6 +2045,9 @@ class DataTracker:
 
 
     def _retrieve_multi(self, obj_uri: URI, obj_type: Type[T], deref: Dict[str, str] = {}) -> Iterator[T]:
+        print(obj_uri)
+
+
         headers = {'user-agent': self.ua}
         obj_uri.params["limit"] = "100"
         while obj_uri.uri is not None:
