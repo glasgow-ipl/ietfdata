@@ -30,7 +30,7 @@
 # a REST API implemented using Django Tastypie (http://tastypieapi.org)
 #
 # It's possible to do time range queries on many of these values, for example:
-#   https://datatracker.ietf.org/api/v1/person/person/?time__gt=2018-03-27T14:07:36
+#   https://datatracker.ietf.org/api/v1/person/person/?time__gte=2018-03-27T14:07:36
 #
 # See also:
 #   https://datatracker.ietf.org/api/
@@ -1873,6 +1873,11 @@ def _parent_uri(uri: URI) -> URI:
     return URI(uri.uri[:separator + 1])
 
 
+def _sort_objs(obj: Tuple[str,Dict[Any, Any]]) -> str:
+    key, _ = obj
+    return key
+
+
 @dataclass
 class CacheMetadata:
     created : datetime
@@ -1950,7 +1955,7 @@ class DataTracker:
             self._cache_save_metadata(obj_type_uri, meta)
 
 
-    def _cache_record_query(self, obj_type_uri: URI, obj_uri: URI) -> None:
+    def _cache_record_query(self, obj_uri: URI, obj_type_uri: URI) -> None:
         meta  = self._cache_load_metadata(obj_type_uri)
         query = str(obj_uri)
         if query not in meta.queries:
@@ -1980,6 +1985,8 @@ class DataTracker:
 
 
     def _cache_put_object(self, obj_uri: URI, obj_json: Dict[Any, Any]) -> None:
+        assert obj_uri.uri.startswith("/")
+        assert obj_uri.uri.endswith("/")
         cache_filepath = Path(self.cache_dir, obj_uri.uri[1:-1] + ".json")
         if not cache_filepath.parent.exists():
             self._cache_create(_parent_uri(obj_uri))
@@ -1992,16 +1999,118 @@ class DataTracker:
         return not meta.partial
 
 
-    def _cache_has_objects(self):
-        pass
+    def _cache_has_objects(self, obj_uri: URI, obj_type_uri: URI) -> bool:
+        meta = self._cache_load_metadata(obj_type_uri)
+        return str(obj_uri) in meta.queries
 
 
-    def _cache_get_objects(self):
-        pass
+    def _cache_obj_matches(self, obj: Dict[str, str], query_uri: URI, deref : Dict[str, str] = {}) -> bool:
+        res = True
+        for (k, v) in query_uri.params.items():
+            if v is not None:
+                if k in deref.keys():
+                    if obj[k] is None:
+                        res = False
+                    else:
+                        self.cache_req += 1
+                        if not self._cache_has_object(URI(obj[k])):
+                            self._rate_limit()
+                            self.get_count += 1
+                            req_url     = self.base_url + obj[k]
+                            req_headers = {'User-Agent': self.ua}
+                            r = self.session.get(req_url, headers = req_headers, verify = True, stream = False)
+                            if r.status_code == 200:
+                                url_obj = r.json()
+                                self._cache_put_object(URI(obj[k]), url_obj)
+                                self._cache_record_query(URI(obj[k]), _parent_uri(URI(obj[k])))
+                            elif r.status_code == 404:
+                                res = False
+                            else:
+                                print("_cache_obj_matches failed: {} {}".format(r.status_code, self.base_url + obj[k]))
+                                sys.exit(1)
+                        else:
+                            self.cache_hit += 1
+                            with open(Path(self.cache_dir, obj[k][1:-1] + ".json"), "r") as cache_file:
+                                url_obj = json.load(cache_file)
+                        if v != url_obj[deref[k]]:
+                            res = False
+                elif "__contains" in k:
+                    k_base = k[:-10]
+                    if not v in obj[k_base]:
+                        res = False
+                elif "__gte" in k:
+                    k_base = k[:-5]
+                    if obj[k_base] < v:
+                        res = False
+                elif "__gt" in k:
+                    k_base = k[:-4]
+                    if obj[k_base] <= v:
+                        res = False
+                elif "__lte" in k:
+                    k_base = k[:-5]
+                    if obj[k_base] > v:
+                        res = False
+                elif "__lt" in k:
+                    k_base = k[:-4]
+                    if obj[k_base] >= v:
+                        res = False
+                else:
+                    if obj[k] != v:
+                        res = False
+        return res
 
 
-    def cache_put_objects(self):
-        pass
+    def _cache_get_objects(self, obj_uri: URI, obj_type_uri: URI, obj_type: Type[T], deref: Dict[str, str], sort_by: List[str], reverse:bool) -> Iterator[T]:
+        results = []
+        for obj_file in Path(self.cache_dir, obj_type_uri.uri[1:-1]).glob("*.json"):
+            if obj_file.name == "_cache_info.json":
+                continue
+            with open(obj_file) as cache_file:
+                obj_json = json.load(cache_file)
+            if self._cache_obj_matches(obj_json, obj_uri, deref):
+                sort_key = ""
+                for sb in sort_by:
+                    sort_key += F" {obj_json[sb]:40}"
+                results.append((sort_key, obj_json))
+        results.sort(key=_sort_objs, reverse=reverse)
+        for key, obj_json in results:
+            obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
+            yield obj
+
+
+    def _cache_put_objects(self, obj_uri: URI, obj_type_uri: URI) -> None:
+        headers = {'user-agent': self.ua}
+        while obj_uri.uri is not None:
+            self._rate_limit()
+            retry = True
+            retry_time = 1.875
+            while retry:
+                retry = False
+                self.get_count += 1
+                req_url     = self.base_url + obj_uri.uri
+                req_headers = {'User-Agent': self.ua}
+                req_params  = {}
+                for k,v in obj_uri.params.items():
+                    req_params[k] = v
+                req_params["limit"] = "100"
+                r = self.session.get(req_url, params = req_params, headers = req_headers, verify = True, stream = False)
+                if r.status_code == 200:
+                    meta = r.json()['meta']
+                    objs = r.json()['objects']
+                    obj_uri  = URI(meta['next'])
+                    for obj_json in objs:
+                        self._cache_put_object(URI(obj_json["resource_uri"]), obj_json)
+                elif r.status_code == 500:
+                    if retry_time > 60:
+                        print("_cache_put_objects failed: error {} after {} requests".format(r.status_code, self.http_req))
+                        sys.exit(1)
+                    self.session.close()
+                    time.sleep(retry_time)
+                    retry_time *= 2
+                    retry = True
+                else:
+                    print("_cache_put_objects failed: error {} after {} requests".format(r.status_code, self.http_req))
+                    sys.exit(1)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -2033,53 +2142,37 @@ class DataTracker:
             if r.status_code == 200:
                 obj_json = r.json()
                 self._cache_put_object(obj_uri, obj_json)
-                self._cache_record_query(_parent_uri(obj_uri), obj_uri)
+                self._cache_record_query(obj_uri, _parent_uri(obj_uri))
                 obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
                 return obj
             elif r.status_code == 404:
-                # FIXME: add support for caching that an object is known not to exist in the tracker
                 return None
             else:
                 print("_retrieve failed: {} {}".format(r.status_code, self.base_url + obj_uri.uri))
                 sys.exit(1)
 
 
-    def _retrieve_multi(self, obj_uri: URI, obj_type: Type[T], deref: Dict[str, str] = {}) -> Iterator[T]:
-        print(obj_uri)
+    def _retrieve_multi(self, obj_uri: URI, obj_type: Type[T], deref: Dict[str, str] = {}, sort_by : List[str] = ["order", "id"], reverse=False) -> Iterator[T]:
+        obj_type_uri = URI(obj_uri.uri)
+        cache_uri = URI(obj_uri.uri)
+        for n, v in obj_uri.params.items():
+            if n != "time__gte" and n != "time__lt":
+                cache_uri.params[n] = v
 
+        self._cache_create(obj_type_uri)
+        self.cache_req += 1
 
-        headers = {'user-agent': self.ua}
-        obj_uri.params["limit"] = "100"
-        while obj_uri.uri is not None:
-            self._rate_limit()
-            retry = True
-            retry_time = 1.875
-            while retry:
-                retry = False
-                self.get_count += 1
-                req_url     = self.base_url + obj_uri.uri
-                req_headers = {'User-Agent': self.ua}
-                req_params  = obj_uri.params
-                r = self.session.get(req_url, params = req_params, headers = req_headers, verify = True, stream = False)
-                if r.status_code == 200:
-                    meta = r.json()['meta']
-                    objs = r.json()['objects']
-                    obj_uri  = URI(meta['next'])
-                    for obj_json in objs:
-                        obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
-                        self._cache_put_object(obj.resource_uri, obj_json)
-                        yield obj
-                elif r.status_code == 500:
-                    if retry_time > 60:
-                        print("_retrieve_multi failed: error {} after {} requests".format(r.status_code, self.http_req))
-                        sys.exit(1)
-                    self.session.close()
-                    time.sleep(retry_time)
-                    retry_time *= 2
-                    retry = True
-                else:
-                    print("_retrieve_multi failed: error {} after {} requests".format(r.status_code, self.http_req))
-                    sys.exit(1)
+        if self._cache_has_objects(cache_uri, obj_type_uri) or self._cache_has_all_objects(obj_type_uri):
+            self.cache_hit += 1
+            self._cache_update(obj_type_uri, obj_type)
+            for obj in self._cache_get_objects(obj_uri, obj_type_uri, obj_type, deref, sort_by, reverse):
+                yield obj # Type: T
+        else:
+            self._cache_put_objects(cache_uri, obj_type_uri)
+            self._cache_record_query(cache_uri, obj_type_uri)
+            for obj in self._cache_get_objects(obj_uri, obj_type_uri, obj_type, deref, sort_by, reverse):
+                yield obj # Type: T
+
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -2103,20 +2196,20 @@ class DataTracker:
 
     def person_aliases(self, person: Person) -> Iterator[PersonAlias]:
         url = PersonAliasURI("/api/v1/person/alias/")
-        url.params["person"] = str(person.id)
-        return self._retrieve_multi(url, PersonAlias, deref = {"person": "id"})
+        url.params["person"] = person.id
+        return self._retrieve_multi(url, PersonAlias, deref = {"person": "id"}, sort_by = ["id"])
 
 
     def person_history(self, person: Person) -> Iterator[HistoricalPerson]:
         url = PersonURI("/api/v1/person/historicalperson/")
-        url.params["id"] = str(person.id)
-        return self._retrieve_multi(url, HistoricalPerson, deref = {"person": "id"})
+        url.params["id"] = person.id
+        return self._retrieve_multi(url, HistoricalPerson, deref = {"person": "id"}, sort_by=["history_id"], reverse=True)
 
 
     def person_events(self, person: Person) -> Iterator[PersonEvent]:
         url = PersonEventURI("/api/v1/person/personevent/")
-        url.params["person"] = str(person.id)
-        return self._retrieve_multi(url, PersonEvent, deref = {"person": "id"})
+        url.params["person"] = person.id
+        return self._retrieve_multi(url, PersonEvent, deref = {"person": "id"}, sort_by=["id"])
 
 
     def people(self,
@@ -2139,7 +2232,7 @@ class DataTracker:
         url.params["time__gte"] = since
         url.params["time__lt"]  = until
         url.params["name__contains"] = name_contains
-        return self._retrieve_multi(url, Person)
+        return self._retrieve_multi(url, Person, sort_by=["id"])
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -2153,20 +2246,20 @@ class DataTracker:
 
     def email_for_person(self, person: Person) -> Iterator[Email]:
         uri = EmailURI("/api/v1/person/email/")
-        uri.params["person"] = str(person.id)
-        return self._retrieve_multi(uri, Email, deref = {"person": "id"})
+        uri.params["person"] = person.id
+        return self._retrieve_multi(uri, Email, deref = {"person": "id"}, sort_by=["address"])
 
 
     def email_history_for_address(self, email_addr: str) -> Iterator[HistoricalEmail]:
         uri = EmailURI("/api/v1/person/historicalemail/")
         uri.params["address"] = email_addr
-        return self._retrieve_multi(uri, HistoricalEmail)
+        return self._retrieve_multi(uri, HistoricalEmail, sort_by=["history_id"], reverse=True)
 
 
     def email_history_for_person(self, person: Person) -> Iterator[HistoricalEmail]:
         uri = EmailURI("/api/v1/person/historicalemail/")
         uri.params["person"] = person.id
-        return self._retrieve_multi(uri, HistoricalEmail, deref = {"person": "id"})
+        return self._retrieve_multi(uri, HistoricalEmail, deref = {"person": "id"}, sort_by=["history_id"], reverse=True)
 
 
     def emails(self,
@@ -2188,7 +2281,7 @@ class DataTracker:
         url.params["time__gte"] = since
         url.params["time__lt"]   = until
         url.params["address__contains"] = addr_contains
-        return self._retrieve_multi(url, Email)
+        return self._retrieve_multi(url, Email, sort_by=["address"])
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -2206,13 +2299,13 @@ class DataTracker:
             doctype : Optional[DocumentType] = None,
             group   : Optional[Group]        = None) -> Iterator[Document]:
         url = DocumentURI("/api/v1/doc/document/")
-        url.params["time__gt"] = since
+        url.params["time__gte"] = since
         url.params["time__lt"] = until
         if doctype is not None:
             url.params["type"] = doctype.slug
         if group is not None:
             url.params["group"] = group.id
-        return self._retrieve_multi(url, Document, deref = {"type": "slug", "group": "id"})
+        return self._retrieve_multi(url, Document, deref = {"type": "slug", "group": "id"}, sort_by=["id"])
 
 
     # Datatracker API endpoints returning information about document aliases:
@@ -2234,7 +2327,7 @@ class DataTracker:
         """
         url = DocumentAliasURI("/api/v1/doc/docalias/")
         url.params["name"] = name
-        return self._retrieve_multi(url, DocumentAlias)
+        return self._retrieve_multi(url, DocumentAlias, sort_by=["id"])
 
 
     def document_from_draft(self, draft: str) -> Optional[Document]:
@@ -2318,7 +2411,7 @@ class DataTracker:
 
 
     def document_types(self) -> Iterator[DocumentType]:
-        return self._retrieve_multi(DocumentTypeURI("/api/v1/name/doctypename/"), DocumentType)
+        return self._retrieve_multi(DocumentTypeURI("/api/v1/name/doctypename/"), DocumentType, sort_by=["order", "slug"])
 
 
     # Datatracker API endpoints returning information about document states:
@@ -2342,7 +2435,7 @@ class DataTracker:
 
     def document_state_types(self) -> Iterator[DocumentStateType]:
         url = DocumentStateTypeURI("/api/v1/doc/statetype/")
-        return self._retrieve_multi(url, DocumentStateType)
+        return self._retrieve_multi(url, DocumentStateType, sort_by=["slug"])
 
 
     # Datatracker API endpoints returning information about document events:
@@ -2385,14 +2478,14 @@ class DataTracker:
            A sequence of DocumentEvent objects
         """
         url = DocumentEventURI("/api/v1/doc/docevent/")
-        url.params["time__gt"] = since
+        url.params["time__gte"] = since
         url.params["time__lt"] = until
         if doc is not None:
             url.params["doc"]  = doc.id
         if by is not None:
             url.params["by"]   = by.id
         url.params["type"]     = event_type
-        return self._retrieve_multi(url, DocumentEvent, deref = {"doc": "id", "by": "id"})
+        return self._retrieve_multi(url, DocumentEvent, deref = {"doc": "id", "by": "id"}, sort_by=["id"], reverse=True)
 
 
     # Datatracker API endpoints returning information about document authorship:
@@ -2409,13 +2502,13 @@ class DataTracker:
     def documents_authored_by_person(self, person : Person) -> Iterator[DocumentAuthor]:
         url = DocumentAuthorURI("/api/v1/doc/documentauthor/")
         url.params["person"] = person.id
-        return self._retrieve_multi(url, DocumentAuthor, deref = {"document": "id"})
+        return self._retrieve_multi(url, DocumentAuthor, deref = {"person": "id"}, sort_by=["id"])
 
 
     def documents_authored_by_email(self, email : Email) -> Iterator[DocumentAuthor]:
         url = DocumentAuthorURI("/api/v1/doc/documentauthor/")
         url.params["email"] = email.address
-        return self._retrieve_multi(url, DocumentAuthor, deref = {"email" : "address"})
+        return self._retrieve_multi(url, DocumentAuthor, deref = {"email" : "address"}, sort_by=["id"])
 
 
     # Datatracker API endpoints returning information about related documents:
@@ -2435,7 +2528,7 @@ class DataTracker:
             url.params["target"] = target.id
         if relationship_type is not None:
             url.params["relationship"] = relationship_type.slug
-        return self._retrieve_multi(url, RelatedDocument, deref = {"source": "id", "target": "id", "relationship": "slug"})
+        return self._retrieve_multi(url, RelatedDocument, deref = {"source": "id", "target": "id", "relationship": "slug"}, sort_by=["id"])
 
 
     def relationship_type(self, relationship_type_uri: RelationshipTypeURI) -> Optional[RelationshipType]:
@@ -2467,7 +2560,7 @@ class DataTracker:
             An iterator of RelationshipType objects
         """
         url = RelationshipTypeURI("/api/v1/name/docrelationshipname/")
-        return self._retrieve_multi(url, RelationshipType)
+        return self._retrieve_multi(url, RelationshipType, sort_by=["slug"])
 
 
     # Datatracker API endpoints returning information about document history:
@@ -2502,7 +2595,7 @@ class DataTracker:
            A sequence of BallotPositionName objects
         """
         url = BallotPositionNameURI("/api/v1/name/ballotpositionname/")
-        return self._retrieve_multi(url, BallotPositionName)
+        return self._retrieve_multi(url, BallotPositionName, sort_by=["order", "slug"])
 
 
     def ballot_type(self, ballot_type_uri : BallotTypeURI) -> Optional[BallotType]:
@@ -2552,7 +2645,7 @@ class DataTracker:
            A sequence of BallotDocumentEvent objects
         """
         url = BallotDocumentEventURI("/api/v1/doc/ballotdocevent/")
-        url.params["time__gt"] = since
+        url.params["time__gte"] = since
         url.params["time__lt"] = until
         if ballot_type is not None:
             url.params["ballot_type"] = ballot_type.id
@@ -2561,7 +2654,7 @@ class DataTracker:
         if doc is not None:
             url.params["doc"] = doc.id
         url.params["type"] = event_type
-        return self._retrieve_multi(url, BallotDocumentEvent, deref = {"ballot_type": "id", "by": "id", "doc": "id"})
+        return self._retrieve_multi(url, BallotDocumentEvent, deref = {"ballot_type": "id", "by": "id", "doc": "id"}, sort_by=["id"])
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -2579,7 +2672,7 @@ class DataTracker:
             since           : str = "1970-01-01T00:00:00",
             until           : str = "2038-01-19T03:14:07") -> Iterator[Submission]:
         url = SubmissionURI("/api/v1/submit/submission/")
-        url.params["time__gt"] = since
+        url.params["time__gte"] = since
         url.params["time__lt"] = until
         return self._retrieve_multi(url, Submission)
 
@@ -2606,7 +2699,7 @@ class DataTracker:
            A sequence of SubmissionEvent objects
         """
         url = SubmissionEventURI("/api/v1/submit/submissionevent/")
-        url.params["time__gt"] = since
+        url.params["time__gte"] = since
         url.params["time__lt"] = until
         if by is not None:
             url.params["by"] = by.id
@@ -2632,7 +2725,7 @@ class DataTracker:
 
 
     def streams(self) -> Iterator[Stream]:
-        return self._retrieve_multi(StreamURI("/api/v1/name/streamname/"), Stream)
+        return self._retrieve_multi(StreamURI("/api/v1/name/streamname/"), Stream, sort_by=["slug"])
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -2663,7 +2756,7 @@ class DataTracker:
     def group_from_acronym(self, acronym: str) -> Optional[Group]:
         url = GroupURI("/api/v1/group/group/")
         url.params["acronym"] = acronym
-        groups = list(self._retrieve_multi(url, Group))
+        groups = list(self._retrieve_multi(url, Group, sort_by=["id"]))
         if len(groups) == 0:
             return None
         elif len(groups) == 1:
@@ -2679,14 +2772,14 @@ class DataTracker:
             state         : Optional[GroupState] = None,
             parent        : Optional[Group]      = None) -> Iterator[Group]:
         url = GroupURI("/api/v1/group/group/")
-        url.params["time__gt"]       = since
+        url.params["time__gte"]       = since
         url.params["time__lt"]       = until
         url.params["name__contains"] = name_contains
         if state is not None:
             url.params["state"] = state.slug
         if parent is not None:
             url.params["parent"] = parent.id
-        return self._retrieve_multi(url, Group, deref = {"parent": "id", "state": "slug"})
+        return self._retrieve_multi(url, Group, deref = {"parent": "id", "state": "slug"}, sort_by=["id"])
 
 
     def group_history(self, group_history_uri: GroupHistoryURI) -> Optional[GroupHistory]:
@@ -2696,7 +2789,7 @@ class DataTracker:
     def group_histories_from_acronym(self, acronym: str) -> Iterator[GroupHistory]:
         url = GroupHistoryURI("/api/v1/group/grouphistory/")
         url.params["acronym"] = acronym
-        return self._retrieve_multi(url, GroupHistory)
+        return self._retrieve_multi(url, GroupHistory, sort_by=["id"])
 
 
     def group_histories(self,
@@ -2706,7 +2799,7 @@ class DataTracker:
             state         : Optional[GroupState] = None,
             parent        : Optional[Group]      = None) -> Iterator[GroupHistory]:
         url = GroupHistoryURI("/api/v1/group/grouphistory/")
-        url.params["time__gt"]  = since
+        url.params["time__gte"]  = since
         url.params["time__lt"]  = until
         if group is not None:
             url.params["group"] = group.id
@@ -2714,7 +2807,7 @@ class DataTracker:
             url.params["state"] = state.slug
         if parent is not None:
             url.params["parent"] = parent.id
-        return self._retrieve_multi(url, GroupHistory, deref = {"group": "id", "parent": "id", "state": "slug"})
+        return self._retrieve_multi(url, GroupHistory, deref = {"group": "id", "parent": "id", "state": "slug"}, sort_by=["id"])
 
 
     def group_event(self, group_event_uri : GroupEventURI) -> Optional[GroupEvent]:
@@ -2728,14 +2821,14 @@ class DataTracker:
             group         : Optional[Group]      = None,
             type          : Optional[str]        = None) -> Iterator[GroupEvent]:
         url = GroupEventURI("/api/v1/group/groupevent/")
-        url.params["time__gt"]       = since
-        url.params["time__lt"]       = until
-        url.params["type"]           = type
+        url.params["time__gte"] = since
+        url.params["time__lt"]  = until
+        url.params["type"]      = type
         if by is not None:
             url.params["by"] = by.id
         if group is not None:
             url.params["group"] = group.id
-        return self._retrieve_multi(url, GroupEvent, deref = {"by": "id", "group": "id"})
+        return self._retrieve_multi(url, GroupEvent, deref = {"by": "id", "group": "id"}, sort_by=["id"], reverse=True)
 
     def group_url(self, group_url_uri: GroupUrlURI) -> Optional[GroupUrl]:
         return self._retrieve(group_url_uri, GroupUrl)
@@ -2745,7 +2838,7 @@ class DataTracker:
         url = GroupUrlURI("/api/v1/group/groupurl/")
         if group is not None:
             url.params["group"] = group.id
-        return self._retrieve_multi(url, GroupUrl)
+        return self._retrieve_multi(url, GroupUrl, deref = {"group": "id"}, sort_by=["id"])
 
 
     def group_milestone_statename(self, group_milestone_statename_uri: GroupMilestoneStateNameURI) -> Optional[GroupMilestoneStateName]:
@@ -2753,7 +2846,7 @@ class DataTracker:
 
 
     def group_milestone_statenames(self) -> Iterator[GroupMilestoneStateName]:
-        return self._retrieve_multi(GroupMilestoneStateNameURI("/api/v1/name/groupmilestonestatename/"), GroupMilestoneStateName)
+        return self._retrieve_multi(GroupMilestoneStateNameURI("/api/v1/name/groupmilestonestatename/"), GroupMilestoneStateName, sort_by=["slug"])
 
 
     def group_milestone(self, group_milestone_uri : GroupMilestoneURI) -> Optional[GroupMilestone]:
@@ -2766,13 +2859,13 @@ class DataTracker:
             group         : Optional[Group]                   = None,
             state         : Optional[GroupMilestoneStateName] = None) -> Iterator[GroupMilestone]:
         url = GroupMilestoneURI("/api/v1/group/groupmilestone/")
-        url.params["time__gt"]       = since
+        url.params["time__gte"]       = since
         url.params["time__lt"]       = until
         if group is not None:
             url.params["group"] = group.id
         if state is not None:
             url.params["state"] = state.slug
-        return self._retrieve_multi(url, GroupMilestone, deref = {"group": "id", "state": "slug"})
+        return self._retrieve_multi(url, GroupMilestone, deref = {"group": "id", "state": "slug"}, sort_by=["id"])
 
 
     def role_name(self, role_name_uri: RoleNameURI) -> Optional[RoleName]:
@@ -2784,7 +2877,7 @@ class DataTracker:
 
 
     def role_names(self) -> Iterator[RoleName]:
-        return self._retrieve_multi(RoleNameURI("/api/v1/name/rolename/"), RoleName)
+        return self._retrieve_multi(RoleNameURI("/api/v1/name/rolename/"), RoleName, sort_by=["slug"])
 
 
     def group_role(self, group_role_uri : GroupRoleURI) -> Optional[GroupRole]:
@@ -2797,14 +2890,15 @@ class DataTracker:
             name          : Optional[RoleName]      = None,
             person        : Optional[Person]        = None) -> Iterator[GroupRole]:
         url = GroupRoleURI("/api/v1/group/role/")
-        url.params["email"] = email
+        if email is not None:
+            url.params["email"] = email
         if group is not None:
             url.params["group"] = group.id
         if name is not None:
             url.params["name"] = name.slug
         if person is not None:
             url.params["person"] = person.id
-        return self._retrieve_multi(url, GroupRole, deref = {"group": "id", "name": "slug", "person": "id"})
+        return self._retrieve_multi(url, GroupRole, deref = {"email": "address", "group": "id", "name": "slug", "person": "id"}, sort_by=["id"])
 
 
     def group_role_history(self, group_role_history_uri : GroupRoleHistoryURI) -> Optional[GroupRoleHistory]:
@@ -2817,14 +2911,15 @@ class DataTracker:
             name          : Optional[RoleName]      = None,
             person        : Optional[Person]        = None) -> Iterator[GroupRoleHistory]:
         url = GroupRoleHistoryURI("/api/v1/group/rolehistory/")
-        url.params["email"] = email
+        if email is not None:
+            url.params["email"] = email
         if group is not None:
             url.params["group"] = group.id
         if name is not None:
             url.params["name"] = name.slug
         if person is not None:
             url.params["person"] = person.id
-        return self._retrieve_multi(url, GroupRoleHistory)
+        return self._retrieve_multi(url, GroupRoleHistory, deref = {"email": "address", "group": "id", "name": "slug", "person": "id"}, sort_by=["id"])
 
 
     def group_milestone_history(self, group_milestone_history_uri : GroupMilestoneHistoryURI) -> Optional[GroupMilestoneHistory]:
@@ -2838,7 +2933,7 @@ class DataTracker:
             milestone     : Optional[GroupMilestone]          = None,
             state         : Optional[GroupMilestoneStateName] = None) -> Iterator[GroupMilestoneHistory]:
         url = GroupMilestoneHistoryURI("/api/v1/group/groupmilestonehistory/")
-        url.params["time__gt"]       = since
+        url.params["time__gte"]       = since
         url.params["time__lt"]       = until
         if group is not None:
             url.params["group"] = group.id
@@ -2846,7 +2941,7 @@ class DataTracker:
             url.params["milestone"] = milestone.id
         if state is not None:
             url.params["state"] = state.slug
-        return self._retrieve_multi(url, GroupMilestoneHistory, deref = {"group": "id", "milestone": "id", "state": "slug"})
+        return self._retrieve_multi(url, GroupMilestoneHistory, deref = {"group": "id", "milestone": "id", "state": "slug"}, sort_by=["id"])
 
 
     def group_milestone_event(self, group_milestone_event_uri : GroupMilestoneEventURI) -> Optional[GroupMilestoneEvent]:
@@ -2861,7 +2956,7 @@ class DataTracker:
             milestone     : Optional[GroupMilestone]   = None,
             type          : Optional[str]              = None) -> Iterator[GroupMilestoneEvent]:
         url = GroupMilestoneEventURI("/api/v1/group/milestonegroupevent/")
-        url.params["time__gt"]       = since
+        url.params["time__gte"]       = since
         url.params["time__lt"]       = until
         url.params["type"]           = type
         if by is not None:
@@ -2870,7 +2965,7 @@ class DataTracker:
             url.params["group"] = group.id
         if milestone is not None:
             url.params["milestone"] = milestone.id
-        return self._retrieve_multi(url, GroupMilestoneEvent, deref = {"by": "id", "group": "id"})
+        return self._retrieve_multi(url, GroupMilestoneEvent, deref = {"by": "id", "group": "id", "milestone": "id"}, sort_by=["id"], reverse=True)
 
 
     def group_state_change_event(self, group_state_change_event_uri : GroupStateChangeEventURI) -> Optional[GroupStateChangeEvent]:
@@ -2884,7 +2979,7 @@ class DataTracker:
             group         : Optional[Group]            = None,
             state         : Optional[GroupState]       = None) -> Iterator[GroupStateChangeEvent]:
         url = GroupStateChangeEventURI("/api/v1/group/changestategroupevent/")
-        url.params["time__gt"]       = since
+        url.params["time__gte"]       = since
         url.params["time__lt"]       = until
         if by is not None:
             url.params["by"] = by.id
@@ -2905,7 +3000,7 @@ class DataTracker:
 
     def group_states(self) -> Iterator[GroupState]:
         url = GroupStateURI("/api/v1/name/groupstatename/")
-        return self._retrieve_multi(url, GroupState)
+        return self._retrieve_multi(url, GroupState, sort_by=["slug"])
 
 
     def group_type_name(self, group_type_name_uri : GroupTypeNameURI) -> Optional[GroupTypeName]:
@@ -2917,7 +3012,7 @@ class DataTracker:
 
 
     def group_type_names(self) -> Iterator[GroupTypeName]:
-        return self._retrieve_multi(GroupTypeNameURI("/api/v1/name/grouptypename/"), GroupTypeName)
+        return self._retrieve_multi(GroupTypeNameURI("/api/v1/name/grouptypename/"), GroupTypeName, sort_by=["slug"])
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -2958,7 +3053,7 @@ class DataTracker:
         """
         url = SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/")
         url.params["schedule"] = schedule.id
-        return self._retrieve_multi(url, SessionAssignment, deref = {"schedule": "id"})
+        return self._retrieve_multi(url, SessionAssignment, deref = {"schedule": "id"}, sort_by=["id"])
 
 
     def meeting_session_status(self, session: Session) -> SessionStatusName:
@@ -2977,7 +3072,7 @@ class DataTracker:
 
 
     def meeting_session_status_names(self) -> Iterator[SessionStatusName]:
-        return self._retrieve_multi(SessionStatusNameURI("/api/v1/name/sessionstatusname/"), SessionStatusName)
+        return self._retrieve_multi(SessionStatusNameURI("/api/v1/name/sessionstatusname/"), SessionStatusName, sort_by=["slug"])
 
 
     def meeting_session(self, session_uri : SessionURI) -> Optional[Session]:
@@ -2994,7 +3089,7 @@ class DataTracker:
             url.params["group"] = group.id
         if parent is not None:
             url.params["group__parent"] = parent.id
-        return self._retrieve_multi(url, Session, deref = {"meeting": "id", "group": "id", "group__parent": "id"})
+        return self._retrieve_multi(url, Session, deref = {"meeting": "id", "group": "id", "group__parent": "id"}, sort_by=["id"])
 
 
     def meeting_timeslot(self, timeslot_uri: TimeslotURI) -> Optional[Timeslot]:
@@ -3013,7 +3108,7 @@ class DataTracker:
             url.params["session"] = session.id
         if by is not None:
             url.params["by"] = by.id
-        return self._retrieve_multi(url, SchedulingEvent, deref = {"session": "id", "by": "id"})
+        return self._retrieve_multi(url, SchedulingEvent, deref = {"session": "id", "by": "id"}, sort_by=["id"])
 
 
     def meeting_schedule(self, schedule_uri : ScheduleURI) -> Optional[Schedule]:
@@ -3050,7 +3145,7 @@ class DataTracker:
         url.params["date__lte"] = end_date
         if meeting_type is not None:
             url.params["type"] = meeting_type.slug
-        return self._retrieve_multi(url, Meeting, deref = {"type": "slug"})
+        return self._retrieve_multi(url, Meeting, deref = {"type": "slug"}, sort_by=["id"])
 
 
 
@@ -3072,7 +3167,7 @@ class DataTracker:
         Returns:
             An iterator of MeetingType objects
         """
-        return self._retrieve_multi(MeetingTypeURI("/api/v1/name/meetingtypename/"), MeetingType)
+        return self._retrieve_multi(MeetingTypeURI("/api/v1/name/meetingtypename/"), MeetingType, sort_by=["slug"])
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -3100,7 +3195,7 @@ class DataTracker:
 
 
     def ipr_disclosure_states(self) -> Iterator[IPRDisclosureState]:
-        return self._retrieve_multi(IPRDisclosureStateURI("/api/v1/name/iprdisclosurestatename/"), IPRDisclosureState)
+        return self._retrieve_multi(IPRDisclosureStateURI("/api/v1/name/iprdisclosurestatename/"), IPRDisclosureState, sort_by=["slug"])
 
 
     def ipr_disclosure_base(self, ipr_disclosure_base_uri: IPRDisclosureBaseURI) -> Optional[IPRDisclosureBase]:
@@ -3116,7 +3211,7 @@ class DataTracker:
             submitter_email    : Optional[str]                   = None,
             submitter_name     : Optional[str]                   = None) -> Iterator[IPRDisclosureBase]:
         url = IPRDisclosureBaseURI("/api/v1/ipr/iprdisclosurebase/")
-        url.params["time__gt"]       = since
+        url.params["time__gte"]       = since
         url.params["time__lt"]       = until
         if by is not None:
             url.params["by"] = by.id
@@ -3145,7 +3240,7 @@ class DataTracker:
             submitter_email     : Optional[str]                   = None,
             submitter_name      : Optional[str]                   = None) -> Iterator[GenericIPRDisclosure]:
         url = GenericIPRDisclosureURI("/api/v1/ipr/genericiprdisclosure/")
-        url.params["time__gt"]       = since
+        url.params["time__gte"]       = since
         url.params["time__lt"]       = until
         if by is not None:
             url.params["by"] = by.id
@@ -3167,7 +3262,7 @@ class DataTracker:
 
 
     def ipr_license_types(self) -> Iterator[IPRLicenseType]:
-        return self._retrieve_multi(IPRLicenseTypeURI("/api/v1/name/iprlicensetypename/"), IPRLicenseType)
+        return self._retrieve_multi(IPRLicenseTypeURI("/api/v1/name/iprlicensetypename/"), IPRLicenseType, sort_by=["slug"])
 
 
     def holder_ipr_disclosure(self, holder_ipr_disclosure_uri: HolderIPRDisclosureURI) -> Optional[HolderIPRDisclosure]:
@@ -3187,7 +3282,7 @@ class DataTracker:
             submitter_email      : Optional[str]                   = None,
             submitter_name       : Optional[str]                   = None) -> Iterator[HolderIPRDisclosure]:
         url = HolderIPRDisclosureURI("/api/v1/ipr/holderiprdisclosure/")
-        url.params["time__gt"]       = since
+        url.params["time__gte"]       = since
         url.params["time__lt"]       = until
         if by is not None:
             url.params["by"] = by.id
@@ -3225,7 +3320,7 @@ class DataTracker:
             submitter_email      : Optional[str]                   = None,
             submitter_name       : Optional[str]                   = None) -> Iterator[HolderIPRDisclosure]:
         url = ThirdPartyIPRDisclosureURI("/api/v1/ipr/thirdpartyiprdisclosure/")
-        url.params["time__gt"]       = since
+        url.params["time__gte"]       = since
         url.params["time__lt"]       = until
         if by is not None:
             url.params["by"] = by.id
@@ -3291,7 +3386,7 @@ class DataTracker:
 
 
     def review_assignment_states(self) -> Iterator[ReviewAssignmentState]:
-        return self._retrieve_multi(ReviewAssignmentStateURI("/api/v1/name/reviewassignmentstatename/"), ReviewAssignmentState)
+        return self._retrieve_multi(ReviewAssignmentStateURI("/api/v1/name/reviewassignmentstatename/"), ReviewAssignmentState, sort_by=["slug"])
 
 
     def review_result_type(self, review_result_uri: ReviewResultTypeURI) -> Optional[ReviewResultType]:
@@ -3303,7 +3398,7 @@ class DataTracker:
 
 
     def review_result_types(self) -> Iterator[ReviewResultType]:
-        return self._retrieve_multi(ReviewResultTypeURI("/api/v1/name/reviewresultname/"), ReviewResultType)
+        return self._retrieve_multi(ReviewResultTypeURI("/api/v1/name/reviewresultname/"), ReviewResultType, sort_by=["slug"])
 
 
     def review_type(self, review_type_uri: ReviewTypeURI) -> Optional[ReviewType]:
@@ -3315,7 +3410,7 @@ class DataTracker:
 
 
     def review_types(self) -> Iterator[ReviewType]:
-        return self._retrieve_multi(ReviewTypeURI("/api/v1/name/reviewtypename/"), ReviewType)
+        return self._retrieve_multi(ReviewTypeURI("/api/v1/name/reviewtypename/"), ReviewType, sort_by=["slug"])
 
 
     def review_request_state(self, review_request_state_uri: ReviewRequestStateURI) -> Optional[ReviewRequestState]:
@@ -3327,7 +3422,7 @@ class DataTracker:
 
 
     def review_request_states(self) -> Iterator[ReviewRequestState]:
-        return self._retrieve_multi(ReviewRequestStateURI("/api/v1/name/reviewrequeststatename/"), ReviewRequestState)
+        return self._retrieve_multi(ReviewRequestStateURI("/api/v1/name/reviewrequeststatename/"), ReviewRequestState, sort_by=["slug"])
 
 
     def review_request(self, review_request_uri: ReviewRequestURI) -> Optional[ReviewRequest]:
@@ -3343,7 +3438,7 @@ class DataTracker:
             team          : Optional[Group]              = None,
             type          : Optional[ReviewType]         = None) -> Iterator[ReviewRequest]:
         url = ReviewRequestURI("/api/v1/review/reviewrequest/")
-        url.params["time__gt"]       = since
+        url.params["time__gte"]       = since
         url.params["time__lt"]       = until
         if doc is not None:
             url.params["doc"] = doc.id
@@ -3355,7 +3450,7 @@ class DataTracker:
             url.params["team"] = team.id
         if type is not None:
             url.params["type"] = type.slug
-        return self._retrieve_multi(url, ReviewRequest, deref = {"doc": "id", "requested_by": "id", "state": "slug", "team": "id", "type": "slug"})
+        return self._retrieve_multi(url, ReviewRequest, deref = {"doc": "id", "requested_by": "id", "state": "slug", "team": "id", "type": "slug"}, sort_by=["id"])
 
 
     def review_assignment(self, review_assignment_uri: ReviewAssignmentURI) -> Optional[ReviewAssignment]:
@@ -3384,7 +3479,7 @@ class DataTracker:
             url.params["reviewer"] = reviewer.address
         if state is not None:
             url.params["state"] = state.slug
-        return self._retrieve_multi(url, ReviewAssignment, deref = {"result": "slug", "review_request": "id", "reviewer": "address", "state": "slug"})
+        return self._retrieve_multi(url, ReviewAssignment, deref = {"result": "slug", "review_request": "id", "reviewer": "address", "state": "slug"}, sort_by=["id"])
 
 
     def review_wish(self, review_wish_uri: ReviewWishURI) -> Optional[ReviewWish]:
@@ -3398,7 +3493,7 @@ class DataTracker:
             person        : Optional[Person]             = None,
             team          : Optional[Group]              = None) -> Iterator[ReviewWish]:
         url = ReviewWishURI("/api/v1/review/reviewwish/")
-        url.params["time__gt"]       = since
+        url.params["time__gte"]       = since
         url.params["time__lt"]       = until
         if doc is not None:
             url.params["doc"] = doc.id
@@ -3406,22 +3501,19 @@ class DataTracker:
             url.params["person"] = person.id
         if team is not None:
             url.params["team"] = team.id
-        return self._retrieve_multi(url, ReviewWish, deref = {"doc": "id", "person": "id", "team": "id"})
+        return self._retrieve_multi(url, ReviewWish, deref = {"doc": "id", "person": "id", "team": "id"}, sort_by=["id"])
+
 
     def historical_unavailable_period(self, historical_unavailable_period_uri: HistoricalUnavailablePeriodURI) -> Optional[HistoricalUnavailablePeriod]:
         return self._retrieve(historical_unavailable_period_uri, HistoricalUnavailablePeriod)
 
 
     def historical_unavailable_periods(self,
-            since         : str                          = "1970-01-01T00:00:00",
-            until         : str                          = "2038-01-19T03:14:07",
             history_type  : Optional[str]                = None,
             id            : Optional[int]                = None,
             person        : Optional[Person]             = None,
             team          : Optional[Group]              = None) -> Iterator[HistoricalUnavailablePeriod]:
         url = HistoricalUnavailablePeriodURI("/api/v1/review/historicalunavailableperiod/")
-        url.params["time__gt"]       = since
-        url.params["time__lt"]       = until
         if history_type is not None:
             url.params["history_type"] = history_type
         if id is not None:
@@ -3430,7 +3522,7 @@ class DataTracker:
             url.params["person"] = person.id
         if team is not None:
             url.params["team"] = team.id
-        return self._retrieve_multi(url, HistoricalUnavailablePeriod, deref = {"person": "id", "team": "id"})
+        return self._retrieve_multi(url, HistoricalUnavailablePeriod, deref = {"person": "id", "team": "id"}, sort_by=["id"])
 
 
     def historical_review_request(self, historical_review_request_uri: HistoricalReviewRequestURI) -> Optional[HistoricalReviewRequest]:
@@ -3450,7 +3542,7 @@ class DataTracker:
             team          : Optional[Group]              = None,
             type          : Optional[ReviewType]         = None) -> Iterator[HistoricalReviewRequest]:
         url = HistoricalReviewRequestURI("/api/v1/review/historicalreviewrequest/")
-        url.params["time__gt"]         = since
+        url.params["time__gte"]         = since
         url.params["time__lt"]         = until
         url.params["history_date__gt"] = history_since
         url.params["history_date__lt"] = history_until
@@ -3476,7 +3568,7 @@ class DataTracker:
         url = NextReviewerInTeamURI("/api/v1/review/nextreviewerinteam/")
         if team is not None:
             url.params["team"] = team.id
-        return self._retrieve_multi(url, NextReviewerInTeam, deref = {"team": "id"})
+        return self._retrieve_multi(url, NextReviewerInTeam, deref = {"team": "id"}, sort_by=["id"])
 
 
     def review_team_settings(self, review_team_settings_uri: ReviewTeamSettingsURI) -> Optional[ReviewTeamSettings]:
@@ -3488,7 +3580,7 @@ class DataTracker:
         url = ReviewTeamSettingsURI("/api/v1/review/reviewteamsettings/")
         if group is not None:
             url.params["group"] = group.id
-        return self._retrieve_multi(url, ReviewTeamSettings, deref = {"group": "id"})
+        return self._retrieve_multi(url, ReviewTeamSettings, deref = {"group": "id"}, sort_by=["id"])
 
 
     def reviewer_settings(self, reviewer_settings_uri: ReviewerSettingsURI) -> Optional[ReviewerSettings]:
@@ -3503,7 +3595,7 @@ class DataTracker:
             url.params["person"] = person.id
         if team is not None:
             url.params["team"] = team.id
-        return self._retrieve_multi(url, ReviewerSettings, deref = {"person": "id", "team": "id"})
+        return self._retrieve_multi(url, ReviewerSettings, deref = {"person": "id", "team": "id"}, sort_by=["id"])
 
 
     def unavailable_period(self, unavailable_period_uri: UnavailablePeriodURI) -> Optional[UnavailablePeriod]:
@@ -3572,7 +3664,7 @@ class DataTracker:
             url.params["reviewer"] = reviewer.address
         if state is not None:
             url.params["state"] = state.slug
-        return self._retrieve_multi(url, HistoricalReviewAssignment, deref = {"result": "slug", "review_request": "id", "reviewer": "address", "state": "slug"})
+        return self._retrieve_multi(url, HistoricalReviewAssignment, deref = {"result": "slug", "review_request": "id", "reviewer": "address", "state": "slug"}, sort_by=["id"])
 
 
     def review_secretary_settings(self, review_secretary_settings_uri: ReviewSecretarySettingsURI) -> Optional[ReviewSecretarySettings]:
@@ -3602,13 +3694,13 @@ class DataTracker:
 
     def mailing_lists(self) -> Iterator[MailingList]:
         url = MailingListURI("/api/v1/mailinglists/list/")
-        return self._retrieve_multi(url, MailingList)
+        return self._retrieve_multi(url, MailingList, sort_by=["id"])
 
 
     def mailing_list_subscriptions(self, email_addr : Optional[str]) -> Iterator[MailingListSubscriptions]:
         url = MailingListSubscriptionsURI("/api/v1/mailinglists/subscribed/")
         url.params["email"] = email_addr
-        return self._retrieve_multi(url, MailingListSubscriptions)
+        return self._retrieve_multi(url, MailingListSubscriptions, sort_by=["id"])
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -3702,7 +3794,7 @@ class DataTracker:
             url.params["group"] = group.id
         if name is not None:
             url.params["name"] = name.slug
-        return self._retrieve_multi(url, AnnouncementFrom, deref = {"group": "id", "name": "slug"})
+        return self._retrieve_multi(url, AnnouncementFrom, deref = {"group": "id", "name": "slug"}, sort_by=["id"])
 
 
     def message(self, message_uri: MessageURI) -> Optional[Message]:
@@ -3718,7 +3810,7 @@ class DataTracker:
                 subject_contains : Optional[str]      = None,
                 body_contains    : Optional[str]      = None) -> Iterator[Message]:
         url = MessageURI("/api/v1/message/message/")
-        url.params["time__gt"]       = since
+        url.params["time__gte"]       = since
         url.params["time__lt"]       = until
         if by is not None:
             url.params["by"] = by.id
@@ -3730,7 +3822,7 @@ class DataTracker:
             url.params["subject__contains"] = subject_contains
         if body_contains is not None:
             url.params["body__contains"] = body_contains
-        return self._retrieve_multi(url, Message, deref = {"by": "id", "related_doc": "id"})
+        return self._retrieve_multi(url, Message, deref = {"by": "id", "related_doc": "id"}, sort_by=["id"])
 
 
     def send_queue_entry(self, send_queue_uri: SendQueueURI) -> Optional[SendQueueEntry]:
@@ -3743,13 +3835,13 @@ class DataTracker:
                 by               : Optional[Person]   = None,
                 message          : Optional[Message]  = None) -> Iterator[SendQueueEntry]:
         url = SendQueueURI("/api/v1/message/sendqueue/")
-        url.params["time__gt"]       = since
+        url.params["time__gte"]       = since
         url.params["time__lt"]       = until
         if by is not None:
             url.params["by"] = by.id
         if message is not None:
             url.params["message"] = message.id
-        return self._retrieve_multi(url, SendQueueEntry, deref = {"by": "id", "message": "id"})
+        return self._retrieve_multi(url, SendQueueEntry, deref = {"by": "id", "message": "id"}, sort_by=["id"])
 
 
 # =================================================================================================================================

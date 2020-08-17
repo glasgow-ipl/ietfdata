@@ -50,7 +50,7 @@ class TestDatatracker(unittest.TestCase):
         self.dt = DataTracker(cache_dir=Path("cache"))
 
     def test_email(self) -> None:
-        e  = self.dt.email(EmailURI("/api/v1/person/email/csp@csperkins.org"))
+        e  = self.dt.email(EmailURI("/api/v1/person/email/csp@csperkins.org/"))
         if e is not None:
             self.assertEqual(e.resource_uri, EmailURI("/api/v1/person/email/csp@csperkins.org/"))
             self.assertEqual(e.address,      "csp@csperkins.org")
@@ -68,11 +68,11 @@ class TestDatatracker(unittest.TestCase):
         if p is not None:
             es = list(self.dt.email_for_person(p))
             self.assertEqual(len(es), 5)
-            self.assertEqual(es[0].address, "csp@csperkins.org")
-            self.assertEqual(es[1].address, "csp@isi.edu")
-            self.assertEqual(es[2].address, "colin.perkins@glasgow.ac.uk")
-            self.assertEqual(es[3].address, "csp@cperkins.net")
-            self.assertEqual(es[4].address, "c.perkins@cs.ucl.ac.uk")
+            self.assertEqual(es[0].address, "c.perkins@cs.ucl.ac.uk")
+            self.assertEqual(es[1].address, "colin.perkins@glasgow.ac.uk")
+            self.assertEqual(es[2].address, "csp@cperkins.net")
+            self.assertEqual(es[3].address, "csp@csperkins.org")
+            self.assertEqual(es[4].address, "csp@isi.edu")
         else:
             self.fail("Cannot find person")
 
@@ -170,7 +170,6 @@ class TestDatatracker(unittest.TestCase):
         p  = self.dt.person(PersonURI("/api/v1/person/person/20209/"))
         if p is not None:
             h  = list(self.dt.person_history(p))
-            # As of 2019-08-18, there are two history items for csp@csperkins.org
             self.assertEqual(len(h), 3)
 
             self.assertEqual(h[0].id,              20209)
@@ -655,7 +654,7 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_document_shepwrit(self) -> None:
-        for d in self.dt.documents(doctype=self.dt.document_type(DocumentTypeURI("/api/v1/name/doctypename/shepwrit"))):
+        for d in self.dt.documents(doctype=self.dt.document_type(DocumentTypeURI("/api/v1/name/doctypename/shepwrit/"))):
             self.fail("shepwrit is not used, so this should return no documents")
 
 
@@ -736,7 +735,7 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_documents(self):
-        doctype = self.dt.document_type(DocumentTypeURI("/api/v1/name/doctypename/draft"))
+        doctype = self.dt.document_type(DocumentTypeURI("/api/v1/name/doctypename/draft/"))
         group   = self.dt.group_from_acronym("xrblock")
         documents = list(self.dt.documents(doctype = doctype, group = group))
         self.assertEqual(len(documents), 21)
@@ -849,30 +848,30 @@ class TestDatatracker(unittest.TestCase):
     def test_document_state_types(self) -> None:
         st = list(self.dt.document_state_types())
         self.assertEqual(len(st), 24)
-        self.assertEqual(st[ 0].slug, 'draft')
-        self.assertEqual(st[ 1].slug, 'draft-iesg')
-        self.assertEqual(st[ 2].slug, 'draft-iana')
-        self.assertEqual(st[ 3].slug, 'draft-rfceditor')
-        self.assertEqual(st[ 4].slug, 'draft-stream-ietf')
-        self.assertEqual(st[ 5].slug, 'draft-stream-irtf')
-        self.assertEqual(st[ 6].slug, 'draft-stream-ise')
-        self.assertEqual(st[ 7].slug, 'draft-stream-iab')
-        self.assertEqual(st[ 8].slug, 'slides')
-        self.assertEqual(st[ 9].slug, 'minutes')
-        self.assertEqual(st[10].slug, 'agenda')
-        self.assertEqual(st[11].slug, 'liai-att')
-        self.assertEqual(st[12].slug, 'charter')
-        self.assertEqual(st[13].slug, 'conflrev')
-        self.assertEqual(st[14].slug, 'draft-iana-action')
-        self.assertEqual(st[15].slug, 'draft-iana-review')
-        self.assertEqual(st[16].slug, 'statchg')
-        self.assertEqual(st[17].slug, 'recording')
-        self.assertEqual(st[18].slug, 'bluesheets')
+        self.assertEqual(st[ 0].slug, 'agenda')
+        self.assertEqual(st[ 1].slug, 'bluesheets')
+        self.assertEqual(st[ 2].slug, 'charter')
+        self.assertEqual(st[ 3].slug, 'conflrev')
+        self.assertEqual(st[ 4].slug, 'draft')
+        self.assertEqual(st[ 5].slug, 'draft-iana')
+        self.assertEqual(st[ 6].slug, 'draft-iana-action')
+        self.assertEqual(st[ 7].slug, 'draft-iana-experts')
+        self.assertEqual(st[ 8].slug, 'draft-iana-review')
+        self.assertEqual(st[ 9].slug, 'draft-iesg')
+        self.assertEqual(st[10].slug, 'draft-rfceditor')
+        self.assertEqual(st[11].slug, 'draft-stream-iab')
+        self.assertEqual(st[12].slug, 'draft-stream-ietf')
+        self.assertEqual(st[13].slug, 'draft-stream-irtf')
+        self.assertEqual(st[14].slug, 'draft-stream-ise')
+        self.assertEqual(st[15].slug, 'liai-att')
+        self.assertEqual(st[16].slug, 'liaison')
+        self.assertEqual(st[17].slug, 'minutes')
+        self.assertEqual(st[18].slug, 'recording')
         self.assertEqual(st[19].slug, 'reuse_policy')
         self.assertEqual(st[20].slug, 'review')
-        self.assertEqual(st[21].slug, 'liaison')
-        self.assertEqual(st[22].slug, 'shepwrit')
-        self.assertEqual(st[23].slug, 'draft-iana-experts')
+        self.assertEqual(st[21].slug, 'shepwrit')
+        self.assertEqual(st[22].slug, 'slides')
+        self.assertEqual(st[23].slug, 'statchg')
 
 
     def test_document_event(self) -> None:
@@ -975,7 +974,7 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_ballot_types_doctype(self) -> None:
-        bts = list(self.dt.ballot_types(self.dt.document_type(DocumentTypeURI("/api/v1/name/doctypename/draft"))))
+        bts = list(self.dt.ballot_types(self.dt.document_type(DocumentTypeURI("/api/v1/name/doctypename/draft/"))))
         self.assertEqual(len(bts), 2)
         self.assertEqual(bts[0].slug, "irsg-approve")
         self.assertEqual(bts[1].slug, "approve")
@@ -1002,8 +1001,8 @@ class TestDatatracker(unittest.TestCase):
         d  = self.dt.document_from_draft("draft-ietf-avtcore-rtp-circuit-breakers")
         de = list(self.dt.ballot_document_events(doc=d))
         self.assertEqual(len(de), 2)
-        self.assertEqual(de[0].id, 478676)
-        self.assertEqual(de[1].id, 461800)
+        self.assertEqual(de[0].id, 461800)
+        self.assertEqual(de[1].id, 478676)
 
         bt = self.dt.ballot_type(BallotTypeURI("/api/v1/doc/ballottype/3/")) # Charter approval
         p  = self.dt.person(PersonURI("/api/v1/person/person/108756/"))      # Cindy Morgan
@@ -1093,7 +1092,7 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_document_type(self) -> None:
-        doctype = self.dt.document_type(DocumentTypeURI("/api/v1/name/doctypename/draft"))
+        doctype = self.dt.document_type(DocumentTypeURI("/api/v1/name/doctypename/draft/"))
         if doctype is not None:
             self.assertEqual(doctype.resource_uri, DocumentTypeURI("/api/v1/name/doctypename/draft/"))
             self.assertEqual(doctype.name,         "Draft")
@@ -1128,8 +1127,8 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(types[ 2].slug, "charter")
         self.assertEqual(types[ 3].slug, "conflrev")
         self.assertEqual(types[ 4].slug, "draft")
-        self.assertEqual(types[ 5].slug, "liaison")
-        self.assertEqual(types[ 6].slug, "liai-att")
+        self.assertEqual(types[ 5].slug, "liai-att")
+        self.assertEqual(types[ 6].slug, "liaison")
         self.assertEqual(types[ 7].slug, "minutes")
         self.assertEqual(types[ 8].slug, "recording")
         self.assertEqual(types[ 9].slug, "review")
@@ -1157,10 +1156,10 @@ class TestDatatracker(unittest.TestCase):
     def test_streams(self) -> None:
         streams = list(self.dt.streams())
         self.assertEqual(len(streams), 5)
-        self.assertEqual(streams[ 0].slug, "ietf")
-        self.assertEqual(streams[ 1].slug, "ise")
+        self.assertEqual(streams[ 0].slug, "iab")
+        self.assertEqual(streams[ 1].slug, "ietf")
         self.assertEqual(streams[ 2].slug, "irtf")
-        self.assertEqual(streams[ 3].slug, "iab")
+        self.assertEqual(streams[ 3].slug, "ise")
         self.assertEqual(streams[ 4].slug, "legacy")
 
     # -----------------------------------------------------------------------------------------------------------------------------
@@ -1323,9 +1322,9 @@ class TestDatatracker(unittest.TestCase):
         group_milestone_statenames = list(self.dt.group_milestone_statenames())
         self.assertEqual(len(group_milestone_statenames),    4)
         self.assertEqual(group_milestone_statenames[0].slug, "active")
-        self.assertEqual(group_milestone_statenames[1].slug, "deleted")
-        self.assertEqual(group_milestone_statenames[2].slug, "review")
-        self.assertEqual(group_milestone_statenames[3].slug, "charter")
+        self.assertEqual(group_milestone_statenames[1].slug, "charter")
+        self.assertEqual(group_milestone_statenames[2].slug, "deleted")
+        self.assertEqual(group_milestone_statenames[3].slug, "review")
 
 
     def test_group_milestone(self) -> None:
@@ -1391,32 +1390,33 @@ class TestDatatracker(unittest.TestCase):
     def test_role_names(self) -> None:
         role_names = list(self.dt.role_names())
         self.assertEqual(len(role_names), 26)
-        self.assertEqual(role_names[ 0].slug, "robot")
-        self.assertEqual(role_names[ 1].slug, "ceo")
-        self.assertEqual(role_names[ 2].slug, "coord")
-        self.assertEqual(role_names[ 3].slug, "comdir")
-        self.assertEqual(role_names[ 4].slug, "lead")
-        self.assertEqual(role_names[ 5].slug, "trac-admin")
-        self.assertEqual(role_names[ 6].slug, "trac-editor")
+        self.assertEqual(role_names[ 0].slug, "ad")
+        self.assertEqual(role_names[ 1].slug, "admdir")
+        self.assertEqual(role_names[ 2].slug, "advisor")
+        self.assertEqual(role_names[ 3].slug, "announce")
+        self.assertEqual(role_names[ 4].slug, "atlarge")
+        self.assertEqual(role_names[ 5].slug, "auth")
+        self.assertEqual(role_names[ 6].slug, "ceo")
         self.assertEqual(role_names[ 7].slug, "chair")
-        self.assertEqual(role_names[ 8].slug, "ad")
-        self.assertEqual(role_names[ 9].slug, "execdir")
-        self.assertEqual(role_names[10].slug, "admdir")
-        self.assertEqual(role_names[11].slug, "pre-ad")
-        self.assertEqual(role_names[12].slug, "advisor")
-        self.assertEqual(role_names[13].slug, "liaiman")
-        self.assertEqual(role_names[14].slug, "techadv")
-        self.assertEqual(role_names[15].slug, "auth")
-        self.assertEqual(role_names[16].slug, "editor")
-        self.assertEqual(role_names[17].slug, "delegate")
-        self.assertEqual(role_names[18].slug, "secr")
-        self.assertEqual(role_names[19].slug, "member")
-        self.assertEqual(role_names[20].slug, "atlarge")
-        self.assertEqual(role_names[21].slug, "liaison")
-        self.assertEqual(role_names[22].slug, "announce")
-        self.assertEqual(role_names[23].slug, "matman")
-        self.assertEqual(role_names[24].slug, "recman")
-        self.assertEqual(role_names[25].slug, "reviewer")
+        self.assertEqual(role_names[ 8].slug, "comdir")
+        self.assertEqual(role_names[ 9].slug, "coord")
+        self.assertEqual(role_names[10].slug, "delegate")
+        self.assertEqual(role_names[11].slug, "editor")
+        self.assertEqual(role_names[12].slug, "execdir")
+        self.assertEqual(role_names[13].slug, "lead")
+        self.assertEqual(role_names[14].slug, "liaiman")
+        self.assertEqual(role_names[15].slug, "liaison")
+        self.assertEqual(role_names[16].slug, "matman")
+        self.assertEqual(role_names[17].slug, "member")
+        self.assertEqual(role_names[18].slug, "pre-ad")
+        self.assertEqual(role_names[19].slug, "recman")
+        self.assertEqual(role_names[20].slug, "reviewer")
+        self.assertEqual(role_names[21].slug, "robot")
+        self.assertEqual(role_names[22].slug, "secr")
+        self.assertEqual(role_names[23].slug, "techadv")
+        self.assertEqual(role_names[24].slug, "trac-admin")
+        self.assertEqual(role_names[25].slug, "trac-editor")
+
 
 
     def test_group_role(self) -> None:
@@ -1440,14 +1440,14 @@ class TestDatatracker(unittest.TestCase):
         group_roles = list(self.dt.group_roles(email="csp@csperkins.org"))
         self.assertEqual(len(group_roles), 9)
         self.assertEqual(group_roles[0].id, 1076)
-        self.assertEqual(group_roles[1].id, 9355)
+        self.assertEqual(group_roles[1].id, 3998)
         self.assertEqual(group_roles[2].id, 8464)
         self.assertEqual(group_roles[3].id, 8465)
         self.assertEqual(group_roles[4].id, 8466)
-        self.assertEqual(group_roles[5].id, 10119)
-        self.assertEqual(group_roles[6].id, 10200)
-        self.assertEqual(group_roles[7].id, 3998)
-        self.assertEqual(group_roles[8].id, 9772)
+        self.assertEqual(group_roles[5].id, 9355)
+        self.assertEqual(group_roles[6].id, 9772)
+        self.assertEqual(group_roles[7].id, 10119)
+        self.assertEqual(group_roles[8].id, 10200)
 
 
     def test_group_roles_group(self) -> None:
@@ -1467,14 +1467,14 @@ class TestDatatracker(unittest.TestCase):
         group_roles = list(self.dt.group_roles(person=self.dt.person(PersonURI("/api/v1/person/person/20209/"))))
         self.assertEqual(len(group_roles), 9)
         self.assertEqual(group_roles[0].id, 1076)
-        self.assertEqual(group_roles[1].id, 9355)
+        self.assertEqual(group_roles[1].id, 3998)
         self.assertEqual(group_roles[2].id, 8464)
         self.assertEqual(group_roles[3].id, 8465)
         self.assertEqual(group_roles[4].id, 8466)
-        self.assertEqual(group_roles[5].id, 10119)
-        self.assertEqual(group_roles[6].id, 10200)
-        self.assertEqual(group_roles[7].id, 3998)
-        self.assertEqual(group_roles[8].id, 9772)
+        self.assertEqual(group_roles[5].id, 9355)
+        self.assertEqual(group_roles[6].id, 9772)
+        self.assertEqual(group_roles[7].id, 10119)
+        self.assertEqual(group_roles[8].id, 10200)
 
 
     def test_group_milestone_history(self) -> None:
@@ -1506,7 +1506,7 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_group_milestone_histories_milestone(self) -> None:
-        group_milestone_histories = list(self.dt.group_milestone_histories(milestone=self.dt.group_milestone(GroupMilestoneURI("/api/v1/group/groupmilestone/2114"))))
+        group_milestone_histories = list(self.dt.group_milestone_histories(milestone=self.dt.group_milestone(GroupMilestoneURI("/api/v1/group/groupmilestone/2114/"))))
         self.assertEqual(len(group_milestone_histories),  1)
         self.assertEqual(group_milestone_histories[0].id, 1433)
 
@@ -1637,7 +1637,7 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_groups_state(self) -> None:
-        groups = list(self.dt.groups(state=self.dt.group_state(GroupStateURI("/api/v1/name/groupstatename/abandon"))))
+        groups = list(self.dt.groups(state=self.dt.group_state(GroupStateURI("/api/v1/name/groupstatename/abandon/"))))
         self.assertEqual(len(groups), 7)
         self.assertEqual(groups[0].id, 1949)
         self.assertEqual(groups[1].id, 2009)
@@ -1656,7 +1656,7 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_group_state(self) -> None:
-        state = self.dt.group_state(GroupStateURI("/api/v1/name/groupstatename/abandon"))
+        state = self.dt.group_state(GroupStateURI("/api/v1/name/groupstatename/abandon/"))
         if state is not None:
             self.assertEqual(state.desc,         "Formation of the group (most likely a BoF or Proposed WG) was abandoned")
             self.assertEqual(state.name,         "Abandoned")
@@ -1723,23 +1723,23 @@ class TestDatatracker(unittest.TestCase):
     def test_group_type_names(self) -> None:
         group_type_names = list(self.dt.group_type_names())
         self.assertEqual(len(group_type_names), 22)
-        self.assertEqual(group_type_names[0].slug,  "adhoc")
-        self.assertEqual(group_type_names[1].slug,  "admin")
-        self.assertEqual(group_type_names[2].slug,  "ag")
-        self.assertEqual(group_type_names[3].slug,  "area")
-        self.assertEqual(group_type_names[4].slug,  "dir")
-        self.assertEqual(group_type_names[5].slug,  "review")
-        self.assertEqual(group_type_names[6].slug,  "iab")
-        self.assertEqual(group_type_names[7].slug,  "iana")
-        self.assertEqual(group_type_names[8].slug,  "iesg")
-        self.assertEqual(group_type_names[9].slug,  "ietf")
-        self.assertEqual(group_type_names[10].slug, "individ")
-        self.assertEqual(group_type_names[11].slug, "irtf")
-        self.assertEqual(group_type_names[12].slug, "ise")
-        self.assertEqual(group_type_names[13].slug, "isoc")
-        self.assertEqual(group_type_names[14].slug, "nomcom")
-        self.assertEqual(group_type_names[15].slug, "program")
-        self.assertEqual(group_type_names[16].slug, "rag")
+        self.assertEqual(group_type_names[ 0].slug, "adhoc")
+        self.assertEqual(group_type_names[ 1].slug, "admin")
+        self.assertEqual(group_type_names[ 2].slug, "ag")
+        self.assertEqual(group_type_names[ 3].slug, "area")
+        self.assertEqual(group_type_names[ 4].slug, "dir")
+        self.assertEqual(group_type_names[ 5].slug, "iab")
+        self.assertEqual(group_type_names[ 6].slug, "iana")
+        self.assertEqual(group_type_names[ 7].slug, "iesg")
+        self.assertEqual(group_type_names[ 8].slug, "ietf")
+        self.assertEqual(group_type_names[ 9].slug, "individ")
+        self.assertEqual(group_type_names[10].slug, "irtf")
+        self.assertEqual(group_type_names[11].slug, "ise")
+        self.assertEqual(group_type_names[12].slug, "isoc")
+        self.assertEqual(group_type_names[13].slug, "nomcom")
+        self.assertEqual(group_type_names[14].slug, "program")
+        self.assertEqual(group_type_names[15].slug, "rag")
+        self.assertEqual(group_type_names[16].slug,  "review")
         self.assertEqual(group_type_names[17].slug, "rfcedtyp")
         self.assertEqual(group_type_names[18].slug, "rg")
         self.assertEqual(group_type_names[19].slug, "sdo")
@@ -1820,14 +1820,14 @@ class TestDatatracker(unittest.TestCase):
         status_names  = list(self.dt.meeting_session_status_names())
         self.assertEqual(len(status_names),  10)
         self.assertEqual(status_names[0].slug, "appr")       # Approved
-        self.assertEqual(status_names[1].slug, "canceled")   # Cancelled
-        self.assertEqual(status_names[2].slug, "canceledpa") # Cancelled - Pre Announcement
-        self.assertEqual(status_names[3].slug, "deleted")    # Deleted
-        self.assertEqual(status_names[4].slug, "disappr")    # Disapproved
-        self.assertEqual(status_names[5].slug, "notmeet")    # Not meeting
-        self.assertEqual(status_names[6].slug, "sched")      # Scheduled
-        self.assertEqual(status_names[7].slug, "scheda")     # Scheduled - Announcement to be sent
-        self.assertEqual(status_names[8].slug, "apprw")      # Waiting for Approval
+        self.assertEqual(status_names[1].slug, "apprw")      # Waiting for Approval
+        self.assertEqual(status_names[2].slug, "canceled")   # Cancelled
+        self.assertEqual(status_names[3].slug, "canceledpa") # Cancelled - Pre Announcement
+        self.assertEqual(status_names[4].slug, "deleted")    # Deleted
+        self.assertEqual(status_names[5].slug, "disappr")    # Disapproved
+        self.assertEqual(status_names[6].slug, "notmeet")    # Not meeting
+        self.assertEqual(status_names[7].slug, "sched")      # Scheduled
+        self.assertEqual(status_names[8].slug, "scheda")     # Scheduled - Announcement to be sent
         self.assertEqual(status_names[9].slug, "schedw")     # Waiting for Scheduling
 
 
@@ -1993,9 +1993,9 @@ class TestDatatracker(unittest.TestCase):
         meeting_type = self.dt.meeting_type_from_slug("ietf")
         meetings = list(self.dt.meetings(start_date="2019-01-01", end_date="2019-12-31", meeting_type=meeting_type))
         self.assertEqual(len(meetings),  3)
-        self.assertEqual(meetings[0].city, "Singapore")
+        self.assertEqual(meetings[0].city, "Prague")
         self.assertEqual(meetings[1].city, "Montreal")
-        self.assertEqual(meetings[2].city, "Prague")
+        self.assertEqual(meetings[2].city, "Singapore")
 
 
     def test_meeting_type(self) -> None:
@@ -2169,22 +2169,22 @@ class TestDatatracker(unittest.TestCase):
     def test_relationship_types(self) -> None:
         types = list(self.dt.relationship_types())
         self.assertEqual(len(types), 16)
-        self.assertEqual(types[0].slug,  "downref-approval")
-        self.assertEqual(types[1].slug,  "conflrev")
-        self.assertEqual(types[2].slug,  "refinfo")
-        self.assertEqual(types[3].slug,  "tobcp")
-        self.assertEqual(types[4].slug,  "toexp")
-        self.assertEqual(types[5].slug,  "tohist")
-        self.assertEqual(types[6].slug,  "toinf")
-        self.assertEqual(types[7].slug,  "tois")
-        self.assertEqual(types[8].slug,  "tops")
-        self.assertEqual(types[9].slug,  "refnorm")
-        self.assertEqual(types[10].slug, "obs")
-        self.assertEqual(types[11].slug, "possibly-replaces")
-        self.assertEqual(types[12].slug, "refold")
-        self.assertEqual(types[13].slug, "replaces")
-        self.assertEqual(types[14].slug, "updates")
-        self.assertEqual(types[15].slug, "refunk")
+        self.assertEqual(types[ 0].slug, "conflrev")
+        self.assertEqual(types[ 1].slug, "downref-approval")
+        self.assertEqual(types[ 2].slug, "obs")
+        self.assertEqual(types[ 3].slug, "possibly-replaces")
+        self.assertEqual(types[ 4].slug, "refinfo")
+        self.assertEqual(types[ 5].slug, "refnorm")
+        self.assertEqual(types[ 6].slug, "refold")
+        self.assertEqual(types[ 7].slug, "refunk")
+        self.assertEqual(types[ 8].slug, "replaces")
+        self.assertEqual(types[ 9].slug, "tobcp")
+        self.assertEqual(types[10].slug, "toexp")
+        self.assertEqual(types[11].slug, "tohist")
+        self.assertEqual(types[12].slug, "toinf")
+        self.assertEqual(types[13].slug, "tois")
+        self.assertEqual(types[14].slug, "tops")
+        self.assertEqual(types[15].slug, "updates")
 
 
     # -----------------------------------------------------------------------------------------------------------------------------
@@ -2206,8 +2206,8 @@ class TestDatatracker(unittest.TestCase):
     def test_ipr_disclosure_states(self) -> None:
         states = list(self.dt.ipr_disclosure_states())
         self.assertEqual(len(states), 5)
-        self.assertEqual(states[0].slug,  "pending")
-        self.assertEqual(states[1].slug,  "parked")
+        self.assertEqual(states[0].slug,  "parked")
+        self.assertEqual(states[1].slug,  "pending")
         self.assertEqual(states[2].slug,  "posted")
         self.assertEqual(states[3].slug,  "rejected")
         self.assertEqual(states[4].slug,  "removed")
@@ -2341,13 +2341,13 @@ class TestDatatracker(unittest.TestCase):
     def test_ipr_license_types(self) -> None:
         types = list(self.dt.ipr_license_types())
         self.assertEqual(len(types), 7)
-        self.assertEqual(types[0].slug,  "none-selected")
-        self.assertEqual(types[1].slug,  "no-license")
-        self.assertEqual(types[2].slug,  "royalty-free")
+        self.assertEqual(types[0].slug,  "no-license")
+        self.assertEqual(types[1].slug,  "none-selected")
+        self.assertEqual(types[2].slug,  "provided-later")
         self.assertEqual(types[3].slug,  "reasonable")
-        self.assertEqual(types[4].slug,  "provided-later")
-        self.assertEqual(types[5].slug,  "unwilling-to-commit")
-        self.assertEqual(types[6].slug,  "see-below")
+        self.assertEqual(types[4].slug,  "royalty-free")
+        self.assertEqual(types[5].slug,  "see-below")
+        self.assertEqual(types[6].slug,  "unwilling-to-commit")
 
 
     def test_holder_ipr_disclosure(self) -> None:
@@ -2572,15 +2572,15 @@ class TestDatatracker(unittest.TestCase):
     def test_review_result_types(self) -> None:
         types = list(self.dt.review_result_types())
         self.assertEqual(len(types), 9)
-        self.assertEqual(types[0].slug, "serious-issues")
+        self.assertEqual(types[0].slug, "almost-ready")
         self.assertEqual(types[1].slug, "issues")
         self.assertEqual(types[2].slug, "nits")
         self.assertEqual(types[3].slug, "not-ready")
-        self.assertEqual(types[4].slug, "right-track")
-        self.assertEqual(types[5].slug, "almost-ready")
-        self.assertEqual(types[6].slug, "ready-issues")
-        self.assertEqual(types[7].slug, "ready-nits")
-        self.assertEqual(types[8].slug, "ready")
+        self.assertEqual(types[4].slug, "ready")
+        self.assertEqual(types[5].slug, "ready-issues")
+        self.assertEqual(types[6].slug, "ready-nits")
+        self.assertEqual(types[7].slug, "right-track")
+        self.assertEqual(types[8].slug, "serious-issues")
 
 
     def test_review_type(self) -> None:
@@ -2646,18 +2646,18 @@ class TestDatatracker(unittest.TestCase):
     def test_review_request_states(self) -> None:
         states = list(self.dt.review_request_states())
         self.assertEqual(len(states), 12)
-        self.assertEqual(states[ 0].slug, "assigned")
-        self.assertEqual(states[ 1].slug, "requested")
-        self.assertEqual(states[ 2].slug, "accepted")
-        self.assertEqual(states[ 3].slug, "rejected")
-        self.assertEqual(states[ 4].slug, "withdrawn")
-        self.assertEqual(states[ 5].slug, "overtaken")
-        self.assertEqual(states[ 6].slug, "no-response")
-        self.assertEqual(states[ 7].slug, "no-review-version")
-        self.assertEqual(states[ 8].slug, "no-review-document")
-        self.assertEqual(states[ 9].slug, "part-completed")
-        self.assertEqual(states[10].slug, "completed")
-        self.assertEqual(states[11].slug, "unknown")
+        self.assertEqual(states[ 0].slug, "accepted")
+        self.assertEqual(states[ 1].slug, "assigned")
+        self.assertEqual(states[ 2].slug, "completed")
+        self.assertEqual(states[ 3].slug, "no-response")
+        self.assertEqual(states[ 4].slug, "no-review-document")
+        self.assertEqual(states[ 5].slug, "no-review-version")
+        self.assertEqual(states[ 6].slug, "overtaken")
+        self.assertEqual(states[ 7].slug, "part-completed")
+        self.assertEqual(states[ 8].slug, "rejected")
+        self.assertEqual(states[ 9].slug, "requested")
+        self.assertEqual(states[10].slug, "unknown")
+        self.assertEqual(states[11].slug, "withdrawn")
 
 
     def test_review_request(self) -> None:
@@ -3286,8 +3286,8 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(announcements_from[1].id, 2)
         self.assertEqual(announcements_from[2].id, 7)
         self.assertEqual(announcements_from[3].id, 8)
-        self.assertEqual(announcements_from[4].id, 28)
-        self.assertEqual(announcements_from[5].id, 27)
+        self.assertEqual(announcements_from[4].id, 27)
+        self.assertEqual(announcements_from[5].id, 28)
 
 
     def test_announcements_from_name(self) -> None:
