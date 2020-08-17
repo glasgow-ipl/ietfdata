@@ -2012,28 +2012,55 @@ class DataTracker:
                     if obj[k] is None:
                         res = False
                     else:
-                        self.cache_req += 1
-                        if not self._cache_has_object(URI(obj[k])):
-                            self._rate_limit()
-                            self.get_count += 1
-                            req_url     = self.base_url + obj[k]
-                            req_headers = {'User-Agent': self.ua}
-                            r = self.session.get(req_url, headers = req_headers, verify = True, stream = False)
-                            if r.status_code == 200:
-                                url_obj = r.json()
-                                self._cache_put_object(URI(obj[k]), url_obj)
-                                self._cache_record_query(URI(obj[k]), _parent_uri(URI(obj[k])))
-                            elif r.status_code == 404:
-                                res = False
-                            else:
-                                print("_cache_obj_matches failed: {} {}".format(r.status_code, self.base_url + obj[k]))
-                                sys.exit(1)
+                        # FIXME: this is ugly
+                        if isinstance(obj[k], list):
+                            for objk in obj[k]:
+                                self.cache_req += 1
+                                if not self._cache_has_object(URI(objk)):
+                                    self._rate_limit()
+                                    self.get_count += 1
+                                    req_url     = self.base_url + objk
+                                    req_headers = {'User-Agent': self.ua}
+                                    r = self.session.get(req_url, headers = req_headers, verify = True, stream = False)
+                                    if r.status_code == 200:
+                                        url_obj = r.json()
+                                        self._cache_put_object(URI(objk), url_obj)
+                                        self._cache_record_query(URI(objk), _parent_uri(URI(objk)))
+                                    elif r.status_code == 404:
+                                        res = False
+                                    else:
+                                        print("_cache_obj_matches failed: {} {}".format(r.status_code, self.base_url + objk))
+                                        sys.exit(1)
+                                else:
+                                    self.cache_hit += 1
+                                    with open(Path(self.cache_dir, objk[1:-1] + ".json"), "r") as cache_file:
+                                        url_obj = json.load(cache_file)
+                                if v == url_obj[deref[k]]:
+                                    res = True
+                                    break
                         else:
-                            self.cache_hit += 1
-                            with open(Path(self.cache_dir, obj[k][1:-1] + ".json"), "r") as cache_file:
-                                url_obj = json.load(cache_file)
-                        if v != url_obj[deref[k]]:
-                            res = False
+                            self.cache_req += 1
+                            if not self._cache_has_object(URI(obj[k])):
+                                self._rate_limit()
+                                self.get_count += 1
+                                req_url     = self.base_url + obj[k]
+                                req_headers = {'User-Agent': self.ua}
+                                r = self.session.get(req_url, headers = req_headers, verify = True, stream = False)
+                                if r.status_code == 200:
+                                    url_obj = r.json()
+                                    self._cache_put_object(URI(obj[k]), url_obj)
+                                    self._cache_record_query(URI(obj[k]), _parent_uri(URI(obj[k])))
+                                elif r.status_code == 404:
+                                    res = False
+                                else:
+                                    print("_cache_obj_matches failed: {} {}".format(r.status_code, self.base_url + obj[k]))
+                                    sys.exit(1)
+                            else:
+                                self.cache_hit += 1
+                                with open(Path(self.cache_dir, obj[k][1:-1] + ".json"), "r") as cache_file:
+                                    url_obj = json.load(cache_file)
+                            if v != url_obj[deref[k]]:
+                                res = False
                 elif "__contains" in k:
                     k_base = k[:-10]
                     if not v in obj[k_base]:
@@ -3692,15 +3719,22 @@ class DataTracker:
         return self._retrieve(mailing_list_uri, MailingList)
 
 
-    def mailing_lists(self) -> Iterator[MailingList]:
+    def mailing_lists(self, name : Optional[str]) -> Iterator[MailingList]:
         url = MailingListURI("/api/v1/mailinglists/list/")
+        if name is not None:
+            url.params["name"] = name
         return self._retrieve_multi(url, MailingList, sort_by=["id"])
 
 
-    def mailing_list_subscriptions(self, email_addr : Optional[str]) -> Iterator[MailingListSubscriptions]:
+    def mailing_list_subscriptions(self, 
+            email_addr   : Optional[str] = None, 
+            mailing_list : Optional[MailingList] = None) -> Iterator[MailingListSubscriptions]:
         url = MailingListSubscriptionsURI("/api/v1/mailinglists/subscribed/")
-        url.params["email"] = email_addr
-        return self._retrieve_multi(url, MailingListSubscriptions, sort_by=["id"])
+        if email_addr is not None:
+            url.params["email"] = email_addr
+        if mailing_list is not None:
+            url.params["lists"] = mailing_list.id
+        return self._retrieve_multi(url, MailingListSubscriptions, {"lists": "id"}, sort_by=["id"])
 
 
     # ----------------------------------------------------------------------------------------------------------------------------

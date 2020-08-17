@@ -3160,15 +3160,20 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_mailing_lists(self) -> None:
-        ml = list(self.dt.mailing_lists())
+        ml = list(self.dt.mailing_lists(name="ietf"))
         if ml is not None:
-            self.assertNotEqual(len(ml), 0)
+            self.assertEqual(len(ml), 1)
+            self.assertEqual(ml[0].id,            262)
+            self.assertEqual(ml[0].description,  "IETF-Discussion")
+            self.assertEqual(ml[0].resource_uri, MailingListURI("/api/v1/mailinglists/list/262/"))
+            self.assertEqual(ml[0].advertised,   True)
+            self.assertEqual(ml[0].name,         "ietf")
         else:
-            self.fail("Cannot find mailing lists")
+            self.fail("Cannot find mailing list")
 
 
     def test_mailing_list_subscriptions(self) -> None:
-        subs = list(self.dt.mailing_list_subscriptions("colin.perkins@glasgow.ac.uk"))
+        subs = list(self.dt.mailing_list_subscriptions(email_addr="colin.perkins@glasgow.ac.uk"))
         self.assertEqual(len(subs), 1)
         self.assertEqual(subs[0].id,           66700)
         self.assertEqual(subs[0].resource_uri, MailingListSubscriptionsURI(uri="/api/v1/mailinglists/subscribed/66700/"))
