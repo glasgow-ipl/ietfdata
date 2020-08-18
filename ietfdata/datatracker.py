@@ -2087,15 +2087,8 @@ class DataTracker:
             if obj_file.name == "_cache_info.json":
                 continue
 
-            cache_uri = str(obj_file)[5:-5]+"/"
-            self.memcache_req += 1
-            if self._memcache_has_object(cache_uri):
-                self.memcache_hit += 1
-                obj_json = self._memcache_get_object(cache_uri)
-            else:
-                with open(obj_file) as cache_file:
-                    obj_json = json.load(cache_file)
-                    self._memcache_put_object(cache_uri, obj_json)
+            cache_uri = URI(obj_type_uri.uri + obj_file.name[:-5] + "/")
+            obj_json = self._cache_get_object(cache_uri)
 
             if self._cache_obj_matches(obj_json, obj_uri, deref):
                 sort_key = ""
