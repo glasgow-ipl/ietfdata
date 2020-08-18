@@ -2050,7 +2050,7 @@ class DataTracker:
             elif r.status_code == 404:
                 return None
             else:
-                print("_cache_obj_matches failed: {} {}".format(r.status_code, self.base_url + deref_uri))
+                print("_cache_obj_deref failed: {} {}".format(r.status_code, self.base_url + deref_uri))
                 sys.exit(1)
         else:
             self.cache_hit += 1
