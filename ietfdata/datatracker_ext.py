@@ -138,7 +138,7 @@ class DataTrackerExt(DataTracker):
 
 
     def iab_chair(self) -> Person:
-        chairs = list(self.group_roles(group = self.group_from_acronym("IAB"), name = self.role_name_from_slug("chair")))
+        chairs = list(self.group_roles(group = self.group_from_acronym("iab"), name = self.role_name_from_slug("chair")))
         assert(len(chairs) == 1)   # There is only one IAB chair
         chair = self.person(chairs[0].person)
         assert chair is not None
@@ -146,14 +146,14 @@ class DataTrackerExt(DataTracker):
 
 
     def iab_members(self) -> Iterator[Person]:
-        for member in self.group_roles(group = self.group_from_acronym("IAB"), name = self.role_name_from_slug("member")):
+        for member in self.group_roles(group = self.group_from_acronym("iab"), name = self.role_name_from_slug("member")):
             person = self.person(member.person)
             assert person is not None
             yield  person
 
 
     def ietf_chair(self) -> Person:
-        chairs = list(self.group_roles(group = self.group_from_acronym("IETF"), name = self.role_name_from_slug("chair")))
+        chairs = list(self.group_roles(group = self.group_from_acronym("ietf"), name = self.role_name_from_slug("chair")))
         assert(len(chairs) == 1)   # There is only one IETF chair
         chair = self.person(chairs[0].person)
         assert chair is not None
@@ -161,14 +161,14 @@ class DataTrackerExt(DataTracker):
 
 
     def iesg_members(self) -> Iterator[Person]:
-        for member in self.group_roles(group = self.group_from_acronym("IESG"), name = self.role_name_from_slug("ad")):
+        for member in self.group_roles(group = self.group_from_acronym("iesg"), name = self.role_name_from_slug("ad")):
             person = self.person(member.person)
             assert person is not None
             yield  person
 
 
     def irtf_chair(self) -> Person:
-        chairs = list(self.group_roles(group = self.group_from_acronym("IRTF"), name = self.role_name_from_slug("chair")))
+        chairs = list(self.group_roles(group = self.group_from_acronym("irtf"), name = self.role_name_from_slug("chair")))
         assert(len(chairs) == 1)   # There is only one IRTF chair
         chair = self.person(chairs[0].person)
         assert chair is not None
@@ -176,14 +176,17 @@ class DataTrackerExt(DataTracker):
 
 
     def irsg_members(self) -> Iterator[Person]:
-        for member in self.group_roles(group = self.group_from_acronym("IRSG")):
+        for member in self.group_roles(group = self.group_from_acronym("irsg")):
             person = self.person(member.person)
             assert person is not None
             yield  person
 
 
     def active_research_groups(self) -> Iterator[Group]:
-        for group in self.groups(parent = self.group_from_acronym("IRTF")):
+        irtf = self.group_from_acronym("irtf")
+        groups = list(self.groups(parent = irtf))
+        for group in groups:
+            print(F"  {self.cache_req:8} {group.name}")
             t = self.group_type_name(group.type)
             s = self.group_state(group.state)
             if s == self.group_state_from_slug("active") and t == self.group_type_name_from_slug("rg"):
@@ -192,7 +195,8 @@ class DataTrackerExt(DataTracker):
 
     def research_group_chairs(self) -> Iterator[Person]:
         chairs = []
-        for group in self.active_research_groups():
+        groups = list(self.active_research_groups())
+        for group in groups:
             for role in self.group_roles(group = group, name = self.role_name_from_slug("chair")):
                 person = self.person(role.person)
                 assert person is not None
@@ -203,7 +207,7 @@ class DataTrackerExt(DataTracker):
 
 
     def concluded_research_groups(self) -> Iterator[Group]:
-        for group in self.groups(parent = self.group_from_acronym("IRTF")):
+        for group in self.groups(parent = self.group_from_acronym("irtf")):
             t = self.group_type_name(group.type)
             s = self.group_state(group.state)
             if s == self.group_state_from_slug("conclude") and t == self.group_type_name_from_slug("rg"):
@@ -211,7 +215,7 @@ class DataTrackerExt(DataTracker):
 
 
     def active_working_groups(self) -> Iterator[Group]:
-        for area in self.groups(parent = self.group_from_acronym("IESG")):
+        for area in self.groups(parent = self.group_from_acronym("iesg")):
             if self.group_state(area.state) == self.group_state_from_slug("active"):
                 for group in self.groups(parent = area):
                     t = self.group_type_name(group.type)
