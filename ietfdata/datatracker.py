@@ -1996,21 +1996,17 @@ class DataTracker:
                     return False  # Object is not in the cache
 
 
-    def _cache_get_object(self, obj_uri: URI, obj_type: Type[T]) -> Optional[T]:
+    def _cache_get_object(self, obj_uri: URI) -> Dict[str, Any]:
         self.memcache_req += 1
         if self._memcache_has_object(obj_uri.uri):
             self.memcache_hit += 1
             obj_json = self._memcache_get_object(obj_uri.uri)
         else:
             cache_filepath = Path(self.cache_dir, obj_uri.uri[1:-1] + ".json")
-            if cache_filepath.exists():
-                with open(cache_filepath) as cache_file:
-                    obj_json = json.load(cache_file)
-                self._memcache_put_object(obj_uri.uri, obj_json)
-            else:
-                return None
-        obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
-        return obj
+            with open(cache_filepath) as cache_file:
+                obj_json = json.load(cache_file)
+            self._memcache_put_object(obj_uri.uri, obj_json)
+        return obj_json
 
 
     def _cache_put_object(self, obj_uri: URI, obj_json: Dict[str, Any]) -> None:
@@ -2054,15 +2050,7 @@ class DataTracker:
                 sys.exit(1)
         else:
             self.cache_hit += 1
-            self.memcache_req += 1
-            if self._memcache_has_object(deref_uri):
-                self.memcache_hit += 1
-                return self._memcache_get_object(deref_uri)
-            else:
-                with open(Path(self.cache_dir, deref_uri[1:-1] + ".json"), "r") as cache_file:
-                    url_obj = json.load(cache_file)
-                    self._memcache_put_object(deref_uri, url_obj)
-                    return url_obj
+            return self._cache_get_object(URI(deref_uri))
 
 
 
@@ -2196,7 +2184,8 @@ class DataTracker:
         self.cache_req += 1
         if self._cache_has_object(obj_uri):
             self.cache_hit += 1
-            return self._cache_get_object(obj_uri, obj_type)
+            obj_json = self._cache_get_object(obj_uri)
+            return self.pavlova.from_mapping(obj_json, obj_type)
         else:
             self._rate_limit()
             self.get_count += 1
@@ -2208,8 +2197,7 @@ class DataTracker:
                 obj_json = r.json()
                 self._cache_put_object(obj_uri, obj_json)
                 self._cache_record_query(obj_uri, _parent_uri(obj_uri))
-                obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
-                return obj
+                return self.pavlova.from_mapping(obj_json, obj_type)
             elif r.status_code == 404:
                 return None
             else:
