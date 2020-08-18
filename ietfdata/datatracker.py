@@ -3745,7 +3745,7 @@ class DataTracker:
         return self._retrieve(mailing_list_uri, MailingList)
 
 
-    def mailing_lists(self, name : Optional[str]) -> Iterator[MailingList]:
+    def mailing_lists(self, name : Optional[str] = None) -> Iterator[MailingList]:
         url = MailingListURI("/api/v1/mailinglists/list/")
         if name is not None:
             url.params["name"] = name
