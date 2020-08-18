@@ -2075,9 +2075,21 @@ class DataTracker:
                     if obj[k] is None:
                         res = False
                     else:
-                        deref_obj = self._cache_obj_deref(obj[k])
-                        if deref_obj is None or v != deref_obj[deref[k]]:
-                            res = False
+                        if isinstance(obj[k], list):
+                            found = False
+                            for item in obj[k]:
+                                deref_obj = self._cache_obj_deref(item)
+                                if deref_obj is not None and v == deref_obj[deref[k]]:
+                                    found = True
+                            if not found:
+                                res = False
+                        elif isinstance(obj[k], str):
+                            deref_obj = self._cache_obj_deref(obj[k])
+                            if deref_obj is None or v != deref_obj[deref[k]]:
+                                res = False
+                        else:
+                            print("_cache_obj_matches failed: unknown obj[k] type")
+                            sys.exit(1)
                 elif "__contains" in k:
                     k_base = k[:-10]
                     if not v in obj[k_base]:
