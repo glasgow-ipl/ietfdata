@@ -2030,30 +2030,6 @@ class DataTracker:
         return str(obj_uri) in meta.queries
 
 
-    def _cache_obj_deref(self, deref_uri: str) -> Optional[Dict[str, Any]]:
-        self.cache_req += 1
-        if not self._cache_has_object(URI(deref_uri)):
-            self._rate_limit()
-            self.get_count += 1
-            req_url     = self.base_url + deref_uri
-            req_headers = {'User-Agent': self.ua}
-            r = self.session.get(req_url, headers = req_headers, verify = True, stream = False)
-            if r.status_code == 200:
-                url_obj = r.json() # type: Dict[str, Any]
-                self._cache_put_object(URI(deref_uri), url_obj)
-                self._cache_record_query(URI(deref_uri), _parent_uri(URI(deref_uri)))
-                return url_obj
-            elif r.status_code == 404:
-                return None
-            else:
-                print("_cache_obj_deref failed: {} {}".format(r.status_code, self.base_url + deref_uri))
-                sys.exit(1)
-        else:
-            self.cache_hit += 1
-            return self._cache_get_object(URI(deref_uri))
-
-
-
     def _cache_obj_matches(self, obj: Dict[str, Any], query_uri: URI, deref : Dict[str, Any]) -> bool:
         # For each parameter in query_uri, check that obj contains matching key and value
         res = True
@@ -2066,13 +2042,13 @@ class DataTracker:
                         if isinstance(obj[k], list):
                             found = False
                             for item in obj[k]:
-                                deref_obj = self._cache_obj_deref(item)
+                                deref_obj = self._retrieve_json(URI(item))
                                 if deref_obj is not None and v == deref_obj[deref[k]]:
                                     found = True
                             if not found:
                                 res = False
                         elif isinstance(obj[k], str):
-                            deref_obj = self._cache_obj_deref(obj[k])
+                            deref_obj = self._retrieve_json(URI(obj[k]))
                             if deref_obj is None or v != deref_obj[deref[k]]:
                                 res = False
                         else:
@@ -2178,15 +2154,9 @@ class DataTracker:
             self.session.close()
 
 
-    def _retrieve(self, obj_uri: URI, obj_type: Type[T]) -> Optional[T]:
-        self._cache_update(_parent_uri(obj_uri), obj_type)
-
+    def _retrieve_json(self, obj_uri: URI) -> Optional[Dict[str, Any]]:
         self.cache_req += 1
-        if self._cache_has_object(obj_uri):
-            self.cache_hit += 1
-            obj_json = self._cache_get_object(obj_uri)
-            return self.pavlova.from_mapping(obj_json, obj_type)
-        else:
+        if not self._cache_has_object(obj_uri):
             self._rate_limit()
             self.get_count += 1
             req_url     = self.base_url + obj_uri.uri
@@ -2194,15 +2164,28 @@ class DataTracker:
             req_params  = obj_uri.params
             r = self.session.get(req_url, params = req_params, headers = req_headers, verify = True, stream = False)
             if r.status_code == 200:
-                obj_json = r.json()
-                self._cache_put_object(obj_uri, obj_json)
+                url_obj = r.json() # type: Dict[str, Any]
+                self._cache_put_object(obj_uri, url_obj)
                 self._cache_record_query(obj_uri, _parent_uri(obj_uri))
-                return self.pavlova.from_mapping(obj_json, obj_type)
+                return url_obj
             elif r.status_code == 404:
                 return None
             else:
-                print("_retrieve failed: {} {}".format(r.status_code, self.base_url + obj_uri.uri))
+                print("_retrieve_json failed: {} {}".format(r.status_code, self.base_url + obj_uri.uri))
                 sys.exit(1)
+        else:
+            self.cache_hit += 1
+            return self._cache_get_object(obj_uri)
+
+
+
+    def _retrieve(self, obj_uri: URI, obj_type: Type[T]) -> Optional[T]:
+        self._cache_update(_parent_uri(obj_uri), obj_type)
+        obj_json = self._retrieve_json(obj_uri)
+        if obj_json is not None:
+            return self.pavlova.from_mapping(obj_json, obj_type)
+        else:
+            return None
 
 
     def _retrieve_multi(self, obj_uri: URI, obj_type: Type[T], deref: Dict[str, Any] = {}, sort_by : List[str] = ["order", "id"], reverse=False) -> Iterator[T]:
