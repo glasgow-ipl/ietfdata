@@ -2045,6 +2045,7 @@ class DataTracker:
                                 deref_obj = self._retrieve_json(URI(item))
                                 if deref_obj is not None and v == deref_obj[deref[k]]:
                                     found = True
+                                    break
                             if not found:
                                 res = False
                         elif isinstance(obj[k], str):
