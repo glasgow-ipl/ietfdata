@@ -2186,6 +2186,8 @@ class DataTracker:
         obj_type_uri = URI(obj_uri.uri)
         cache_uri = URI(obj_uri.uri)
         for n, v in obj_uri.params.items():
+            assert n is not None
+            assert v is not None
             if n != "time__gte" and n != "time__lt":
                 cache_uri.params[n] = v
 
@@ -2683,7 +2685,8 @@ class DataTracker:
             url.params["by"] = by.id
         if doc is not None:
             url.params["doc"] = doc.id
-        url.params["type"] = event_type
+        if event_type is not None:
+            url.params["type"] = event_type
         return self._retrieve_multi(url, BallotDocumentEvent, deref = {"ballot_type": "id", "by": "id", "doc": "id"}, sort_by=["id"])
 
 
@@ -2804,7 +2807,8 @@ class DataTracker:
         url = GroupURI("/api/v1/group/group/")
         url.params["time__gte"]       = since
         url.params["time__lt"]       = until
-        url.params["name__contains"] = name_contains
+        if name_contains is not None:
+            url.params["name__contains"] = name_contains
         if state is not None:
             url.params["state"] = state.slug
         if parent is not None:
@@ -2853,11 +2857,12 @@ class DataTracker:
         url = GroupEventURI("/api/v1/group/groupevent/")
         url.params["time__gte"] = since
         url.params["time__lt"]  = until
-        url.params["type"]      = type
         if by is not None:
             url.params["by"] = by.id
         if group is not None:
             url.params["group"] = group.id
+        if type is not None:
+            url.params["type"]  = type
         return self._retrieve_multi(url, GroupEvent, deref = {"by": "id", "group": "id"}, sort_by=["id"], reverse=True)
 
     def group_url(self, group_url_uri: GroupUrlURI) -> Optional[GroupUrl]:
@@ -2986,15 +2991,16 @@ class DataTracker:
             milestone     : Optional[GroupMilestone]   = None,
             type          : Optional[str]              = None) -> Iterator[GroupMilestoneEvent]:
         url = GroupMilestoneEventURI("/api/v1/group/milestonegroupevent/")
-        url.params["time__gte"]       = since
-        url.params["time__lt"]       = until
-        url.params["type"]           = type
+        url.params["time__gte"] = since
+        url.params["time__lt"]  = until
         if by is not None:
             url.params["by"] = by.id
         if group is not None:
             url.params["group"] = group.id
         if milestone is not None:
             url.params["milestone"] = milestone.id
+        if type is not None:
+            url.params["type"] = type
         return self._retrieve_multi(url, GroupMilestoneEvent, deref = {"by": "id", "group": "id", "milestone": "id"}, sort_by=["id"], reverse=True)
 
 
@@ -3241,8 +3247,8 @@ class DataTracker:
             submitter_email    : Optional[str]                   = None,
             submitter_name     : Optional[str]                   = None) -> Iterator[IPRDisclosureBase]:
         url = IPRDisclosureBaseURI("/api/v1/ipr/iprdisclosurebase/")
-        url.params["time__gte"]       = since
-        url.params["time__lt"]       = until
+        url.params["time__gte"] = since
+        url.params["time__lt"]  = until
         if by is not None:
             url.params["by"] = by.id
         if holder_legal_name is not None:
@@ -3270,8 +3276,8 @@ class DataTracker:
             submitter_email     : Optional[str]                   = None,
             submitter_name      : Optional[str]                   = None) -> Iterator[GenericIPRDisclosure]:
         url = GenericIPRDisclosureURI("/api/v1/ipr/genericiprdisclosure/")
-        url.params["time__gte"]       = since
-        url.params["time__lt"]       = until
+        url.params["time__gte"] = since
+        url.params["time__lt"]  = until
         if by is not None:
             url.params["by"] = by.id
         if holder_legal_name is not None:
@@ -3312,8 +3318,8 @@ class DataTracker:
             submitter_email      : Optional[str]                   = None,
             submitter_name       : Optional[str]                   = None) -> Iterator[HolderIPRDisclosure]:
         url = HolderIPRDisclosureURI("/api/v1/ipr/holderiprdisclosure/")
-        url.params["time__gte"]       = since
-        url.params["time__lt"]       = until
+        url.params["time__gte"] = since
+        url.params["time__lt"]  = until
         if by is not None:
             url.params["by"] = by.id
         if holder_legal_name is not None:
@@ -3350,8 +3356,8 @@ class DataTracker:
             submitter_email      : Optional[str]                   = None,
             submitter_name       : Optional[str]                   = None) -> Iterator[HolderIPRDisclosure]:
         url = ThirdPartyIPRDisclosureURI("/api/v1/ipr/thirdpartyiprdisclosure/")
-        url.params["time__gte"]       = since
-        url.params["time__lt"]       = until
+        url.params["time__gte"] = since
+        url.params["time__lt"]  = until
         if by is not None:
             url.params["by"] = by.id
         if holder_legal_name is not None:
@@ -3468,8 +3474,8 @@ class DataTracker:
             team          : Optional[Group]              = None,
             type          : Optional[ReviewType]         = None) -> Iterator[ReviewRequest]:
         url = ReviewRequestURI("/api/v1/review/reviewrequest/")
-        url.params["time__gte"]       = since
-        url.params["time__lt"]       = until
+        url.params["time__gte"] = since
+        url.params["time__lt"]  = until
         if doc is not None:
             url.params["doc"] = doc.id
         if requested_by is not None:
