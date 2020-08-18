@@ -3802,7 +3802,7 @@ class DataTracker:
             url.params["reg_type"] = reg_type
         if ticket_type is not None:
             url.params["ticket_type"] = ticket_type
-        return self._retrieve_multi(url, MeetingRegistration, deref = {"meeting": "id", "person": "id"})
+        return self._retrieve_multi(url, MeetingRegistration, deref = {"meeting": "id", "person": "id"}, sort_by=["id"])
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
