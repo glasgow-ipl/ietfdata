@@ -1899,6 +1899,9 @@ class DataTracker:
         self.ua       = "glasgow-ietfdata/0.4.0"          # Update when making a new relaase
         self.base_url = "https://datatracker.ietf.org"
         self.http_req = 0
+        self.memcache : Dict[str, Dict[str, Any]] = {}
+        self.memcache_req = 0
+        self.memcache_hit = 0
         self.cache_dir = cache_dir
         self.cache_req = 0
         self.cache_hit = 0
@@ -1911,17 +1914,33 @@ class DataTracker:
 
 
     def __del__(self):
-        print(F"Cache requests: {self.cache_req}")
+        print(F"memcache size: {len(self.memcache)}")
+        print(F"memcache requests: {self.memcache_req}")
+        print(F"memcache hit rate: {self.memcache_hit / self.memcache_req * 100.0:.1f}%")
+        print(F"cache requests: {self.cache_req}")
         if self.cache_req == 0:
-            print(F"Cache hit rate: -")
+            print(F"cache hit rate: -")
         else:
-            print(F"Cache hit rate: {self.cache_hit / self.cache_req * 100.0:.1f}%")
+            print(F"cache hit rate: {self.cache_hit / self.cache_req * 100.0:.1f}%")
         print(F"HTTP GET calls: {self.get_count}")
         self.session.close()
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
     # Private methods to manage the local cache:
+
+    def _memcache_has_object(self, obj_uri: str) -> bool:
+        return obj_uri in self.memcache
+
+
+    def _memcache_get_object(self, obj_uri: str) -> Dict[str, Any]:
+        assert obj_uri in self.memcache
+        return self.memcache[obj_uri]
+
+
+    def _memcache_put_object(self, obj_uri: str, obj: Dict[str, Any]) -> None:
+        self.memcache[obj_uri] = obj
+
 
     def _cache_update(self, obj_type_uri: URI, obj_type: Type[T]) -> None:
         self._cache_create(obj_type_uri)
@@ -1964,24 +1983,34 @@ class DataTracker:
 
 
     def _cache_has_object(self, obj_uri: URI) -> bool:
-        cache_filepath = Path(self.cache_dir, obj_uri.uri[1:-1] + ".json")
-        if cache_filepath.exists():
-            return True       # Object is in the local cache
+        if self._memcache_has_object(obj_uri.uri):
+            return True
         else:
-            if self._cache_has_all_objects(_parent_uri(obj_uri)):
-                return True   # Object is known not to exist
+            cache_filepath = Path(self.cache_dir, obj_uri.uri[1:-1] + ".json")
+            if cache_filepath.exists():
+                return True       # Object is in the local cache
             else:
-                return False  # Object is not in the cache
+                if self._cache_has_all_objects(_parent_uri(obj_uri)):
+                    return True   # Object is known not to exist
+                else:
+                    return False  # Object is not in the cache
 
 
     def _cache_get_object(self, obj_uri: URI, obj_type: Type[T]) -> Optional[T]:
-        cache_filepath = Path(self.cache_dir, obj_uri.uri[1:-1] + ".json")
-        if cache_filepath.exists():
-            with open(cache_filepath) as cache_file:
-                obj = self.pavlova.from_mapping(json.load(cache_file), obj_type) # type: T
-                return obj
+        self.memcache_req += 1
+        if self._memcache_has_object(obj_uri.uri):
+            self.memcache_hit += 1
+            obj_json = self._memcache_get_object(obj_uri.uri)
         else:
-            return None
+            cache_filepath = Path(self.cache_dir, obj_uri.uri[1:-1] + ".json")
+            if cache_filepath.exists():
+                with open(cache_filepath) as cache_file:
+                    obj_json = json.load(cache_file)
+                self._memcache_put_object(obj_uri.uri, obj_json)
+            else:
+                return None
+        obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
+        return obj
 
 
     def _cache_put_object(self, obj_uri: URI, obj_json: Dict[str, Any]) -> None:
@@ -1992,6 +2021,7 @@ class DataTracker:
             self._cache_create(_parent_uri(obj_uri))
         with open(cache_filepath, "w") as cache_file:
             json.dump(obj_json, cache_file)
+        self._memcache_put_object(obj_uri.uri, obj_json)
 
 
     def _cache_has_all_objects(self, obj_type_uri: URI):
@@ -2024,9 +2054,15 @@ class DataTracker:
                 sys.exit(1)
         else:
             self.cache_hit += 1
-            with open(Path(self.cache_dir, deref_uri[1:-1] + ".json"), "r") as cache_file:
-                url_obj = json.load(cache_file)
-                return url_obj
+            self.memcache_req += 1
+            if self._memcache_has_object(deref_uri):
+                self.memcache_hit += 1
+                return self._memcache_get_object(deref_uri)
+            else:
+                with open(Path(self.cache_dir, deref_uri[1:-1] + ".json"), "r") as cache_file:
+                    url_obj = json.load(cache_file)
+                    self._memcache_put_object(deref_uri, url_obj)
+                    return url_obj
 
 
 
@@ -2073,8 +2109,17 @@ class DataTracker:
         for obj_file in Path(self.cache_dir, obj_type_uri.uri[1:-1]).glob("*.json"):
             if obj_file.name == "_cache_info.json":
                 continue
-            with open(obj_file) as cache_file:
-                obj_json = json.load(cache_file)
+
+            cache_uri = str(obj_file)[5:-5]+"/"
+            self.memcache_req += 1
+            if self._memcache_has_object(cache_uri):
+                self.memcache_hit += 1
+                obj_json = self._memcache_get_object(cache_uri)
+            else:
+                with open(obj_file) as cache_file:
+                    obj_json = json.load(cache_file)
+                    self._memcache_put_object(cache_uri, obj_json)
+
             if self._cache_obj_matches(obj_json, obj_uri, deref):
                 sort_key = ""
                 for sb in sort_by:
