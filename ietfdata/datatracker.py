@@ -2102,7 +2102,11 @@ class DataTracker:
 
 
     def _cache_put_objects(self, obj_uri: URI, obj_type_uri: URI) -> None:
-        headers = {'user-agent': self.ua}
+        if len(obj_uri.params) > 0:
+            obj_uri = URI(F"{obj_uri.uri}?limit=100&{urllib.parse.urlencode(obj_uri.params)}")
+        else:
+            obj_uri = URI(F"{obj_uri.uri}?limit=100")
+
         while obj_uri.uri is not None:
             self._rate_limit()
             retry = True
@@ -2112,11 +2116,7 @@ class DataTracker:
                 self.get_count += 1
                 req_url     = self.base_url + obj_uri.uri
                 req_headers = {'User-Agent': self.ua}
-                req_params  = {}
-                for k,v in obj_uri.params.items():
-                    req_params[k] = v
-                req_params["limit"] = "100"
-                r = self.session.get(req_url, params = req_params, headers = req_headers, verify = True, stream = False)
+                r = self.session.get(req_url, headers = req_headers, verify = True, stream = False)
                 if r.status_code == 200:
                     meta = r.json()['meta']
                     objs = r.json()['objects']
@@ -2125,14 +2125,14 @@ class DataTracker:
                         self._cache_put_object(URI(obj_json["resource_uri"]), obj_json)
                 elif r.status_code == 500:
                     if retry_time > 60:
-                        print("_cache_put_objects failed: error {} after {} requests".format(r.status_code, self.http_req))
+                        print("_cache_put_objects failed: retry_time exceeded")
                         sys.exit(1)
                     self.session.close()
                     time.sleep(retry_time)
                     retry_time *= 2
                     retry = True
                 else:
-                    print("_cache_put_objects failed: error {} after {} requests".format(r.status_code, self.http_req))
+                    print(F"_cache_put_objects failed: error {r.status_code} after {self.http_req} requests {req_url}")
                     sys.exit(1)
 
 
