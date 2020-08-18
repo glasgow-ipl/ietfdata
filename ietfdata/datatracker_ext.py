@@ -186,7 +186,6 @@ class DataTrackerExt(DataTracker):
         irtf = self.group_from_acronym("irtf")
         groups = list(self.groups(parent = irtf))
         for group in groups:
-            print(F"  {self.cache_req:8} {group.name}")
             t = self.group_type_name(group.type)
             s = self.group_state(group.state)
             if s == self.group_state_from_slug("active") and t == self.group_type_name_from_slug("rg"):
