@@ -1984,7 +1984,7 @@ class DataTracker:
             return None
 
 
-    def _cache_put_object(self, obj_uri: URI, obj_json: Dict[Any, Any]) -> None:
+    def _cache_put_object(self, obj_uri: URI, obj_json: Dict[str, Any]) -> None:
         assert obj_uri.uri.startswith("/")
         assert obj_uri.uri.endswith("/")
         cache_filepath = Path(self.cache_dir, obj_uri.uri[1:-1] + ".json")
@@ -2004,7 +2004,34 @@ class DataTracker:
         return str(obj_uri) in meta.queries
 
 
-    def _cache_obj_matches(self, obj: Dict[str, str], query_uri: URI, deref : Dict[str, str] = {}) -> bool:
+    def _cache_obj_deref(self, deref_uri: str) -> Optional[Dict[str, Any]]:
+        self.cache_req += 1
+        if not self._cache_has_object(URI(deref_uri)):
+            self._rate_limit()
+            self.get_count += 1
+            req_url     = self.base_url + deref_uri
+            req_headers = {'User-Agent': self.ua}
+            r = self.session.get(req_url, headers = req_headers, verify = True, stream = False)
+            if r.status_code == 200:
+                url_obj = r.json() # type: Dict[str, Any]
+                self._cache_put_object(URI(deref_uri), url_obj)
+                self._cache_record_query(URI(deref_uri), _parent_uri(URI(deref_uri)))
+                return url_obj
+            elif r.status_code == 404:
+                return None
+            else:
+                print("_cache_obj_matches failed: {} {}".format(r.status_code, self.base_url + deref_uri))
+                sys.exit(1)
+        else:
+            self.cache_hit += 1
+            with open(Path(self.cache_dir, deref_uri[1:-1] + ".json"), "r") as cache_file:
+                url_obj = json.load(cache_file)
+                return url_obj
+
+
+
+    def _cache_obj_matches(self, obj: Dict[str, Any], query_uri: URI, deref : Dict[str, Any]) -> bool:
+        # For each parameter in query_uri, check that obj contains matching key and value
         res = True
         for (k, v) in query_uri.params.items():
             if v is not None:
@@ -2012,55 +2039,9 @@ class DataTracker:
                     if obj[k] is None:
                         res = False
                     else:
-                        # FIXME: this is ugly
-                        if isinstance(obj[k], list):
-                            for objk in obj[k]:
-                                self.cache_req += 1
-                                if not self._cache_has_object(URI(objk)):
-                                    self._rate_limit()
-                                    self.get_count += 1
-                                    req_url     = self.base_url + objk
-                                    req_headers = {'User-Agent': self.ua}
-                                    r = self.session.get(req_url, headers = req_headers, verify = True, stream = False)
-                                    if r.status_code == 200:
-                                        url_obj = r.json()
-                                        self._cache_put_object(URI(objk), url_obj)
-                                        self._cache_record_query(URI(objk), _parent_uri(URI(objk)))
-                                    elif r.status_code == 404:
-                                        res = False
-                                    else:
-                                        print("_cache_obj_matches failed: {} {}".format(r.status_code, self.base_url + objk))
-                                        sys.exit(1)
-                                else:
-                                    self.cache_hit += 1
-                                    with open(Path(self.cache_dir, objk[1:-1] + ".json"), "r") as cache_file:
-                                        url_obj = json.load(cache_file)
-                                if v == url_obj[deref[k]]:
-                                    res = True
-                                    break
-                        else:
-                            self.cache_req += 1
-                            if not self._cache_has_object(URI(obj[k])):
-                                self._rate_limit()
-                                self.get_count += 1
-                                req_url     = self.base_url + obj[k]
-                                req_headers = {'User-Agent': self.ua}
-                                r = self.session.get(req_url, headers = req_headers, verify = True, stream = False)
-                                if r.status_code == 200:
-                                    url_obj = r.json()
-                                    self._cache_put_object(URI(obj[k]), url_obj)
-                                    self._cache_record_query(URI(obj[k]), _parent_uri(URI(obj[k])))
-                                elif r.status_code == 404:
-                                    res = False
-                                else:
-                                    print("_cache_obj_matches failed: {} {}".format(r.status_code, self.base_url + obj[k]))
-                                    sys.exit(1)
-                            else:
-                                self.cache_hit += 1
-                                with open(Path(self.cache_dir, obj[k][1:-1] + ".json"), "r") as cache_file:
-                                    url_obj = json.load(cache_file)
-                            if v != url_obj[deref[k]]:
-                                res = False
+                        deref_obj = self._cache_obj_deref(obj[k])
+                        if deref_obj is None or v != deref_obj[deref[k]]:
+                            res = False
                 elif "__contains" in k:
                     k_base = k[:-10]
                     if not v in obj[k_base]:
@@ -2087,7 +2068,7 @@ class DataTracker:
         return res
 
 
-    def _cache_get_objects(self, obj_uri: URI, obj_type_uri: URI, obj_type: Type[T], deref: Dict[str, str], sort_by: List[str], reverse:bool) -> Iterator[T]:
+    def _cache_get_objects(self, obj_uri: URI, obj_type_uri: URI, obj_type: Type[T], deref: Dict[str, Any], sort_by: List[str], reverse:bool) -> Iterator[T]:
         results = []
         for obj_file in Path(self.cache_dir, obj_type_uri.uri[1:-1]).glob("*.json"):
             if obj_file.name == "_cache_info.json":
@@ -2179,7 +2160,7 @@ class DataTracker:
                 sys.exit(1)
 
 
-    def _retrieve_multi(self, obj_uri: URI, obj_type: Type[T], deref: Dict[str, str] = {}, sort_by : List[str] = ["order", "id"], reverse=False) -> Iterator[T]:
+    def _retrieve_multi(self, obj_uri: URI, obj_type: Type[T], deref: Dict[str, Any] = {}, sort_by : List[str] = ["order", "id"], reverse=False) -> Iterator[T]:
         obj_type_uri = URI(obj_uri.uri)
         cache_uri = URI(obj_uri.uri)
         for n, v in obj_uri.params.items():
