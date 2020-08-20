@@ -1914,15 +1914,15 @@ class DataTracker:
 
 
     def __del__(self):
-        print(F"memcache size: {len(self.memcache)}")
-        print(F"memcache requests: {self.memcache_req}")
-        print(F"memcache hit rate: {self.memcache_hit / self.memcache_req * 100.0:.1f}%")
-        print(F"cache requests: {self.cache_req}")
+        print(F"[ietfdata] memcache size: {len(self.memcache)}")
+        print(F"[ietfdata] memcache requests: {self.memcache_req}")
+        print(F"[ietfdata] memcache hit rate: {self.memcache_hit / self.memcache_req * 100.0:.1f}%")
+        print(F"[ietfdata] cache requests: {self.cache_req}")
         if self.cache_req == 0:
-            print(F"cache hit rate: -")
+            print(F"[ietfdata] cache hit rate: -")
         else:
-            print(F"cache hit rate: {self.cache_hit / self.cache_req * 100.0:.1f}%")
-        print(F"HTTP GET calls: {self.get_count}")
+            print(F"[ietfdata] cache hit rate: {self.cache_hit / self.cache_req * 100.0:.1f}%")
+        print(F"[ietfdata] HTTP GET calls: {self.get_count}")
         self.session.close()
 
 
@@ -1944,7 +1944,30 @@ class DataTracker:
 
     def _cache_update(self, obj_type_uri: URI, obj_type: Type[T]) -> None:
         self._cache_create(obj_type_uri)
-        # FIXME: update the cache
+        now  = datetime.now()
+        meta = self._cache_load_metadata(obj_type_uri)
+        # Should we switch from a partial cache to full cache for this object type?
+        if meta.partial and len(meta.queries) > 100:
+            # Switch to caching all objects of this type
+            print(F"[ietfdata] switch to full cache {obj_type_uri.uri}")
+            self._cache_put_objects(obj_type_uri, obj_type_uri)
+            meta = self._cache_load_metadata(obj_type_uri)
+            meta.partial = False
+            meta.queries = []
+            meta.updated = now
+            self._cache_save_metadata(obj_type_uri, meta)
+        # Do we need to update the cache?
+        if now - meta.updated > timedelta(hours=1):
+            # FIXME: how to handle object types that don't have a modification time?
+            print(F"[ietfdata] cache outdated {obj_type_uri.uri}")
+            update_uri = URI(obj_type_uri.uri)
+            update_uri.params["time__gte"] = meta.updated.isoformat()
+            update_uri.params["time__lt"]  = now.isoformat()
+            self._cache_put_objects(update_uri, obj_type_uri)
+            meta = self._cache_load_metadata(obj_type_uri)
+            meta.updated = now
+            self._cache_save_metadata(obj_type_uri, meta)
+
 
 
     def _cache_load_metadata(self, obj_type_uri: URI) -> CacheMetadata:
@@ -1976,10 +1999,14 @@ class DataTracker:
 
     def _cache_record_query(self, obj_uri: URI, obj_type_uri: URI) -> None:
         meta  = self._cache_load_metadata(obj_type_uri)
-        query = str(obj_uri)
-        if query not in meta.queries:
-            meta.queries.append(query)
-            self._cache_save_metadata(obj_type_uri, meta)
+        if meta.partial:
+            query = str(obj_uri)
+            if query not in meta.queries:
+                meta.queries.append(query)
+                self._cache_save_metadata(obj_type_uri, meta)
+        else:
+            # Queries are not recorded if we have a complete cache for this object type
+            pass
 
 
     def _cache_has_object(self, obj_uri: URI) -> bool:
@@ -2136,6 +2163,7 @@ class DataTracker:
                 self.get_count += 1
                 req_url     = self.base_url + obj_uri.uri
                 req_headers = {'User-Agent': self.ua}
+                self._cache_record_query(URI(req_url), obj_type_uri)
                 r = self.session.get(req_url, headers = req_headers, verify = True, stream = False)
                 if r.status_code == 200:
                     meta = r.json()['meta']
