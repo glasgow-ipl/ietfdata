@@ -1959,6 +1959,9 @@ class DataTracker:
         # Do we need to update the cache?
         if now - meta.updated > timedelta(hours=1):
             # FIXME: how to handle object types that don't have a modification time?
+            # (e.g., those under /api/v1/doc/docalias/). The current approach will
+            # fetch all objects since the time__* parameters are not used and hence
+            # are ignored by the tracker.
             print(F"[ietfdata] cache outdated {obj_type_uri.uri}")
             update_uri = URI(obj_type_uri.uri)
             update_uri.params["time__gte"] = meta.updated.isoformat()
