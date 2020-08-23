@@ -1892,6 +1892,7 @@ class CacheHints:
     trim    : List[str]
     sort_by : List[str]
     reverse : bool
+    timed   : bool
 
 
 class DataTracker:
@@ -1921,75 +1922,77 @@ class DataTracker:
         self.pavlova.register_parser(CacheMetadata, GenericParser(self.pavlova, CacheMetadata))
         # Register cache hints:
         self._cache_hints = {}
-        self._cache_hints["/api/v1/doc/ballotdocevent/"]                 = CacheHints({"doc": "id"}, ["ballot_type", "by"], ["id"], False)
-        self._cache_hints["/api/v1/doc/ballottype/"]                     = CacheHints({}, ["doc_type"], ["order", "id"], False)
-        self._cache_hints["/api/v1/doc/docalias/"]                       = CacheHints({}, [], ["id"], False)
-        self._cache_hints["/api/v1/doc/docevent/"]                       = CacheHints({"doc": "id"},      ["by"], ["id"], True)
-        self._cache_hints["/api/v1/doc/documentauthor/"]                 = CacheHints({"document": "id"}, ["email", "person"], ["order", "id"], False)
-        self._cache_hints["/api/v1/doc/document/"]                       = CacheHints({}, ["type", "group"], ["id"], False)
-        self._cache_hints["/api/v1/doc/relateddocument/"]                = CacheHints({"source": "id", "target": "id", "relationship": "slug"}, [], ["id"], False)
-        self._cache_hints["/api/v1/doc/statetype/"]                      = CacheHints({}, [], ["slug"], False)
-        self._cache_hints["/api/v1/doc/state/"]                          = CacheHints({}, ["type"], ["order", "id"], False)
-        self._cache_hints["/api/v1/group/changestategroupevent/"]        = CacheHints({}, ["by", "group", "state"], ["order", "id"], False)
-        self._cache_hints["/api/v1/group/groupevent/"]                   = CacheHints({}, ["by", "group"], ["id"], True)
-        self._cache_hints["/api/v1/group/grouphistory/"]                 = CacheHints({}, ["group", "parent", "state"], ["id"], False)
-        self._cache_hints["/api/v1/group/milestonegroupevent/"]          = CacheHints({}, ["by", "group", "milestone"], ["id"], True)
-        self._cache_hints["/api/v1/group/groupmilestonehistory/"]        = CacheHints({}, ["group", "milestone", "state"], ["id"], False)
-        self._cache_hints["/api/v1/group/groupmilestone/"]               = CacheHints({}, ["group", "state"], ["id"], False)
-        self._cache_hints["/api/v1/name/groupstatename/"]                = CacheHints({}, [], ["slug"], False)
-        self._cache_hints["/api/v1/name/grouptypename/"]                 = CacheHints({}, [], ["slug"], False)
-        self._cache_hints["/api/v1/group/groupurl/"]                     = CacheHints({}, ["group"], ["id"], False)
-        self._cache_hints["/api/v1/group/group/"]                        = CacheHints({}, ["parent", "state"], ["id"], False)
-        self._cache_hints["/api/v1/group/rolehistory/"]                  = CacheHints({}, ["email", "group", "name", "person"], ["id"], False)
-        self._cache_hints["/api/v1/group/role/"]                         = CacheHints({}, ["email", "group", "name", "person"], ["id"], False)
-        self._cache_hints["/api/v1/ipr/genericiprdisclosure/"]           = CacheHints({}, ["by", "state"], ["order", "id"], False)
-        self._cache_hints["/api/v1/ipr/holderiprdisclosure/"]            = CacheHints({}, ["by", "licensing", "state"], ["order", "id"], False)
-        self._cache_hints["/api/v1/ipr/iprdisclosurebase/"]              = CacheHints({}, ["by", "state"], ["order", "id"], False)
-        self._cache_hints["/api/v1/ipr/thirdpartyiprdisclosure/"]        = CacheHints({}, ["by", "state"], ["order", "id"], False)
-        self._cache_hints["/api/v1/name/ballotpositionname/"]            = CacheHints({}, [], ["order", "slug"], False)
-        self._cache_hints["/api/v1/name/docrelationshipname/"]           = CacheHints({}, [], ["slug"], False)
-        self._cache_hints["/api/v1/name/doctypename/"]                   = CacheHints({}, [], ["order", "slug"], False)
-        self._cache_hints["/api/v1/name/groupmilestonestatename/"]       = CacheHints({}, [], ["slug"], False)
-        self._cache_hints["/api/v1/name/meetingtypename/"]               = CacheHints({}, [], ["slug"], False)
-        self._cache_hints["/api/v1/name/iprdisclosurestatename/"]        = CacheHints({}, [], ["slug"], False)
-        self._cache_hints["/api/v1/name/iprlicensetypename/"]            = CacheHints({}, [], ["slug"], False)
-        self._cache_hints["/api/v1/name/reviewassignmentstatename/"]     = CacheHints({}, [], ["slug"], False)
-        self._cache_hints["/api/v1/name/reviewresultname/"]              = CacheHints({}, [], ["slug"], False)
-        self._cache_hints["/api/v1/name/reviewtypename/"]                = CacheHints({}, [], ["slug"], False)
-        self._cache_hints["/api/v1/name/reviewrequeststatename/"]        = CacheHints({}, [], ["slug"], False)
-        self._cache_hints["/api/v1/name/rolename/"]                      = CacheHints({}, [], ["slug"], False)
-        self._cache_hints["/api/v1/name/sessionstatusname/"]             = CacheHints({}, [], ["slug"], False)
-        self._cache_hints["/api/v1/name/streamname/"]                    = CacheHints({}, [], ["slug"], False)
-        self._cache_hints["/api/v1/mailinglists/list/"]                  = CacheHints({}, [], ["id"], False)
-        self._cache_hints["/api/v1/mailinglists/subscribed/"]            = CacheHints({}, ["lists"], ["id"], False)
-        self._cache_hints["/api/v1/meeting/meeting/"]                    = CacheHints({}, ["type"], ["id"], False)
-        self._cache_hints["/api/v1/meeting/schedulingevent/"]            = CacheHints({}, ["session", "by"], ["id"], False)
-        self._cache_hints["/api/v1/meeting/schedtimesessassignment/"]    = CacheHints({}, ["schedule"], ["id"], False)
-        self._cache_hints["/api/v1/meeting/session/"]                    = CacheHints({}, ["meeting", "group", "group_parent"], ["id"], False)
-        self._cache_hints["/api/v1/message/announcementfrom/"]           = CacheHints({}, ["group", "name"], ["id"], False)
-        self._cache_hints["/api/v1/message/message/"]                    = CacheHints({"related_doc": "id"}, ["by"], ["id"], False)
-        self._cache_hints["/api/v1/message/sendqueue/"]                  = CacheHints({}, ["by", "message"], ["id"], False)
-        self._cache_hints["/api/v1/person/alias/"]                       = CacheHints({}, ["person"], ["id"], False)
-        self._cache_hints["/api/v1/person/email/"]                       = CacheHints({}, ["person"], ["address"], False)
-        self._cache_hints["/api/v1/person/historicalemail/"]             = CacheHints({}, ["person"], ["history_id"], True)
-        self._cache_hints["/api/v1/person/historicalperson/"]            = CacheHints({}, ["person"], ["history_id"], True)
-        self._cache_hints["/api/v1/person/personevent/"]                 = CacheHints({}, ["person"], ["id"], False)
-        self._cache_hints["/api/v1/person/person/"]                      = CacheHints({}, [], ["id"], False)
-        self._cache_hints["/api/v1/review/historicalreviewassignment/"]  = CacheHints({}, ["result", "review_request", "reviewer", "state"], ["id"], False)
-        self._cache_hints["/api/v1/review/historicalreviewersettings/"]  = CacheHints({}, ["person", "team"], ["order", "id"], False)
-        self._cache_hints["/api/v1/review/historicalreviewrequest/"]     = CacheHints({"doc": "id"}, ["requested_by", "state", "team", "type"], ["order", "id"], False)
-        self._cache_hints["/api/v1/review/historicalunavailableperiod/"] = CacheHints({}, ["person", "team"], ["id"], False)
-        self._cache_hints["/api/v1/review/nextreviewerinteam/"]          = CacheHints({}, ["team"], ["id"], False)
-        self._cache_hints["/api/v1/review/reviewassignment/"]            = CacheHints({}, ["result", "review_request", "reviewer", "state"], ["id"], False)
-        self._cache_hints["/api/v1/review/reviewersettings/"]            = CacheHints({}, ["person", "team"], ["id"], False)
-        self._cache_hints["/api/v1/review/reviewrequest/"]               = CacheHints({"doc": "id"}, ["requested_by", "state", "team", "type"], ["id"], False)
-        self._cache_hints["/api/v1/review/reviewsecretarysettings/"]     = CacheHints({}, ["person", "team"], ["order", "id"], False)
-        self._cache_hints["/api/v1/review/reviewteamsettings/"]          = CacheHints({}, ["group"], ["id"], False)
-        self._cache_hints["/api/v1/review/reviewwish/"]                  = CacheHints({"doc": "id"}, ["person", "team"], ["id"], False)
-        self._cache_hints["/api/v1/review/unavailableperiod/"]           = CacheHints({}, ["person", "team"], ["order", "id"], False)
-        self._cache_hints["/api/v1/stats/meetingregistration/"]          = CacheHints({}, ["meeting", "person"], ["id"], False)
-        self._cache_hints["/api/v1/submit/submissionevent/"]             = CacheHints({}, ["by", "submission"], ["order", "id"], False)
-        self._cache_hints["/api/v1/submit/submission/"]                  = CacheHints({}, [], ["order", "id"], False)
+        self._cache_hints["/api/v1/doc/ballotdocevent/"]                 = CacheHints({"doc": "id"}, ["ballot_type", "by"], ["id"], False, True)
+        self._cache_hints["/api/v1/doc/ballottype/"]                     = CacheHints({}, ["doc_type"], ["order", "id"], False, False)
+        self._cache_hints["/api/v1/doc/docalias/"]                       = CacheHints({}, [], ["id"], False, False)
+        self._cache_hints["/api/v1/doc/docevent/"]                       = CacheHints({"doc": "id"},      ["by"], ["id"], True, True)
+        self._cache_hints["/api/v1/doc/document/"]                       = CacheHints({}, ["type", "group"], ["id"], False, True)
+        self._cache_hints["/api/v1/doc/documentauthor/"]                 = CacheHints({"document": "id"}, ["email", "person"], ["order", "id"], False, False)
+        self._cache_hints["/api/v1/doc/relateddocument/"]                = CacheHints({"source": "id", "target": "id", "relationship": "slug"}, [], ["id"], False, False)
+        self._cache_hints["/api/v1/doc/state/"]                          = CacheHints({}, ["type"], ["order", "id"], False, False)
+        self._cache_hints["/api/v1/doc/statetype/"]                      = CacheHints({}, [], ["slug"], False, False)
+        self._cache_hints["/api/v1/group/changestategroupevent/"]        = CacheHints({}, ["by", "group", "state"], ["order", "id"], False, True)
+        self._cache_hints["/api/v1/group/group/"]                        = CacheHints({}, ["parent", "state"], ["id"], False, True)
+        self._cache_hints["/api/v1/group/groupevent/"]                   = CacheHints({}, ["by", "group"], ["id"], True, True)
+        self._cache_hints["/api/v1/group/grouphistory/"]                 = CacheHints({}, ["group", "parent", "state"], ["id"], False, True)
+        self._cache_hints["/api/v1/group/groupmilestone/"]               = CacheHints({}, ["group", "state"], ["id"], False, True)
+        self._cache_hints["/api/v1/group/groupmilestonehistory/"]        = CacheHints({}, ["group", "milestone", "state"], ["id"], False, True)
+        self._cache_hints["/api/v1/group/groupurl/"]                     = CacheHints({}, ["group"], ["id"], False, False)
+        self._cache_hints["/api/v1/group/milestonegroupevent/"]          = CacheHints({}, ["by", "group", "milestone"], ["id"], True, True)
+        self._cache_hints["/api/v1/group/role/"]                         = CacheHints({}, ["email", "group", "name", "person"], ["id"], False, False)
+        self._cache_hints["/api/v1/group/rolehistory/"]                  = CacheHints({}, ["email", "group", "name", "person"], ["id"], False, False)
+        self._cache_hints["/api/v1/ipr/genericiprdisclosure/"]           = CacheHints({}, ["by", "state"], ["order", "id"], False, True)
+        self._cache_hints["/api/v1/ipr/holderiprdisclosure/"]            = CacheHints({}, ["by", "licensing", "state"], ["order", "id"], False, True)
+        self._cache_hints["/api/v1/ipr/iprdisclosurebase/"]              = CacheHints({}, ["by", "state"], ["order", "id"], False, True)
+        self._cache_hints["/api/v1/ipr/thirdpartyiprdisclosure/"]        = CacheHints({}, ["by", "state"], ["order", "id"], False, True)
+        self._cache_hints["/api/v1/mailinglists/list/"]                  = CacheHints({}, [], ["id"], False, False)
+        self._cache_hints["/api/v1/mailinglists/subscribed/"]            = CacheHints({}, ["lists"], ["id"], False, True)
+        self._cache_hints["/api/v1/meeting/meeting/"]                    = CacheHints({}, ["type"], ["id"], False, False)
+        self._cache_hints["/api/v1/meeting/schedtimesessassignment/"]    = CacheHints({}, ["schedule"], ["id"], False, False)
+        self._cache_hints["/api/v1/meeting/schedule/"]                   = CacheHints({}, [], ["id"], False, False)
+        self._cache_hints["/api/v1/meeting/schedulingevent/"]            = CacheHints({}, ["session", "by"], ["id"], False, True)
+        self._cache_hints["/api/v1/meeting/session/"]                    = CacheHints({}, ["meeting", "group", "group_parent"], ["id"], False, False)
+        self._cache_hints["/api/v1/meeting/timeslot/"]                   = CacheHints({}, [], ["id"], False, True)
+        self._cache_hints["/api/v1/message/announcementfrom/"]           = CacheHints({}, ["group", "name"], ["id"], False, False)
+        self._cache_hints["/api/v1/message/message/"]                    = CacheHints({"related_doc": "id"}, ["by"], ["id"], False, True)
+        self._cache_hints["/api/v1/message/sendqueue/"]                  = CacheHints({}, ["by", "message"], ["id"], False, True)
+        self._cache_hints["/api/v1/name/ballotpositionname/"]            = CacheHints({}, [], ["order", "slug"], False, False)
+        self._cache_hints["/api/v1/name/docrelationshipname/"]           = CacheHints({}, [], ["slug"], False, False)
+        self._cache_hints["/api/v1/name/doctypename/"]                   = CacheHints({}, [], ["order", "slug"], False, False)
+        self._cache_hints["/api/v1/name/groupmilestonestatename/"]       = CacheHints({}, [], ["slug"], False, False)
+        self._cache_hints["/api/v1/name/groupstatename/"]                = CacheHints({}, [], ["slug"], False, False)
+        self._cache_hints["/api/v1/name/grouptypename/"]                 = CacheHints({}, [], ["slug"], False, False)
+        self._cache_hints["/api/v1/name/meetingtypename/"]               = CacheHints({}, [], ["slug"], False, False)
+        self._cache_hints["/api/v1/name/iprdisclosurestatename/"]        = CacheHints({}, [], ["slug"], False, False)
+        self._cache_hints["/api/v1/name/iprlicensetypename/"]            = CacheHints({}, [], ["slug"], False, False)
+        self._cache_hints["/api/v1/name/reviewassignmentstatename/"]     = CacheHints({}, [], ["slug"], False, False)
+        self._cache_hints["/api/v1/name/reviewresultname/"]              = CacheHints({}, [], ["slug"], False, False)
+        self._cache_hints["/api/v1/name/reviewtypename/"]                = CacheHints({}, [], ["slug"], False, False)
+        self._cache_hints["/api/v1/name/reviewrequeststatename/"]        = CacheHints({}, [], ["slug"], False, False)
+        self._cache_hints["/api/v1/name/rolename/"]                      = CacheHints({}, [], ["slug"], False, False)
+        self._cache_hints["/api/v1/name/sessionstatusname/"]             = CacheHints({}, [], ["slug"], False, False)
+        self._cache_hints["/api/v1/name/streamname/"]                    = CacheHints({}, [], ["slug"], False, False)
+        self._cache_hints["/api/v1/person/alias/"]                       = CacheHints({}, ["person"], ["id"], False, False)
+        self._cache_hints["/api/v1/person/email/"]                       = CacheHints({}, ["person"], ["address"], False, True)
+        self._cache_hints["/api/v1/person/historicalemail/"]             = CacheHints({}, ["person"], ["history_id"], True, True)
+        self._cache_hints["/api/v1/person/historicalperson/"]            = CacheHints({}, ["person"], ["history_id"], True, True)
+        self._cache_hints["/api/v1/person/person/"]                      = CacheHints({}, [], ["id"], False, True)
+        self._cache_hints["/api/v1/person/personevent/"]                 = CacheHints({}, ["person"], ["id"], False, True)
+        self._cache_hints["/api/v1/review/historicalreviewassignment/"]  = CacheHints({}, ["result", "review_request", "reviewer", "state"], ["id"], False, False)
+        self._cache_hints["/api/v1/review/historicalreviewersettings/"]  = CacheHints({}, ["person", "team"], ["order", "id"], False, False)
+        self._cache_hints["/api/v1/review/historicalreviewrequest/"]     = CacheHints({"doc": "id"}, ["requested_by", "state", "team", "type"], ["order", "id"], False, False)
+        self._cache_hints["/api/v1/review/historicalunavailableperiod/"] = CacheHints({}, ["person", "team"], ["id"], False, False)
+        self._cache_hints["/api/v1/review/nextreviewerinteam/"]          = CacheHints({}, ["team"], ["id"], False, False)
+        self._cache_hints["/api/v1/review/reviewassignment/"]            = CacheHints({}, ["result", "review_request", "reviewer", "state"], ["id"], False, False)
+        self._cache_hints["/api/v1/review/reviewersettings/"]            = CacheHints({}, ["person", "team"], ["id"], False, False)
+        self._cache_hints["/api/v1/review/reviewrequest/"]               = CacheHints({"doc": "id"}, ["requested_by", "state", "team", "type"], ["id"], False, True)
+        self._cache_hints["/api/v1/review/reviewsecretarysettings/"]     = CacheHints({}, ["person", "team"], ["order", "id"], False, False)
+        self._cache_hints["/api/v1/review/reviewteamsettings/"]          = CacheHints({}, ["group"], ["id"], False, False)
+        self._cache_hints["/api/v1/review/reviewwish/"]                  = CacheHints({"doc": "id"}, ["person", "team"], ["id"], False, True)
+        self._cache_hints["/api/v1/review/unavailableperiod/"]           = CacheHints({}, ["person", "team"], ["order", "id"], False, False)
+        self._cache_hints["/api/v1/stats/meetingregistration/"]          = CacheHints({}, ["meeting", "person"], ["id"], False, False)
+        self._cache_hints["/api/v1/submit/submission/"]                  = CacheHints({}, [], ["order", "id"], False, False)
+        self._cache_hints["/api/v1/submit/submissionevent/"]             = CacheHints({}, ["by", "submission"], ["order", "id"], False, True)
 
 
 
@@ -2037,20 +2040,20 @@ class DataTracker:
             meta.updated = now
             self._cache_save_metadata(obj_type_uri, meta)
         # Do we need to update the cache?
-        if now - meta.updated > timedelta(weeks=1):
-            # FIXME: how to handle object types that don't have a modification time?
-            # (e.g., those under /api/v1/doc/docalias/). The current approach will
-            # fetch all objects since the time__* parameters are not used and hence
-            # are ignored by the tracker.
-            print(F"[ietfdata] cache outdated {obj_type_uri.uri}")
-            update_uri = URI(obj_type_uri.uri)
-            update_uri.params["time__gte"] = meta.updated.isoformat()
-            update_uri.params["time__lt"]  = now.isoformat()
-            self._cache_put_objects(update_uri, obj_type_uri)
-            meta = self._cache_load_metadata(obj_type_uri)
-            meta.updated = now
-            self._cache_save_metadata(obj_type_uri, meta)
-
+        if now - meta.updated > timedelta(hours=1):
+            hints = self._cache_hints[obj_type_uri.uri]
+            if hints.timed:
+                update_uri = URI(obj_type_uri.uri)
+                update_uri.params["time__gte"] = meta.updated.isoformat()
+                update_uri.params["time__lt"]  = now.isoformat()
+                print(F"[ietfdata] cache outdated {str(update_uri)}")
+                self._cache_put_objects(update_uri, obj_type_uri)
+                meta = self._cache_load_metadata(obj_type_uri)
+                meta.updated = now
+                self._cache_save_metadata(obj_type_uri, meta)
+            else:
+                # FIXME: how to handle object types that don't have a modification time?
+                pass
 
 
     def _cache_load_metadata(self, obj_type_uri: URI) -> CacheMetadata:
@@ -2081,11 +2084,17 @@ class DataTracker:
 
 
     def _cache_record_query(self, obj_uri: URI, obj_type_uri: URI) -> None:
+        assert "?" not in obj_uri.uri
         meta  = self._cache_load_metadata(obj_type_uri)
         if meta.partial:
-            query = str(obj_uri)
-            if query not in meta.queries:
-                meta.queries.append(query)
+            cache_uri = URI(obj_uri.uri)
+            for n, v in obj_uri.params.items():
+                assert n is not None
+                assert v is not None
+                if n != "time__gte" and n != "time__lt":
+                    cache_uri.params[n] = v
+            if str(cache_uri) not in meta.queries:
+                meta.queries.append(str(cache_uri))
                 self._cache_save_metadata(obj_type_uri, meta)
         else:
             # Queries are not recorded if we have a complete cache for this object type
@@ -2248,7 +2257,6 @@ class DataTracker:
                 self.get_count += 1
                 req_url     = self.base_url + obj_uri.uri
                 req_headers = {'User-Agent': self.ua}
-                self._cache_record_query(URI(req_url), obj_type_uri)
                 r = self.session.get(req_url, headers = req_headers, verify = True, stream = False)
                 if r.status_code == 200:
                     meta = r.json()['meta']
