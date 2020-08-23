@@ -1019,11 +1019,11 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(len(a), 7)
             self.assertEqual(a[0].document, DocumentURI(uri='/api/v1/doc/document/draft-gharai-ac3/'))
             self.assertEqual(a[1].document, DocumentURI(uri='/api/v1/doc/document/draft-gharai-hdtv-video/'))
-            self.assertEqual(a[2].document, DocumentURI(uri='/api/v1/doc/document/draft-ietf-avt-smpte292-video/'))
-            self.assertEqual(a[3].document, DocumentURI(uri='/api/v1/doc/document/draft-gharai-avt-uncomp-video/'))
-            self.assertEqual(a[4].document, DocumentURI(uri='/api/v1/doc/document/draft-ietf-avt-uncomp-video/'))
-            self.assertEqual(a[5].document, DocumentURI(uri='/api/v1/doc/document/draft-gharai-avt-tfrc-profile/'))
-            self.assertEqual(a[6].document, DocumentURI(uri='/api/v1/doc/document/draft-ietf-avt-tfrc-profile/'))
+            self.assertEqual(a[2].document, DocumentURI(uri='/api/v1/doc/document/draft-gharai-avt-uncomp-video/'))
+            self.assertEqual(a[3].document, DocumentURI(uri='/api/v1/doc/document/draft-ietf-avt-uncomp-video/'))
+            self.assertEqual(a[4].document, DocumentURI(uri='/api/v1/doc/document/draft-gharai-avt-tfrc-profile/'))
+            self.assertEqual(a[5].document, DocumentURI(uri='/api/v1/doc/document/draft-ietf-avt-tfrc-profile/'))
+            self.assertEqual(a[6].document, DocumentURI(uri='/api/v1/doc/document/draft-ietf-avt-smpte292-video/'))
         else:
             self.fail("Cannot find person");
 
@@ -1035,11 +1035,11 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(len(a), 7)
             self.assertEqual(a[0].document, DocumentURI(uri='/api/v1/doc/document/draft-gharai-ac3/'))
             self.assertEqual(a[1].document, DocumentURI(uri='/api/v1/doc/document/draft-gharai-hdtv-video/'))
-            self.assertEqual(a[2].document, DocumentURI(uri='/api/v1/doc/document/draft-ietf-avt-smpte292-video/'))
-            self.assertEqual(a[3].document, DocumentURI(uri='/api/v1/doc/document/draft-gharai-avt-uncomp-video/'))
-            self.assertEqual(a[4].document, DocumentURI(uri='/api/v1/doc/document/draft-ietf-avt-uncomp-video/'))
-            self.assertEqual(a[5].document, DocumentURI(uri='/api/v1/doc/document/draft-gharai-avt-tfrc-profile/'))
-            self.assertEqual(a[6].document, DocumentURI(uri='/api/v1/doc/document/draft-ietf-avt-tfrc-profile/'))
+            self.assertEqual(a[2].document, DocumentURI(uri='/api/v1/doc/document/draft-gharai-avt-uncomp-video/'))
+            self.assertEqual(a[3].document, DocumentURI(uri='/api/v1/doc/document/draft-ietf-avt-uncomp-video/'))
+            self.assertEqual(a[4].document, DocumentURI(uri='/api/v1/doc/document/draft-gharai-avt-tfrc-profile/'))
+            self.assertEqual(a[5].document, DocumentURI(uri='/api/v1/doc/document/draft-ietf-avt-tfrc-profile/'))
+            self.assertEqual(a[6].document, DocumentURI(uri='/api/v1/doc/document/draft-ietf-avt-smpte292-video/'))
         else:
             self.fail("Cannot find person");
 

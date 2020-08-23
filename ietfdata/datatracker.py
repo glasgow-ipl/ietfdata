@@ -1888,7 +1888,6 @@ class CacheMetadata:
 
 @dataclass
 class CacheHints:
-    obj_type_uri : URI
     deref   : Dict[str, Any]
     trim    : List[str]
     sort_by : List[str]
@@ -1920,6 +1919,78 @@ class DataTracker:
         for uri_type in URI.__subclasses__():
             self.pavlova.register_parser(uri_type, GenericParser(self.pavlova, uri_type))
         self.pavlova.register_parser(CacheMetadata, GenericParser(self.pavlova, CacheMetadata))
+        # Register cache hints:
+        self._cache_hints = {}
+        self._cache_hints["/api/v1/doc/ballotdocevent/"]                 = CacheHints({"doc": "id"}, ["ballot_type", "by"], ["id"], False)
+        self._cache_hints["/api/v1/doc/ballottype/"]                     = CacheHints({}, ["doc_type"], ["order", "id"], False)
+        self._cache_hints["/api/v1/doc/docalias/"]                       = CacheHints({}, [], ["id"], False)
+        self._cache_hints["/api/v1/doc/docevent/"]                       = CacheHints({"doc": "id"},      ["by"], ["id"], True)
+        self._cache_hints["/api/v1/doc/documentauthor/"]                 = CacheHints({"document": "id"}, ["email", "person"], ["order", "id"], False)
+        self._cache_hints["/api/v1/doc/document/"]                       = CacheHints({}, ["type", "group"], ["id"], False)
+        self._cache_hints["/api/v1/doc/relateddocument/"]                = CacheHints({"source": "id", "target": "id", "relationship": "slug"}, [], ["id"], False)
+        self._cache_hints["/api/v1/doc/statetype/"]                      = CacheHints({}, [], ["slug"], False)
+        self._cache_hints["/api/v1/doc/state/"]                          = CacheHints({}, ["type"], ["order", "id"], False)
+        self._cache_hints["/api/v1/group/changestategroupevent/"]        = CacheHints({}, ["by", "group", "state"], ["order", "id"], False)
+        self._cache_hints["/api/v1/group/groupevent/"]                   = CacheHints({}, ["by", "group"], ["id"], True)
+        self._cache_hints["/api/v1/group/grouphistory/"]                 = CacheHints({}, ["group", "parent", "state"], ["id"], False)
+        self._cache_hints["/api/v1/group/milestonegroupevent/"]          = CacheHints({}, ["by", "group", "milestone"], ["id"], True)
+        self._cache_hints["/api/v1/group/groupmilestonehistory/"]        = CacheHints({}, ["group", "milestone", "state"], ["id"], False)
+        self._cache_hints["/api/v1/group/groupmilestone/"]               = CacheHints({}, ["group", "state"], ["id"], False)
+        self._cache_hints["/api/v1/name/groupstatename/"]                = CacheHints({}, [], ["slug"], False)
+        self._cache_hints["/api/v1/name/grouptypename/"]                 = CacheHints({}, [], ["slug"], False)
+        self._cache_hints["/api/v1/group/groupurl/"]                     = CacheHints({}, ["group"], ["id"], False)
+        self._cache_hints["/api/v1/group/group/"]                        = CacheHints({}, ["parent", "state"], ["id"], False)
+        self._cache_hints["/api/v1/group/rolehistory/"]                  = CacheHints({}, ["email", "group", "name", "person"], ["id"], False)
+        self._cache_hints["/api/v1/group/role/"]                         = CacheHints({}, ["email", "group", "name", "person"], ["id"], False)
+        self._cache_hints["/api/v1/ipr/genericiprdisclosure/"]           = CacheHints({}, ["by", "state"], ["order", "id"], False)
+        self._cache_hints["/api/v1/ipr/holderiprdisclosure/"]            = CacheHints({}, ["by", "licensing", "state"], ["order", "id"], False)
+        self._cache_hints["/api/v1/ipr/iprdisclosurebase/"]              = CacheHints({}, ["by", "state"], ["order", "id"], False)
+        self._cache_hints["/api/v1/ipr/thirdpartyiprdisclosure/"]        = CacheHints({}, ["by", "state"], ["order", "id"], False)
+        self._cache_hints["/api/v1/name/ballotpositionname/"]            = CacheHints({}, [], ["order", "slug"], False)
+        self._cache_hints["/api/v1/name/docrelationshipname/"]           = CacheHints({}, [], ["slug"], False)
+        self._cache_hints["/api/v1/name/doctypename/"]                   = CacheHints({}, [], ["order", "slug"], False)
+        self._cache_hints["/api/v1/name/groupmilestonestatename/"]       = CacheHints({}, [], ["slug"], False)
+        self._cache_hints["/api/v1/name/meetingtypename/"]               = CacheHints({}, [], ["slug"], False)
+        self._cache_hints["/api/v1/name/iprdisclosurestatename/"]        = CacheHints({}, [], ["slug"], False)
+        self._cache_hints["/api/v1/name/iprlicensetypename/"]            = CacheHints({}, [], ["slug"], False)
+        self._cache_hints["/api/v1/name/reviewassignmentstatename/"]     = CacheHints({}, [], ["slug"], False)
+        self._cache_hints["/api/v1/name/reviewresultname/"]              = CacheHints({}, [], ["slug"], False)
+        self._cache_hints["/api/v1/name/reviewtypename/"]                = CacheHints({}, [], ["slug"], False)
+        self._cache_hints["/api/v1/name/reviewrequeststatename/"]        = CacheHints({}, [], ["slug"], False)
+        self._cache_hints["/api/v1/name/rolename/"]                      = CacheHints({}, [], ["slug"], False)
+        self._cache_hints["/api/v1/name/sessionstatusname/"]             = CacheHints({}, [], ["slug"], False)
+        self._cache_hints["/api/v1/name/streamname/"]                    = CacheHints({}, [], ["slug"], False)
+        self._cache_hints["/api/v1/mailinglists/list/"]                  = CacheHints({}, [], ["id"], False)
+        self._cache_hints["/api/v1/mailinglists/subscribed/"]            = CacheHints({}, ["lists"], ["id"], False)
+        self._cache_hints["/api/v1/meeting/meeting/"]                    = CacheHints({}, ["type"], ["id"], False)
+        self._cache_hints["/api/v1/meeting/schedulingevent/"]            = CacheHints({}, ["session", "by"], ["id"], False)
+        self._cache_hints["/api/v1/meeting/schedtimesessassignment/"]    = CacheHints({}, ["schedule"], ["id"], False)
+        self._cache_hints["/api/v1/meeting/session/"]                    = CacheHints({}, ["meeting", "group", "group_parent"], ["id"], False)
+        self._cache_hints["/api/v1/message/announcementfrom/"]           = CacheHints({}, ["group", "name"], ["id"], False)
+        self._cache_hints["/api/v1/message/message/"]                    = CacheHints({"related_doc": "id"}, ["by"], ["id"], False)
+        self._cache_hints["/api/v1/message/sendqueue/"]                  = CacheHints({}, ["by", "message"], ["id"], False)
+        self._cache_hints["/api/v1/person/alias/"]                       = CacheHints({}, ["person"], ["id"], False)
+        self._cache_hints["/api/v1/person/email/"]                       = CacheHints({}, ["person"], ["address"], False)
+        self._cache_hints["/api/v1/person/historicalemail/"]             = CacheHints({}, ["person"], ["history_id"], True)
+        self._cache_hints["/api/v1/person/historicalperson/"]            = CacheHints({}, ["person"], ["history_id"], True)
+        self._cache_hints["/api/v1/person/personevent/"]                 = CacheHints({}, ["person"], ["id"], False)
+        self._cache_hints["/api/v1/person/person/"]                      = CacheHints({}, [], ["id"], False)
+        self._cache_hints["/api/v1/review/historicalreviewassignment/"]  = CacheHints({}, ["result", "review_request", "reviewer", "state"], ["id"], False)
+        self._cache_hints["/api/v1/review/historicalreviewersettings/"]  = CacheHints({}, ["person", "team"], ["order", "id"], False)
+        self._cache_hints["/api/v1/review/historicalreviewrequest/"]     = CacheHints({"doc": "id"}, ["requested_by", "state", "team", "type"], ["order", "id"], False)
+        self._cache_hints["/api/v1/review/historicalunavailableperiod/"] = CacheHints({}, ["person", "team"], ["id"], False)
+        self._cache_hints["/api/v1/review/nextreviewerinteam/"]          = CacheHints({}, ["team"], ["id"], False)
+        self._cache_hints["/api/v1/review/reviewassignment/"]            = CacheHints({}, ["result", "review_request", "reviewer", "state"], ["id"], False)
+        self._cache_hints["/api/v1/review/reviewersettings/"]            = CacheHints({}, ["person", "team"], ["id"], False)
+        self._cache_hints["/api/v1/review/reviewrequest/"]               = CacheHints({"doc": "id"}, ["requested_by", "state", "team", "type"], ["id"], False)
+        self._cache_hints["/api/v1/review/reviewsecretarysettings/"]     = CacheHints({}, ["person", "team"], ["order", "id"], False)
+        self._cache_hints["/api/v1/review/reviewteamsettings/"]          = CacheHints({}, ["group"], ["id"], False)
+        self._cache_hints["/api/v1/review/reviewwish/"]                  = CacheHints({"doc": "id"}, ["person", "team"], ["id"], False)
+        self._cache_hints["/api/v1/review/unavailableperiod/"]           = CacheHints({}, ["person", "team"], ["order", "id"], False)
+        self._cache_hints["/api/v1/stats/meetingregistration/"]          = CacheHints({}, ["meeting", "person"], ["id"], False)
+        self._cache_hints["/api/v1/submit/submissionevent/"]             = CacheHints({}, ["by", "submission"], ["order", "id"], False)
+        self._cache_hints["/api/v1/submit/submission/"]                  = CacheHints({}, [], ["order", "id"], False)
+
 
 
     def __del__(self):
@@ -2069,7 +2140,8 @@ class DataTracker:
         return str(obj_uri) in meta.queries
 
 
-    def _cache_obj_matches(self, obj: Dict[str, Any], query_uri: URI, hints: CacheHints) -> bool:
+    def _cache_obj_matches(self, obj: Dict[str, Any], query_uri: URI) -> bool:
+        hints = self._cache_hints[query_uri.uri]
         # For each parameter in query_uri, check that obj contains matching key and value
         res = True
         for (k, v) in query_uri.params.items():
@@ -2140,7 +2212,8 @@ class DataTracker:
         return res
 
 
-    def _cache_get_objects(self, obj_uri: URI, obj_type_uri: URI, obj_type: Type[T], hints: CacheHints) -> Iterator[T]:
+    def _cache_get_objects(self, obj_uri: URI, obj_type_uri: URI, obj_type: Type[T]) -> Iterator[T]:
+        hints = self._cache_hints[obj_type_uri.uri]
         results = []
         for obj_file in Path(self.cache_dir, obj_type_uri.uri[1:-1]).glob("*.json"):
             if obj_file.name == "_cache_info.json":
@@ -2149,7 +2222,7 @@ class DataTracker:
             cache_uri = URI(obj_type_uri.uri + obj_file.name[:-5] + "/")
             obj_json = self._cache_get_object(cache_uri)
 
-            if self._cache_obj_matches(obj_json, obj_uri, hints):
+            if self._cache_obj_matches(obj_json, obj_uri):
                 sort_key = ""
                 for sb in hints.sort_by:
                     sort_key += F" {obj_json[sb]:40}"
@@ -2242,7 +2315,7 @@ class DataTracker:
             return None
 
 
-    def _retrieve_multi(self, obj_uri: URI, obj_type: Type[T], hints: CacheHints) -> Iterator[T]:
+    def _retrieve_multi(self, obj_uri: URI, obj_type: Type[T]) -> Iterator[T]:
         obj_type_uri = URI(obj_uri.uri)
         cache_uri = URI(obj_uri.uri)
         for n, v in obj_uri.params.items():
@@ -2257,12 +2330,12 @@ class DataTracker:
         if self._cache_has_objects(cache_uri, obj_type_uri) or self._cache_has_all_objects(obj_type_uri):
             self.cache_hit += 1
             self._cache_update(obj_type_uri, obj_type)
-            for obj in self._cache_get_objects(obj_uri, obj_type_uri, obj_type, hints):
+            for obj in self._cache_get_objects(obj_uri, obj_type_uri, obj_type):
                 yield obj # Type: T
         else:
             self._cache_put_objects(cache_uri, obj_type_uri)
             self._cache_record_query(cache_uri, obj_type_uri)
-            for obj in self._cache_get_objects(obj_uri, obj_type_uri, obj_type, hints):
+            for obj in self._cache_get_objects(obj_uri, obj_type_uri, obj_type):
                 yield obj # Type: T
 
 
@@ -2289,22 +2362,19 @@ class DataTracker:
     def person_aliases(self, person: Person) -> Iterator[PersonAlias]:
         url = PersonAliasURI("/api/v1/person/alias/")
         url.params["person"] = person.id
-        hints = CacheHints(URI("/api/v1/person/alias/"), {}, ["person"], ["id"], False)
-        return self._retrieve_multi(url, PersonAlias, hints)
+        return self._retrieve_multi(url, PersonAlias)
 
 
     def person_history(self, person: Person) -> Iterator[HistoricalPerson]:
         url = PersonURI("/api/v1/person/historicalperson/")
         url.params["id"] = person.id
-        hints = CacheHints(URI("/api/v1/person/historicalperson/"), {}, ["person"], ["history_id"], True)
-        return self._retrieve_multi(url, HistoricalPerson, hints)
+        return self._retrieve_multi(url, HistoricalPerson)
 
 
     def person_events(self, person: Person) -> Iterator[PersonEvent]:
         url = PersonEventURI("/api/v1/person/personevent/")
         url.params["person"] = person.id
-        hints = CacheHints(URI("/api/v1/person/personevent/"), {}, ["person"], ["id"], False)
-        return self._retrieve_multi(url, PersonEvent, hints)
+        return self._retrieve_multi(url, PersonEvent)
 
 
     def people(self,
@@ -2327,8 +2397,7 @@ class DataTracker:
         url.params["time__gte"] = since
         url.params["time__lt"]  = until
         url.params["name__contains"] = name_contains
-        hints = CacheHints(URI("/api/v1/person/person/"), {}, [], ["id"], False)
-        return self._retrieve_multi(url, Person, hints)
+        return self._retrieve_multi(url, Person)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -2343,22 +2412,19 @@ class DataTracker:
     def email_for_person(self, person: Person) -> Iterator[Email]:
         uri = EmailURI("/api/v1/person/email/")
         uri.params["person"] = person.id
-        hints = CacheHints(URI("/api/v1/person/email/"), {}, ["person"], ["address"], False)
-        return self._retrieve_multi(uri, Email, hints)
+        return self._retrieve_multi(uri, Email)
 
 
     def email_history_for_address(self, email_addr: str) -> Iterator[HistoricalEmail]:
         uri = EmailURI("/api/v1/person/historicalemail/")
         uri.params["address"] = email_addr
-        hints = CacheHints(URI("/api/v1/person/historicalemail/"), {}, [], ["history_id"], True)
-        return self._retrieve_multi(uri, HistoricalEmail, hints)
+        return self._retrieve_multi(uri, HistoricalEmail)
 
 
     def email_history_for_person(self, person: Person) -> Iterator[HistoricalEmail]:
         uri = EmailURI("/api/v1/person/historicalemail/")
         uri.params["person"] = person.id
-        hints = CacheHints(URI("/api/v1/person/historicalemail/"), {}, ["person"], ["history_id"], True)
-        return self._retrieve_multi(uri, HistoricalEmail, hints)
+        return self._retrieve_multi(uri, HistoricalEmail)
 
 
     def emails(self,
@@ -2380,8 +2446,7 @@ class DataTracker:
         url.params["time__gte"] = since
         url.params["time__lt"]   = until
         url.params["address__contains"] = addr_contains
-        hints = CacheHints(URI("/api/v1/person/email/"), {}, [], ["address"], False)
-        return self._retrieve_multi(url, Email, hints)
+        return self._retrieve_multi(url, Email)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -2405,8 +2470,7 @@ class DataTracker:
             url.params["type"] = doctype.slug
         if group is not None:
             url.params["group"] = group.id
-        hints = CacheHints(URI("/api/v1/doc/document/"), {}, ["type", "group"], ["id"], False)
-        return self._retrieve_multi(url, Document, hints)
+        return self._retrieve_multi(url, Document)
 
 
     # Datatracker API endpoints returning information about document aliases:
@@ -2429,8 +2493,7 @@ class DataTracker:
         url = DocumentAliasURI("/api/v1/doc/docalias/")
         if name is not None:
             url.params["name"] = name
-        hints = CacheHints(URI("/api/v1/doc/docalias/"), {}, [], ["id"], False)
-        return self._retrieve_multi(url, DocumentAlias, hints)
+        return self._retrieve_multi(url, DocumentAlias)
 
 
     def document_from_draft(self, draft: str) -> Optional[Document]:
@@ -2514,8 +2577,7 @@ class DataTracker:
 
 
     def document_types(self) -> Iterator[DocumentType]:
-        hints = CacheHints(URI("/api/v1/name/doctypename"), {}, [], ["order", "slug"], False)
-        return self._retrieve_multi(DocumentTypeURI("/api/v1/name/doctypename/"), DocumentType, hints)
+        return self._retrieve_multi(DocumentTypeURI("/api/v1/name/doctypename/"), DocumentType)
 
 
     # Datatracker API endpoints returning information about document states:
@@ -2530,8 +2592,7 @@ class DataTracker:
         url = DocumentStateURI("/api/v1/doc/state/")
         if state_type is not None:
             url.params["type"] = state_type.slug
-        hints = CacheHints(URI("/api/v1/doc/state/"), {}, ["type"], ["order", "id"], False)
-        return self._retrieve_multi(url, DocumentState, hints)
+        return self._retrieve_multi(url, DocumentState)
 
 
     def document_state_type(self, state_type_uri : DocumentStateTypeURI) -> Optional[DocumentStateType]:
@@ -2540,8 +2601,7 @@ class DataTracker:
 
     def document_state_types(self) -> Iterator[DocumentStateType]:
         url = DocumentStateTypeURI("/api/v1/doc/statetype/")
-        hints = CacheHints(URI("/api/v1/doc/statetype/"), {}, [], ["slug"], False)
-        return self._retrieve_multi(url, DocumentStateType, hints)
+        return self._retrieve_multi(url, DocumentStateType)
 
 
     # Datatracker API endpoints returning information about document events:
@@ -2591,8 +2651,7 @@ class DataTracker:
         if by is not None:
             url.params["by"]   = by.id
         url.params["type"]     = event_type
-        hints = CacheHints(URI("/api/v1/doc/docevent/"), {"doc": "id"}, ["by"], ["id"], True)
-        return self._retrieve_multi(url, DocumentEvent, hints)
+        return self._retrieve_multi(url, DocumentEvent)
 
 
     # Datatracker API endpoints returning information about document authorship:
@@ -2603,22 +2662,19 @@ class DataTracker:
     def document_authors(self, document : Document) -> Iterator[DocumentAuthor]:
         url = DocumentAuthorURI("/api/v1/doc/documentauthor/")
         url.params["document"] = document.id
-        hints = CacheHints(URI("/api/v1/doc/documentauthor/"), {"document": "id"}, [], ["order", "id"], False)
-        return self._retrieve_multi(url, DocumentAuthor, hints)
+        return self._retrieve_multi(url, DocumentAuthor)
 
 
     def documents_authored_by_person(self, person : Person) -> Iterator[DocumentAuthor]:
         url = DocumentAuthorURI("/api/v1/doc/documentauthor/")
         url.params["person"] = person.id
-        hints = CacheHints(URI("/api/v1/doc/documentauthor/"), {}, ["person"], ["id"], False)
-        return self._retrieve_multi(url, DocumentAuthor, hints)
+        return self._retrieve_multi(url, DocumentAuthor)
 
 
     def documents_authored_by_email(self, email : Email) -> Iterator[DocumentAuthor]:
         url = DocumentAuthorURI("/api/v1/doc/documentauthor/")
         url.params["email"] = email.address
-        hints = CacheHints(URI("/api/v1/doc/documentauthor/"), {}, ["email"], ["id"], False)
-        return self._retrieve_multi(url, DocumentAuthor, hints)
+        return self._retrieve_multi(url, DocumentAuthor)
 
 
     # Datatracker API endpoints returning information about related documents:
@@ -2638,8 +2694,7 @@ class DataTracker:
             url.params["target"] = target.id
         if relationship_type is not None:
             url.params["relationship"] = relationship_type.slug
-        hints = CacheHints(URI("/api/v1/doc/relateddocument/"), {"source": "id", "target": "id", "relationship": "slug"}, [], ["id"], False)
-        return self._retrieve_multi(url, RelatedDocument, hints)
+        return self._retrieve_multi(url, RelatedDocument)
 
 
     def relationship_type(self, relationship_type_uri: RelationshipTypeURI) -> Optional[RelationshipType]:
@@ -2671,8 +2726,7 @@ class DataTracker:
             An iterator of RelationshipType objects
         """
         url = RelationshipTypeURI("/api/v1/name/docrelationshipname/")
-        hints = CacheHints(URI("/api/v1/name/docrelationshipname/"), {}, [], ["slug"], False)
-        return self._retrieve_multi(url, RelationshipType, hints)
+        return self._retrieve_multi(url, RelationshipType)
 
 
     # Datatracker API endpoints returning information about document history:
@@ -2707,8 +2761,7 @@ class DataTracker:
            A sequence of BallotPositionName objects
         """
         url = BallotPositionNameURI("/api/v1/name/ballotpositionname/")
-        hints = CacheHints(URI("/api/v1/name/ballotpositionname/"), {}, [], ["order", "slug"], False)
-        return self._retrieve_multi(url, BallotPositionName, hints)
+        return self._retrieve_multi(url, BallotPositionName)
 
 
     def ballot_type(self, ballot_type_uri : BallotTypeURI) -> Optional[BallotType]:
@@ -2728,8 +2781,7 @@ class DataTracker:
         url = BallotTypeURI("/api/v1/doc/ballottype/")
         if doc_type is not None:
             url.params["doc_type"] = doc_type.slug
-        hints = CacheHints(URI("/api/v1/doc/ballottype/"), {}, ["doc_type"], ["order", "id"], False)
-        return self._retrieve_multi(url, BallotType, hints)
+        return self._retrieve_multi(url, BallotType)
 
 
 
@@ -2769,8 +2821,7 @@ class DataTracker:
             url.params["doc"] = doc.id
         if event_type is not None:
             url.params["type"] = event_type
-        hints = CacheHints(URI("/api/v1/doc/ballotdocevent/"), {"doc": "id"}, ["ballot_type", "by"], ["id"], False)
-        return self._retrieve_multi(url, BallotDocumentEvent, hints)
+        return self._retrieve_multi(url, BallotDocumentEvent)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -2790,8 +2841,7 @@ class DataTracker:
         url = SubmissionURI("/api/v1/submit/submission/")
         url.params["time__gte"] = since
         url.params["time__lt"] = until
-        hints = CacheHints(URI("/api/v1/submit/submission/"), {}, [], ["order", "id"], False)
-        return self._retrieve_multi(url, Submission, hints)
+        return self._retrieve_multi(url, Submission)
 
 
     def submission_event(self, event_uri: SubmissionEventURI) -> Optional[SubmissionEvent]:
@@ -2822,8 +2872,7 @@ class DataTracker:
             url.params["by"] = by.id
         if submission is not None:
             url.params["submission"] = submission.id
-        hints = CacheHints(URI("/api/v1/submit/submissionevent/"), {}, ["by", "submission"], ["order", "id"], False)
-        return self._retrieve_multi(url, SubmissionEvent, hints)
+        return self._retrieve_multi(url, SubmissionEvent)
 
     # ----------------------------------------------------------------------------------------------------------------------------
     # Datatracker API endpoints returning miscellaneous information about documents:
@@ -2843,8 +2892,7 @@ class DataTracker:
 
 
     def streams(self) -> Iterator[Stream]:
-        hints = CacheHints(URI("/api/v1/name/streamname/"), {}, [], ["slug"], False)
-        return self._retrieve_multi(StreamURI("/api/v1/name/streamname/"), Stream, hints)
+        return self._retrieve_multi(StreamURI("/api/v1/name/streamname/"), Stream)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -2875,8 +2923,7 @@ class DataTracker:
     def group_from_acronym(self, acronym: str) -> Optional[Group]:
         url = GroupURI("/api/v1/group/group/")
         url.params["acronym"] = acronym
-        hints = CacheHints(URI("/api/v1/group/group/"), {}, [], ["id"], False)
-        groups = list(self._retrieve_multi(url, Group, hints))
+        groups = list(self._retrieve_multi(url, Group))
         if len(groups) == 0:
             return None
         elif len(groups) == 1:
@@ -2900,8 +2947,7 @@ class DataTracker:
             url.params["state"] = state.slug
         if parent is not None:
             url.params["parent"] = parent.id
-        hints = CacheHints(URI("/api/v1/group/group/"), {}, ["parent", "state"], ["id"], False)
-        return self._retrieve_multi(url, Group, hints)
+        return self._retrieve_multi(url, Group)
 
 
     def group_history(self, group_history_uri: GroupHistoryURI) -> Optional[GroupHistory]:
@@ -2911,8 +2957,7 @@ class DataTracker:
     def group_histories_from_acronym(self, acronym: str) -> Iterator[GroupHistory]:
         url = GroupHistoryURI("/api/v1/group/grouphistory/")
         url.params["acronym"] = acronym
-        hints = CacheHints(URI("/api/v1/group/grouphistory/"), {}, [], ["id"], False)
-        return self._retrieve_multi(url, GroupHistory, hints)
+        return self._retrieve_multi(url, GroupHistory)
 
 
     def group_histories(self,
@@ -2930,8 +2975,7 @@ class DataTracker:
             url.params["state"] = state.slug
         if parent is not None:
             url.params["parent"] = parent.id
-        hints = CacheHints(URI("/api/v1/group/grouphistory/"), {}, ["group", "parent", "state"], ["id"], False)
-        return self._retrieve_multi(url, GroupHistory, hints)
+        return self._retrieve_multi(url, GroupHistory)
 
 
     def group_event(self, group_event_uri : GroupEventURI) -> Optional[GroupEvent]:
@@ -2953,8 +2997,7 @@ class DataTracker:
             url.params["group"] = group.id
         if type is not None:
             url.params["type"]  = type
-        hints = CacheHints(URI("/api/v1/group/groupevent/"), {}, ["by", "group"], ["id"], True)
-        return self._retrieve_multi(url, GroupEvent, hints)
+        return self._retrieve_multi(url, GroupEvent)
 
     def group_url(self, group_url_uri: GroupUrlURI) -> Optional[GroupUrl]:
         return self._retrieve(group_url_uri, GroupUrl)
@@ -2964,8 +3007,7 @@ class DataTracker:
         url = GroupUrlURI("/api/v1/group/groupurl/")
         if group is not None:
             url.params["group"] = group.id
-        hints = CacheHints(URI("/api/v1/group/groupurl/"), {}, ["group"], ["id"], False)
-        return self._retrieve_multi(url, GroupUrl, hints)
+        return self._retrieve_multi(url, GroupUrl)
 
 
     def group_milestone_statename(self, group_milestone_statename_uri: GroupMilestoneStateNameURI) -> Optional[GroupMilestoneStateName]:
@@ -2973,8 +3015,7 @@ class DataTracker:
 
 
     def group_milestone_statenames(self) -> Iterator[GroupMilestoneStateName]:
-        hints = CacheHints(URI("/api/v1/name/groupmilestonestatename/"), {}, [], ["slug"], False)
-        return self._retrieve_multi(GroupMilestoneStateNameURI("/api/v1/name/groupmilestonestatename/"), GroupMilestoneStateName, hints)
+        return self._retrieve_multi(GroupMilestoneStateNameURI("/api/v1/name/groupmilestonestatename/"), GroupMilestoneStateName)
 
 
     def group_milestone(self, group_milestone_uri : GroupMilestoneURI) -> Optional[GroupMilestone]:
@@ -2993,8 +3034,7 @@ class DataTracker:
             url.params["group"] = group.id
         if state is not None:
             url.params["state"] = state.slug
-        hints = CacheHints(URI("/api/v1/group/groupmilestone/"), {}, ["group", "state"], ["id"], False)
-        return self._retrieve_multi(url, GroupMilestone, hints)
+        return self._retrieve_multi(url, GroupMilestone)
 
 
     def role_name(self, role_name_uri: RoleNameURI) -> Optional[RoleName]:
@@ -3006,8 +3046,7 @@ class DataTracker:
 
 
     def role_names(self) -> Iterator[RoleName]:
-        hints = CacheHints(URI("/api/v1/name/rolename/"), {}, [], ["slug"], False)
-        return self._retrieve_multi(RoleNameURI("/api/v1/name/rolename/"), RoleName, hints)
+        return self._retrieve_multi(RoleNameURI("/api/v1/name/rolename/"), RoleName)
 
 
     def group_role(self, group_role_uri : GroupRoleURI) -> Optional[GroupRole]:
@@ -3028,8 +3067,7 @@ class DataTracker:
             url.params["name"] = name.slug
         if person is not None:
             url.params["person"] = person.id
-        hints = CacheHints(URI("/api/v1/group/role/"), {}, ["email", "group", "name", "person"], ["id"], False)
-        return self._retrieve_multi(url, GroupRole, hints)
+        return self._retrieve_multi(url, GroupRole)
 
 
     def group_role_history(self, group_role_history_uri : GroupRoleHistoryURI) -> Optional[GroupRoleHistory]:
@@ -3050,8 +3088,7 @@ class DataTracker:
             url.params["name"] = name.slug
         if person is not None:
             url.params["person"] = person.id
-        hints = CacheHints(URI("/api/v1/group/rolehistory/"), {}, ["email", "group", "name", "person"], ["id"], False)
-        return self._retrieve_multi(url, GroupRoleHistory, hints)
+        return self._retrieve_multi(url, GroupRoleHistory)
 
 
     def group_milestone_history(self, group_milestone_history_uri : GroupMilestoneHistoryURI) -> Optional[GroupMilestoneHistory]:
@@ -3073,8 +3110,7 @@ class DataTracker:
             url.params["milestone"] = milestone.id
         if state is not None:
             url.params["state"] = state.slug
-        hints = CacheHints(URI("/api/v1/group/groupmilestonehistory/"), {}, ["group", "milestone", "state"], ["id"], False)
-        return self._retrieve_multi(url, GroupMilestoneHistory, hints)
+        return self._retrieve_multi(url, GroupMilestoneHistory)
 
 
     def group_milestone_event(self, group_milestone_event_uri : GroupMilestoneEventURI) -> Optional[GroupMilestoneEvent]:
@@ -3099,8 +3135,7 @@ class DataTracker:
             url.params["milestone"] = milestone.id
         if type is not None:
             url.params["type"] = type
-        hints = CacheHints(URI("/api/v1/group/milestonegroupevent/"), {}, ["by", "group", "milestone"], ["id"], True)
-        return self._retrieve_multi(url, GroupMilestoneEvent, hints)
+        return self._retrieve_multi(url, GroupMilestoneEvent)
 
 
     def group_state_change_event(self, group_state_change_event_uri : GroupStateChangeEventURI) -> Optional[GroupStateChangeEvent]:
@@ -3122,8 +3157,7 @@ class DataTracker:
             url.params["group"] = group.id
         if state is not None:
             url.params["state"] = state.slug
-        hints = CacheHints(URI("/api/v1/group/changestategroupevent/"), {}, ["by", "group", "state"], ["order", "id"], False)
-        return self._retrieve_multi(url, GroupStateChangeEvent, hints)
+        return self._retrieve_multi(url, GroupStateChangeEvent)
 
 
     def group_state(self, group_state_uri : GroupStateURI) -> Optional[GroupState]:
@@ -3136,8 +3170,7 @@ class DataTracker:
 
     def group_states(self) -> Iterator[GroupState]:
         url = GroupStateURI("/api/v1/name/groupstatename/")
-        hints = CacheHints(URI("/api/v1/name/groupstatename/"), {}, [], ["slug"], False)
-        return self._retrieve_multi(url, GroupState, hints)
+        return self._retrieve_multi(url, GroupState)
 
 
     def group_type_name(self, group_type_name_uri : GroupTypeNameURI) -> Optional[GroupTypeName]:
@@ -3149,8 +3182,7 @@ class DataTracker:
 
 
     def group_type_names(self) -> Iterator[GroupTypeName]:
-        hints = CacheHints(URI("/api/v1/name/grouptypename/"), {}, [], ["slug"], False)
-        return self._retrieve_multi(GroupTypeNameURI("/api/v1/name/grouptypename/"), GroupTypeName, hints)
+        return self._retrieve_multi(GroupTypeNameURI("/api/v1/name/grouptypename/"), GroupTypeName)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -3191,8 +3223,7 @@ class DataTracker:
         """
         url = SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/")
         url.params["schedule"] = schedule.id
-        hints = CacheHints(URI("/api/v1/meeting/schedtimesessassignment/"), {}, ["schedule"], ["id"], False)
-        return self._retrieve_multi(url, SessionAssignment, hints)
+        return self._retrieve_multi(url, SessionAssignment)
 
 
     def meeting_session_status(self, session: Session) -> SessionStatusName:
@@ -3211,8 +3242,7 @@ class DataTracker:
 
 
     def meeting_session_status_names(self) -> Iterator[SessionStatusName]:
-        hints = CacheHints(URI("/api/v1/name/sessionstatusname/"), {}, [], ["slug"], False)
-        return self._retrieve_multi(SessionStatusNameURI("/api/v1/name/sessionstatusname/"), SessionStatusName, hints)
+        return self._retrieve_multi(SessionStatusNameURI("/api/v1/name/sessionstatusname/"), SessionStatusName)
 
 
     def meeting_session(self, session_uri : SessionURI) -> Optional[Session]:
@@ -3229,8 +3259,7 @@ class DataTracker:
             url.params["group"] = group.id
         if parent is not None:
             url.params["group__parent"] = parent.id
-        hints = CacheHints(URI("/api/v1/meeting/session/"), {}, ["meeting", "group", "group_parent"], ["id"], False)
-        return self._retrieve_multi(url, Session, hints)
+        return self._retrieve_multi(url, Session)
 
 
     def meeting_timeslot(self, timeslot_uri: TimeslotURI) -> Optional[Timeslot]:
@@ -3249,8 +3278,7 @@ class DataTracker:
             url.params["session"] = session.id
         if by is not None:
             url.params["by"] = by.id
-        hints = CacheHints(URI("/api/v1/meeting/schedulingevent/"), {}, ["session", "by"], ["id"], False)
-        return self._retrieve_multi(url, SchedulingEvent, hints)
+        return self._retrieve_multi(url, SchedulingEvent)
 
 
     def meeting_schedule(self, schedule_uri : ScheduleURI) -> Optional[Schedule]:
@@ -3287,8 +3315,7 @@ class DataTracker:
         url.params["date__lte"] = end_date
         if meeting_type is not None:
             url.params["type"] = meeting_type.slug
-        hints = CacheHints(URI("/api/v1/meeting/meeting/"), {}, ["type"], ["id"], False)
-        return self._retrieve_multi(url, Meeting, hints)
+        return self._retrieve_multi(url, Meeting)
 
 
 
@@ -3310,8 +3337,7 @@ class DataTracker:
         Returns:
             An iterator of MeetingType objects
         """
-        hints = CacheHints(URI("/api/v1/name/meetingtypename/"), {}, [], ["slug"], False)
-        return self._retrieve_multi(MeetingTypeURI("/api/v1/name/meetingtypename/"), MeetingType, hints)
+        return self._retrieve_multi(MeetingTypeURI("/api/v1/name/meetingtypename/"), MeetingType)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -3339,8 +3365,7 @@ class DataTracker:
 
 
     def ipr_disclosure_states(self) -> Iterator[IPRDisclosureState]:
-        hints = CacheHints(URI("/api/v1/name/iprdisclosurestatename/"), {}, [], ["slug"], False)
-        return self._retrieve_multi(IPRDisclosureStateURI("/api/v1/name/iprdisclosurestatename/"), IPRDisclosureState, hints)
+        return self._retrieve_multi(IPRDisclosureStateURI("/api/v1/name/iprdisclosurestatename/"), IPRDisclosureState)
 
 
     def ipr_disclosure_base(self, ipr_disclosure_base_uri: IPRDisclosureBaseURI) -> Optional[IPRDisclosureBase]:
@@ -3368,8 +3393,7 @@ class DataTracker:
             url.params["submitter_email"] = submitter_email
         if submitter_name is not None:
             url.params["submitter_name"] = submitter_name
-        hints = CacheHints(URI("/api/v1/ipr/iprdisclosurebase/"), {}, ["by", "state"], ["order", "id"], False)
-        return self._retrieve_multi(url, IPRDisclosureBase, hints)
+        return self._retrieve_multi(url, IPRDisclosureBase)
 
 
     def generic_ipr_disclosure(self, generic_ipr_disclosure_uri: GenericIPRDisclosureURI) -> Optional[GenericIPRDisclosure]:
@@ -3400,8 +3424,7 @@ class DataTracker:
             url.params["submitter_email"] = submitter_email
         if submitter_name is not None:
             url.params["submitter_name"] = submitter_name
-        hints = CacheHints(URI("/api/v1/ipr/genericiprdisclosure/"), {}, ["by", "state"], ["order", "id"], False)
-        return self._retrieve_multi(url, GenericIPRDisclosure, hints)
+        return self._retrieve_multi(url, GenericIPRDisclosure)
 
 
     def ipr_license_type(self, ipr_license_type_uri: IPRLicenseTypeURI) -> Optional[IPRLicenseType]:
@@ -3409,8 +3432,7 @@ class DataTracker:
 
 
     def ipr_license_types(self) -> Iterator[IPRLicenseType]:
-        hints = CacheHints(URI("/api/v1/name/iprlicensetypename/"), {}, [], ["slug"], False)
-        return self._retrieve_multi(IPRLicenseTypeURI("/api/v1/name/iprlicensetypename/"), IPRLicenseType, hints)
+        return self._retrieve_multi(IPRLicenseTypeURI("/api/v1/name/iprlicensetypename/"), IPRLicenseType)
 
 
     def holder_ipr_disclosure(self, holder_ipr_disclosure_uri: HolderIPRDisclosureURI) -> Optional[HolderIPRDisclosure]:
@@ -3450,8 +3472,7 @@ class DataTracker:
             url.params["submitter_email"] = submitter_email
         if submitter_name is not None:
             url.params["submitter_name"] = submitter_name
-        hints = CacheHints(URI("/api/v1/ipr/holderiprdisclosure/"), {}, ["by", "licensing", "state"], ["order", "id"], False)
-        return self._retrieve_multi(url, HolderIPRDisclosure, hints)
+        return self._retrieve_multi(url, HolderIPRDisclosure)
 
 
     def thirdparty_ipr_disclosure(self, thirdparty_ipr_disclosure_uri: ThirdPartyIPRDisclosureURI) -> Optional[ThirdPartyIPRDisclosure]:
@@ -3485,8 +3506,7 @@ class DataTracker:
             url.params["submitter_email"] = submitter_email
         if submitter_name is not None:
             url.params["submitter_name"] = submitter_name
-        hints = CacheHints(URI("/api/v1/ipr/thirdpartyiprdisclosure/"), {}, ["by", "state"], ["order", "id"], False)
-        return self._retrieve_multi(url, HolderIPRDisclosure, hints)
+        return self._retrieve_multi(url, HolderIPRDisclosure)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -3536,8 +3556,7 @@ class DataTracker:
 
 
     def review_assignment_states(self) -> Iterator[ReviewAssignmentState]:
-        hints = CacheHints(URI("/api/v1/name/reviewassignmentstatename/"), {}, [], ["slug"], False)
-        return self._retrieve_multi(ReviewAssignmentStateURI("/api/v1/name/reviewassignmentstatename/"), ReviewAssignmentState, hints)
+        return self._retrieve_multi(ReviewAssignmentStateURI("/api/v1/name/reviewassignmentstatename/"), ReviewAssignmentState)
 
 
     def review_result_type(self, review_result_uri: ReviewResultTypeURI) -> Optional[ReviewResultType]:
@@ -3549,8 +3568,7 @@ class DataTracker:
 
 
     def review_result_types(self) -> Iterator[ReviewResultType]:
-        hints = CacheHints(URI("/api/v1/name/reviewresultname/"), {}, [], ["slug"], False)
-        return self._retrieve_multi(ReviewResultTypeURI("/api/v1/name/reviewresultname/"), ReviewResultType, hints)
+        return self._retrieve_multi(ReviewResultTypeURI("/api/v1/name/reviewresultname/"), ReviewResultType)
 
 
     def review_type(self, review_type_uri: ReviewTypeURI) -> Optional[ReviewType]:
@@ -3562,8 +3580,7 @@ class DataTracker:
 
 
     def review_types(self) -> Iterator[ReviewType]:
-        hints = CacheHints(URI("/api/v1/name/reviewtypename/"), {}, [], ["slug"], False)
-        return self._retrieve_multi(ReviewTypeURI("/api/v1/name/reviewtypename/"), ReviewType, hints)
+        return self._retrieve_multi(ReviewTypeURI("/api/v1/name/reviewtypename/"), ReviewType)
 
 
     def review_request_state(self, review_request_state_uri: ReviewRequestStateURI) -> Optional[ReviewRequestState]:
@@ -3575,8 +3592,7 @@ class DataTracker:
 
 
     def review_request_states(self) -> Iterator[ReviewRequestState]:
-        hints = CacheHints(URI("/api/v1/name/reviewrequeststatename/"), {}, [], ["slug"], False)
-        return self._retrieve_multi(ReviewRequestStateURI("/api/v1/name/reviewrequeststatename/"), ReviewRequestState, hints)
+        return self._retrieve_multi(ReviewRequestStateURI("/api/v1/name/reviewrequeststatename/"), ReviewRequestState)
 
 
     def review_request(self, review_request_uri: ReviewRequestURI) -> Optional[ReviewRequest]:
@@ -3604,8 +3620,7 @@ class DataTracker:
             url.params["team"] = team.id
         if type is not None:
             url.params["type"] = type.slug
-        hints = CacheHints(URI("/api/v1/review/reviewrequest/"), {"doc": "id"}, ["requested_by", "state", "team", "type"], ["id"], False)
-        return self._retrieve_multi(url, ReviewRequest, hints)
+        return self._retrieve_multi(url, ReviewRequest)
 
 
     def review_assignment(self, review_assignment_uri: ReviewAssignmentURI) -> Optional[ReviewAssignment]:
@@ -3634,8 +3649,7 @@ class DataTracker:
             url.params["reviewer"] = reviewer.address
         if state is not None:
             url.params["state"] = state.slug
-        hints = CacheHints(URI("/api/v1/review/reviewassignment/"), {}, ["result", "review_request", "reviewer", "state"], ["id"], False)
-        return self._retrieve_multi(url, ReviewAssignment, hints)
+        return self._retrieve_multi(url, ReviewAssignment)
 
 
     def review_wish(self, review_wish_uri: ReviewWishURI) -> Optional[ReviewWish]:
@@ -3657,8 +3671,7 @@ class DataTracker:
             url.params["person"] = person.id
         if team is not None:
             url.params["team"] = team.id
-        hints = CacheHints(URI("/api/v1/review/reviewwish/"), {"doc": "id"}, ["person", "team"], ["id"], False)
-        return self._retrieve_multi(url, ReviewWish, hints)
+        return self._retrieve_multi(url, ReviewWish)
 
 
     def historical_unavailable_period(self, historical_unavailable_period_uri: HistoricalUnavailablePeriodURI) -> Optional[HistoricalUnavailablePeriod]:
@@ -3679,8 +3692,7 @@ class DataTracker:
             url.params["person"] = person.id
         if team is not None:
             url.params["team"] = team.id
-        hints = CacheHints(URI("/api/v1/review/historicalunavailableperiod/"), {}, ["person", "team"], ["id"], False)
-        return self._retrieve_multi(url, HistoricalUnavailablePeriod, hints)
+        return self._retrieve_multi(url, HistoricalUnavailablePeriod)
 
 
     def historical_review_request(self, historical_review_request_uri: HistoricalReviewRequestURI) -> Optional[HistoricalReviewRequest]:
@@ -3714,8 +3726,7 @@ class DataTracker:
             url.params["team"] = team.id
         if type is not None:
             url.params["type"] = type.slug
-        hints = CacheHints(URI("/api/v1/review/historicalreviewrequest/"), {"doc": "id"}, ["requested_by", "state", "team", "type"], ["order", "id"], False)
-        return self._retrieve_multi(url, HistoricalReviewRequest, hints)
+        return self._retrieve_multi(url, HistoricalReviewRequest)
 
 
     def next_reviewer_in_team(self, next_reviewer_in_team_uri: NextReviewerInTeamURI) -> Optional[NextReviewerInTeam]:
@@ -3727,8 +3738,7 @@ class DataTracker:
         url = NextReviewerInTeamURI("/api/v1/review/nextreviewerinteam/")
         if team is not None:
             url.params["team"] = team.id
-        hints = CacheHints(URI("/api/v1/review/nextreviewerinteam/"), {}, ["team"], ["id"], False)
-        return self._retrieve_multi(url, NextReviewerInTeam, hints)
+        return self._retrieve_multi(url, NextReviewerInTeam)
 
 
     def review_team_settings(self, review_team_settings_uri: ReviewTeamSettingsURI) -> Optional[ReviewTeamSettings]:
@@ -3740,8 +3750,7 @@ class DataTracker:
         url = ReviewTeamSettingsURI("/api/v1/review/reviewteamsettings/")
         if group is not None:
             url.params["group"] = group.id
-        hints = CacheHints(URI("/api/v1/review/reviewteamsettings/"), {}, ["group"], ["id"], False)
-        return self._retrieve_multi(url, ReviewTeamSettings, hints)
+        return self._retrieve_multi(url, ReviewTeamSettings)
 
 
     def reviewer_settings(self, reviewer_settings_uri: ReviewerSettingsURI) -> Optional[ReviewerSettings]:
@@ -3756,8 +3765,7 @@ class DataTracker:
             url.params["person"] = person.id
         if team is not None:
             url.params["team"] = team.id
-        hints = CacheHints(URI("/api/v1/review/reviewersettings/"), {}, ["person", "team"], ["id"], False)
-        return self._retrieve_multi(url, ReviewerSettings, hints)
+        return self._retrieve_multi(url, ReviewerSettings)
 
 
     def unavailable_period(self, unavailable_period_uri: UnavailablePeriodURI) -> Optional[UnavailablePeriod]:
@@ -3772,8 +3780,7 @@ class DataTracker:
             url.params["person"] = person.id
         if team is not None:
             url.params["team"] = team.id
-        hints = CacheHints(URI("/api/v1/review/unavailableperiod/"), {}, ["person", "team"], ["order", "id"], False)
-        return self._retrieve_multi(url, UnavailablePeriod, hints)
+        return self._retrieve_multi(url, UnavailablePeriod)
 
 
     def historical_reviewer_settings(self, historical_reviewer_settings_uri: HistoricalReviewerSettingsURI) -> Optional[HistoricalReviewerSettings]:
@@ -3795,8 +3802,7 @@ class DataTracker:
             url.params["person"] = person.id
         if team is not None:
             url.params["team"] = team.id
-        hints = CacheHints(URI("/api/v1/review/historicalreviewersettings/"), {}, ["person", "team"], ["order", "id"], False)
-        return self._retrieve_multi(url, HistoricalReviewerSettings, hints)
+        return self._retrieve_multi(url, HistoricalReviewerSettings)
 
 
     def historical_review_assignment(self, historical_review_assignment_uri: HistoricalReviewAssignmentURI) -> Optional[HistoricalReviewAssignment]:
@@ -3828,8 +3834,7 @@ class DataTracker:
             url.params["reviewer"] = reviewer.address
         if state is not None:
             url.params["state"] = state.slug
-        hints = CacheHints(URI("/api/v1/review/historicalreviewassignment/"), {}, ["result", "review_request", "reviewer", "state"], ["id"], False)
-        return self._retrieve_multi(url, HistoricalReviewAssignment, hints)
+        return self._retrieve_multi(url, HistoricalReviewAssignment)
 
 
     def review_secretary_settings(self, review_secretary_settings_uri: ReviewSecretarySettingsURI) -> Optional[ReviewSecretarySettings]:
@@ -3844,8 +3849,7 @@ class DataTracker:
             url.params["person"] = person.id
         if team is not None:
             url.params["team"] = team.id
-        hints = CacheHints(URI("/api/v1/review/reviewsecretarysettings/"), {}, ["person", "team"], ["order", "id"], False)
-        return self._retrieve_multi(url, ReviewSecretarySettings, hints)
+        return self._retrieve_multi(url, ReviewSecretarySettings)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -3862,8 +3866,7 @@ class DataTracker:
         url = MailingListURI("/api/v1/mailinglists/list/")
         if name is not None:
             url.params["name"] = name
-        hints = CacheHints(URI("/api/v1/mailinglists/list/"), {}, [], ["id"], False)
-        return self._retrieve_multi(url, MailingList, hints)
+        return self._retrieve_multi(url, MailingList)
 
 
     def mailing_list_subscriptions(self, 
@@ -3874,8 +3877,7 @@ class DataTracker:
             url.params["email"] = email_addr
         if mailing_list is not None:
             url.params["lists"] = mailing_list.id
-        hints = CacheHints(URI("/api/v1/mailinglists/subscribed/"), {}, ["lists"], ["id"], False)
-        return self._retrieve_multi(url, MailingListSubscriptions, hints)
+        return self._retrieve_multi(url, MailingListSubscriptions)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -3943,8 +3945,7 @@ class DataTracker:
             url.params["reg_type"] = reg_type
         if ticket_type is not None:
             url.params["ticket_type"] = ticket_type
-        hints = CacheHints(URI("/api/v1/stats/meetingregistration/"), {}, ["meeting", "person"], ["id"], False)
-        return self._retrieve_multi(url, MeetingRegistration, hints)
+        return self._retrieve_multi(url, MeetingRegistration)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -3970,8 +3971,7 @@ class DataTracker:
             url.params["group"] = group.id
         if name is not None:
             url.params["name"] = name.slug
-        hints = CacheHints(URI("/api/v1/message/announcementfrom/"), {}, ["group", "name"], ["id"], False)
-        return self._retrieve_multi(url, AnnouncementFrom, hints)
+        return self._retrieve_multi(url, AnnouncementFrom)
 
 
     def message(self, message_uri: MessageURI) -> Optional[Message]:
@@ -3999,8 +3999,7 @@ class DataTracker:
             url.params["subject__contains"] = subject_contains
         if body_contains is not None:
             url.params["body__contains"] = body_contains
-        hints = CacheHints(URI("/api/v1/message/message/"), {"related_doc": "id"}, ["by"], ["id"], False)
-        return self._retrieve_multi(url, Message, hints)
+        return self._retrieve_multi(url, Message)
 
 
     def send_queue_entry(self, send_queue_uri: SendQueueURI) -> Optional[SendQueueEntry]:
@@ -4019,8 +4018,7 @@ class DataTracker:
             url.params["by"] = by.id
         if message is not None:
             url.params["message"] = message.id
-        hints = CacheHints(URI("/api/v1/message/sendqueue/"), {}, ["by", "message"], ["id"], False)
-        return self._retrieve_multi(url, SendQueueEntry, hints)
+        return self._retrieve_multi(url, SendQueueEntry)
 
 
 # =================================================================================================================================
