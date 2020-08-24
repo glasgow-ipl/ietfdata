@@ -44,7 +44,7 @@
 #   RFC 6359 "Datatracker Extensions to Include IANA and RFC Editor Processing Information"
 #   RFC 7760 "Statement of Work for Extensions to the IETF Datatracker for Author Statistics"
 
-from datetime    import datetime, timedelta
+from datetime    import datetime, timedelta, timezone
 from enum        import Enum
 from typing      import List, Optional, Tuple, Dict, Iterator, Type, TypeVar, Any
 from dataclasses import dataclass, field
@@ -53,6 +53,7 @@ from pavlova     import Pavlova
 from pavlova.parsers import GenericParser
 
 import ast
+import dateutil.tz
 import glob
 import json
 import requests
@@ -2027,7 +2028,7 @@ class DataTracker:
 
     def _cache_update(self, obj_type_uri: URI, obj_type: Type[T]) -> None:
         self._cache_create(obj_type_uri)
-        now  = datetime.now()
+        now  = datetime.now(tz = dateutil.tz.gettz("America/Los_Angeles"))
         meta = self._cache_load_metadata(obj_type_uri)
         # Should we switch from a partial cache to full cache for this object type?
         if meta.partial and len(meta.queries) > 100:
@@ -2077,7 +2078,7 @@ class DataTracker:
         cache_filepath = Path(self.cache_dir, obj_type_uri.uri[1:-1])
         if not cache_filepath.exists():
             cache_filepath.mkdir(parents=True, exist_ok=True)
-            created = datetime.now()
+            created = datetime.now(tz = dateutil.tz.gettz("America/Los_Angeles"))
             updated = created
             meta = CacheMetadata(created, updated, True, [])
             self._cache_save_metadata(obj_type_uri, meta)
