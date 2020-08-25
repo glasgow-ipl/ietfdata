@@ -2045,8 +2045,8 @@ class DataTracker:
             hints = self._cache_hints[obj_type_uri.uri]
             if hints.timed:
                 update_uri = URI(obj_type_uri.uri)
-                update_uri.params["time__gte"] = meta.updated.isoformat()
-                update_uri.params["time__lt"]  = now.isoformat()
+                update_uri.params["time__gte"] = meta.updated.strftime("%Y-%m-%dT%H:%M:%S.%f")  # Avoid isoformat(), since don't want TZ offset
+                update_uri.params["time__lt"]  = now.strftime("%Y-%m-%dT%H:%M:%S.%f")
                 print(F"[ietfdata] cache outdated {str(update_uri)}")
                 self._cache_put_objects(update_uri, obj_type_uri)
                 meta = self._cache_load_metadata(obj_type_uri)
