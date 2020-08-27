@@ -2119,17 +2119,20 @@ class DataTracker:
                     return False  # Object is not in the cache
 
 
-    def _cache_get_object(self, obj_uri: URI) -> Dict[str, Any]:
+    def _cache_get_object(self, obj_uri: URI) -> Optional[Dict[str, Any]]:
         self.memcache_req += 1
         if self._memcache_has_object(obj_uri.uri):
             self.memcache_hit += 1
-            obj_json = self._memcache_get_object(obj_uri.uri)
+            return self._memcache_get_object(obj_uri.uri)
         else:
             cache_filepath = Path(self.cache_dir, obj_uri.uri[1:-1] + ".json")
-            with open(cache_filepath) as cache_file:
-                obj_json = json.load(cache_file)
-            self._memcache_put_object(obj_uri.uri, obj_json)
-        return obj_json
+            if cache_filepath.exists():
+                with open(cache_filepath) as cache_file:
+                    obj_json = json.load(cache_file) # type: Dict[str, Any]
+                    self._memcache_put_object(obj_uri.uri, obj_json)
+                    return obj_json
+            else:
+                return None
 
 
     def _cache_put_object(self, obj_uri: URI, obj_json: Dict[str, Any]) -> None:
@@ -2234,6 +2237,7 @@ class DataTracker:
 
             cache_uri = URI(obj_type_uri.uri + obj_file.name[:-5] + "/")
             obj_json = self._cache_get_object(cache_uri)
+            assert obj_json is not None
 
             if self._cache_obj_matches(obj_json, obj_uri):
                 sort_key = ""
