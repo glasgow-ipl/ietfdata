@@ -23,14 +23,15 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from ietfdata.datatracker import *
+import ietfdata.datatracker as dt
+
 from ietfdata.mailarchive import *
 
 class DatatrackerMailHelper(MailArchiveHelper):
     metadata_fields = ["from_person", "related_docs"]
 
-    def __init__(self, dt: DataTracker):
-        self.dt = dt
+    def __init__(self, datatracker: dt.DataTracker):
+        self.dt = datatracker
         
 
     def scan_message(self, msg: Message) -> Dict[str, Any]:
@@ -54,8 +55,8 @@ class DatatrackerMailHelper(MailArchiveHelper):
 
     def filter(self,
                metadata    : Dict[str, Any],
-               from_person : Optional[Person] = None,
-               related_doc : Optional[Document] = None,
+               from_person : Optional[dt.Person] = None,
+               related_doc : Optional[dt.Document] = None,
                **kwargs) -> bool:
         return (from_person is None or metadata["from_person"] == from_person) and (related_doc is None or related_doc in metadata["related_docs"])
 
@@ -66,6 +67,6 @@ class DatatrackerMailHelper(MailArchiveHelper):
 
 
     def deserialise(self, metadata: Dict[str, str]) -> Dict[str, Any]:
-        from_person = self.dt.person(PersonURI(metadata["from_person"])) if metadata["from_person"] != "" else None
-        related_docs = [self.dt.document(DocumentURI(doc_uri)) for doc_uri in metadata["related_docs"]]
+        from_person = self.dt.person(dt.PersonURI(metadata["from_person"])) if metadata["from_person"] != "" else None
+        related_docs = [self.dt.document(dt.DocumentURI(doc_uri)) for doc_uri in metadata["related_docs"]]
         return {"from_person" : from_person, "related_docs" : related_docs}
