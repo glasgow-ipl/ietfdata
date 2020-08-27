@@ -28,7 +28,6 @@ import json
 import re
 import requests
 import email
-import ietfdata.datatracker as dt
 import abc
 
 from datetime      import datetime
