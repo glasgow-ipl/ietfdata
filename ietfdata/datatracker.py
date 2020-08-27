@@ -2256,6 +2256,7 @@ class DataTracker:
         else:
             obj_uri = URI(F"{obj_uri.uri}?limit=100")
 
+        total = None
         while obj_uri.uri is not None:
             self._rate_limit()
             retry = True
@@ -2272,6 +2273,7 @@ class DataTracker:
                     obj_uri  = URI(meta['next'])
                     for obj_json in objs:
                         self._cache_put_object(URI(obj_json["resource_uri"]), obj_json)
+                    total = meta["total_count"]
                 elif r.status_code == 500:
                     if retry_time > 60:
                         print("_cache_put_objects failed: retry_time exceeded")
@@ -2280,6 +2282,48 @@ class DataTracker:
                     time.sleep(retry_time)
                     retry_time *= 2
                     retry = True
+                elif r.status_code == 400 and total is not None:
+                    # Error 400 = Bad Request
+                    # This should never happen in a range query such as this,
+                    # but occasionally does because of inconsistencies in the
+                    # database underlying the datatracker. Try to fetch each
+                    # object in the range in turn to isolate the problematic
+                    # object.
+                    print(F"_cache_put_objects failed: isolating bad request {req_url}")
+                    # Parse the URL to extract the query range:
+                    split = urllib.parse.urlsplit(req_url)
+                    query = urllib.parse.parse_qs(split.query)
+                    offset = int(query["offset"][0])
+                    finish = offset + 100 if offset < total else total
+                    failed = True
+                    # Fetch each object in the range in turn:
+                    for i in range(offset, finish):
+                        obj_uri = URI(self.base_url + split.path)
+                        for k, v in query.items():
+                            obj_uri.params[k] = v
+                        obj_uri.params["offset"] = i
+                        obj_uri.params["limit"]  = 1
+                        self.get_count += 1
+                        self._rate_limit()
+                        r = self.session.get(obj_uri, headers = {"User-Agent": self.ua}, verify = True, stream = False)
+                        if r.status_code == 200:
+                            obj_json = r.json() # type: Dict[str, Any]
+                            self._cache_put_object(URI(split.path), obj_json)
+                            failed = False
+                        elif r.status_code == 400:
+                            print(F"  {r.status_code} {obj_uri}")
+                        else:
+                            print(F"_cache_put_objects failed: error {r.status_code} after {self.http_req} requests {req_url}")
+                            sys.exit(1)
+                    if failed:
+                        print(F"_cache_put_objects failed: no request in range could be retrieved")
+                        sys.exit(1)
+                    # Construct the next range URL, and continue:
+                    obj_uri = URI(split.path)
+                    for k, v in query.items():
+                        obj_uri.params[k] = v
+                    obj_uri.params["offset"] = finish
+                    obj_uri = URI(F"{obj_uri.uri}?limit=100&{urllib.parse.urlencode(obj_uri.params)}")
                 else:
                     print(F"_cache_put_objects failed: error {r.status_code} after {self.http_req} requests {req_url}")
                     sys.exit(1)
