@@ -2305,10 +2305,10 @@ class DataTracker:
                         obj_uri.params["limit"]  = 1
                         self.get_count += 1
                         self._rate_limit()
-                        r = self.session.get(obj_uri, headers = {"User-Agent": self.ua}, verify = True, stream = False)
+                        r = self.session.get(str(obj_uri), headers = {"User-Agent": self.ua}, verify = True, stream = False)
                         if r.status_code == 200:
-                            obj_json = r.json() # type: Dict[str, Any]
-                            self._cache_put_object(URI(split.path), obj_json)
+                            new_json = r.json() # type: Dict[str, Any]
+                            self._cache_put_object(URI(split.path), new_json)
                             failed = False
                         elif r.status_code == 400:
                             print(F"  {r.status_code} {obj_uri}")
@@ -2323,7 +2323,8 @@ class DataTracker:
                     for k, v in query.items():
                         obj_uri.params[k] = v
                     obj_uri.params["offset"] = finish
-                    obj_uri = URI(F"{obj_uri.uri}?limit=100&{urllib.parse.urlencode(obj_uri.params)}")
+                    obj_uri.params["limit"]  = 100
+                    obj_uri = URI(F"{obj_uri.uri}?{urllib.parse.urlencode(obj_uri.params)}")
                 else:
                     print(F"_cache_put_objects failed: error {r.status_code} after {self.http_req} requests {req_url}")
                     sys.exit(1)
