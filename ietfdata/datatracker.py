@@ -2000,7 +2000,10 @@ class DataTracker:
     def __del__(self):
         print(F"[ietfdata] memcache size: {len(self.memcache)}")
         print(F"[ietfdata] memcache requests: {self.memcache_req}")
-        print(F"[ietfdata] memcache hit rate: {self.memcache_hit / self.memcache_req * 100.0:.1f}%")
+        if self.memcache_req == 0:
+            print(F"[ietfdata] memcache hit rate: --")
+        else:
+            print(F"[ietfdata] memcache hit rate: {self.memcache_hit / self.memcache_req * 100.0:.1f}%")
         print(F"[ietfdata] cache requests: {self.cache_req}")
         if self.cache_req == 0:
             print(F"[ietfdata] cache hit rate: -")
