@@ -148,20 +148,7 @@ class MailingList:
         self._helpers = helpers
         self._msg_metadata = {}
 
-        aa_cache     = Path(self._cache_folder, "aa-cache.json")
-        aa_cache_tmp = Path(self._cache_folder, "aa-cache.json.tmp")
-        if aa_cache.exists():
-            with open(aa_cache, "r") as cache_file:
-                self._archive_urls = json.load(cache_file)
-        else:
-            for index, msg in self.messages():
-                if msg.message["Archived-At"] is not None:
-                    list_name, msg_hash = _parse_archive_url(msg.message["Archived-At"])
-                    self._archive_urls[msg_hash] = index
-            with open(aa_cache_tmp, "w") as cache_file:
-                json.dump(self._archive_urls, cache_file, indent=4)
-            aa_cache_tmp.rename(aa_cache)
-            
+        # Rebuild the metadata cache:
         metadata_cache = Path(self._cache_folder, "metadata.json")
         metadata_cache_tmp = Path(self._cache_folder, "metadata.json.tmp")
         if metadata_cache.exists():
@@ -181,7 +168,6 @@ class MailingList:
         else:
             for index in self.message_indices():
                 self._msg_metadata[index] = {}
-
         for msg_id in self.message_indices():
             if msg_id not in self._msg_metadata:
                 self._msg_metadata[msg_id] = {}
@@ -191,8 +177,23 @@ class MailingList:
                     if message_text is None:
                         message_text = self.raw_message(msg_id)
                     self._msg_metadata[msg_id] = {**(helper.scan_message(message_text)), **(self._msg_metadata[msg_id])}
-
         self.serialise_metadata()
+
+        # Rebuild the archived-at cache:
+        aa_cache     = Path(self._cache_folder, "aa-cache.json")
+        aa_cache_tmp = Path(self._cache_folder, "aa-cache.json.tmp")
+        if aa_cache.exists():
+            with open(aa_cache, "r") as cache_file:
+                self._archive_urls = json.load(cache_file)
+        else:
+            for index, msg in self.messages():
+                if msg.message["Archived-At"] is not None:
+                    list_name, msg_hash = _parse_archive_url(msg.message["Archived-At"])
+                    self._archive_urls[msg_hash] = index
+            with open(aa_cache_tmp, "w") as cache_file:
+                json.dump(self._archive_urls, cache_file, indent=4)
+            aa_cache_tmp.rename(aa_cache)
+            
 
 
     def name(self) -> str:
