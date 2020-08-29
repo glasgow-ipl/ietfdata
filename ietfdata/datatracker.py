@@ -56,6 +56,8 @@ import ast
 import dateutil.tz
 import glob
 import json
+import logging
+import os
 import requests
 import re
 import sys
@@ -1916,8 +1918,14 @@ class DataTracker:
         self.cache_req = 0
         self.cache_hit = 0
         self.get_count = 0
-        self.pavlova = Pavlova()
+
+        # Configure logging
+        logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
+        self.log      = logging.getLogger("ietfdata")
+        self.log.info(self.ua)
+
         # Register generic parsers for each URI type:
+        self.pavlova = Pavlova()
         for uri_type in URI.__subclasses__():
             self.pavlova.register_parser(uri_type, GenericParser(self.pavlova, uri_type))
         self.pavlova.register_parser(CacheMetadata, GenericParser(self.pavlova, CacheMetadata))
@@ -1998,18 +2006,18 @@ class DataTracker:
 
 
     def __del__(self):
-        print(F"[ietfdata] memcache size: {len(self.memcache)}")
-        print(F"[ietfdata] memcache requests: {self.memcache_req}")
+        self.log.info(F"memcache size: {len(self.memcache)}")
+        self.log.info(F"memcache requests: {self.memcache_req}")
         if self.memcache_req == 0:
-            print(F"[ietfdata] memcache hit rate: --")
+            self.log.info(F"memcache hit rate: --")
         else:
-            print(F"[ietfdata] memcache hit rate: {self.memcache_hit / self.memcache_req * 100.0:.1f}%")
-        print(F"[ietfdata] cache requests: {self.cache_req}")
+            self.log.info(F"memcache hit rate: {self.memcache_hit / self.memcache_req * 100.0:.1f}%")
+        self.log.info(F"cache requests: {self.cache_req}")
         if self.cache_req == 0:
-            print(F"[ietfdata] cache hit rate: -")
+            self.log.info(F"cache hit rate: -")
         else:
-            print(F"[ietfdata] cache hit rate: {self.cache_hit / self.cache_req * 100.0:.1f}%")
-        print(F"[ietfdata] HTTP GET calls: {self.get_count}")
+            self.log.info(F"cache hit rate: {self.cache_hit / self.cache_req * 100.0:.1f}%")
+        self.log.info(F"HTTP GET calls: {self.get_count}")
         self.session.close()
 
 
@@ -2036,7 +2044,7 @@ class DataTracker:
         # Should we switch from a partial cache to full cache for this object type?
         if meta.partial and len(meta.queries) > 100:
             # Switch to caching all objects of this type
-            print(F"[ietfdata] switch to full cache {obj_type_uri.uri}")
+            self.log.info(F"switch to full cache {obj_type_uri.uri}")
             self._cache_put_objects(obj_type_uri, obj_type_uri)
             meta = self._cache_load_metadata(obj_type_uri)
             meta.partial = False
@@ -2050,7 +2058,7 @@ class DataTracker:
                 update_uri = URI(obj_type_uri.uri)
                 update_uri.params["time__gte"] = meta.updated.strftime("%Y-%m-%dT%H:%M:%S.%f")  # Avoid isoformat(), since don't want TZ offset
                 update_uri.params["time__lt"]  = now.strftime("%Y-%m-%dT%H:%M:%S.%f")
-                print(F"[ietfdata] cache outdated {str(update_uri)}")
+                self.log.info(F"cache outdated {str(update_uri)}")
                 self._cache_put_objects(update_uri, obj_type_uri)
                 meta = self._cache_load_metadata(obj_type_uri)
                 meta.updated = now
@@ -2289,7 +2297,7 @@ class DataTracker:
                     # database underlying the datatracker. Try to fetch each
                     # object in the range in turn to isolate the problematic
                     # object.
-                    print(F"_cache_put_objects failed: isolating bad request {req_url}")
+                    self.log.info(F"_cache_put_objects failed: isolating bad request {req_url}")
                     # Parse the URL to extract the query range:
                     split = urllib.parse.urlsplit(req_url)
                     query = urllib.parse.parse_qs(split.query)
@@ -2311,7 +2319,7 @@ class DataTracker:
                             self._cache_put_object(URI(split.path), new_json)
                             failed = False
                         elif r.status_code == 400:
-                            print(F"  {r.status_code} {obj_uri}")
+                            self.log.info(F"  {r.status_code} {obj_uri}")
                         else:
                             print(F"_cache_put_objects failed: error {r.status_code} after {self.http_req} requests {req_url}")
                             sys.exit(1)
