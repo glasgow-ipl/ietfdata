@@ -89,7 +89,7 @@ class DataTrackerExt(DataTracker):
                 drafts.append(DraftHistory(draft, submission.rev, submission.document_date, submission))
 
         # Step 3: Use related_documents() to find additional drafts this replaces:
-        for related in reversed(list(self.related_documents(source=draft, relationship_type=self.relationship_type_from_slug("replaces")))):
+        for related in self.related_documents(source=draft, relationship_type=self.relationship_type_from_slug("replaces")):
             alias  = self.document_alias(related.target)
             if alias is not None:
                 reldoc = self.document(alias.document)
@@ -107,7 +107,7 @@ class DataTrackerExt(DataTracker):
             if r.name != draft.name:
                 drafts.extend(self.draft_history(r))
 
-        return drafts
+        return reversed(sorted(drafts, key=lambda d: d.date))
 
 
 
