@@ -29,42 +29,15 @@ import time
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from ietfdata.datatracker import *
+from ietfdata.datatracker     import *
+from ietfdata.datatracker_ext import *
+from ietfdata.rfcindex        import *
 
-dt = DataTracker(cache_dir=Path("cache"))
-replaces = dt.relationship_type(RelationshipTypeURI("/api/v1/name/docrelationshipname/replaces/"))
+dt = DataTrackerExt(cache_dir=Path("cache"))
+ri = RFCIndex()
 
-docname = "rfc8280"
+rfc = ri.rfc("RFC8280")
+if rfc is not None:
+    for d in dt.draft_history_for_rfc(rfc):
+        print("    {0: <50} | {1} | {2}".format(d.draft.name, d.rev, d.date.strftime("%Y-%m-%d")))
 
-def print_revisions(document):
-    revisions = list(dt.document_events(doc=document, event_type="new_revision"))[::-1]
-    for revision in revisions:
-        print("    {0: <50} | {1} | {2}".format(document.name, revision.rev, revision.time.strftime("%Y-%m-%d")))
-
-def replacements(doc, docs_seen):
-    replaced_docs = list(dt.related_documents(source=doc, relationship_type=replaces))
-    replaced_docs = [dt.document_alias(replaced_doc.target) for replaced_doc in replaced_docs]
-    for replaced_doc in replaced_docs:
-        if replaced_doc not in docs_seen:
-            replacements(dt.document(replaced_doc.document), docs_seen)
-            docs_seen.append(replaced_doc)
-    return replaced_docs
-
-def get_replacement_chain(doc):
-    docs_seen = []
-    replacements(doc, docs_seen)
-    return docs_seen
-
-docs = list(dt.document_aliases(name=docname))
-if len(docs) == 1:
-    doc = dt.document(docs[0].document)
-    replacement_aliases = get_replacement_chain(doc)
-    for replacement_alias in replacement_aliases:
-        replacement_doc = dt.document(replacement_alias.document)
-        print(replacement_doc.name)
-        print_revisions(replacement_doc)
-    print(doc.name)
-    print_revisions(doc)
-    if docname[:3] == "rfc":
-        published_rfc_event = list(dt.document_events(doc=doc, event_type="published_rfc"))[0]
-        print("{0: <54} | -- | {1}".format(docname, published_rfc_event.time.strftime("%Y-%m-%d")))
