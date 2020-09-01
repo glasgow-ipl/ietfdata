@@ -107,7 +107,7 @@ class DataTrackerExt(DataTracker):
             if r.name != draft.name:
                 drafts.extend(self.draft_history(r))
 
-        return reversed(sorted(drafts, key=lambda d: d.date))
+        return list(reversed(sorted(drafts, key=lambda d: d.date)))
 
 
 
