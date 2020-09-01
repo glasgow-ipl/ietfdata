@@ -30,8 +30,7 @@ from ietfdata.rfcindex    import *
 # =================================================================================================================================
 
 @dataclass
-class DraftRFC:
-    rfc        : RfcEntry
+class DraftHistory:
     draft      : Document
     rev        : str
     date       : datetime
@@ -44,16 +43,17 @@ class DataTrackerExt(DataTracker):
     perform complex queries across multiple API endpoints.
     """
 
-    def _drafts(self, rfc: RfcEntry, draft: Document) -> List[DraftRFC]:
+    def draft_history(self, draft: Document) -> List[DraftHistory]:
         """
-        This is a private helper function used by the `drafts_for_rfc()` method.
-        Not for public use.
+        Find the previous versions of an Internet-Draft
         """
-        drafts : List[DraftRFC] = []
+        assert draft.type == DocumentTypeURI("/api/v1/name/doctypename/draft/")
+
+        drafts : List[DraftHistory] = []
 
         # Step 1: Use document_events() to find previous versions of the draft.
         for event in self.document_events(doc=draft, event_type="new_revision"):
-            drafts.append(DraftRFC(rfc, draft, event.rev, event.time, None))
+            drafts.append(DraftHistory(draft, event.rev, event.time, None))
 
         # Step 2: Find the submissions, and add them to the previously found
         # draft versions. Some versions of a draft may not have a submission.
@@ -86,7 +86,7 @@ class DataTrackerExt(DataTracker):
                     found = True
                     break
             if not found:
-                drafts.append(DraftRFC(rfc, draft, submission.rev, submission.document_date, submission))
+                drafts.append(DraftHistory(draft, submission.rev, submission.document_date, submission))
 
         # Step 3: Use related_documents() to find additional drafts this replaces:
         for related in reversed(list(self.related_documents(source=draft, relationship_type=self.relationship_type_from_slug("replaces")))):
@@ -105,13 +105,13 @@ class DataTrackerExt(DataTracker):
         # Step 4: Process the drafts this replaces, to find earlier versions:
         for r in replaces:
             if r.name != draft.name:
-                drafts.extend(self._drafts(rfc, r))
+                drafts.extend(self.draft_history(r))
 
         return drafts
 
 
 
-    def drafts_for_rfc(self, rfc: RfcEntry) -> List[DraftRFC]:
+    def draft_history_for_rfc(self, rfc: RfcEntry) -> List[DraftHistory]:
         """
         Use the DataTracker to find the draft versions of a given RFC.
 
@@ -132,7 +132,7 @@ class DataTrackerExt(DataTracker):
             final_draft = self.document_from_rfc(rfc.doc_id)
 
         if final_draft is not None:
-            return self._drafts(rfc, final_draft)
+            return self.draft_history(final_draft)
         else:
             return []
 
