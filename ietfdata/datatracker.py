@@ -2042,7 +2042,7 @@ class DataTracker:
         now  = datetime.now(tz = dateutil.tz.gettz("America/Los_Angeles"))
         meta = self._cache_load_metadata(obj_type_uri)
         # Should we switch from a partial cache to full cache for this object type?
-        if meta.partial and len(meta.queries) > 100:
+        if meta.partial and len(meta.queries) > 1000:
             # Switch to caching all objects of this type
             self.log.info(F"switch to full cache {obj_type_uri.uri}")
             self._cache_put_objects(obj_type_uri, obj_type_uri)
@@ -2514,7 +2514,8 @@ class DataTracker:
         url = EmailURI("/api/v1/person/email/")
         url.params["time__gte"] = since
         url.params["time__lt"]   = until
-        url.params["address__contains"] = addr_contains
+        if addr_contains is not None:
+            url.params["address__contains"] = addr_contains
         return self._retrieve_multi(url, Email)
 
 
