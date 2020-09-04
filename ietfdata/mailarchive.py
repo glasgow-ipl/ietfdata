@@ -30,6 +30,8 @@ import requests
 import email
 import ietfdata.datatracker as dt
 import abc
+import os
+import logging
 
 from datetime      import datetime
 from typing        import List, Optional, Tuple, Dict, Iterator, Type, TypeVar, Any
@@ -139,6 +141,8 @@ class MailingList:
     _msg_metadata : Dict[int, Dict[str, str]]
 
     def __init__(self, cache_dir: Path, list_name: str, helpers: List[MailArchiveHelper] = []):
+        logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
+        self.log            = logging.getLogger("ietfdata")
         self._list_name    = list_name
         self._cache_dir    = cache_dir
         self._cache_folder = Path(self._cache_dir, "mailing-lists", self._list_name)
@@ -166,6 +170,7 @@ class MailingList:
                             metadata = {**metadata, **(helper.deserialise(serialised_metadata[msg_id]))}
                     self._msg_metadata[int(msg_id)] = metadata
         else:
+            self.log.info(F"no metadata cache for mailing list {self._list_name}")
             for index in self.message_indices():
                 self._msg_metadata[index] = {}
         for msg_id in self.message_indices():
@@ -174,6 +179,7 @@ class MailingList:
             message_text = None
             for helper in self._helpers:
                 if not all(metadata_field in self._msg_metadata[msg_id] for metadata_field in helper.metadata_fields):
+                    self.log.info(F"scan message {self._list_name}/{msg_id:06} for metadata")
                     if message_text is None:
                         message_text = self.raw_message(msg_id)
                     self._msg_metadata[msg_id] = {**(helper.scan_message(message_text)), **(self._msg_metadata[msg_id])}
@@ -186,8 +192,10 @@ class MailingList:
             with open(aa_cache, "r") as cache_file:
                 self._archive_urls = json.load(cache_file)
         else:
+            self.log.info(F"no archived-at cache for mailing list {self._list_name}")
             for index, msg in self.messages():
                 if msg.message["Archived-At"] is not None:
+                    self.log.info(F"scan message {self._list_name}/{index:06} for archived-at")
                     list_name, msg_hash = _parse_archive_url(msg.message["Archived-At"])
                     self._archive_urls[msg_hash] = index
             with open(aa_cache_tmp, "w") as cache_file:
@@ -332,6 +340,8 @@ class MailArchive:
     _helpers       : List[MailArchiveHelper]
 
     def __init__(self, cache_dir: Path, helpers: List[MailArchiveHelper] = []):
+        logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
+        self.log            = logging.getLogger("ietfdata")
         self._cache_dir     = cache_dir
         self._mailing_lists = {}
         self._helpers       = helpers
