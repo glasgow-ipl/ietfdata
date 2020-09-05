@@ -2421,7 +2421,7 @@ class DataTracker:
 
 
     def person_from_email(self, email_addr: str) -> Optional[Person]:
-        email = self.email(EmailURI("/api/v1/person/email/" + email_addr + "/"))
+        email = self.email(EmailURI("/api/v1/person/email/" + email_addr.replace("/", "%40") + "/"))
         if email is not None and email.person is not None:
             return self.person(email.person)
         else:
@@ -2490,7 +2490,7 @@ class DataTracker:
 
     def email_history_for_address(self, email_addr: str) -> Iterator[HistoricalEmail]:
         uri = EmailURI("/api/v1/person/historicalemail/")
-        uri.params["address"] = email_addr
+        uri.params["address"] = email_addr.replace("/", "%40")
         return self._retrieve_multi(uri, HistoricalEmail)
 
 
@@ -3948,7 +3948,7 @@ class DataTracker:
             mailing_list : Optional[MailingList] = None) -> Iterator[MailingListSubscriptions]:
         url = MailingListSubscriptionsURI("/api/v1/mailinglists/subscribed/")
         if email_addr is not None:
-            url.params["email"] = email_addr
+            url.params["email"] = email_addr.replace("/", "%40")
         if mailing_list is not None:
             url.params["lists"] = mailing_list.id
         return self._retrieve_multi(url, MailingListSubscriptions)
