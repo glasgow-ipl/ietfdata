@@ -290,6 +290,10 @@ class MailingList:
             cache_file = Path(self._cache_folder, "{:06d}.msg".format(msg_id))
             if not cache_file.exists():
                 msg_fetch.append(msg_id)
+            elif cache_file.stat().st_size == 0:
+                self.log.info(F"zero sized message {self._list_name}/{msg_id:06d}.msg removed and marked to re-download")
+                cache_file.unlink()
+                msg_fetch.append(msg_id)
 
         if len(msg_fetch) > 0:
             aa_cache     = Path(self._cache_folder, "aa-cache.json")
