@@ -2089,6 +2089,8 @@ class DataTracker:
         cache_filepath = Path(self.cache_dir, obj_type_uri.uri[1:-1])
         if not cache_filepath.exists():
             cache_filepath.mkdir(parents=True, exist_ok=True)
+        mdata_filepath = Path(cache_filepath, "_cache_info.json")
+        if not mdata_filepath.exists():
             created = datetime.now(tz = dateutil.tz.gettz("America/Los_Angeles"))
             updated = created
             meta = CacheMetadata(created, updated, True, [])
