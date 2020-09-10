@@ -1818,17 +1818,18 @@ class TestDatatracker(unittest.TestCase):
 
     def test_meeting_session_status_names(self) -> None:
         status_names  = list(self.dt.meeting_session_status_names())
-        self.assertEqual(len(status_names),  10)
-        self.assertEqual(status_names[0].slug, "appr")       # Approved
-        self.assertEqual(status_names[1].slug, "apprw")      # Waiting for Approval
-        self.assertEqual(status_names[2].slug, "canceled")   # Cancelled
-        self.assertEqual(status_names[3].slug, "canceledpa") # Cancelled - Pre Announcement
-        self.assertEqual(status_names[4].slug, "deleted")    # Deleted
-        self.assertEqual(status_names[5].slug, "disappr")    # Disapproved
-        self.assertEqual(status_names[6].slug, "notmeet")    # Not meeting
-        self.assertEqual(status_names[7].slug, "sched")      # Scheduled
-        self.assertEqual(status_names[8].slug, "scheda")     # Scheduled - Announcement to be sent
-        self.assertEqual(status_names[9].slug, "schedw")     # Waiting for Scheduling
+        self.assertEqual(len(status_names),  11)
+        self.assertEqual(status_names[ 0].slug, "appr")       # Approved
+        self.assertEqual(status_names[ 1].slug, "apprw")      # Waiting for Approval
+        self.assertEqual(status_names[ 2].slug, "canceled")   # Cancelled
+        self.assertEqual(status_names[ 3].slug, "canceledpa") # Cancelled - Pre Announcement
+        self.assertEqual(status_names[ 4].slug, "deleted")    # Deleted
+        self.assertEqual(status_names[ 5].slug, "disappr")    # Disapproved
+        self.assertEqual(status_names[ 6].slug, "notmeet")    # Not meeting
+        self.assertEqual(status_names[ 7].slug, "resched")    # Rescheduled
+        self.assertEqual(status_names[ 8].slug, "sched")      # Scheduled
+        self.assertEqual(status_names[ 9].slug, "scheda")     # Scheduled - Announcement to be sent
+        self.assertEqual(status_names[10].slug, "schedw")     # Waiting for Scheduling
 
 
     def test_meeting_session(self) -> None:
