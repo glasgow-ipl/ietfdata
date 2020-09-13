@@ -160,8 +160,7 @@ class MailingList:
                 serialised_metadata = json.load(metadata_file)
                 for msg_id_str in serialised_metadata:
                     msg_id = int(msg_id_str)
-                    cache_file = Path(self._cache_folder, F"{msg_id:06d}.msg")
-                    if not cache_file.exists():
+                    if not Path(self._cache_folder, F"{msg_id:06d}.msg").exists():
                         self.log.info(F"dropping metadata for non-existing message {self._list_name}/{msg_id:06d}.msg")
                         continue
                     metadata : Dict[str, Any] = {}
