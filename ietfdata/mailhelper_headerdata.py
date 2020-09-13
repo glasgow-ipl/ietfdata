@@ -33,11 +33,15 @@ class HeaderDataMailHelper(MailArchiveHelper):
     metadata_fields = ["from_name", "from_addr", "timestamp"]
 
     def scan_message(self, msg: Message) -> Dict[str, Any]:
-        from_name, from_addr = email.utils.parseaddr(msg["From"])
         try:
-            from_name = str(email.header.make_header(email.header.decode_header(from_name)))
+            from_name, from_addr = email.utils.parseaddr(msg["From"])
+            try:
+                from_name = str(email.header.make_header(email.header.decode_header(from_name)))
+            except:
+                pass
         except:
-            pass
+            from_name = ""
+            from_addr = str(msg["From"]).replace("\uFFFD", "?")
         msg_date = email.utils.parsedate(msg["Date"])
         if msg_date is not None:
             timestamp = datetime.fromtimestamp(time.mktime(msg_date))
