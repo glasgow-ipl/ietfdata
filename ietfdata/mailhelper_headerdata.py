@@ -23,6 +23,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+import email.header
 import email.utils
 import time
 
@@ -33,6 +34,10 @@ class HeaderDataMailHelper(MailArchiveHelper):
 
     def scan_message(self, msg: Message) -> Dict[str, Any]:
         from_name, from_addr = email.utils.parseaddr(msg["From"])
+        try:
+            from_name = str(email.header.make_header(email.header.decode_header(from_name)))
+        except:
+            pass
         msg_date = email.utils.parsedate(msg["Date"])
         if msg_date is not None:
             timestamp = datetime.fromtimestamp(time.mktime(msg_date))
@@ -59,4 +64,4 @@ class HeaderDataMailHelper(MailArchiveHelper):
 
 
     def deserialise(self, metadata: Dict[str, str]) -> Dict[str, Any]:
-        return {"from_name": metadata["from_name"], "from_addr": metadata["from_addr"], "timestamp": datetime.fromisoformat(metadata["timestamp"])}        
+        return {"from_name": metadata["from_name"], "from_addr": metadata["from_addr"], "timestamp": datetime.fromisoformat(metadata["timestamp"])}
