@@ -293,14 +293,15 @@ class MailingList:
 
         for msg_id, msg in imap.fetch(msg_list, "RFC822.SIZE").items():
             cache_file = Path(self._cache_folder, F"{msg_id:06d}.msg")
-            file_size = cache_file.stat().st_size
-            imap_size = msg[b"RFC822.SIZE"]
             if not cache_file.exists():
                 msg_fetch.append(msg_id)
-            elif file_size != imap_size:
-                self.log.info(F"message size mismatch: {self._list_name}/{msg_id:06d}.msg ({file_size} != {imap_size})")
-                cache_file.unlink()
-                msg_fetch.append(msg_id)
+            else:
+                file_size = cache_file.stat().st_size
+                imap_size = msg[b"RFC822.SIZE"]
+                if file_size != imap_size:
+                    self.log.info(F"message size mismatch: {self._list_name}/{msg_id:06d}.msg ({file_size} != {imap_size})")
+                    cache_file.unlink()
+                    msg_fetch.append(msg_id)
 
         if len(msg_fetch) > 0:
             aa_cache     = Path(self._cache_folder, "aa-cache.json")
