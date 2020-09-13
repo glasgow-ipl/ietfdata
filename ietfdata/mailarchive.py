@@ -290,12 +290,15 @@ class MailingList:
 
         msg_list  = imap.search()
         msg_fetch = []
-        for msg_id in msg_list:
-            cache_file = Path(self._cache_folder, "{:06d}.msg".format(msg_id))
+
+        for msg_id, msg in imap.fetch(msg_list, "RFC822.SIZE").items():
+            cache_file = Path(self._cache_folder, F"{msg_id:06d}.msg")
+            file_size = cache_file.stat().st_size
+            imap_size = msg[b"RFC822.SIZE"]
             if not cache_file.exists():
                 msg_fetch.append(msg_id)
-            elif cache_file.stat().st_size == 0:
-                self.log.info(F"zero sized message {self._list_name}/{msg_id:06d}.msg removed and marked to re-download")
+            elif file_size != imap_size:
+                self.log.info(F"message size mismatch: {self._list_name}/{msg_id:06d}.msg ({file_size} != {imap_size})")
                 cache_file.unlink()
                 msg_fetch.append(msg_id)
 
@@ -305,8 +308,8 @@ class MailingList:
             aa_cache.unlink()   
 
             for msg_id, msg in imap.fetch(msg_fetch, "RFC822").items():
-                cache_file = Path(self._cache_folder, "{:06d}.msg".format(msg_id))
-                fetch_file = Path(self._cache_folder, "{:06d}.msg.download".format(msg_id))
+                cache_file = Path(self._cache_folder, F"{msg_id:06d}.msg")
+                fetch_file = Path(self._cache_folder, F"{msg_id:06d}.msg.download")
                 if not cache_file.exists():
                     with open(fetch_file, "wb") as outf:
                         outf.write(msg[b"RFC822"])
