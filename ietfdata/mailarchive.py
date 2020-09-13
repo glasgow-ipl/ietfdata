@@ -158,17 +158,22 @@ class MailingList:
         if metadata_cache.exists():
             with open(metadata_cache, "r") as metadata_file:
                 serialised_metadata = json.load(metadata_file)
-                for msg_id in serialised_metadata:
+                for msg_id_str in serialised_metadata:
+                    msg_id = int(msg_id_str)
+                    cache_file = Path(self._cache_folder, F"{msg_id:06d}.msg")
+                    if not cache_file.exists():
+                        self.log.info(F"dropping metadata for non-existing message {self._list_name}/{msg_id:06d}.msg")
+                        continue
                     metadata : Dict[str, Any] = {}
                     message_text = None
                     for helper in self._helpers:
                         if not all(metadata_field in metadata for metadata_field in helper.metadata_fields):
                             if message_text is None:
-                                message_text = self.raw_message(int(msg_id))
+                                message_text = self.raw_message(msg_id)
                                 metadata = {**metadata, **(helper.scan_message(message_text))}
                         else:
-                            metadata = {**metadata, **(helper.deserialise(serialised_metadata[msg_id]))}
-                    self._msg_metadata[int(msg_id)] = metadata
+                            metadata = {**metadata, **(helper.deserialise(serialised_metadata[msg_id_str]))}
+                    self._msg_metadata[msg_id] = metadata
         else:
             self.log.info(F"no metadata cache for mailing list {self._list_name}")
             for index in self.message_indices():
