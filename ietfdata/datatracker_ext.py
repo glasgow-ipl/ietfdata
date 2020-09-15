@@ -183,56 +183,62 @@ class DataTrackerExt(DataTracker):
 
 
     def active_research_groups(self) -> Iterator[Group]:
-        irtf = self.group_from_acronym("irtf")
-        groups = list(self.groups(parent = irtf))
-        for group in groups:
+        active_state   = self.group_state_from_slug("active")
+        research_group = self.group_type_name_from_slug("rg")
+
+        for group in self.groups(parent = self.group_from_acronym("irtf")):
             t = self.group_type_name(group.type)
             s = self.group_state(group.state)
-            if s == self.group_state_from_slug("active") and t == self.group_type_name_from_slug("rg"):
+            if s == active_state and t == research_group:
                 yield group
 
 
     def research_group_chairs(self) -> Iterator[Person]:
-        chairs = []
-        groups = list(self.active_research_groups())
-        for group in groups:
-            for role in self.group_roles(group = group, name = self.role_name_from_slug("chair")):
+        chair  = self.role_name_from_slug("chair")
+        chairs = set()
+        for group in self.active_research_groups():
+            for role in self.group_roles(group = group, name = chair):
                 person = self.person(role.person)
                 assert person is not None
-                if person not in chairs:   # people can chair more than one group
-                    chairs.append(person)
-        for chair in chairs:
-            yield chair
+                if person.id not in chairs:   # people can chair more than one group
+                    chairs.add(person.id)
+                    yield person
 
 
     def concluded_research_groups(self) -> Iterator[Group]:
+        concluded_state = self.group_state_from_slug("conclude")
+        research_group  = self.group_type_name_from_slug("wg")
+
         for group in self.groups(parent = self.group_from_acronym("irtf")):
             t = self.group_type_name(group.type)
             s = self.group_state(group.state)
-            if s == self.group_state_from_slug("conclude") and t == self.group_type_name_from_slug("rg"):
+            if s == concluded_state and t == research_group:
                 yield group
 
 
     def active_working_groups(self) -> Iterator[Group]:
+        active_state  = self.group_state_from_slug("active")
+        working_group = self.group_type_name_from_slug("wg")
+
         for area in self.groups(parent = self.group_from_acronym("iesg")):
-            if self.group_state(area.state) == self.group_state_from_slug("active"):
+            if self.group_state(area.state) == active_state:
                 for group in self.groups(parent = area):
                     t = self.group_type_name(group.type)
                     s = self.group_state(group.state)
-                    if s == self.group_state_from_slug("active") and t == self.group_type_name_from_slug("wg"):
+                    if s == active_state and t == working_group:
                         yield group
 
 
     def working_group_chairs(self) -> Iterator[Person]:
-        chairs = []
+        chair  = self.role_name_from_slug("chair")
+        chairs = set()
         for group in self.active_working_groups():
-            for role in self.group_roles(group = group, name = self.role_name_from_slug("chair")):
+            for role in self.group_roles(group = group, name = chair):
                 person = self.person(role.person)
                 assert person is not None
-                if person not in chairs:   # people can chair more than one group
-                    chairs.append(person)
-        for chair in chairs:
-            yield chair
+                if person.id not in chairs:   # people can chair more than one group
+                    chairs.add(person.id)
+                    yield person
 
 
 # =================================================================================================================================
