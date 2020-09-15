@@ -1439,23 +1439,23 @@ class TestDatatracker(unittest.TestCase):
     def test_group_roles_email(self) -> None:
         group_roles = list(self.dt.group_roles(email="csp@csperkins.org"))
         self.assertEqual(len(group_roles), 9)
-        self.assertEqual(group_roles[0].id, 1076)
-        self.assertEqual(group_roles[1].id, 3998)
-        self.assertEqual(group_roles[2].id, 8464)
-        self.assertEqual(group_roles[3].id, 8465)
-        self.assertEqual(group_roles[4].id, 8466)
-        self.assertEqual(group_roles[5].id, 9355)
-        self.assertEqual(group_roles[6].id, 10119)
-        self.assertEqual(group_roles[7].id, 10200)
-        self.assertEqual(group_roles[8].id, 10204)
+        self.assertEqual(group_roles[0].id, 1076)   # SAFE BoF chair
+        self.assertEqual(group_roles[1].id, 3998)   # TSV DIR reviewer
+        self.assertEqual(group_roles[2].id, 8464)   # IRSG chair
+        self.assertEqual(group_roles[3].id, 8465)   # IRTF Open Meeting chair
+        self.assertEqual(group_roles[4].id, 8466)   # IRTF chair
+        self.assertEqual(group_roles[5].id, 9355)   # RMCAT chair
+        self.assertEqual(group_roles[6].id, 10119)  # IRTF ANRW chair
+        self.assertEqual(group_roles[7].id, 10200)  # IAB EDM programme member
+        self.assertEqual(group_roles[8].id, 10204)  # TSV ART reviewer
 
 
     def test_group_roles_group(self) -> None:
-        group_roles = list(self.dt.group_roles(group=self.dt.group(GroupURI("/api/v1/group/group/1997/"))))
+        group_roles = list(self.dt.group_roles(group=self.dt.group(GroupURI("/api/v1/group/group/1997/")))) # SPUD BoF
         self.assertEqual(len(group_roles), 3)
-        self.assertEqual(group_roles[0].id, 3036)
-        self.assertEqual(group_roles[1].id, 3037)
-        self.assertEqual(group_roles[2].id, 3038)
+        self.assertEqual(group_roles[0].id, 3036)   # AD is Spencer Dawkins
+        self.assertEqual(group_roles[1].id, 3037)   # Chair is Eliot Lear
+        self.assertEqual(group_roles[2].id, 3038)   # Chair is Mirja Kühlewind
 
 
     def test_group_roles_name(self) -> None:
@@ -1466,15 +1466,15 @@ class TestDatatracker(unittest.TestCase):
     def test_group_roles_person(self) -> None:
         group_roles = list(self.dt.group_roles(person=self.dt.person(PersonURI("/api/v1/person/person/20209/"))))
         self.assertEqual(len(group_roles), 9)
-        self.assertEqual(group_roles[0].id, 1076)
-        self.assertEqual(group_roles[1].id, 3998)
-        self.assertEqual(group_roles[2].id, 8464)
-        self.assertEqual(group_roles[3].id, 8465)
-        self.assertEqual(group_roles[4].id, 8466)
-        self.assertEqual(group_roles[5].id, 9355)
-        self.assertEqual(group_roles[6].id, 10119)
-        self.assertEqual(group_roles[7].id, 10200)
-        self.assertEqual(group_roles[8].id, 10204)
+        self.assertEqual(group_roles[0].id, 1076)   # SAFE BoF chair
+        self.assertEqual(group_roles[1].id, 3998)   # TSV DIR reviewer
+        self.assertEqual(group_roles[2].id, 8464)   # IRSG chair
+        self.assertEqual(group_roles[3].id, 8465)   # IRTF Open Meeting chair
+        self.assertEqual(group_roles[4].id, 8466)   # IRTF chair
+        self.assertEqual(group_roles[5].id, 9355)   # RMCAT chair
+        self.assertEqual(group_roles[6].id, 10119)  # IRTF ANRW chair
+        self.assertEqual(group_roles[7].id, 10200)  # IAB EDM programme member
+        self.assertEqual(group_roles[8].id, 10204)  # TSV ART reviewer
 
 
     def test_group_milestone_history(self) -> None:
