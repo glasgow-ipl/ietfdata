@@ -40,7 +40,10 @@ class HeaderDataMailHelper(MailArchiveHelper):
             pass
         msg_date = email.utils.parsedate(msg["Date"])
         if msg_date is not None:
-            timestamp = datetime.fromtimestamp(time.mktime(msg_date))
+            try:
+                timestamp = datetime.fromtimestamp(time.mktime(msg_date))
+            except:
+                timestamp = None
         else:
             timestamp = datetime.now()
         return {"from_name": from_name, "from_addr": from_addr, "timestamp": timestamp}
