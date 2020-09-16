@@ -38,11 +38,13 @@ class HeaderDataMailHelper(MailArchiveHelper):
             from_name = str(email.header.make_header(email.header.decode_header(from_name)))
         except:
             pass
-        msg_date = email.utils.parsedate(msg["Date"])
-        if msg_date is not None:
-            timestamp = datetime.fromtimestamp(time.mktime(msg_date))
-        else:
-            timestamp = datetime.now()
+        timestamp = None
+        try:
+            msg_date = email.utils.parsedate(msg["Date"])
+            if msg_date is not None:
+                timestamp = datetime.fromtimestamp(time.mktime(msg_date))
+        except:
+            pass
         return {"from_name": from_name, "from_addr": from_addr, "timestamp": timestamp}
 
 
