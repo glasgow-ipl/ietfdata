@@ -26,11 +26,17 @@
 import email.header
 import email.utils
 import time
+import logging
 
 from ietfdata.mailarchive        import *
 
 class HeaderDataMailHelper(MailArchiveHelper):
     metadata_fields = ["from_name", "from_addr", "timestamp"]
+
+    def __init__(self):
+        logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
+        self.log = logging.getLogger("ietfdata")
+
 
     def scan_message(self, msg: Message) -> Dict[str, Any]:
         from_name, from_addr = email.utils.parseaddr(str(msg["From"]).replace("\uFFFD", "?"))
@@ -43,7 +49,8 @@ class HeaderDataMailHelper(MailArchiveHelper):
             msg_date = email.utils.parsedate(msg["Date"])
             if msg_date is not None:
                 timestamp = datetime.fromtimestamp(time.mktime(msg_date))
-        except:
+        except Exception as e:
+            self.log.error(f"HeaderDataMailHelper: could not parse message `Date` header - {msg['Date']}")
             pass
         return {"from_name": from_name, "from_addr": from_addr, "timestamp": timestamp}
 
@@ -60,9 +67,10 @@ class HeaderDataMailHelper(MailArchiveHelper):
 
 
     def serialise(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
+
         return {"from_name"  : metadata["from_name"],
                 "from_addr" : metadata["from_addr"],
-                "timestamp" : metadata["timestamp"].isoformat()}
+                "timestamp" : metadata["timestamp"].isoformat() if metadata["timestamp"] is not None else None}
 
 
     def deserialise(self, metadata: Dict[str, str]) -> Dict[str, Any]:
