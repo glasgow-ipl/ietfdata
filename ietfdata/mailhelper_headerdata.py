@@ -74,4 +74,4 @@ class HeaderDataMailHelper(MailArchiveHelper):
 
 
     def deserialise(self, metadata: Dict[str, str]) -> Dict[str, Any]:
-        return {"from_name": metadata["from_name"], "from_addr": metadata["from_addr"], "timestamp": datetime.fromisoformat(metadata["timestamp"])}
+        return {"from_name": metadata["from_name"], "from_addr": metadata["from_addr"], "timestamp": datetime.fromisoformat(metadata["timestamp"]) if metadata["timestamp"] is not None else None}
