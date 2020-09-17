@@ -90,7 +90,7 @@ class MailArchiveHelper(abc.ABC):
 class MailingListMessage:
     message       : Message
     _metadata     : Dict[str, Any]
-     
+
     def __init__(self, message: Message, metadata: Dict[str, Any]):
         self.message = message
         self._metadata = metadata
@@ -109,7 +109,7 @@ class MailingListMessage:
 class MessageThread:
     _msg_ids : List[str]
     messages: List[Tuple[int, MailingListMessage]]
-    
+
     def __init__(self, index: int, first_message: MailingListMessage):
         self._msg_ids =  [first_message.message['Message-ID']]
         self.messages = [(index, first_message)]
@@ -169,6 +169,7 @@ class MailingList:
                         if not all(metadata_field in metadata for metadata_field in helper.metadata_fields):
                             if message_text is None:
                                 message_text = self.raw_message(msg_id)
+                                self.log.info(F"{type(helper).__name__}: scan message {self._list_name}/{msg_id:06} for metadata")
                                 metadata = {**metadata, **(helper.scan_message(message_text))}
                         else:
                             metadata = {**metadata, **(helper.deserialise(serialised_metadata[msg_id_str]))}
@@ -183,9 +184,9 @@ class MailingList:
             message_text = None
             for helper in self._helpers:
                 if not all(metadata_field in self._msg_metadata[msg_id] for metadata_field in helper.metadata_fields):
-                    self.log.info(F"scan message {self._list_name}/{msg_id:06} for metadata")
                     if message_text is None:
                         message_text = self.raw_message(msg_id)
+                    self.log.info(F"{type(helper).__name__}: scan message {self._list_name}/{msg_id:06} for metadata")
                     self._msg_metadata[msg_id] = {**(helper.scan_message(message_text)), **(self._msg_metadata[msg_id])}
         self.serialise_metadata()
 
@@ -205,7 +206,7 @@ class MailingList:
             with open(aa_cache_tmp, "w") as cache_file:
                 json.dump(self._archive_urls, cache_file, indent=4)
             aa_cache_tmp.rename(aa_cache)
-            
+
 
 
     def name(self) -> str:
@@ -229,7 +230,7 @@ class MailingList:
         metadata : Dict[str, str] = {}
         for helper in self._helpers:
             metadata = {**metadata, **(helper.serialise(self._msg_metadata[msg_id]))}
-        return metadata 
+        return metadata
 
 
     def raw_message(self, msg_id: int) -> Message:
@@ -306,7 +307,7 @@ class MailingList:
         if len(msg_fetch) > 0:
             aa_cache     = Path(self._cache_folder, "aa-cache.json")
             aa_cache_tmp = Path(self._cache_folder, "aa-cache.json.tmp")
-            aa_cache.unlink()   
+            aa_cache.unlink()
 
             for msg_id, msg in imap.fetch(msg_fetch, "RFC822").items():
                 cache_file = Path(self._cache_folder, F"{msg_id:06d}.msg")
@@ -322,9 +323,10 @@ class MailingList:
                         self._archive_urls[msg_hash] = msg_id
                     self._num_messages += 1
                     new_msgs.append(msg_id)
-                    
+
                     self._msg_metadata[msg_id] = {}
                     for helper in self._helpers:
+                        self.log.info(F"{type(helper).__name__}: scan message {self._list_name}/{msg_id:06} for metadata")
                         self._msg_metadata[msg_id] = {**(helper.scan_message(e)), **(self._msg_metadata[msg_id])}
 
             with open(aa_cache_tmp, "w") as aa_cache_file:
@@ -410,8 +412,8 @@ class MailArchive:
             nm = ml.update(_reuse_imap=imap)
             print(F"({ml.num_messages()} messages; {len(nm)} new)")
         imap.logout()
-    
-    
+
+
     def messages(self, **kwargs) -> Iterator[Tuple[Tuple[str, int], MailingListMessage]]:
         for mailing_list in self._mailing_lists:
             for msg_id, msg in self._mailing_lists[mailing_list].messages(**kwargs):
