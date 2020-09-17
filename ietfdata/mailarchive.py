@@ -166,12 +166,13 @@ class MailingList:
                     metadata : Dict[str, Any] = {}
                     message_text = None
                     for helper in self._helpers:
-                        metadata = {**metadata, **(helper.deserialise(serialised_metadata[msg_id_str]))}
-                        if not all(metadata_field in metadata for metadata_field in helper.metadata_fields):
+                        if not all(metadata_field in serialised_metadata[msg_id_str] for metadata_field in helper.metadata_fields):
                             if message_text is None:
                                 message_text = self.raw_message(msg_id)
                                 self.log.info(F"{type(helper).__name__}: scan message {self._list_name}/{msg_id:06} for metadata")
                                 metadata = {**metadata, **(helper.scan_message(message_text))}
+                        else:
+                            metadata = {**metadata, **(helper.deserialise(serialised_metadata[msg_id_str]))}
                     self._msg_metadata[msg_id] = metadata
         else:
             self.log.info(F"no metadata cache for mailing list {self._list_name}")
