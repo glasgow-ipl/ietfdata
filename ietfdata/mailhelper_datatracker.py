@@ -38,17 +38,28 @@ class DatatrackerMailHelper(MailArchiveHelper):
         
 
     def scan_message(self, msg: Message) -> Dict[str, Any]:
-        from_name, from_addr = email.utils.parseaddr(msg["From"])
+        from_name, from_addr = email.utils.parseaddr(str(msg["From"]).replace("\uFFFD", "?"))
+        try:
+            from_name = str(email.header.make_header(email.header.decode_header(from_name)))
+        except:
+            pass
         from_person = self.dt.person_from_email(from_addr)
         docs = []
+
+        try:
+            msg_str = msg.as_string()
+        except:
+            self.log.error(f"DatatrackerMailHelper: could not parse message as string")
+            msg_str = ""
+
         # FIXME: Does this find messages with a document in the subject line?
         # FIXME: It would be interesting to also find people mentioned in messages
-        draft_matches = re.findall(r'draft-(?P<name>[a-zA-Z0-9_\-]+)-(?P<revision>[0-9_\-]+)', msg.as_string())
+        draft_matches = re.findall(r'draft-(?P<name>[a-zA-Z0-9_\-]+)-(?P<revision>[0-9_\-]+)', msg_str)
         for draft_match in draft_matches:
             doc = self.dt.document_from_draft(f"draft-{draft_match[0]}")
             if doc is not None and doc not in docs:
                 docs.append(doc)
-        rfc_matches = re.findall(r'(rfc|RFC)(\s)?(?P<number>[0-9]+)', msg.as_string())
+        rfc_matches = re.findall(r'(rfc|RFC)(\s)?(?P<number>[0-9]+)', msg_str)
         for rfc_match in rfc_matches:
             doc = self.dt.document_from_rfc(f"rfc{rfc_match[-1]}")
             if doc is not None and doc not in docs:
