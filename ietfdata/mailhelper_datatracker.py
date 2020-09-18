@@ -23,6 +23,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+import logging
 import ietfdata.datatracker as dt
 
 from ietfdata.mailarchive import *
@@ -31,6 +32,8 @@ class DatatrackerMailHelper(MailArchiveHelper):
     metadata_fields = ["from_person", "related_docs"]
 
     def __init__(self, datatracker: dt.DataTracker):
+        logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
+        self.log = logging.getLogger("ietfdata")
         self.dt = datatracker
         
 
