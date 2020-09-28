@@ -1935,7 +1935,7 @@ class DataTracker:
         self._cache_hints["/api/v1/doc/ballottype/"]                     = CacheHints({}, ["doc_type"], ["order", "id"], False, False)
         self._cache_hints["/api/v1/doc/docalias/"]                       = CacheHints({}, [], ["id"], False, False)
         self._cache_hints["/api/v1/doc/docevent/"]                       = CacheHints({"doc": "id"},      ["by"], ["id"], True, True)
-        self._cache_hints["/api/v1/doc/document/"]                       = CacheHints({}, ["type", "group"], ["id"], False, True)
+        self._cache_hints["/api/v1/doc/document/"]                       = CacheHints({}, ["type", "stream", "group"], ["id"], False, True)
         self._cache_hints["/api/v1/doc/documentauthor/"]                 = CacheHints({"document": "id"}, ["email", "person"], ["order", "id"], False, False)
         self._cache_hints["/api/v1/doc/relateddocument/"]                = CacheHints({"source": "id", "target": "id", "relationship": "slug"}, [], ["id"], False, False)
         self._cache_hints["/api/v1/doc/state/"]                          = CacheHints({}, ["type"], ["order", "id"], False, False)
@@ -2538,12 +2538,15 @@ class DataTracker:
             since   : str = "1970-01-01T00:00:00",
             until   : str = "2038-01-19T03:14:07",
             doctype : Optional[DocumentType] = None,
+            stream  : Optional[Stream]       = None,
             group   : Optional[Group]        = None) -> Iterator[Document]:
         url = DocumentURI("/api/v1/doc/document/")
         url.params["time__gte"] = since
         url.params["time__lt"] = until
         if doctype is not None:
             url.params["type"] = doctype.slug
+        if stream is not None:
+            url.params["stream"] = stream.slug
         if group is not None:
             url.params["group"] = group.id
         return self._retrieve_multi(url, Document)
