@@ -247,7 +247,7 @@ class MailingList:
             serialised_metadata["helpers"] = {**serialised_metadata["helpers"], **self._cached_metadata.get("helpers", {})}
             for msg_id in self._msg_metadata:
                 serialised_metadata["message_metadata"][msg_id] = self.serialise_message(msg_id)
-                serialised_metadata["message_metadata"][msg_id] = {**serialised_metadata["message_metadata"][msg_id], **(self._cached_metadata["message_metadata"].get(str(msg_id), {}))}
+                serialised_metadata["message_metadata"][msg_id] = {**serialised_metadata["message_metadata"][msg_id], **(self._cached_metadata.get("message_metadata", {}).get(str(msg_id), {}))}
             json.dump(serialised_metadata, metadata_file, indent=4)
         metadata_cache_tmp.rename(metadata_cache)
 
