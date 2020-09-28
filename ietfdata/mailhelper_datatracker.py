@@ -29,13 +29,15 @@ import ietfdata.datatracker as dt
 from ietfdata.mailarchive import *
 
 class DatatrackerMailHelper(MailArchiveHelper):
-    metadata_fields = ["from_person", "related_docs"]
+    name    = "Datatracker"
+    version = "r1"
+    provided_fields = ["from_person", "related_docs"]
 
     def __init__(self, datatracker: dt.DataTracker):
         logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
         self.log = logging.getLogger("ietfdata")
         self.dt = datatracker
-        
+
 
     def scan_message(self, msg: Message) -> Dict[str, Any]:
         from_name, from_addr = email.utils.parseaddr(str(msg["From"]).replace("\uFFFD", "?"))
