@@ -106,7 +106,9 @@ class MailingListMessage:
 
     def __init__(self, message: Message, metadata: Dict[str, Any]):
         self.message = message
-        self._metadata = metadata
+        self._metadata = {}
+        for helper_name in metadata:
+            self._metadata = {**self._metadata, **metadata[helper_name]}
 
 
     def has_metadata(self, name: str) -> bool:
