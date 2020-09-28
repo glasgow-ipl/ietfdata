@@ -1938,7 +1938,7 @@ class DataTracker:
         self._cache_hints["/api/v1/doc/document/"]                       = CacheHints({}, ["type", "stream", "group"], ["id"], False, True)
         self._cache_hints["/api/v1/doc/documentauthor/"]                 = CacheHints({"document": "id"}, ["email", "person"], ["order", "id"], False, False)
         self._cache_hints["/api/v1/doc/relateddocument/"]                = CacheHints({"source": "id", "target": "id", "relationship": "slug"}, [], ["id"], False, False)
-        self._cache_hints["/api/v1/doc/state/"]                          = CacheHints({}, ["type"], ["order", "id"], False, False)
+        self._cache_hints["/api/v1/doc/state/"]                          = CacheHints({}, ["type"], ["order", "id", "slug"], False, False)
         self._cache_hints["/api/v1/doc/statetype/"]                      = CacheHints({}, [], ["slug"], False, False)
         self._cache_hints["/api/v1/group/changestategroupevent/"]        = CacheHints({}, ["by", "group", "state"], ["order", "id"], False, True)
         self._cache_hints["/api/v1/group/group/"]                        = CacheHints({}, ["parent", "state"], ["id"], False, True)
@@ -2667,10 +2667,14 @@ class DataTracker:
         return self._retrieve(state_uri, DocumentState)
 
 
-    def document_states(self, state_type : Optional[DocumentStateType] = None) -> Iterator[DocumentState]:
+    def document_states(self,
+            state_type : Optional[DocumentStateType] = None,
+            slug       : Optional[str]               = None) -> Iterator[DocumentState]:
         url = DocumentStateURI("/api/v1/doc/state/")
         if state_type is not None:
             url.params["type"] = state_type.slug
+        if slug is not None:
+            url.params["slug"] = slug
         return self._retrieve_multi(url, DocumentState)
 
 
