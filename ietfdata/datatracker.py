@@ -2967,6 +2967,10 @@ class DataTracker:
         return self._retrieve(stream_uri, Stream)
 
 
+    def stream_from_slug(self, slug: str) -> Optional[Stream]:
+        return self._retrieve(StreamURI(F"/api/v1/name/streamname/{slug}/"), Stream)
+
+
     def streams(self) -> Iterator[Stream]:
         return self._retrieve_multi(StreamURI("/api/v1/name/streamname/"), Stream)
 

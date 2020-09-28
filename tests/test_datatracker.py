@@ -1139,7 +1139,6 @@ class TestDatatracker(unittest.TestCase):
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to streams:
 
-    # FIXME: this needs to be updated
     def test_stream(self) -> None:
         stream = self.dt.stream(StreamURI("/api/v1/name/streamname/irtf/"))
         if stream is not None:
@@ -1152,7 +1151,20 @@ class TestDatatracker(unittest.TestCase):
         else:
             self.fail("Cannot find stream")
 
-    # FIXME: this needs to be updated
+
+    def test_stream_from_slug(self) -> None:
+        stream = self.dt.stream_from_slug("irtf")
+        if stream is not None:
+            self.assertEqual(stream.desc,         "IRTF Stream")
+            self.assertEqual(stream.name,         "IRTF")
+            self.assertEqual(stream.order,        3)
+            self.assertEqual(stream.resource_uri, StreamURI("/api/v1/name/streamname/irtf/"))
+            self.assertEqual(stream.slug,         "irtf")
+            self.assertEqual(stream.used,         True)
+        else:
+            self.fail("Cannot find stream")
+
+
     def test_streams(self) -> None:
         streams = list(self.dt.streams())
         self.assertEqual(len(streams), 5)
