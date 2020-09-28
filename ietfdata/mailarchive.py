@@ -144,14 +144,15 @@ class MessageThread:
 # =================================================================================================
 
 class MailingList:
-    _list_name    : str
-    _cache_dir    : Path
-    _cache_folder : Path
-    _last_updated : datetime
-    _num_messages : int
-    _archive_urls : Dict[str, int]
-    _helpers      : List[MailArchiveHelper]
-    _msg_metadata : Dict[int, Dict[str, Any]] = {}
+    _list_name         : str
+    _cache_dir         : Path
+    _cache_folder      : Path
+    _last_updated      : datetime
+    _num_messages      : int
+    _archive_urls      : Dict[str, int]
+    _helpers           : List[MailArchiveHelper]
+    _msg_metadata      : Dict[int, Dict[str, Any]]
+    _cached_metadata   : Dict[str, Dict[str, str]]
 
     def __init__(self, cache_dir: Path, list_name: str, helpers: List[MailArchiveHelper] = []):
         logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
@@ -164,14 +165,15 @@ class MailingList:
         self._archive_urls = {}
         self._helpers = helpers
         self._msg_metadata = {}
+        self._cached_metadata = {}
 
         # Rebuild the metadata cache:
         metadata_cache = Path(self._cache_folder, "metadata.json")
         metadata_cache_tmp = Path(self._cache_folder, "metadata.json.tmp")
         if metadata_cache.exists():
             with open(metadata_cache, "r") as metadata_file:
-                serialised_metadata = json.load(metadata_file)
-                message_metadata = serialised_metadata["message_metadata"]
+                self._cached_metadata = json.load(metadata_file)
+                message_metadata = self._cached_metadata["message_metadata"]
                 for msg_id_str in message_metadata:
                     msg_id = int(msg_id_str)
                     if not Path(self._cache_folder, F"{msg_id:06d}.msg").exists():
@@ -180,7 +182,7 @@ class MailingList:
                     metadata : Dict[str, Dict[str, Any]] = {}
                     message_text = None
                     for helper in self._helpers:
-                        if helper.version != serialised_metadata["helpers"][helper.name]:
+                        if helper.name in self._cached_metadata["helpers"] and helper.version != self._cached_metadata["helpers"][helper.name]:
                             self.log.info(F"{helper.name}: version changed, discarding cached metadata")
                             message_metadata[msg_id_str].pop(helper.name)
                         if helper.name not in message_metadata[msg_id_str] or not all(metadata_field in message_metadata[msg_id_str][helper.name] for metadata_field in helper.provided_fields):
@@ -242,8 +244,10 @@ class MailingList:
             serialised_metadata["helpers"] = {}
             for helper in self._helpers:
                 serialised_metadata["helpers"][helper.name] = helper.version
+            serialised_metadata["helpers"] = {**serialised_metadata["helpers"], **self._cached_metadata.get("helpers", {})}
             for msg_id in self._msg_metadata:
                 serialised_metadata["message_metadata"][msg_id] = self.serialise_message(msg_id)
+                serialised_metadata["message_metadata"][msg_id] = {**serialised_metadata["message_metadata"][msg_id], **(self._cached_metadata["message_metadata"].get(str(msg_id), {}))}
             json.dump(serialised_metadata, metadata_file, indent=4)
         metadata_cache_tmp.rename(metadata_cache)
 
