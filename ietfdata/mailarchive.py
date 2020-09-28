@@ -151,7 +151,7 @@ class MailingList:
     _num_messages : int
     _archive_urls : Dict[str, int]
     _helpers      : List[MailArchiveHelper]
-    _msg_metadata : Dict[int, Dict[str, str]]
+    _msg_metadata : Dict[int, Dict[str, Any]] = {}
 
     def __init__(self, cache_dir: Path, list_name: str, helpers: List[MailArchiveHelper] = []):
         logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
@@ -238,7 +238,7 @@ class MailingList:
         metadata_cache = Path(self._cache_folder, "metadata.json")
         metadata_cache_tmp = Path(self._cache_folder, "metadata.json.tmp")
         with open(metadata_cache_tmp, "w") as metadata_file:
-            serialised_metadata = {"helpers": {}, "message_metadata": {}}
+            serialised_metadata = {"helpers": {}, "message_metadata": {}} # type: Dict[str, Dict[Any, Any]]
             serialised_metadata["helpers"] = {}
             for helper in self._helpers:
                 serialised_metadata["helpers"][helper.name] = helper.version
@@ -248,7 +248,7 @@ class MailingList:
         metadata_cache_tmp.rename(metadata_cache)
 
 
-    def serialise_message(self, msg_id: int) -> Dict[str, str]:
+    def serialise_message(self, msg_id: int) -> Dict[str, Dict[str, str]]:
         metadata : Dict[str, Dict[str, str]] = {}
         for helper in self._helpers:
             metadata[helper.name] = helper.serialise(self._msg_metadata[msg_id][helper.name])
@@ -349,7 +349,7 @@ class MailingList:
                     self._msg_metadata[msg_id] = {}
                     for helper in self._helpers:
                         self.log.info(F"{helper.name}: scan message {self._list_name}/{msg_id:06} for metadata")
-                        self._msg_metadata[msg_id] = {**(helper.scan_message(e)), **(self._msg_metadata[msg_id])}
+                        self._msg_metadata[msg_id][helper.name] = helper.scan_message(e)
 
             with open(aa_cache_tmp, "w") as aa_cache_file:
                 json.dump(self._archive_urls, aa_cache_file)
