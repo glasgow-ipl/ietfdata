@@ -163,16 +163,17 @@ class MailingList:
                     if not Path(self._cache_folder, F"{msg_id:06d}.msg").exists():
                         self.log.info(F"dropping metadata for non-existing message {self._list_name}/{msg_id:06d}.msg")
                         continue
-                    metadata : Dict[str, Any] = {}
+                    metadata : Dict[str, Dict[str, Any]] = {}
                     message_text = None
                     for helper in self._helpers:
-                        if not all(metadata_field in serialised_metadata[msg_id_str] for metadata_field in helper.metadata_fields):
+                        helper_name = type(helper).__name__
+                        if helper_name not in serialised_metadata[msg_id_str] or not all(metadata_field in serialised_metadata[msg_id_str][helper_name] for metadata_field in helper.metadata_fields):
                             if message_text is None:
                                 message_text = self.raw_message(msg_id)
                                 self.log.info(F"{type(helper).__name__}: scan message {self._list_name}/{msg_id:06} for metadata")
-                                metadata = {**metadata, **(helper.scan_message(message_text))}
+                                metadata[helper_name] = helper.scan_message(message_text)
                         else:
-                            metadata = {**metadata, **(helper.deserialise(serialised_metadata[msg_id_str]))}
+                            metadata[helper_name] = helper.deserialise(serialised_metadata[msg_id_str][helper_name])
                     self._msg_metadata[msg_id] = metadata
         else:
             self.log.info(F"no metadata cache for mailing list {self._list_name}")
@@ -183,11 +184,12 @@ class MailingList:
                 self._msg_metadata[msg_id] = {}
             message_text = None
             for helper in self._helpers:
-                if not all(metadata_field in self._msg_metadata[msg_id] for metadata_field in helper.metadata_fields):
+                helper_name = type(helper).__name__
+                if helper_name not in self._msg_metadata[msg_id] or not all(metadata_field in self._msg_metadata[msg_id][helper_name] for metadata_field in helper.metadata_fields):
                     if message_text is None:
                         message_text = self.raw_message(msg_id)
                     self.log.info(F"{type(helper).__name__}: scan message {self._list_name}/{msg_id:06} for metadata")
-                    self._msg_metadata[msg_id] = {**(helper.scan_message(message_text)), **(self._msg_metadata[msg_id])}
+                    self._msg_metadata[msg_id][helper_name] = helper.scan_message(message_text)
         self.serialise_metadata()
 
         # Rebuild the archived-at cache:
@@ -227,9 +229,10 @@ class MailingList:
 
 
     def serialise_message(self, msg_id: int) -> Dict[str, str]:
-        metadata : Dict[str, str] = {}
+        metadata : Dict[str, Dict[str, str]] = {}
         for helper in self._helpers:
-            metadata = {**metadata, **(helper.serialise(self._msg_metadata[msg_id]))}
+            helper_name = type(helper).__name__
+            metadata[helper_name] = helper.serialise(self._msg_metadata[msg_id][helper_name])
         return metadata
 
 
