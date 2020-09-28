@@ -2678,6 +2678,10 @@ class DataTracker:
         return self._retrieve(state_type_uri, DocumentStateType)
 
 
+    def document_state_type_from_slug(self, slug: str) -> Optional[DocumentStateType]:
+        return self._retrieve(DocumentStateTypeURI(F"/api/v1/doc/statetype/{slug}/"), DocumentStateType)
+
+
     def document_state_types(self) -> Iterator[DocumentStateType]:
         url = DocumentStateTypeURI("/api/v1/doc/statetype/")
         return self._retrieve_multi(url, DocumentStateType)
