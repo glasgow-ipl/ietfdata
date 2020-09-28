@@ -12,6 +12,7 @@ keyring = "*"
 coverage = "*"
 
 [packages]
+redis = "*"
 requests = "*"
 pavlova = "*"
 imapclient = "*"
