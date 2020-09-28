@@ -180,6 +180,9 @@ class MailingList:
                     metadata : Dict[str, Dict[str, Any]] = {}
                     message_text = None
                     for helper in self._helpers:
+                        if helper.version != serialised_metadata["helpers"][helper.name]:
+                            self.log.info(F"{helper.name}: version changed, discarding cached metadata")
+                            message_metadata[msg_id_str].pop(helper.name)
                         if helper.name not in message_metadata[msg_id_str] or not all(metadata_field in message_metadata[msg_id_str][helper.name] for metadata_field in helper.provided_fields):
                             if message_text is None:
                                 message_text = self.raw_message(msg_id)
@@ -277,7 +280,7 @@ class MailingList:
         for msg_id in self.message_indices():
             include_msg = True
             for helper in self._helpers:
-                if not helper.filter(self._msg_metadata[msg_id], **kwargs):
+                if not helper.filter(self._msg_metadata[msg_id][helper.name], **kwargs):
                     include_msg = False
                     break
             if include_msg:
