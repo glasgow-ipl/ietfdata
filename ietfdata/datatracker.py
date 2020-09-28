@@ -58,6 +58,7 @@ import glob
 import json
 import logging
 import os
+import redis
 import requests
 import re
 import sys
@@ -1907,17 +1908,16 @@ class DataTracker:
         Parameters:
             cache_dir      -- If set, use this directory as a cache for Datatracker objects
         """
+        self.redis    = redis.Redis(host=os.environ.get("IETFDATA_REDIS_HOST", "127.0.0.1"), port=6379, db=0)
         self.session  = requests.Session()
         self.ua       = "glasgow-ietfdata/0.4.0"          # Update when making a new relaase
         self.base_url = "https://datatracker.ietf.org"
         self.http_req = 0
-        self.memcache : Dict[str, Dict[str, Any]] = {}
-        self.memcache_req = 0
-        self.memcache_hit = 0
         self.cache_dir = cache_dir
         self.cache_req = 0
         self.cache_hit = 0
         self.get_count = 0
+        self.redis_calls = 0
 
         # Configure logging
         logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
@@ -2006,36 +2006,19 @@ class DataTracker:
 
 
     def __del__(self):
-        self.log.info(F"memcache size: {len(self.memcache)}")
-        self.log.info(F"memcache requests: {self.memcache_req}")
-        if self.memcache_req == 0:
-            self.log.info(F"memcache hit rate: --")
-        else:
-            self.log.info(F"memcache hit rate: {self.memcache_hit / self.memcache_req * 100.0:.1f}%")
         self.log.info(F"cache requests: {self.cache_req}")
         if self.cache_req == 0:
             self.log.info(F"cache hit rate: -")
         else:
             self.log.info(F"cache hit rate: {self.cache_hit / self.cache_req * 100.0:.1f}%")
         self.log.info(F"HTTP GET calls: {self.get_count}")
+        self.log.info(F"Redis requests: {self.redis_calls}")
         self.session.close()
+        self.redis.bgsave()
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
     # Private methods to manage the local cache:
-
-    def _memcache_has_object(self, obj_uri: str) -> bool:
-        return obj_uri in self.memcache
-
-
-    def _memcache_get_object(self, obj_uri: str) -> Dict[str, Any]:
-        assert obj_uri in self.memcache
-        return self.memcache[obj_uri]
-
-
-    def _memcache_put_object(self, obj_uri: str, obj: Dict[str, Any]) -> None:
-        self.memcache[obj_uri] = obj
-
 
     def _cache_update(self, obj_type_uri: URI, obj_type: Type[T]) -> None:
         self._cache_create(obj_type_uri)
@@ -2069,28 +2052,27 @@ class DataTracker:
 
 
     def _cache_load_metadata(self, obj_type_uri: URI) -> CacheMetadata:
-        cache_filepath = Path(self.cache_dir, obj_type_uri.uri[1:-1], "_cache_info.json")
-        with open(cache_filepath, "r") as cache_file:
-            return self.pavlova.from_mapping(json.load(cache_file), CacheMetadata)
+        meta_key  = F"{obj_type_uri.uri}_cache_info"
+        meta_json = self.redis.get(meta_key)
+        self.redis_calls += 1
+        return self.pavlova.from_mapping(json.loads(meta_json), CacheMetadata)
 
 
     def _cache_save_metadata(self, obj_type_uri: URI, meta: CacheMetadata) -> None:
-        cache_filepath = Path(self.cache_dir, obj_type_uri.uri[1:-1], "_cache_info.json")
-        with open(cache_filepath, "w") as cache_file:
-            data : Dict[str, Any] = {}
-            data["created"] = meta.created.isoformat()
-            data["updated"] = meta.updated.isoformat()
-            data["partial"] = meta.partial
-            data["queries"] = meta.queries
-            json.dump(data, cache_file)
+        meta_key  = F"{obj_type_uri.uri}_cache_info"
+        meta_dict : Dict[str, Any] = {}
+        meta_dict["created"] = meta.created.isoformat()
+        meta_dict["updated"] = meta.updated.isoformat()
+        meta_dict["partial"] = meta.partial
+        meta_dict["queries"] = meta.queries
+        self.redis.set(meta_key, json.dumps(meta_dict))
+        self.redis_calls += 1
 
 
     def _cache_create(self, obj_type_uri: URI) -> None:
-        cache_filepath = Path(self.cache_dir, obj_type_uri.uri[1:-1])
-        if not cache_filepath.exists():
-            cache_filepath.mkdir(parents=True, exist_ok=True)
-        mdata_filepath = Path(cache_filepath, "_cache_info.json")
-        if not mdata_filepath.exists():
+        meta_key  = F"{obj_type_uri.uri}_cache_info"
+        self.redis_calls += 1
+        if not self.redis.exists(meta_key):
             created = datetime.now(tz = dateutil.tz.gettz("America/Los_Angeles"))
             updated = created
             meta = CacheMetadata(created, updated, True, [])
@@ -2116,44 +2098,32 @@ class DataTracker:
 
 
     def _cache_has_object(self, obj_uri: URI) -> bool:
-        if self._memcache_has_object(obj_uri.uri):
-            return True
+        self.redis_calls += 1
+        if self.redis.exists(obj_uri.uri):
+            return True       # Object is in the local cache
         else:
-            cache_filepath = Path(self.cache_dir, obj_uri.uri[1:-1] + ".json")
-            if cache_filepath.exists():
-                return True       # Object is in the local cache
+            if self._cache_has_all_objects(_parent_uri(obj_uri)):
+                return True   # Object is known not to exist
             else:
-                if self._cache_has_all_objects(_parent_uri(obj_uri)):
-                    return True   # Object is known not to exist
-                else:
-                    return False  # Object is not in the cache
+                return False  # Object is not in the cache
 
 
     def _cache_get_object(self, obj_uri: URI) -> Optional[Dict[str, Any]]:
-        self.memcache_req += 1
-        if self._memcache_has_object(obj_uri.uri):
-            self.memcache_hit += 1
-            return self._memcache_get_object(obj_uri.uri)
+        self.redis_calls += 1
+        obj_json = self.redis.get(obj_uri.uri)
+        if obj_json is not None:
+            obj = json.loads(obj_json) # type: Dict[str, Any]
+            return obj
         else:
-            cache_filepath = Path(self.cache_dir, obj_uri.uri[1:-1] + ".json")
-            if cache_filepath.exists():
-                with open(cache_filepath) as cache_file:
-                    obj_json = json.load(cache_file) # type: Dict[str, Any]
-                    self._memcache_put_object(obj_uri.uri, obj_json)
-                    return obj_json
-            else:
-                return None
+            return None
 
 
     def _cache_put_object(self, obj_uri: URI, obj_json: Dict[str, Any]) -> None:
         assert obj_uri.uri.startswith("/")
         assert obj_uri.uri.endswith("/")
-        cache_filepath = Path(self.cache_dir, obj_uri.uri[1:-1] + ".json")
-        if not cache_filepath.parent.exists():
-            self._cache_create(_parent_uri(obj_uri))
-        with open(cache_filepath, "w") as cache_file:
-            json.dump(obj_json, cache_file)
-        self._memcache_put_object(obj_uri.uri, obj_json)
+        self._cache_create(_parent_uri(obj_uri))
+        self.redis.set(obj_uri.uri, json.dumps(obj_json))
+        self.redis_calls += 1
 
 
     def _cache_has_all_objects(self, obj_type_uri: URI):
@@ -2241,14 +2211,19 @@ class DataTracker:
     def _cache_get_objects(self, obj_uri: URI, obj_type_uri: URI, obj_type: Type[T]) -> Iterator[T]:
         hints = self._cache_hints[obj_type_uri.uri]
         results = []
-        for obj_file in Path(self.cache_dir, obj_type_uri.uri[1:-1]).glob("*.json"):
-            if obj_file.name == "_cache_info.json":
-                continue
-
-            cache_uri = URI(obj_type_uri.uri + obj_file.name[:-5] + "/")
-            obj_json = self._cache_get_object(cache_uri)
-            assert obj_json is not None
-
+        cursor = 0
+        all_keys = set()
+        while True:
+            self.redis_calls += 1
+            cursor, keys = self.redis.scan(cursor=cursor, match=F"{obj_type_uri.uri}*", count=1000)
+            for key in keys:
+                if key.decode() != F"{obj_type_uri}_cache_info":
+                    all_keys.add(key)
+            if cursor == 0:
+                break
+        self.redis_calls += 1
+        for obj_raw in self.redis.mget(all_keys):
+            obj_json = json.loads(obj_raw) # type: Dict[str, Any]
             if self._cache_obj_matches(obj_json, obj_uri):
                 sort_key = ""
                 for sb in hints.sort_by:
