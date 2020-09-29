@@ -31,7 +31,9 @@ import logging
 from ietfdata.mailarchive        import *
 
 class HeaderDataMailHelper(MailArchiveHelper):
-    metadata_fields = ["from_name", "from_addr", "timestamp"]
+    name    = "HeaderData"
+    version = "r1"
+    provided_fields = ["from_name", "from_addr", "timestamp"]
 
     def __init__(self):
         logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))

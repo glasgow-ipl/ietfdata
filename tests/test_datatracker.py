@@ -1401,7 +1401,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_role_names(self) -> None:
         role_names = list(self.dt.role_names())
-        self.assertEqual(len(role_names), 26)
+        self.assertEqual(len(role_names), 28)
         self.assertEqual(role_names[ 0].slug, "ad")
         self.assertEqual(role_names[ 1].slug, "admdir")
         self.assertEqual(role_names[ 2].slug, "advisor")
@@ -1428,6 +1428,8 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(role_names[23].slug, "techadv")
         self.assertEqual(role_names[24].slug, "trac-admin")
         self.assertEqual(role_names[25].slug, "trac-editor")
+        self.assertEqual(role_names[26].slug, "yc_admin")
+        self.assertEqual(role_names[27].slug, "yc_operator")
 
 
 
