@@ -1935,10 +1935,10 @@ class DataTracker:
         self._cache_hints["/api/v1/doc/ballottype/"]                     = CacheHints({}, ["doc_type"], ["order", "id"], False, False)
         self._cache_hints["/api/v1/doc/docalias/"]                       = CacheHints({}, [], ["id"], False, False)
         self._cache_hints["/api/v1/doc/docevent/"]                       = CacheHints({"doc": "id"},      ["by"], ["id"], True, True)
-        self._cache_hints["/api/v1/doc/document/"]                       = CacheHints({}, ["type", "group"], ["id"], False, True)
+        self._cache_hints["/api/v1/doc/document/"]                       = CacheHints({}, ["type", "stream", "group"], ["id"], False, True)
         self._cache_hints["/api/v1/doc/documentauthor/"]                 = CacheHints({"document": "id"}, ["email", "person"], ["order", "id"], False, False)
         self._cache_hints["/api/v1/doc/relateddocument/"]                = CacheHints({"source": "id", "target": "id", "relationship": "slug"}, [], ["id"], False, False)
-        self._cache_hints["/api/v1/doc/state/"]                          = CacheHints({}, ["type"], ["order", "id"], False, False)
+        self._cache_hints["/api/v1/doc/state/"]                          = CacheHints({}, ["type"], ["order", "id", "slug"], False, False)
         self._cache_hints["/api/v1/doc/statetype/"]                      = CacheHints({}, [], ["slug"], False, False)
         self._cache_hints["/api/v1/group/changestategroupevent/"]        = CacheHints({}, ["by", "group", "state"], ["order", "id"], False, True)
         self._cache_hints["/api/v1/group/group/"]                        = CacheHints({}, ["parent", "state"], ["id"], False, True)
@@ -2513,12 +2513,15 @@ class DataTracker:
             since   : str = "1970-01-01T00:00:00",
             until   : str = "2038-01-19T03:14:07",
             doctype : Optional[DocumentType] = None,
+            stream  : Optional[Stream]       = None,
             group   : Optional[Group]        = None) -> Iterator[Document]:
         url = DocumentURI("/api/v1/doc/document/")
         url.params["time__gte"] = since
         url.params["time__lt"] = until
         if doctype is not None:
             url.params["type"] = doctype.slug
+        if stream is not None:
+            url.params["stream"] = stream.slug
         if group is not None:
             url.params["group"] = group.id
         return self._retrieve_multi(url, Document)
@@ -2639,15 +2642,23 @@ class DataTracker:
         return self._retrieve(state_uri, DocumentState)
 
 
-    def document_states(self, state_type : Optional[DocumentStateType] = None) -> Iterator[DocumentState]:
+    def document_states(self,
+            state_type : Optional[DocumentStateType] = None,
+            slug       : Optional[str]               = None) -> Iterator[DocumentState]:
         url = DocumentStateURI("/api/v1/doc/state/")
         if state_type is not None:
             url.params["type"] = state_type.slug
+        if slug is not None:
+            url.params["slug"] = slug
         return self._retrieve_multi(url, DocumentState)
 
 
     def document_state_type(self, state_type_uri : DocumentStateTypeURI) -> Optional[DocumentStateType]:
         return self._retrieve(state_type_uri, DocumentStateType)
+
+
+    def document_state_type_from_slug(self, slug: str) -> Optional[DocumentStateType]:
+        return self._retrieve(DocumentStateTypeURI(F"/api/v1/doc/statetype/{slug}/"), DocumentStateType)
 
 
     def document_state_types(self) -> Iterator[DocumentStateType]:
@@ -2940,6 +2951,10 @@ class DataTracker:
 
     def stream(self, stream_uri: StreamURI) -> Optional[Stream]:
         return self._retrieve(stream_uri, Stream)
+
+
+    def stream_from_slug(self, slug: str) -> Optional[Stream]:
+        return self._retrieve(StreamURI(F"/api/v1/name/streamname/{slug}/"), Stream)
 
 
     def streams(self) -> Iterator[Stream]:
