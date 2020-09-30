@@ -33,7 +33,7 @@ import abc
 import os
 import logging
 
-from datetime      import datetime
+from datetime      import datetime, timedelta
 from typing        import List, Optional, Tuple, Dict, Iterator, Type, TypeVar, Any
 from pathlib       import Path
 from email.message import Message
@@ -156,7 +156,7 @@ class MailingList:
     _msg_metadata      : Dict[int, Dict[str, Any]]
     _cached_metadata   : Dict[str, Dict[str, Any]]
 
-    def __init__(self, cache_dir: Path, list_name: str, helpers: List[MailArchiveHelper] = []):
+    def __init__(self, cache_dir: Path, list_name: str, helpers: List[MailArchiveHelper] = [], _reuse_imap=None):
         logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
         self.log            = logging.getLogger("ietfdata")
         self._list_name    = list_name
@@ -179,7 +179,7 @@ class MailingList:
                 for msg_id_str in message_metadata:
                     msg_id = int(msg_id_str)
                     if not Path(self._cache_folder, F"{msg_id:06d}.msg").exists():
-                        self.log.info(F"dropping metadata for non-existing message {self._list_name}/{msg_id:06d}.msg")
+                        self.log.warn(F"dropping metadata for non-existing message {self._list_name}/{msg_id:06d}.msg")
                         continue
                     metadata : Dict[str, Dict[str, Any]] = {}
                     message_text = None
@@ -199,7 +199,15 @@ class MailingList:
             self.log.info(F"no metadata cache for mailing list {self._list_name}")
             for index in self.message_indices():
                 self._msg_metadata[index] = {}
+
+        last_keepalive = datetime.now()
         for msg_id in self.message_indices():
+            curr_keepalive = datetime.now()
+            if (curr_keepalive - last_keepalive) > timedelta(seconds=10):
+                if _reuse_imap is not None:
+                    self.log.info("imap keepalive")
+                    _reuse_imap.noop()
+                    last_keepalive = curr_keepalive
             if msg_id not in self._msg_metadata:
                 self._msg_metadata[msg_id] = {}
             message_text = None
@@ -328,7 +336,7 @@ class MailingList:
                 file_size = cache_file.stat().st_size
                 imap_size = msg[b"RFC822.SIZE"]
                 if file_size != imap_size:
-                    self.log.info(F"message size mismatch: {self._list_name}/{msg_id:06d}.msg ({file_size} != {imap_size})")
+                    self.log.warn(F"message size mismatch: {self._list_name}/{msg_id:06d}.msg ({file_size} != {imap_size})")
                     cache_file.unlink()
                     msg_fetch.append(msg_id)
 
@@ -399,9 +407,9 @@ class MailArchive:
         imap.logout()
 
 
-    def mailing_list(self, mailing_list_name: str) -> MailingList:
+    def mailing_list(self, mailing_list_name: str, _reuse_imap=None) -> MailingList:
         if not mailing_list_name in self._mailing_lists:
-            self._mailing_lists[mailing_list_name] = MailingList(self._cache_dir, mailing_list_name, self._helpers)
+            self._mailing_lists[mailing_list_name] = MailingList(self._cache_dir, mailing_list_name, self._helpers, _reuse_imap)
         return self._mailing_lists[mailing_list_name]
 
 
@@ -436,7 +444,7 @@ class MailArchive:
         imap.login("anonymous", "anonymous")
         for index, ml_name in enumerate(ml_names):
             print(F"Updating list {index+1:4d}/{num_list:4d}: {ml_name} ", end="", flush=True)
-            ml = self.mailing_list(ml_name)
+            ml = self.mailing_list(ml_name, _reuse_imap=imap)
             nm = ml.update(_reuse_imap=imap)
             print(F"({ml.num_messages()} messages; {len(nm)} new)")
         imap.logout()
