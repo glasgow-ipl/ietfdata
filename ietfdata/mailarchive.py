@@ -175,7 +175,7 @@ class MailingList:
         if metadata_cache.exists():
             with open(metadata_cache, "r") as metadata_file:
                 self._cached_metadata = json.load(metadata_file)
-                message_metadata = self._cached_metadata["message_metadata"] # type: Dict[str, Dict[str, Dict[str, Optional[str]]]]
+                message_metadata = self._cached_metadata["message_metadata"] # type: Dict[str, Dict[str, Dict[str, Any]]]
                 for msg_id_str in message_metadata:
                     msg_id = int(msg_id_str)
                     if not Path(self._cache_folder, F"{msg_id:06d}.msg").exists():
@@ -254,8 +254,8 @@ class MailingList:
         metadata_cache_tmp.rename(metadata_cache)
 
 
-    def serialise_message(self, msg_id: int) -> Dict[str, Dict[str, Optional[str]]]:
-        metadata : Dict[str, Dict[str, Optional[str]]] = {}
+    def serialise_message(self, msg_id: int) -> Dict[str, Dict[str, Any]]:
+        metadata : Dict[str, Dict[str, Any]] = {}
         for helper in self._helpers:
             metadata[helper.name] = helper.serialise(self._msg_metadata[msg_id][helper.name])
         return metadata
