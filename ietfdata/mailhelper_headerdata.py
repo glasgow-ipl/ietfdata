@@ -100,4 +100,3 @@ class HeaderDataMailHelper(MailArchiveHelper):
                 "message_id"  : metadata["message_id"],
                 "in_reply_to" : metadata["in_reply_to"],
                 "references"  : metadata["references"]}
-
