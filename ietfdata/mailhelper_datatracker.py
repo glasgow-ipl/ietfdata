@@ -82,7 +82,7 @@ class DatatrackerMailHelper(MailArchiveHelper):
                 "related_docs" : [str(doc.resource_uri.uri) for doc in metadata["related_docs"]]}
 
 
-    def deserialise(self, metadata: Dict[str, str]) -> Dict[str, Any]:
+    def deserialise(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
         from_person = self.dt.person(dt.PersonURI(metadata["from_person"])) if metadata["from_person"] != "" else None
         related_docs = [self.dt.document(dt.DocumentURI(doc_uri)) for doc_uri in metadata["related_docs"]]
         return {"from_person" : from_person, "related_docs" : related_docs}
