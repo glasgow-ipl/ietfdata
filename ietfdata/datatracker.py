@@ -2601,13 +2601,11 @@ class DataTracker:
             A Document object
         """
         assert rfc.lower().startswith("rfc")
-        docs = list(self.document_aliases(name=rfc.lower()))
-        if len(docs) == 0:
+        alias = self.document_alias(DocumentAliasURI(F"/api/v1/doc/docalias/{rfc.lower()}/"))
+        if alias is None:
             return None
-        elif len(docs) == 1:
-            return self.document(docs[0].document)
         else:
-            raise RuntimeError
+            return self.document(alias.document)
 
 
     def documents_from_bcp(self, bcp: str) -> Iterator[Document]:
