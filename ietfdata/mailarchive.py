@@ -190,8 +190,8 @@ class MailingList:
                         if helper.name not in message_metadata[msg_id_str] or not all(metadata_field in message_metadata[msg_id_str][helper.name] for metadata_field in helper.provided_fields):
                             if message_text is None:
                                 message_text = self.raw_message(msg_id)
-                                self.log.info(F"{helper.name}: scan message {self._list_name}/{msg_id:06} for metadata")
-                                metadata[helper.name] = helper.scan_message(message_text)
+                            self.log.info(F"scan message {self._list_name}/{msg_id:06} for metadata - {helper.name:15} (cache update)")
+                            metadata[helper.name] = helper.scan_message(message_text)
                         else:
                             metadata[helper.name] = helper.deserialise(message_metadata[msg_id_str][helper.name])
                     self._msg_metadata[msg_id] = metadata
@@ -207,7 +207,7 @@ class MailingList:
                 if helper.name not in self._msg_metadata[msg_id] or not all(metadata_field in self._msg_metadata[msg_id][helper.name] for metadata_field in helper.provided_fields):
                     if message_text is None:
                         message_text = self.raw_message(msg_id)
-                    self.log.info(F"{helper.name}: scan message {self._list_name}/{msg_id:06} for metadata")
+                    self.log.info(F"scan message {self._list_name}/{msg_id:06} for metadata - {helper.name:15} (cache create)")
                     self._msg_metadata[msg_id][helper.name] = helper.scan_message(message_text)
         self.serialise_metadata()
 
