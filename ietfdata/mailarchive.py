@@ -244,9 +244,9 @@ class MailingList:
         with open(metadata_cache_tmp, "w") as metadata_file:
             serialised_metadata = {"helpers": {}, "message_metadata": {}} # type: Dict[str, Dict[Any, Any]]
             serialised_metadata["helpers"] = {}
+            serialised_metadata["helpers"] = {**serialised_metadata["helpers"], **self._cached_metadata.get("helpers", {})}
             for helper in self._helpers:
                 serialised_metadata["helpers"][helper.name] = helper.version
-            serialised_metadata["helpers"] = {**serialised_metadata["helpers"], **self._cached_metadata.get("helpers", {})}
             for msg_id in self._msg_metadata:
                 serialised_metadata["message_metadata"][msg_id] = self.serialise_message(msg_id)
                 serialised_metadata["message_metadata"][msg_id] = {**serialised_metadata["message_metadata"][msg_id], **(self._cached_metadata.get("message_metadata", {}).get(str(msg_id), {}))}
