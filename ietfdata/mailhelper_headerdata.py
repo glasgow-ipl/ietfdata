@@ -57,10 +57,10 @@ class HeaderDataMailHelper(MailArchiveHelper):
         return {"from_name"   : from_name,
                 "from_addr"   : from_addr,
                 "timestamp"   : timestamp,
-                "subject"     : msg["Subject"],
-                "message_id"  : msg["Message-ID"],
-                "in_reply_to" : msg["In-Reply-To"],
-                "references"  : msg["References"]}
+                "subject"     : str(msg["Subject"]),
+                "message_id"  : str(msg["Message-ID"]),
+                "in_reply_to" : str(msg["In-Reply-To"]),
+                "references"  : str(msg["References"])}
 
 
     def filter(self,
