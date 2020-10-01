@@ -33,7 +33,7 @@ import abc
 import os
 import logging
 
-from datetime      import datetime
+from datetime      import datetime, timedelta
 from typing        import List, Optional, Tuple, Dict, Iterator, Type, TypeVar, Any
 from pathlib       import Path
 from email.message import Message
@@ -95,7 +95,7 @@ class MailArchiveHelper(abc.ABC):
 
 
     @abc.abstractmethod
-    def deserialise(self, metadata: Dict[str, str]) -> Dict[str, Any]:
+    def deserialise(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
         pass
 
 # =================================================================================================
@@ -156,7 +156,7 @@ class MailingList:
     _msg_metadata      : Dict[int, Dict[str, Any]]
     _cached_metadata   : Dict[str, Dict[str, Any]]
 
-    def __init__(self, cache_dir: Path, list_name: str, helpers: List[MailArchiveHelper] = []):
+    def __init__(self, cache_dir: Path, list_name: str, helpers: List[MailArchiveHelper] = [], _reuse_imap=None):
         logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
         self.log            = logging.getLogger("ietfdata")
         self._list_name    = list_name
@@ -175,11 +175,11 @@ class MailingList:
         if metadata_cache.exists():
             with open(metadata_cache, "r") as metadata_file:
                 self._cached_metadata = json.load(metadata_file)
-                message_metadata = self._cached_metadata["message_metadata"] # type: Dict[str, Dict[str, Dict[str, str]]]
+                message_metadata = self._cached_metadata["message_metadata"] # type: Dict[str, Dict[str, Dict[str, Any]]]
                 for msg_id_str in message_metadata:
                     msg_id = int(msg_id_str)
                     if not Path(self._cache_folder, F"{msg_id:06d}.msg").exists():
-                        self.log.info(F"dropping metadata for non-existing message {self._list_name}/{msg_id:06d}.msg")
+                        self.log.warn(F"dropping metadata for non-existing message {self._list_name}/{msg_id:06d}.msg")
                         continue
                     metadata : Dict[str, Dict[str, Any]] = {}
                     message_text = None
@@ -190,8 +190,8 @@ class MailingList:
                         if helper.name not in message_metadata[msg_id_str] or not all(metadata_field in message_metadata[msg_id_str][helper.name] for metadata_field in helper.provided_fields):
                             if message_text is None:
                                 message_text = self.raw_message(msg_id)
-                                self.log.info(F"{helper.name}: scan message {self._list_name}/{msg_id:06} for metadata")
-                                metadata[helper.name] = helper.scan_message(message_text)
+                            self.log.info(F"scan message {self._list_name}/{msg_id:06} for metadata - {helper.name:15} (cache update)")
+                            metadata[helper.name] = helper.scan_message(message_text)
                         else:
                             metadata[helper.name] = helper.deserialise(message_metadata[msg_id_str][helper.name])
                     self._msg_metadata[msg_id] = metadata
@@ -199,7 +199,15 @@ class MailingList:
             self.log.info(F"no metadata cache for mailing list {self._list_name}")
             for index in self.message_indices():
                 self._msg_metadata[index] = {}
+
+        last_keepalive = datetime.now()
         for msg_id in self.message_indices():
+            curr_keepalive = datetime.now()
+            if (curr_keepalive - last_keepalive) > timedelta(seconds=10):
+                if _reuse_imap is not None:
+                    self.log.info("imap keepalive")
+                    _reuse_imap.noop()
+                    last_keepalive = curr_keepalive
             if msg_id not in self._msg_metadata:
                 self._msg_metadata[msg_id] = {}
             message_text = None
@@ -207,7 +215,7 @@ class MailingList:
                 if helper.name not in self._msg_metadata[msg_id] or not all(metadata_field in self._msg_metadata[msg_id][helper.name] for metadata_field in helper.provided_fields):
                     if message_text is None:
                         message_text = self.raw_message(msg_id)
-                    self.log.info(F"{helper.name}: scan message {self._list_name}/{msg_id:06} for metadata")
+                    self.log.info(F"scan message {self._list_name}/{msg_id:06} for metadata - {helper.name:15} (cache create)")
                     self._msg_metadata[msg_id][helper.name] = helper.scan_message(message_text)
         self.serialise_metadata()
 
@@ -244,9 +252,9 @@ class MailingList:
         with open(metadata_cache_tmp, "w") as metadata_file:
             serialised_metadata = {"helpers": {}, "message_metadata": {}} # type: Dict[str, Dict[Any, Any]]
             serialised_metadata["helpers"] = {}
+            serialised_metadata["helpers"] = {**serialised_metadata["helpers"], **self._cached_metadata.get("helpers", {})}
             for helper in self._helpers:
                 serialised_metadata["helpers"][helper.name] = helper.version
-            serialised_metadata["helpers"] = {**serialised_metadata["helpers"], **self._cached_metadata.get("helpers", {})}
             for msg_id in self._msg_metadata:
                 serialised_metadata["message_metadata"][msg_id] = self.serialise_message(msg_id)
                 serialised_metadata["message_metadata"][msg_id] = {**serialised_metadata["message_metadata"][msg_id], **(self._cached_metadata.get("message_metadata", {}).get(str(msg_id), {}))}
@@ -254,8 +262,8 @@ class MailingList:
         metadata_cache_tmp.rename(metadata_cache)
 
 
-    def serialise_message(self, msg_id: int) -> Dict[str, Dict[str, str]]:
-        metadata : Dict[str, Dict[str, str]] = {}
+    def serialise_message(self, msg_id: int) -> Dict[str, Dict[str, Any]]:
+        metadata : Dict[str, Dict[str, Any]] = {}
         for helper in self._helpers:
             metadata[helper.name] = helper.serialise(self._msg_metadata[msg_id][helper.name])
         return metadata
@@ -328,7 +336,7 @@ class MailingList:
                 file_size = cache_file.stat().st_size
                 imap_size = msg[b"RFC822.SIZE"]
                 if file_size != imap_size:
-                    self.log.info(F"message size mismatch: {self._list_name}/{msg_id:06d}.msg ({file_size} != {imap_size})")
+                    self.log.warn(F"message size mismatch: {self._list_name}/{msg_id:06d}.msg ({file_size} != {imap_size})")
                     cache_file.unlink()
                     msg_fetch.append(msg_id)
 
@@ -399,9 +407,9 @@ class MailArchive:
         imap.logout()
 
 
-    def mailing_list(self, mailing_list_name: str) -> MailingList:
+    def mailing_list(self, mailing_list_name: str, _reuse_imap=None) -> MailingList:
         if not mailing_list_name in self._mailing_lists:
-            self._mailing_lists[mailing_list_name] = MailingList(self._cache_dir, mailing_list_name, self._helpers)
+            self._mailing_lists[mailing_list_name] = MailingList(self._cache_dir, mailing_list_name, self._helpers, _reuse_imap)
         return self._mailing_lists[mailing_list_name]
 
 
@@ -436,7 +444,7 @@ class MailArchive:
         imap.login("anonymous", "anonymous")
         for index, ml_name in enumerate(ml_names):
             print(F"Updating list {index+1:4d}/{num_list:4d}: {ml_name} ", end="", flush=True)
-            ml = self.mailing_list(ml_name)
+            ml = self.mailing_list(ml_name, _reuse_imap=imap)
             nm = ml.update(_reuse_imap=imap)
             print(F"({ml.num_messages()} messages; {len(nm)} new)")
         imap.logout()
