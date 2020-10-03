@@ -1873,8 +1873,11 @@ class SendQueueEntry(Resource):
 # A class to represent the datatracker:
 
 def _parent_uri(uri: URI) -> URI:
-    separator = uri.uri[:-1].rfind("/")
-    return URI(uri.uri[:separator + 1])
+    assert uri.uri.startswith("/api/v1/")
+    sep0 = 8
+    sep1 = uri.uri[sep0:].find("/") + sep0 + 1
+    sep2 = uri.uri[sep1:].find("/") + sep1 + 1
+    return URI(uri.uri[:sep2])
 
 
 def _sort_objs(obj: Tuple[str,Dict[Any, Any]]) -> str:
@@ -2077,6 +2080,7 @@ class DataTracker:
             updated = created
             meta = CacheMetadata(created, updated, True, [])
             self._cache_save_metadata(obj_type_uri, meta)
+            self.log.info(F"_cache_create {meta_key}")
 
 
     def _cache_record_query(self, obj_uri: URI, obj_type_uri: URI) -> None:
@@ -2218,6 +2222,7 @@ class DataTracker:
             cursor, keys = self.redis.scan(cursor=cursor, match=F"{obj_type_uri.uri}*", count=1000)
             for key in keys:
                 if key.decode() != F"{obj_type_uri}_cache_info":
+                    assert not key.decode().endswith("_cache_info")
                     all_keys.add(key)
             if cursor == 0:
                 break
@@ -2405,7 +2410,7 @@ class DataTracker:
 
 
     def person_from_email(self, email_addr: str) -> Optional[Person]:
-        email = self.email(EmailURI("/api/v1/person/email/" + email_addr.replace("/", "%40") + "/"))
+        email = self.email(EmailURI(F"/api/v1/person/email/{email_addr}/"))
         if email is not None and email.person is not None:
             return self.person(email.person)
         else:
@@ -2474,7 +2479,7 @@ class DataTracker:
 
     def email_history_for_address(self, email_addr: str) -> Iterator[HistoricalEmail]:
         uri = EmailURI("/api/v1/person/historicalemail/")
-        uri.params["address"] = email_addr.replace("/", "%40")
+        uri.params["address"] = email_addr
         return self._retrieve_multi(uri, HistoricalEmail)
 
 
@@ -3945,7 +3950,7 @@ class DataTracker:
             mailing_list : Optional[MailingList] = None) -> Iterator[MailingListSubscriptions]:
         url = MailingListSubscriptionsURI("/api/v1/mailinglists/subscribed/")
         if email_addr is not None:
-            url.params["email"] = email_addr.replace("/", "%40")
+            url.params["email"] = email_addr
         if mailing_list is not None:
             url.params["lists"] = mailing_list.id
         return self._retrieve_multi(url, MailingListSubscriptions)
