@@ -38,7 +38,6 @@ from ietfdata.mailhelper_datatracker import *
 
 dt = DataTracker(cache_dir=Path("cache"))
 ma = MailArchive(cache_dir=Path("cache"), helpers=[HeaderDataMailHelper(), DatatrackerMailHelper(datatracker=dt)])
-
 ma.download_all_messages()
 
 # =============================================================================
