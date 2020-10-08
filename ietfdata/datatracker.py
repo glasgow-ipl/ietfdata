@@ -51,6 +51,7 @@ from dataclasses import dataclass, field
 from pathlib     import Path
 from pavlova     import Pavlova
 from pavlova.parsers import GenericParser
+from pymongo         import MongoClient, ASCENDING
 
 import ast
 import dateutil.tz
@@ -58,7 +59,6 @@ import glob
 import json
 import logging
 import os
-import redis
 import requests
 import re
 import sys
@@ -1880,6 +1880,9 @@ def _parent_uri(uri: URI) -> URI:
     return URI(uri.uri[:sep2])
 
 
+def _cache_uri_format(uri: URI) -> str:
+    return uri.uri.strip('/').replace("/", "_")
+
 def _sort_objs(obj: Tuple[str,Dict[Any, Any]]) -> str:
     key, _ = obj
     return key
@@ -1911,7 +1914,7 @@ class DataTracker:
         Parameters:
             cache_dir      -- If set, use this directory as a cache for Datatracker objects
         """
-        self.redis    = redis.Redis(host=os.environ.get("IETFDATA_REDIS_HOST", "127.0.0.1"), port=6379, db=0)
+        self.db       = MongoClient().ietfdata            #TODO: allow use of non-default server/port
         self.session  = requests.Session()
         self.ua       = "glasgow-ietfdata/0.4.0"          # Update when making a new relaase
         self.base_url = "https://datatracker.ietf.org"
@@ -1920,7 +1923,7 @@ class DataTracker:
         self.cache_req = 0
         self.cache_hit = 0
         self.get_count = 0
-        self.redis_calls = 0
+        self.db_calls  = 0
 
         # Configure logging
         logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
@@ -2015,9 +2018,8 @@ class DataTracker:
         else:
             self.log.info(F"cache hit rate: {self.cache_hit / self.cache_req * 100.0:.1f}%")
         self.log.info(F"HTTP GET calls: {self.get_count}")
-        self.log.info(F"Redis requests: {self.redis_calls}")
+        self.log.info(F"db requests: {self.db_calls}")
         self.session.close()
-        self.redis.bgsave()
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -2055,27 +2057,27 @@ class DataTracker:
 
 
     def _cache_load_metadata(self, obj_type_uri: URI) -> CacheMetadata:
-        meta_key  = F"{obj_type_uri.uri}_cache_info"
-        meta_json = self.redis.get(meta_key)
-        self.redis_calls += 1
-        return self.pavlova.from_mapping(json.loads(meta_json), CacheMetadata)
+        meta_json = self.db.cache_info.find_one({"meta_key" : _cache_uri_format(obj_type_uri)})
+        self.db_calls += 1
+        return self.pavlova.from_mapping(meta_json, CacheMetadata)
 
 
     def _cache_save_metadata(self, obj_type_uri: URI, meta: CacheMetadata) -> None:
-        meta_key  = F"{obj_type_uri.uri}_cache_info"
         meta_dict : Dict[str, Any] = {}
-        meta_dict["created"] = meta.created.isoformat()
-        meta_dict["updated"] = meta.updated.isoformat()
-        meta_dict["partial"] = meta.partial
-        meta_dict["queries"] = meta.queries
-        self.redis.set(meta_key, json.dumps(meta_dict))
-        self.redis_calls += 1
+        meta_dict["meta_key"] = _cache_uri_format(obj_type_uri)
+        meta_dict["created"]  = meta.created.isoformat()
+        meta_dict["updated"]  = meta.updated.isoformat()
+        meta_dict["partial"]  = meta.partial
+        meta_dict["queries"]  = meta.queries
+        self.db.cache_info.replace_one({"meta_key" : meta_dict["meta_key"]}, meta_dict, upsert=True)
+        self.db.cache_info.create_index([('meta_key', ASCENDING)], unique=True)
+        self.db_calls += 1
 
 
     def _cache_create(self, obj_type_uri: URI) -> None:
-        meta_key  = F"{obj_type_uri.uri}_cache_info"
-        self.redis_calls += 1
-        if not self.redis.exists(meta_key):
+        meta_key  = _cache_uri_format(obj_type_uri)
+        self.db_calls += 1
+        if not self.db.cache_info.find_one({"meta_key": meta_key}):
             created = datetime.now(tz = dateutil.tz.gettz("America/Los_Angeles"))
             updated = created
             meta = CacheMetadata(created, updated, True, [])
@@ -2102,8 +2104,8 @@ class DataTracker:
 
 
     def _cache_has_object(self, obj_uri: URI) -> bool:
-        self.redis_calls += 1
-        if self.redis.exists(obj_uri.uri):
+        self.db_calls += 1
+        if self.db[_cache_uri_format(_parent_uri(obj_uri))].find_one({"resource_uri": obj_uri.uri}):
             return True       # Object is in the local cache
         else:
             if self._cache_has_all_objects(_parent_uri(obj_uri)):
@@ -2113,21 +2115,17 @@ class DataTracker:
 
 
     def _cache_get_object(self, obj_uri: URI) -> Optional[Dict[str, Any]]:
-        self.redis_calls += 1
-        obj_json = self.redis.get(obj_uri.uri)
-        if obj_json is not None:
-            obj = json.loads(obj_json) # type: Dict[str, Any]
-            return obj
-        else:
-            return None
+        self.db_calls += 1
+        return self.db[_cache_uri_format(_parent_uri(obj_uri))].find_one({"resource_uri": obj_uri.uri})
 
 
     def _cache_put_object(self, obj_uri: URI, obj_json: Dict[str, Any]) -> None:
         assert obj_uri.uri.startswith("/")
         assert obj_uri.uri.endswith("/")
         self._cache_create(_parent_uri(obj_uri))
-        self.redis.set(obj_uri.uri, json.dumps(obj_json))
-        self.redis_calls += 1
+        self.db[_cache_uri_format(_parent_uri(obj_uri))].replace_one({"resource_uri" : obj_json["resource_uri"]}, obj_json, upsert=True)
+        self.db[_cache_uri_format(_parent_uri(obj_uri))].create_index([('resource_uri', ASCENDING)], unique=True)
+        self.db_calls += 1
 
 
     def _cache_has_all_objects(self, obj_type_uri: URI):
@@ -2217,18 +2215,8 @@ class DataTracker:
         results = []
         cursor = 0
         all_keys = set()
-        while True:
-            self.redis_calls += 1
-            cursor, keys = self.redis.scan(cursor=cursor, match=F"{obj_type_uri.uri}*", count=1000)
-            for key in keys:
-                if key.decode() != F"{obj_type_uri}_cache_info":
-                    assert not key.decode().endswith("_cache_info")
-                    all_keys.add(key)
-            if cursor == 0:
-                break
-        self.redis_calls += 1
-        for obj_raw in self.redis.mget(all_keys):
-            obj_json = json.loads(obj_raw) # type: Dict[str, Any]
+        self.db_calls += 1
+        for obj_json in self.db[_cache_uri_format(obj_type_uri)].find():
             if self._cache_obj_matches(obj_json, obj_uri):
                 sort_key = ""
                 for sb in hints.sort_by:
@@ -3945,8 +3933,8 @@ class DataTracker:
         return self._retrieve_multi(url, MailingList)
 
 
-    def mailing_list_subscriptions(self, 
-            email_addr   : Optional[str] = None, 
+    def mailing_list_subscriptions(self,
+            email_addr   : Optional[str] = None,
             mailing_list : Optional[MailingList] = None) -> Iterator[MailingListSubscriptions]:
         url = MailingListSubscriptionsURI("/api/v1/mailinglists/subscribed/")
         if email_addr is not None:
