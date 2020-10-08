@@ -1883,6 +1883,27 @@ def _parent_uri(uri: URI) -> URI:
 def _cache_uri_format(uri: URI) -> str:
     return uri.uri.strip('/').replace("/", "_")
 
+
+def _translate_query(uri: URI) -> Dict[Any, Any]:
+    translated_params = {}
+    for (param, value) in uri.params.items():
+        if "__gte" in param:
+            param = param[:-5]
+            translated_params[param] = {**translated_params.get(param, {}), "$gte": value}
+        elif "__gt" in param:
+            param = param[:-4]
+            translated_params[param] = {**translated_params.get(param, {}), "$gt": value}
+        elif "__lte" in param:
+            param = param[:-5]
+            translated_params[param] = {**translated_params.get(param, {}), "$lte": value}
+        elif "__lt" in param:
+            param = param[:-4]
+            translated_params[param] = {**translated_params.get(param, {}), "$lt": value}
+        else:
+            translated_params[param] = {"$regex": f"{value}"}
+    return translated_params
+
+
 def _sort_objs(obj: Tuple[str,Dict[Any, Any]]) -> str:
     key, _ = obj
     return key
@@ -2216,16 +2237,13 @@ class DataTracker:
         cursor = 0
         all_keys = set()
         self.db_calls += 1
-        for obj_json in self.db[_cache_uri_format(obj_type_uri)].find():
+        obj_jsons = self.db[_cache_uri_format(obj_type_uri)].find(_translate_query(obj_uri))
+        for sb in hints.sort_by:
+            obj_jsons.sort(sb, -1 if hints.reverse else 1)
+        for obj_json in obj_jsons:
             if self._cache_obj_matches(obj_json, obj_uri):
-                sort_key = ""
-                for sb in hints.sort_by:
-                    sort_key += F" {obj_json[sb]:40}"
-                results.append((sort_key, obj_json))
-        results.sort(key=_sort_objs, reverse=hints.reverse)
-        for key, obj_json in results:
-            obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
-            yield obj
+                obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
+                yield obj
 
 
     def _cache_put_objects(self, obj_uri: URI, obj_type_uri: URI) -> None:
