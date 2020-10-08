@@ -17,6 +17,7 @@ requests = "*"
 pavlova = "*"
 imapclient = "*"
 python-dateutil = "*"
+pymongo = "*"
 
 [requires]
 python_version = "3.7"
