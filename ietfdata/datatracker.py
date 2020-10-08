@@ -46,7 +46,7 @@
 
 from datetime    import datetime, timedelta, timezone
 from enum        import Enum
-from typing      import List, Optional, Tuple, Dict, Iterator, Type, TypeVar, Any
+from typing      import List, Optional, Tuple, Dict, Iterator, Type, TypeVar, Any, Union
 from dataclasses import dataclass, field
 from pathlib     import Path
 from pavlova     import Pavlova
@@ -1884,7 +1884,7 @@ def _cache_uri_format(uri: URI) -> str:
     return uri.uri.strip('/').replace("/", "_")
 
 
-def _translate_query(uri: URI) -> Dict[Any, Any]:
+def _translate_query(uri: URI, obj_type: Type[T]) -> Dict[Any, Any]:
     translated_params = {}
     for (param, value) in uri.params.items():
         if "__gte" in param:
@@ -1900,7 +1900,13 @@ def _translate_query(uri: URI) -> Dict[Any, Any]:
             param = param[:-4]
             translated_params[param] = {**translated_params.get(param, {}), "$lt": value}
         else:
-            translated_params[param] = {"$regex": f"{value}"}
+            param_type = obj_type.__dict__["__dataclass_fields__"][param].type
+            if "__origin__" in param_type.__dict__ and param_type.__origin__ is Union:
+                param_type = param_type.__args__[0]
+            if issubclass(param_type, URI):
+                translated_params[param] = {"$regex": f"/{value}/"}
+            else:
+                translated_params[param] = f"{value}"
     return translated_params
 
 
@@ -2104,6 +2110,9 @@ class DataTracker:
             meta = CacheMetadata(created, updated, True, [])
             self._cache_save_metadata(obj_type_uri, meta)
             self.log.info(F"_cache_create {meta_key}")
+            hints = self._cache_hints[obj_type_uri.uri]
+            if len(hints.trim) > 0:
+                self.db[_cache_uri_format(obj_type_uri)].create_index([(field_name, ASCENDING) for field_name in hints.trim])
 
 
     def _cache_record_query(self, obj_uri: URI, obj_type_uri: URI) -> None:
@@ -2159,91 +2168,15 @@ class DataTracker:
         return str(obj_uri) in meta.queries
 
 
-    def _cache_obj_matches(self, obj: Dict[str, Any], query_uri: URI) -> bool:
-        hints = self._cache_hints[query_uri.uri]
-        # For each parameter in query_uri, check that obj contains matching key and value
-        res = True
-        for (k, v) in query_uri.params.items():
-            if v is not None:
-                if k in hints.trim:
-                    if obj[k] is None:
-                        res = False
-                    else:
-                        if isinstance(obj[k], list):
-                            found = False
-                            for item in obj[k]:
-                                tail = item.split("/")[-2]
-                                if str(v) == tail:
-                                    found = True
-                                    break
-                            if not found:
-                                res = False
-                        elif isinstance(obj[k], str):
-                            tail = obj[k].split("/")[-2]
-                            if str(v) != tail:
-                                res = False
-                        else:
-                            print("_cache_obj_matches failed: unknown obj[k] type")
-                            sys.exit(1)
-                elif k in hints.deref.keys():
-                    if obj[k] is None:
-                        res = False
-                    else:
-                        if isinstance(obj[k], list):
-                            found = False
-                            for item in obj[k]:
-                                deref_obj = self._retrieve_json(URI(item))
-                                if deref_obj is not None and v == deref_obj[hints.deref[k]]:
-                                    found = True
-                                    break
-                            if not found:
-                                res = False
-                        elif isinstance(obj[k], str):
-                            deref_obj = self._retrieve_json(URI(obj[k]))
-                            if deref_obj is None or v != deref_obj[hints.deref[k]]:
-                                res = False
-                        else:
-                            print("_cache_obj_matches failed: unknown obj[k] type")
-                            sys.exit(1)
-                elif "__contains" in k:
-                    k_base = k[:-10]
-                    if not v in obj[k_base]:
-                        res = False
-                elif "__gte" in k:
-                    k_base = k[:-5]
-                    if obj[k_base] < v:
-                        res = False
-                elif "__gt" in k:
-                    k_base = k[:-4]
-                    if obj[k_base] <= v:
-                        res = False
-                elif "__lte" in k:
-                    k_base = k[:-5]
-                    if obj[k_base] > v:
-                        res = False
-                elif "__lt" in k:
-                    k_base = k[:-4]
-                    if obj[k_base] >= v:
-                        res = False
-                else:
-                    if obj[k] != v:
-                        res = False
-        return res
-
-
     def _cache_get_objects(self, obj_uri: URI, obj_type_uri: URI, obj_type: Type[T]) -> Iterator[T]:
         hints = self._cache_hints[obj_type_uri.uri]
-        results = []
-        cursor = 0
-        all_keys = set()
         self.db_calls += 1
-        obj_jsons = self.db[_cache_uri_format(obj_type_uri)].find(_translate_query(obj_uri))
+        obj_jsons = self.db[_cache_uri_format(obj_type_uri)].find(_translate_query(obj_uri, obj_type))
         for sb in hints.sort_by:
             obj_jsons.sort(sb, -1 if hints.reverse else 1)
         for obj_json in obj_jsons:
-            if self._cache_obj_matches(obj_json, obj_uri):
-                obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
-                yield obj
+            obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
+            yield obj
 
 
     def _cache_put_objects(self, obj_uri: URI, obj_type_uri: URI) -> None:
