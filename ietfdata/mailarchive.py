@@ -37,6 +37,7 @@ from datetime      import datetime, timedelta
 from typing        import List, Optional, Tuple, Dict, Iterator, Type, TypeVar, Any
 from pathlib       import Path
 from email.message import Message
+from email         import policy
 from imapclient    import IMAPClient
 
 # =================================================================================================
@@ -272,7 +273,7 @@ class MailingList:
     def raw_message(self, msg_id: int) -> Message:
         cache_file = Path(self._cache_folder, "{:06d}.msg".format(msg_id))
         with open(cache_file, "rb") as inf:
-            message = email.message_from_binary_file(inf)
+            message = email.message_from_binary_file(inf, policy=policy.default)
         return message
 
 
@@ -353,7 +354,7 @@ class MailingList:
                         outf.write(msg[b"RFC822"])
                     fetch_file.rename(cache_file)
 
-                    e = email.message_from_bytes(msg[b"RFC822"])
+                    e = email.message_from_bytes(msg[b"RFC822"], policy=policy.default)
                     if e["Archived-At"] is not None:
                         list_name, msg_hash = _parse_archive_url(e["Archived-At"])
                         self._archive_urls[msg_hash] = msg_id
