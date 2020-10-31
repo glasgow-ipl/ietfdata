@@ -443,11 +443,18 @@ class MailArchive:
 
         imap = IMAPClient(host='imap.ietf.org', ssl=False, use_uid=True)
         imap.login("anonymous", "anonymous")
+        success , fail = 0, 0
         for index, ml_name in enumerate(ml_names):
-            print(F"Updating list {index+1:4d}/{num_list:4d}: {ml_name} ", end="", flush=True)
-            ml = self.mailing_list(ml_name, _reuse_imap=imap)
-            nm = ml.update(_reuse_imap=imap)
-            print(F"({ml.num_messages()} messages; {len(nm)} new)")
+            try:
+                print(F"Updating list {index+1:4d}/{num_list:4d}: {ml_name} ", end="", flush=True)
+                ml = self.mailing_list(ml_name, _reuse_imap=imap)
+                nm = ml.update(_reuse_imap=imap)
+                print(F"({ml.num_messages()} messages; {len(nm)} new)")
+                success += 1
+            except Exception as e:
+                self.log.warn("Exception during download of list %s --> %s"  % (ml_name, str(e)))
+                fail +=1
+        print("Updated without errors: %d / %d" % (success, success + fail))
         imap.logout()
 
 

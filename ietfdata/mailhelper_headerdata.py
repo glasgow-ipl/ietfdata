@@ -52,7 +52,8 @@ class HeaderDataMailHelper(MailArchiveHelper):
             if msg_date is not None:
                 timestamp = datetime.fromtimestamp(time.mktime(msg_date))
         except Exception as e:
-            self.log.error(f"HeaderDataMailHelper: could not parse message `Date` header - {msg['Date']}")
+            #self.log.error(f"HeaderDataMailHelper: could not parse message `Date` header - {msg['Date']}") # this seems to be giving me errors
+            self.log.error(f"HeaderDataMailHelper: could not parse message `Date` header.") # this seems to be giving me errors
             pass
         return {"from_name"   : from_name,
                 "from_addr"   : from_addr,
