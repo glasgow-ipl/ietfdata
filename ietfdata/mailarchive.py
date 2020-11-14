@@ -346,7 +346,15 @@ class MailingList:
             aa_cache_tmp = Path(self._cache_folder, "aa-cache.json.tmp")
             aa_cache.unlink()
 
+            last_keepalive = datetime.now()
             for msg_id, msg in imap.fetch(msg_fetch, "RFC822").items():
+                curr_keepalive = datetime.now()
+                if (curr_keepalive - last_keepalive) > timedelta(seconds=10):
+                    if _reuse_imap is not None:
+                        self.log.info("imap keepalive")
+                        _reuse_imap.noop()
+                        last_keepalive = curr_keepalive
+ 
                 cache_file = Path(self._cache_folder, F"{msg_id:06d}.msg")
                 fetch_file = Path(self._cache_folder, F"{msg_id:06d}.msg.download")
                 if not cache_file.exists():
