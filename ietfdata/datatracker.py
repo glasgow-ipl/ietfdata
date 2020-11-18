@@ -3266,14 +3266,11 @@ class DataTracker:
 
     def meeting_sessions(self,
             meeting : Meeting,
-            group   : Optional[Group] = None,
-            parent  : Optional[Group] = None) -> Iterator[Session]:
+            group   : Optional[Group] = None) -> Iterator[Session]:
         url = SessionURI("/api/v1/meeting/session/")
         url.params["meeting"]  = meeting.id
         if group is not None:
             url.params["group"] = group.id
-        if parent is not None:
-            url.params["group__parent"] = parent.id
         return self._retrieve_multi(url, Session)
 
 
