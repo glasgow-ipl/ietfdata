@@ -46,12 +46,13 @@
 
 from datetime    import datetime, timedelta, timezone
 from enum        import Enum
+from inspect     import signature
 from typing      import List, Optional, Tuple, Dict, Iterator, Type, TypeVar, Any, Union
 from dataclasses import dataclass, field
 from pathlib     import Path
 from pavlova     import Pavlova
 from pavlova.parsers import GenericParser
-from pymongo         import MongoClient, ASCENDING
+from pymongo         import MongoClient, ASCENDING, TEXT
 
 import ast
 import dateutil.tz
@@ -74,6 +75,7 @@ import urllib.parse
 @dataclass(frozen=True)
 class URI:
     uri    : str
+    root   : str = ""
     params : Dict[str, Any] = field(default_factory=dict)
 
     def __str__(self) -> str:
@@ -82,17 +84,18 @@ class URI:
         else:
             return self.uri
 
+    def __post_init__(self) -> None:
+        assert self.uri is None or self.uri.startswith(self.root)
+
 
 @dataclass(frozen=True)
 class DocumentURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/doc/document/")
+    root : str = "/api/v1/doc/document/"
 
 
 @dataclass(frozen=True)
 class GroupURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/group/group/")
+    root : str = "/api/v1/group/group/"
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------
@@ -110,8 +113,12 @@ T = TypeVar('T', bound=Resource)
 
 @dataclass(frozen=True)
 class PersonURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/person/person/") or self.uri.startswith("/api/v1/person/historicalperson/")
+    root : str = "/api/v1/person/person/"
+
+
+@dataclass(frozen=True)
+class HistoricalPersonURI(URI):
+    root : str = "/api/v1/person/historicalperson/"
 
 
 @dataclass(frozen=True)
@@ -131,7 +138,19 @@ class Person(Resource):
 
 
 @dataclass(frozen=True)
-class HistoricalPerson(Person):
+class HistoricalPerson(Resource):
+    resource_uri          : HistoricalPersonURI
+    id                    : int
+    name                  : str
+    name_from_draft       : str
+    ascii                 : str
+    ascii_short           : Optional[str]
+    user                  : str
+    time                  : datetime
+    photo                 : str
+    photo_thumb           : str
+    biography             : str
+    consent               : bool
     history_change_reason : Optional[str]
     history_user          : Optional[str]
     history_id            : int
@@ -141,8 +160,7 @@ class HistoricalPerson(Person):
 
 @dataclass(frozen=True)
 class PersonAliasURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/person/alias/")
+    root : str = "/api/v1/person/alias/"
 
 
 @dataclass(frozen=True)
@@ -155,8 +173,7 @@ class PersonAlias(Resource):
 
 @dataclass(frozen=True)
 class PersonEventURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/person/personevent/")
+    root : str = "/api/v1/person/personevent/"
 
 
 @dataclass(frozen=True)
@@ -174,8 +191,12 @@ class PersonEvent(Resource):
 
 @dataclass(frozen=True)
 class EmailURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/person/email/") or self.uri.startswith("/api/v1/person/historicalemail/")
+    root : str = "/api/v1/person/email/"
+
+
+@dataclass(frozen=True)
+class HistoricalEmailURI(URI):
+    root : str = "/api/v1/person/historicalemail/"
 
 
 @dataclass(frozen=True)
@@ -191,6 +212,13 @@ class Email(Resource):
 
 @dataclass(frozen=True)
 class HistoricalEmail(Email):
+    resource_uri          : HistoricalEmailURI
+    person                : Optional[PersonURI]
+    address               : str # The email address
+    time                  : datetime
+    origin                : str
+    primary               : bool
+    active                : bool
     history_change_reason : Optional[str]
     history_user          : Optional[str]
     history_id            : int
@@ -203,8 +231,7 @@ class HistoricalEmail(Email):
 
 @dataclass(frozen=True)
 class DocumentTypeURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/doctypename/")
+    root : str = "/api/v1/name/doctypename/"
 
 
 @dataclass(frozen=True)
@@ -220,8 +247,7 @@ class DocumentType(Resource):
 
 @dataclass(frozen=True)
 class DocumentStateTypeURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/doc/statetype/")
+    root : str = "/api/v1/doc/statetype/"
 
 
 @dataclass(frozen=True)
@@ -233,8 +259,7 @@ class DocumentStateType(Resource):
 
 @dataclass(frozen=True)
 class DocumentStateURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/doc/state/")
+    root : str = "/api/v1/doc/state/"
 
 
 @dataclass(frozen=True)
@@ -252,8 +277,7 @@ class DocumentState(Resource):
 
 @dataclass(frozen=True)
 class StreamURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/streamname/")
+    root : str = "/api/v1/name/streamname/"
 
 
 @dataclass(frozen=True)
@@ -268,14 +292,12 @@ class Stream(Resource):
 
 @dataclass(frozen=True)
 class SubmissionURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/submit/submission/")
+    root : str = "/api/v1/submit/submission/"
 
 
 @dataclass(frozen=True)
 class SubmissionCheckURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/submit/submissioncheck/")
+    root : str = "/api/v1/submit/submissioncheck/"
 
 
 @dataclass(frozen=True)
@@ -320,8 +342,7 @@ class Submission(Resource):
 
 @dataclass(frozen=True)
 class SubmissionEventURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/submit/submissionevent/")
+    root : str = "/api/v1/submit/submissionevent/"
 
 
 @dataclass(frozen=True)
@@ -420,8 +441,7 @@ class Document(Resource):
 
 @dataclass(frozen=True)
 class DocumentAliasURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/doc/docalias/")
+    root : str = "/api/v1/doc/docalias/"
 
 
 @dataclass(frozen=True)
@@ -434,8 +454,7 @@ class DocumentAlias(Resource):
 
 @dataclass(frozen=True)
 class DocumentEventURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/doc/docevent/")
+    root : str = "/api/v1/doc/docevent/"
 
 
 @dataclass(frozen=True)
@@ -452,8 +471,7 @@ class DocumentEvent(Resource):
 
 @dataclass(frozen=True)
 class BallotPositionNameURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/ballotpositionname/")
+    root : str = "/api/v1/name/ballotpositionname/"
 
 
 @dataclass(frozen=True)
@@ -469,8 +487,7 @@ class BallotPositionName(Resource):
 
 @dataclass(frozen=True)
 class BallotTypeURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/doc/ballottype/")
+    root : str = "/api/v1/doc/ballottype/"
 
 
 @dataclass(frozen=True)
@@ -488,8 +505,7 @@ class BallotType(Resource):
 
 @dataclass(frozen=True)
 class BallotDocumentEventURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/doc/ballotdocevent/")
+    root : str = "/api/v1/doc/ballotdocevent/"
 
 
 @dataclass(frozen=True)
@@ -508,8 +524,7 @@ class BallotDocumentEvent(Resource):
 
 @dataclass(frozen=True)
 class RelationshipTypeURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/docrelationshipname/")
+    root : str = "/api/v1/name/docrelationshipname/"
 
 
 @dataclass(frozen=True)
@@ -525,8 +540,7 @@ class RelationshipType(Resource):
 
 @dataclass(frozen=True)
 class RelatedDocumentURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/doc/relateddocument/")
+    root : str = "/api/v1/doc/relateddocument/"
 
 
 @dataclass(frozen=True)
@@ -539,8 +553,7 @@ class RelatedDocument(Resource):
 
 
 class DocumentAuthorURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/doc/documentauthor/")
+    root : str = "/api/v1/doc/documentauthor/"
 
 
 @dataclass(frozen=True)
@@ -814,8 +827,7 @@ class DocumentAuthor(Resource):
 
 @dataclass(frozen=True)
 class GroupStateURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/groupstatename/")
+    root : str = "/api/v1/name/groupstatename/"
 
 
 @dataclass(frozen=True)
@@ -830,8 +842,7 @@ class GroupState(Resource):
 
 @dataclass(frozen=True)
 class GroupTypeNameURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/grouptypename/")
+    root : str = "/api/v1/name/grouptypename/"
 
 
 @dataclass(frozen=True)
@@ -871,8 +882,7 @@ class Group(Resource):
 
 @dataclass(frozen=True)
 class GroupHistoryURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/group/grouphistory/")
+    root : str = "/api/v1/group/grouphistory/"
 
 
 @dataclass(frozen=True)
@@ -899,8 +909,7 @@ class GroupHistory(Resource):
 
 @dataclass(frozen=True)
 class GroupEventURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/group/groupevent/")
+    root : str = "/api/v1/group/groupevent/"
 
 
 @dataclass(frozen=True)
@@ -916,8 +925,7 @@ class GroupEvent(Resource):
 
 @dataclass(frozen=True)
 class GroupUrlURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/group/groupurl/")
+    root : str = "/api/v1/group/groupurl/"
 
 
 @dataclass(frozen=True)
@@ -931,8 +939,7 @@ class GroupUrl(Resource):
 
 @dataclass(frozen=True)
 class GroupMilestoneStateNameURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/groupmilestonestatename/")
+    root : str = "/api/v1/name/groupmilestonestatename/"
 
 
 @dataclass(frozen=True)
@@ -947,8 +954,7 @@ class GroupMilestoneStateName(Resource):
 
 @dataclass(frozen=True)
 class GroupMilestoneURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/group/groupmilestone/")
+    root : str = "/api/v1/group/groupmilestone/"
 
 
 @dataclass(frozen=True)
@@ -967,8 +973,8 @@ class GroupMilestone(Resource):
 
 @dataclass(frozen=True)
 class RoleNameURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/rolename/")
+    root : str = "/api/v1/name/rolename/"
+
 
 @dataclass(frozen=True)
 class RoleName(Resource):
@@ -982,8 +988,7 @@ class RoleName(Resource):
 
 @dataclass(frozen=True)
 class GroupRoleURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/group/role/")
+    root : str = "/api/v1/group/role/"
 
 
 @dataclass(frozen=True)
@@ -997,8 +1002,7 @@ class GroupRole(Resource):
 
 @dataclass(frozen=True)
 class GroupMilestoneHistoryURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/group/groupmilestonehistory/")
+    root : str = "/api/v1/group/groupmilestonehistory/"
 
 
 @dataclass(frozen=True)
@@ -1018,8 +1022,7 @@ class GroupMilestoneHistory(Resource):
 
 @dataclass(frozen=True)
 class GroupMilestoneEventURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/group/milestonegroupevent/")
+    root : str = "/api/v1/group/milestonegroupevent/"
 
 
 @dataclass(frozen=True)
@@ -1037,8 +1040,7 @@ class GroupMilestoneEvent(Resource):
 
 @dataclass(frozen=True)
 class GroupRoleHistoryURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/group/rolehistory/")
+    root : str = "/api/v1/group/rolehistory/"
 
 
 @dataclass(frozen=True)
@@ -1053,8 +1055,7 @@ class GroupRoleHistory(Resource):
 
 @dataclass(frozen=True)
 class GroupStateChangeEventURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/group/changestategroupevent/")
+    root : str = "/api/v1/group/changestategroupevent/"
 
 
 @dataclass(frozen=True)
@@ -1081,14 +1082,12 @@ class MeetingStatus(Enum):
 
 @dataclass(frozen=True)
 class MeetingURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/meeting/meeting/")
+    root : str = "/api/v1/meeting/meeting/"
 
 
 @dataclass(frozen=True)
 class MeetingTypeURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/meetingtypename/")
+    root : str = "/api/v1/name/meetingtypename/"
 
 
 @dataclass(frozen=True)
@@ -1103,8 +1102,7 @@ class MeetingType(Resource):
 
 @dataclass(frozen=True)
 class ScheduleURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/meeting/schedule/")
+    root : str = "/api/v1/meeting/schedule/"
 
 
 @dataclass(frozen=True)
@@ -1172,14 +1170,12 @@ class Meeting(Resource):
 
 @dataclass(frozen=True)
 class SessionURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/meeting/session/")
+    root : str = "/api/v1/meeting/session/"
 
 
 @dataclass(frozen=True)
 class TimeslotURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/meeting/timeslot/")
+    root : str = "/api/v1/meeting/timeslot/"
 
 
 @dataclass(frozen=True)
@@ -1199,8 +1195,7 @@ class Timeslot(Resource):
 
 @dataclass(frozen=True)
 class SessionAssignmentURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/meeting/schedtimesessassignment/")
+    root : str = "/api/v1/meeting/schedtimesessassignment/"
 
 
 @dataclass(frozen=True)
@@ -1252,8 +1247,7 @@ class Session(Resource):
 
 @dataclass(frozen=True)
 class SessionStatusNameURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/sessionstatusname/")
+    root : str = "/api/v1/name/sessionstatusname/"
 
 
 @dataclass(frozen=True)
@@ -1268,8 +1262,7 @@ class SessionStatusName(Resource):
 
 @dataclass(frozen=True)
 class SchedulingEventURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/meeting/schedulingevent/")
+    root : str = "/api/v1/meeting/schedulingevent/"
 
 
 @dataclass(frozen=True)
@@ -1287,8 +1280,7 @@ class SchedulingEvent(Resource):
 
 @dataclass(frozen=True)
 class IPRDisclosureStateURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/iprdisclosurestatename/")
+    root : str = "/api/v1/name/iprdisclosurestatename/"
 
 
 @dataclass(frozen=True)
@@ -1303,8 +1295,7 @@ class IPRDisclosureState(Resource):
 
 @dataclass(frozen=True)
 class IPRDisclosureBaseURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/ipr/iprdisclosurebase/")
+    root : str = "/api/v1/ipr/iprdisclosurebase/"
 
 
 @dataclass(frozen=True)
@@ -1327,8 +1318,7 @@ class IPRDisclosureBase(Resource):
 
 @dataclass(frozen=True)
 class GenericIPRDisclosureURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/ipr/genericiprdisclosure/")
+    root : str = "/api/v1/ipr/genericiprdisclosure/"
 
 
 @dataclass(frozen=True)
@@ -1356,8 +1346,7 @@ class GenericIPRDisclosure(Resource):
 
 @dataclass(frozen=True)
 class IPRLicenseTypeURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/iprlicensetypename/")
+    root : str = "/api/v1/name/iprlicensetypename/"
 
 
 @dataclass(frozen=True)
@@ -1372,8 +1361,7 @@ class IPRLicenseType(Resource):
 
 @dataclass(frozen=True)
 class HolderIPRDisclosureURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/ipr/holderiprdisclosure/")
+    root : str = "/api/v1/ipr/holderiprdisclosure/"
 
 
 @dataclass(frozen=True)
@@ -1408,8 +1396,7 @@ class HolderIPRDisclosure(Resource):
 
 @dataclass(frozen=True)
 class ThirdPartyIPRDisclosureURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/ipr/thirdpartyiprdisclosure/")
+    root : str = "/api/v1/ipr/thirdpartyiprdisclosure/"
 
 
 @dataclass(frozen=True)
@@ -1441,8 +1428,7 @@ class ThirdPartyIPRDisclosure(Resource):
 
 @dataclass(frozen=True)
 class ReviewAssignmentStateURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/reviewassignmentstatename/")
+    root : str = "/api/v1/name/reviewassignmentstatename/"
 
 
 @dataclass(frozen=True)
@@ -1457,8 +1443,7 @@ class ReviewAssignmentState(Resource):
 
 @dataclass(frozen=True)
 class ReviewResultTypeURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/reviewresultname/")
+    root : str = "/api/v1/name/reviewresultname/"
 
 
 @dataclass(frozen=True)
@@ -1473,8 +1458,7 @@ class ReviewResultType(Resource):
 
 @dataclass(frozen=True)
 class ReviewTypeURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/reviewtypename/")
+    root : str = "/api/v1/name/reviewtypename/"
 
 
 @dataclass(frozen=True)
@@ -1489,8 +1473,7 @@ class ReviewType(Resource):
 
 @dataclass(frozen=True)
 class ReviewRequestStateURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/reviewrequeststatename/")
+    root : str = "/api/v1/name/reviewrequeststatename/"
 
 
 @dataclass(frozen=True)
@@ -1505,8 +1488,7 @@ class ReviewRequestState(Resource):
 
 @dataclass(frozen=True)
 class ReviewRequestURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/review/reviewrequest/")
+    root : str = "/api/v1/review/reviewrequest/"
 
 
 @dataclass(frozen=True)
@@ -1526,8 +1508,7 @@ class ReviewRequest(Resource):
 
 @dataclass(frozen=True)
 class ReviewAssignmentURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/review/reviewassignment/")
+    root : str = "/api/v1/review/reviewassignment/"
 
 
 @dataclass(frozen=True)
@@ -1547,8 +1528,7 @@ class ReviewAssignment(Resource):
 
 @dataclass(frozen=True)
 class ReviewWishURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/review/reviewwish/")
+    root : str = "/api/v1/review/reviewwish/"
 
 
 @dataclass(frozen=True)
@@ -1563,8 +1543,7 @@ class ReviewWish(Resource):
 
 @dataclass(frozen=True)
 class HistoricalUnavailablePeriodURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/review/historicalunavailableperiod/")
+    root : str = "/api/v1/review/historicalunavailableperiod/"
 
 
 @dataclass(frozen=True)
@@ -1585,8 +1564,7 @@ class HistoricalUnavailablePeriod(Resource):
 
 @dataclass(frozen=True)
 class HistoricalReviewRequestURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/review/historicalreviewrequest/")
+    root : str = "/api/v1/review/historicalreviewrequest/"
 
 
 @dataclass(frozen=True)
@@ -1610,8 +1588,7 @@ class HistoricalReviewRequest(Resource):
 
 @dataclass(frozen=True)
 class NextReviewerInTeamURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/review/nextreviewerinteam/")
+    root : str = "/api/v1/review/nextreviewerinteam/"
 
 
 @dataclass(frozen=True)
@@ -1624,8 +1601,7 @@ class NextReviewerInTeam(Resource):
 
 @dataclass(frozen=True)
 class ReviewTeamSettingsURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/review/reviewteamsettings/")
+    root : str = "/api/v1/review/reviewteamsettings/"
 
 
 @dataclass(frozen=True)
@@ -1643,8 +1619,7 @@ class ReviewTeamSettings(Resource):
 
 @dataclass(frozen=True)
 class ReviewerSettingsURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/review/reviewersettings/")
+    root : str = "/api/v1/review/reviewersettings/"
 
 
 @dataclass(frozen=True)
@@ -1664,8 +1639,7 @@ class ReviewerSettings(Resource):
 
 @dataclass(frozen=True)
 class UnavailablePeriodURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/review/unavailableperiod/")
+    root : str = "/api/v1/review/unavailableperiod/"
 
 
 @dataclass(frozen=True)
@@ -1682,8 +1656,7 @@ class UnavailablePeriod(Resource):
 
 @dataclass(frozen=True)
 class HistoricalReviewerSettingsURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/review/historicalreviewersettings/")
+    root : str = "/api/v1/review/historicalreviewersettings/"
 
 
 @dataclass(frozen=True)
@@ -1708,8 +1681,7 @@ class HistoricalReviewerSettings(Resource):
 
 @dataclass(frozen=True)
 class HistoricalReviewAssignmentURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/review/historicalreviewassignment/")
+    root : str = "/api/v1/review/historicalreviewassignment/"
 
 
 @dataclass(frozen=True)
@@ -1732,8 +1704,7 @@ class HistoricalReviewAssignment(Resource):
 
 
 class ReviewSecretarySettingsURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/review/reviewsecretarysettings/")
+    root : str = "/api/v1/review/reviewsecretarysettings/"
 
 
 @dataclass(frozen=True)
@@ -1752,8 +1723,7 @@ class ReviewSecretarySettings(Resource):
 
 @dataclass(frozen=True)
 class MailingListURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/mailinglists/list/")
+    root : str = "/api/v1/mailinglists/list/"
 
 
 @dataclass(frozen=True)
@@ -1767,8 +1737,7 @@ class MailingList(Resource):
 
 @dataclass(frozen=True)
 class MailingListSubscriptionsURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/mailinglists/subscribed/")
+    root : str = "/api/v1/mailinglists/subscribed/"
 
 
 @dataclass(frozen=True)
@@ -1786,8 +1755,7 @@ class MailingListSubscriptions(Resource):
 
 @dataclass(frozen=True)
 class MeetingRegistrationURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/stats/meetingregistration/")
+    root : str = "/api/v1/stats/meetingregistration/"
 
 
 @dataclass(frozen=True)
@@ -1812,8 +1780,7 @@ class MeetingRegistration(Resource):
 
 @dataclass(frozen=True)
 class AnnouncementFromURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/message/announcementfrom/")
+    root : str = "/api/v1/message/announcementfrom/"
 
 
 @dataclass(frozen=True)
@@ -1827,8 +1794,7 @@ class AnnouncementFrom(Resource):
 
 @dataclass(frozen=True)
 class MessageURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/message/message/")
+    root : str = "/api/v1/message/message/"
 
 
 @dataclass(frozen=True)
@@ -1853,8 +1819,7 @@ class Message(Resource):
 
 @dataclass(frozen=True)
 class SendQueueURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/message/sendqueue/")
+    root : str = "/api/v1/message/sendqueue/"
 
 
 @dataclass(frozen=True)
@@ -1877,7 +1842,7 @@ def _parent_uri(uri: URI) -> URI:
     sep0 = 8
     sep1 = uri.uri[sep0:].find("/") + sep0 + 1
     sep2 = uri.uri[sep1:].find("/") + sep1 + 1
-    return URI(uri.uri[:sep2])
+    return type(uri)(uri.uri[:sep2])
 
 
 def _cache_uri_format(uri: URI) -> str:
@@ -1904,7 +1869,7 @@ def _translate_query(uri: URI, obj_type: Type[T]) -> Dict[Any, Any]:
             if "__origin__" in param_type.__dict__ and param_type.__origin__ is Union:
                 param_type = param_type.__args__[0]
             if issubclass(param_type, URI):
-                translated_params[param] = {"$regex": f"/{value}/"}
+                translated_params[param] = f"{param_type.root}{value}/"
             else:
                 translated_params[param] = f"{value}"
     return translated_params
@@ -1917,19 +1882,18 @@ def _sort_objs(obj: Tuple[str,Dict[Any, Any]]) -> str:
 
 @dataclass
 class CacheMetadata:
-    created : datetime
-    updated : datetime
-    partial : bool
-    queries : List[str]
+    created     : datetime
+    updated     : datetime
+    partial     : bool
+    total_count : int
+    queries     : List[str]
 
 
 @dataclass
-class CacheHints:
-    deref   : Dict[str, Any]
-    trim    : List[str]
-    sort_by : List[str]
-    reverse : bool
-    timed   : bool
+class CacheIndex:
+    resource_type : Resource
+    fields        : List[str]
+    unique_fields : List[str]
 
 
 class DataTracker:
@@ -1963,6 +1927,80 @@ class DataTracker:
             self.pavlova.register_parser(uri_type, GenericParser(self.pavlova, uri_type))
         self.pavlova.register_parser(CacheMetadata, GenericParser(self.pavlova, CacheMetadata))
 
+        # Register cache hints:
+        self._cache_indexes = {}
+        self._cache_indexes[BallotDocumentEventURI]         = CacheIndex(BallotDocumentEvent, ["time", "ballot_type", "event_type", "by", "doc"], ["id", "resource_uri"])
+        self._cache_indexes[BallotTypeURI]                  = CacheIndex(BallotType, ["doc_type"], ["id", "resource_uri"])
+        self._cache_indexes[DocumentAliasURI]               = CacheIndex(DocumentAlias, ["name"], ["id", "name", "resource_uri"])
+        self._cache_indexes[DocumentEventURI]               = CacheIndex(DocumentEvent, ["time", "doc", "by", "event_type"], ["id", "resource_uri"])
+        self._cache_indexes[DocumentURI]                    = CacheIndex(Document, ["time", "type", "stream", "group"], ["id", "name", "resource_uri"])
+        self._cache_indexes[DocumentAuthorURI]              = CacheIndex(DocumentAuthor, ["document", "person", "email"], ["id", "resource_uri"])
+        self._cache_indexes[RelatedDocumentURI]             = CacheIndex(RelatedDocument, ["source", "target", "relationship"], ["id", "resource_uri"])
+        self._cache_indexes[DocumentStateURI]               = CacheIndex(DocumentState, ["type", "slug"], ["id", "resource_uri"])
+        self._cache_indexes[DocumentStateTypeURI]           = CacheIndex(DocumentStateType, [], ["slug", "resource_uri"])
+        self._cache_indexes[GroupStateChangeEventURI]       = CacheIndex(GroupStateChangeEvent, ["time", "by", "group", "state"], ["id", "resource_uri"])
+        self._cache_indexes[GroupURI]                       = CacheIndex(Group, ["time", "name", "state", "parent"], ["acronym", "id", "resource_uri"])
+        self._cache_indexes[GroupEventURI]                  = CacheIndex(GroupEvent, ["time", "by", "group", "type"], ["id", "resource_uri"])
+        self._cache_indexes[GroupHistoryURI]                = CacheIndex(GroupHistory, ["acronym", "time", "group", "state", "parent"], ["id", "resource_uri"])
+        self._cache_indexes[GroupMilestoneURI]              = CacheIndex(GroupMilestone, ["time", "group", "state"], ["id", "resource_uri"])
+        self._cache_indexes[GroupMilestoneHistoryURI]       = CacheIndex(GroupMilestoneHistory, ["time", "group", "milestone", "state"], ["id", "resource_uri"])
+        self._cache_indexes[GroupUrlURI]                    = CacheIndex(GroupUrl, ["group"], ["id", "resource_uri"])
+        self._cache_indexes[GroupMilestoneEventURI]         = CacheIndex(GroupMilestoneEvent, ["time", "by", "group", "milestone", "type"], ["id", "resource_uri"])
+        self._cache_indexes[GroupRoleURI]                   = CacheIndex(GroupRole, ["email", "group", "name", "person"], ["id", "resource_uri"])
+        self._cache_indexes[GroupRoleHistoryURI]            = CacheIndex(GroupRoleHistory, ["email", "group", "name", "person"], ["id", "resource_uri"])
+        self._cache_indexes[GenericIPRDisclosureURI]        = CacheIndex(GenericIPRDisclosure, ["time", "by", "holder_legal_name", "holder_contact_name", "state", "submitter_email", "submitter_name"], ["id", "resource_uri"])
+        self._cache_indexes[HolderIPRDisclosureURI]         = CacheIndex(HolderIPRDisclosure, ["time", "by", "holder_legal_name", "holder_contact_name", "ietfer_contact_email", "ietfer_name", "licensing", "state", "submitter_email", "submitter_name"], ["id", "resource_uri"])
+        self._cache_indexes[IPRDisclosureBaseURI]           = CacheIndex(IPRDisclosureBase, ["time", "by", "holder_legal_name", "state", "submitter_email", "submitter_name"], ["id", "resource_uri"])
+        self._cache_indexes[ThirdPartyIPRDisclosureURI]     = CacheIndex(ThirdPartyIPRDisclosure, ["time", "by", "holder_legal_name", "ietfer_contact_email", "ietfer_name", "state", "submitter_email", "submitter_name"], ["id", "resource_uri"])
+        self._cache_indexes[MailingListURI]                 = CacheIndex(MailingList, ["name"], ["id", "resource_uri"])
+        self._cache_indexes[MailingListSubscriptionsURI]    = CacheIndex(MailingListSubscriptions, ["email", "lists"], ["id", "resource_uri"])
+        self._cache_indexes[MeetingURI]                     = CacheIndex(Meeting, ["date", "type"], ["id", "number", "resource_uri"])
+        self._cache_indexes[SessionAssignmentURI]           = CacheIndex(SessionAssignment, ["schedule"], ["id", "resource_uri"])
+        self._cache_indexes[ScheduleURI]                    = CacheIndex(ScheduleURI, [], ["id", "resource_uri"])
+        self._cache_indexes[SchedulingEventURI]             = CacheIndex(SchedulingEventURI, ["session", "by"], ["id", "resource_uri"])
+        self._cache_indexes[SessionURI]                     = CacheIndex(Session, ["meeting", "group"], ["id", "resource_uri"])
+        self._cache_indexes[TimeslotURI]                    = CacheIndex(Timeslot, [], ["id", "resource_uri"])
+        self._cache_indexes[AnnouncementFromURI]            = CacheIndex(AnnouncementFrom, ["address", "group", "name"], ["id", "resource_uri"])
+        self._cache_indexes[MessageURI]                     = CacheIndex(Message, ["time", "by", "frm", "related_docs", "subject", "body"], ["id", "resource_uri"])
+        self._cache_indexes[SendQueueURI]                   = CacheIndex(SendQueueEntry, ["time", "by", "message"], ["id", "resource_uri"])
+        self._cache_indexes[BallotPositionNameURI]          = CacheIndex(BallotPositionName, [], ["slug", "resource_uri"])
+        self._cache_indexes[RelationshipTypeURI]            = CacheIndex(RelationshipType, [], ["slug", "resource_uri"])
+        self._cache_indexes[DocumentTypeURI]                = CacheIndex(DocumentType, [], ["slug", "resource_uri"])
+        self._cache_indexes[GroupMilestoneStateNameURI]     = CacheIndex(GroupMilestoneStateName, [], ["slug", "resource_uri"])
+        self._cache_indexes[GroupStateURI]                  = CacheIndex(GroupState, [], ["slug", "resource_uri"])
+        self._cache_indexes[GroupTypeNameURI]               = CacheIndex(GroupTypeName, [], ["slug", "resource_uri"])
+        self._cache_indexes[MeetingTypeURI]                 = CacheIndex(MeetingType, [], ["slug", "resource_uri"])
+        self._cache_indexes[IPRDisclosureStateURI]          = CacheIndex(IPRDisclosureBase, [], ["slug", "resource_uri"])
+        self._cache_indexes[IPRLicenseTypeURI]              = CacheIndex(IPRLicenseType, [], ["slug", "resource_uri"])
+        self._cache_indexes[ReviewAssignmentStateURI]       = CacheIndex(ReviewAssignmentState, [], ["slug", "resource_uri"])
+        self._cache_indexes[ReviewResultTypeURI]            = CacheIndex(ReviewResultType, [], ["slug", "resource_uri"])
+        self._cache_indexes[ReviewTypeURI]                  = CacheIndex(ReviewType, [], ["slug", "resource_uri"])
+        self._cache_indexes[ReviewRequestStateURI]          = CacheIndex(ReviewRequestState, [], ["slug", "resource_uri"])
+        self._cache_indexes[RoleNameURI]                    = CacheIndex(RoleName, [], ["slug", "resource_uri"])
+        self._cache_indexes[SessionStatusNameURI]           = CacheIndex(SessionStatusName, [], ["slug", "resource_uri"])
+        self._cache_indexes[StreamURI]                      = CacheIndex(Stream, [], ["slug", "resource_uri"])
+        self._cache_indexes[PersonAliasURI]                 = CacheIndex(PersonAlias, ["person"], ["id", "resource_uri"])
+        self._cache_indexes[EmailURI]                       = CacheIndex(Email, ["person", "time"], ["address", "resource_uri"])
+        self._cache_indexes[HistoricalEmailURI]             = CacheIndex(HistoricalEmail, ["address", "person"], ["history_id", "resource_uri"])
+        self._cache_indexes[HistoricalPersonURI]            = CacheIndex(HistoricalPerson, ["id"], ["history_id", "resource_uri"])
+        self._cache_indexes[PersonURI]                      = CacheIndex(PersonURI, ["time", "name", "ascii"], ["id", "resource_uri"])
+        self._cache_indexes[PersonEventURI]                 = CacheIndex(PersonEvent, ["person"], ["id", "resource_uri"])
+        self._cache_indexes[HistoricalReviewAssignmentURI]  = CacheIndex(HistoricalReviewAssignment, ["assigned_on", "completed_on", "id", "result", "review_request", "reviewer", "state"], ["history_id", "resource_uri"])
+        self._cache_indexes[HistoricalReviewerSettingsURI]  = CacheIndex(HistoricalReviewerSettingsURI, ["history_date", "id", "person", "team"], ["history_id", "resource_uri"])
+        self._cache_indexes[HistoricalReviewRequestURI]     = CacheIndex(HistoricalReviewRequest, ["time", "history_date", "doc", "requested_by", "state", "team", "type"], ["history_id", "resource_uri"])
+        self._cache_indexes[HistoricalUnavailablePeriodURI] = CacheIndex(HistoricalUnavailablePeriod, ["history_type", "id", "person", "team"], ["history_id", "resource_uri"])
+        self._cache_indexes[NextReviewerInTeamURI]          = CacheIndex(NextReviewerInTeam, ["team"], ["id", "resource_uri"])
+        self._cache_indexes[ReviewAssignmentURI]            = CacheIndex(ReviewAssignment, ["assigned_on", "completed_on", "result", "review_request", "reviewer", "state"], ["id", "resource_uri"])
+        self._cache_indexes[ReviewerSettingsURI]            = CacheIndex(ReviewerSettings, ["person", "team"], ["id", "resource_uri"])
+        self._cache_indexes[ReviewRequestURI]               = CacheIndex(ReviewRequest, ["time", "doc", "requested_by", "state", "team", "type"], ["id", "resource_uri"])
+        self._cache_indexes[ReviewSecretarySettingsURI]     = CacheIndex(ReviewSecretarySettings, ["person", "team"], ["id", "resource_uri"])
+        self._cache_indexes[ReviewTeamSettingsURI]          = CacheIndex(ReviewTeamSettings, ["group"], ["id", "resource_uri"])
+        self._cache_indexes[ReviewWishURI]                  = CacheIndex(ReviewWish, ["time", "doc", "person", "team"], ["id", "resource_uri"])
+        self._cache_indexes[UnavailablePeriodURI]           = CacheIndex(UnavailablePeriod, ["person", "team"], ["id", "resource_uri"])
+        self._cache_indexes[MeetingRegistrationURI]         = CacheIndex(MeetingRegistration, ["affiliation", "attended", "country_code", "email", "first_name", "last_name", "meeting", "person", "reg_type", "ticket_type"], ["id", "resource_uri"])
+        self._cache_indexes[SubmissionURI]                  = CacheIndex(Submission, ["time"], ["id", "resource_uri"])
+        self._cache_indexes[SubmissionEventURI]             = CacheIndex(SubmissionEvent, ["time", "by", "submission"], ["id", "resource_uri"])
+
 
     def __del__(self):
         self.log.info(F"cache requests: {self.cache_req}")
@@ -1983,7 +2021,7 @@ class DataTracker:
         now  = datetime.now(tz = dateutil.tz.gettz("America/Los_Angeles"))
         meta = self._cache_load_metadata(obj_type_uri)
         # Should we switch from a partial cache to full cache for this object type?
-        if meta.partial and len(meta.queries) > 100:
+        if meta.partial and (len(meta.queries)/(meta.total_count/100)) > 0.5:
             # Switch to caching all objects of this type
             self.log.info(F"switch to full cache {obj_type_uri.uri}")
             self._cache_put_objects(obj_type_uri, obj_type_uri)
@@ -2002,6 +2040,7 @@ class DataTracker:
                 self._cache_put_objects(update_uri, obj_type_uri)
                 meta = self._cache_load_metadata(obj_type_uri)
                 meta.updated = now
+                meta.total_count = self._cache_fetch_object_count(obj_type_uri)
                 self._cache_save_metadata(obj_type_uri, meta)
             else:
                 # FIXME: how to handle object types that don't have a modification time?
@@ -2016,11 +2055,12 @@ class DataTracker:
 
     def _cache_save_metadata(self, obj_type_uri: URI, meta: CacheMetadata) -> None:
         meta_dict : Dict[str, Any] = {}
-        meta_dict["meta_key"] = _cache_uri_format(obj_type_uri)
-        meta_dict["created"]  = meta.created.isoformat()
-        meta_dict["updated"]  = meta.updated.isoformat()
-        meta_dict["partial"]  = meta.partial
-        meta_dict["queries"]  = meta.queries
+        meta_dict["meta_key"]    = _cache_uri_format(obj_type_uri)
+        meta_dict["created"]     = meta.created.isoformat()
+        meta_dict["updated"]     = meta.updated.isoformat()
+        meta_dict["partial"]     = meta.partial
+        meta_dict["queries"]     = meta.queries
+        meta_dict["total_count"] = meta.total_count
         self.db.cache_info.replace_one({"meta_key" : meta_dict["meta_key"]}, meta_dict, upsert=True)
         self.db.cache_info.create_index([('meta_key', ASCENDING)], unique=True)
         self.db_calls += 1
@@ -2032,12 +2072,15 @@ class DataTracker:
         if not self.db.cache_info.find_one({"meta_key": meta_key}):
             created = datetime.now(tz = dateutil.tz.gettz("America/Los_Angeles"))
             updated = created
-            meta = CacheMetadata(created, updated, True, [])
+            total_count = self._cache_fetch_object_count(obj_type_uri)
+            meta = CacheMetadata(created, updated, True, total_count, [])
             self._cache_save_metadata(obj_type_uri, meta)
             self.log.info(F"_cache_create {meta_key}")
-            params = [param.split("__")[0] for param in list(obj_type_uri.params.keys())]
-            if len(params) > 0:
-                self.db[_cache_uri_format(obj_type_uri)].create_index([(field_name, ASCENDING) for field_name in params])
+            # create indexes
+            for field in self._cache_indexes[type(obj_type_uri)].fields:
+                self.db[_cache_uri_format(obj_type_uri)].create_index([(field, ASCENDING)])
+            for unique_field in self._cache_indexes[type(obj_type_uri)].unique_fields:
+                self.db[_cache_uri_format(obj_type_uri)].create_index([(unique_field, ASCENDING)], unique=True)
 
 
     def _cache_record_query(self, obj_uri: URI, obj_type_uri: URI) -> None:
@@ -2079,7 +2122,6 @@ class DataTracker:
         assert obj_uri.uri.endswith("/")
         self._cache_create(_parent_uri(obj_uri))
         self.db[_cache_uri_format(_parent_uri(obj_uri))].replace_one({"resource_uri" : obj_json["resource_uri"]}, obj_json, upsert=True)
-        self.db[_cache_uri_format(_parent_uri(obj_uri))].create_index([('resource_uri', ASCENDING)], unique=True)
         self.db_calls += 1
 
 
@@ -2095,6 +2137,9 @@ class DataTracker:
 
     def _cache_get_objects(self, obj_uri: URI, obj_type_uri: URI, obj_type: Type[T]) -> Iterator[T]:
         self.db_calls += 1
+        #self.log.info(F"_cache_get_objects {_cache_uri_format(obj_type_uri)} {_translate_query(obj_uri, obj_type)}")
+        if len(obj_uri.params) > 1:
+            self.db[_cache_uri_format(obj_type_uri)].create_index([(field, ASCENDING) for field in list(_translate_query(obj_uri, obj_type).keys())])
         obj_jsons = self.db[_cache_uri_format(obj_type_uri)].find(_translate_query(obj_uri, obj_type))
         for obj_json in obj_jsons:
             obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
@@ -2103,9 +2148,9 @@ class DataTracker:
 
     def _cache_put_objects(self, obj_uri: URI, obj_type_uri: URI) -> None:
         if len(obj_uri.params) > 0:
-            obj_uri = URI(F"{obj_uri.uri}?limit=100&{urllib.parse.urlencode(obj_uri.params)}")
+            obj_uri = type(obj_type_uri)(F"{obj_uri.uri}?limit=100&{urllib.parse.urlencode(obj_uri.params)}")
         else:
-            obj_uri = URI(F"{obj_uri.uri}?limit=100")
+            obj_uri = type(obj_type_uri)(F"{obj_uri.uri}?limit=100")
 
         total = None
         while obj_uri.uri is not None:
@@ -2124,7 +2169,7 @@ class DataTracker:
                         objs = r.json()['objects']
                         obj_uri  = URI(meta['next'])
                         for obj_json in objs:
-                            self._cache_put_object(URI(obj_json["resource_uri"]), obj_json)
+                            self._cache_put_object(type(obj_type_uri)(obj_json["resource_uri"]), obj_json)
                         total = meta["total_count"]
                     elif r.status_code == 500:
                         if retry_time > 60:
@@ -2160,7 +2205,7 @@ class DataTracker:
                             r = self.session.get(str(obj_uri), headers = {"User-Agent": self.ua}, verify = True, stream = False)
                             if r.status_code == 200:
                                 new_json = r.json() # type: Dict[str, Any]
-                                self._cache_put_object(URI(split.path), new_json)
+                                self._cache_put_object(type(obj_type_uri)(split.path), new_json)
                                 failed = False
                             elif r.status_code == 400:
                                 self.log.info(F"  {r.status_code} {obj_uri}")
@@ -2171,12 +2216,12 @@ class DataTracker:
                             print(F"_cache_put_objects failed: no request in range could be retrieved")
                             sys.exit(1)
                         # Construct the next range URL, and continue:
-                        obj_uri = URI(split.path)
+                        obj_uri = type(obj_type_uri)(split.path)
                         for k, v in query.items():
                             obj_uri.params[k] = v
                         obj_uri.params["offset"] = finish
                         obj_uri.params["limit"]  = 100
-                        obj_uri = URI(F"{obj_uri.uri}?{urllib.parse.urlencode(obj_uri.params)}")
+                        obj_uri = type(obj_type_uri)(F"{obj_uri.uri}?{urllib.parse.urlencode(obj_uri.params)}")
                     else:
                         print(F"_cache_put_objects failed: error {r.status_code} after {self.http_req} requests {req_url}")
                         sys.exit(1)
@@ -2186,6 +2231,16 @@ class DataTracker:
                     time.sleep(retry_time)
                     retry_time *= 2
                     retry = True
+
+
+    def _cache_fetch_object_count(self, obj_type_uri: URI) -> Optional[int]:
+        req_url     = self.base_url + URI(F"{obj_type_uri.uri}?limit=1").uri
+        req_headers = {'User-Agent': self.ua}
+        r = self.session.get(req_url, headers = req_headers, verify = True, stream = False)
+        if r.status_code == 200:
+            meta = r.json()['meta']
+            return meta['total_count']
+        return None
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -2235,8 +2290,8 @@ class DataTracker:
 
 
     def _retrieve_multi(self, obj_uri: URI, obj_type: Type[T]) -> Iterator[T]:
-        obj_type_uri = URI(obj_uri.uri)
-        cache_uri = URI(obj_uri.uri)
+        obj_type_uri = type(obj_uri)(obj_uri.uri)
+        cache_uri = type(obj_uri)(obj_uri.uri)
         for n, v in obj_uri.params.items():
             assert n is not None
             assert v is not None
