@@ -2824,11 +2824,11 @@ class DataTracker:
 
 
     def submissions(self,
-            since           : str = "1970-01-01T00:00:00",
-            until           : str = "2038-01-19T03:14:07") -> Iterator[Submission]:
+            date_since           : str = "1970-01-01",
+            date_until           : str = "2038-01-19") -> Iterator[Submission]:
         url = SubmissionURI("/api/v1/submit/submission/")
-        url.params["time__gte"] = since
-        url.params["time__lt"] = until
+        url.params["submission_date__gte"] = date_since
+        url.params["submission_date__lt"] = date_until
         return self._retrieve_multi(url, Submission)
 
 
