@@ -47,7 +47,7 @@
 from datetime    import datetime, timedelta, timezone
 from enum        import Enum
 from inspect     import signature
-from typing      import List, Optional, Tuple, Dict, Iterator, Type, TypeVar, Any, Union
+from typing      import List, Optional, Tuple, Dict, Iterator, Type, TypeVar, Any, Union, Generic
 from dataclasses import dataclass, field
 from pathlib     import Path
 from pavlova     import Pavlova
@@ -85,7 +85,7 @@ class URI:
             return self.uri
 
     def __post_init__(self) -> None:
-        assert self.uri is None or self.uri.startswith(self.root)
+        assert self.uri.startswith(self.root)
 
 
 @dataclass(frozen=True)
@@ -106,6 +106,7 @@ class Resource:
     resource_uri : URI
 
 T = TypeVar('T', bound=Resource)
+R = TypeVar('R', bound=Type[Resource])
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------
@@ -211,7 +212,7 @@ class Email(Resource):
 
 
 @dataclass(frozen=True)
-class HistoricalEmail(Email):
+class HistoricalEmail(Resource):
     resource_uri          : HistoricalEmailURI
     person                : Optional[PersonURI]
     address               : str # The email address
@@ -1850,7 +1851,7 @@ def _cache_uri_format(uri: URI) -> str:
 
 
 def _translate_query(uri: URI, obj_type: Type[T]) -> Dict[Any, Any]:
-    translated_params = {}
+    translated_params : Dict[Any, Any] = {}
     for (param, value) in uri.params.items():
         if "__gte" in param:
             param = param[:-5]
@@ -1890,8 +1891,8 @@ class CacheMetadata:
 
 
 @dataclass
-class CacheIndex:
-    resource_type : Resource
+class CacheIndex(Generic[T]):
+    resource_type : T
     fields        : List[str]
     unique_fields : List[str]
 
@@ -1928,7 +1929,7 @@ class DataTracker:
         self.pavlova.register_parser(CacheMetadata, GenericParser(self.pavlova, CacheMetadata))
 
         # Register cache hints:
-        self._cache_indexes = {}
+        self._cache_indexes = {} # type: Dict[Any, CacheIndex]
         self._cache_indexes[BallotDocumentEventURI]         = CacheIndex(BallotDocumentEvent, ["time", "ballot_type", "event_type", "by", "doc"], ["id", "resource_uri"])
         self._cache_indexes[BallotTypeURI]                  = CacheIndex(BallotType, ["doc_type"], ["id", "resource_uri"])
         self._cache_indexes[DocumentAliasURI]               = CacheIndex(DocumentAlias, ["name"], ["id", "name", "resource_uri"])
@@ -2040,7 +2041,9 @@ class DataTracker:
                 self._cache_put_objects(update_uri, obj_type_uri)
                 meta = self._cache_load_metadata(obj_type_uri)
                 meta.updated = now
-                meta.total_count = self._cache_fetch_object_count(obj_type_uri)
+                obj_count = self._cache_fetch_object_count(obj_type_uri)
+                if obj_count is not None:
+                    meta.total_count = obj_count
                 self._cache_save_metadata(obj_type_uri, meta)
             else:
                 # FIXME: how to handle object types that don't have a modification time?
@@ -2073,6 +2076,8 @@ class DataTracker:
             created = datetime.now(tz = dateutil.tz.gettz("America/Los_Angeles"))
             updated = created
             total_count = self._cache_fetch_object_count(obj_type_uri)
+            if total_count is None:
+                total_count = 0
             meta = CacheMetadata(created, updated, True, total_count, [])
             self._cache_save_metadata(obj_type_uri, meta)
             self.log.info(F"_cache_create {meta_key}")
@@ -2114,7 +2119,7 @@ class DataTracker:
 
     def _cache_get_object(self, obj_uri: URI) -> Optional[Dict[str, Any]]:
         self.db_calls += 1
-        return self.db[_cache_uri_format(_parent_uri(obj_uri))].find_one({"resource_uri": obj_uri.uri})
+        return self.db[_cache_uri_format(_parent_uri(obj_uri))].find_one({"resource_uri": obj_uri.uri}) # type: ignore
 
 
     def _cache_put_object(self, obj_uri: URI, obj_json: Dict[str, Any]) -> None:
@@ -2239,7 +2244,8 @@ class DataTracker:
         r = self.session.get(req_url, headers = req_headers, verify = True, stream = False)
         if r.status_code == 200:
             meta = r.json()['meta']
-            return meta['total_count']
+            total_count = meta['total_count'] # type: int
+            return total_count
         return None
 
 
