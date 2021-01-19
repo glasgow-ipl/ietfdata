@@ -2053,6 +2053,7 @@ class DataTracker:
     def _cache_load_metadata(self, obj_type_uri: URI) -> CacheMetadata:
         meta_json = self.db.cache_info.find_one({"meta_key" : _cache_uri_format(obj_type_uri)})
         self.db_calls += 1
+        assert isinstance(meta_json, dict)
         return self.pavlova.from_mapping(meta_json, CacheMetadata)
 
 
@@ -2119,7 +2120,7 @@ class DataTracker:
 
     def _cache_get_object(self, obj_uri: URI) -> Optional[Dict[str, Any]]:
         self.db_calls += 1
-        return self.db[_cache_uri_format(_parent_uri(obj_uri))].find_one({"resource_uri": obj_uri.uri}) # type: ignore
+        return self.db[_cache_uri_format(_parent_uri(obj_uri))].find_one({"resource_uri": obj_uri.uri})
 
 
     def _cache_put_object(self, obj_uri: URI, obj_json: Dict[str, Any]) -> None:
