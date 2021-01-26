@@ -80,7 +80,7 @@ class TestDatatracker(unittest.TestCase):
     def test_email_history_for_address(self) -> None:
         h  = list(self.dt.email_history_for_address("csp@isi.edu"))
         self.assertEqual(len(h), 2)
-        self.assertEqual(h[0].resource_uri, EmailURI("/api/v1/person/historicalemail/71987/"))
+        self.assertEqual(h[0].resource_uri, HistoricalEmailURI("/api/v1/person/historicalemail/71987/"))
         self.assertEqual(h[0].address,      "csp@isi.edu")
         self.assertEqual(h[0].person,       PersonURI("/api/v1/person/person/20209/"))
         self.assertEqual(h[0].origin,       "author: draft-ietf-avt-rtptest")
@@ -93,7 +93,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(h[0].history_user, "")
         self.assertEqual(h[0].history_change_reason, None)
 
-        self.assertEqual(h[1].resource_uri, EmailURI("/api/v1/person/historicalemail/2090/"))
+        self.assertEqual(h[1].resource_uri, HistoricalEmailURI("/api/v1/person/historicalemail/2090/"))
         self.assertEqual(h[1].address,      "csp@isi.edu")
         self.assertEqual(h[1].person,       PersonURI("/api/v1/person/person/20209/"))
         self.assertEqual(h[1].origin,       "author: draft-ietf-avt-rtptest")
@@ -173,7 +173,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(len(h), 3)
 
             self.assertEqual(h[0].id,              20209)
-            self.assertEqual(h[0].resource_uri,    PersonURI("/api/v1/person/historicalperson/11731/"))
+            self.assertEqual(h[0].resource_uri,    HistoricalPersonURI("/api/v1/person/historicalperson/11731/"))
             self.assertEqual(h[0].name,            "Colin Perkins")
             self.assertEqual(h[0].name_from_draft, "Colin Perkins")
             self.assertEqual(h[0].ascii,           "Colin Perkins")
@@ -191,7 +191,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(h[0].history_date,    datetime.fromisoformat("2019-09-29T14:39:48.278674"))
 
             self.assertEqual(h[1].id,              20209)
-            self.assertEqual(h[1].resource_uri,    PersonURI("/api/v1/person/historicalperson/10878/"))
+            self.assertEqual(h[1].resource_uri,    HistoricalPersonURI("/api/v1/person/historicalperson/10878/"))
             self.assertEqual(h[1].name,            "Colin Perkins")
             self.assertEqual(h[1].name_from_draft, "Colin Perkins")
             self.assertEqual(h[1].ascii,           "Colin Perkins")
@@ -209,7 +209,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(h[1].history_date,    datetime.fromisoformat("2019-03-29T02:44:28.426049"))
 
             self.assertEqual(h[2].id,              20209)
-            self.assertEqual(h[2].resource_uri,    PersonURI("/api/v1/person/historicalperson/127/"))
+            self.assertEqual(h[2].resource_uri,    HistoricalPersonURI("/api/v1/person/historicalperson/127/"))
             self.assertEqual(h[2].name,            "Colin Perkins")
             self.assertEqual(h[2].name_from_draft, "Colin Perkins")
             self.assertEqual(h[2].ascii,           "Colin Perkins")

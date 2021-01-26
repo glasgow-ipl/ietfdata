@@ -2389,7 +2389,7 @@ class DataTracker:
 
 
     def person_history(self, person: Person) -> Iterator[HistoricalPerson]:
-        url = PersonURI("/api/v1/person/historicalperson/")
+        url = HistoricalPersonURI("/api/v1/person/historicalperson/")
         url.params["id"] = person.id
         return self._retrieve_multi(url, HistoricalPerson)
 
@@ -2443,13 +2443,13 @@ class DataTracker:
 
 
     def email_history_for_address(self, email_addr: str) -> Iterator[HistoricalEmail]:
-        uri = EmailURI("/api/v1/person/historicalemail/")
+        uri = HistoricalEmailURI("/api/v1/person/historicalemail/")
         uri.params["address"] = email_addr
         return self._retrieve_multi(uri, HistoricalEmail)
 
 
     def email_history_for_person(self, person: Person) -> Iterator[HistoricalEmail]:
-        uri = EmailURI("/api/v1/person/historicalemail/")
+        uri = HistoricalEmailURI("/api/v1/person/historicalemail/")
         uri.params["person"] = person.id
         return self._retrieve_multi(uri, HistoricalEmail)
 
