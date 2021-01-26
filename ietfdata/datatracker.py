@@ -53,6 +53,7 @@ from pathlib     import Path
 from pavlova     import Pavlova
 from pavlova.parsers import GenericParser
 from pymongo         import MongoClient, ASCENDING, TEXT
+from pymongo.database import Database
 
 import ast
 import dateutil.tz
@@ -74,7 +75,7 @@ import urllib.parse
 
 @dataclass(frozen=True)
 class URI:
-    uri    : str
+    uri    : Optional[str]
     root   : str = ""
     params : Dict[str, Any] = field(default_factory=dict)
 
@@ -82,10 +83,10 @@ class URI:
         if len(self.params) > 0:
             return F"{self.uri}?{urllib.parse.urlencode(self.params)}"
         else:
-            return self.uri
+            return str(self.uri)
 
     def __post_init__(self) -> None:
-        assert self.uri.startswith(self.root)
+        assert self.uri is None or self.uri.startswith(self.root)
 
 
 @dataclass(frozen=True)
@@ -1839,7 +1840,7 @@ class SendQueueEntry(Resource):
 # A class to represent the datatracker:
 
 def _parent_uri(uri: URI) -> URI:
-    assert uri.uri.startswith("/api/v1/")
+    assert uri.uri is not None and uri.uri.startswith("/api/v1/")
     sep0 = 8
     sep1 = uri.uri[sep0:].find("/") + sep0 + 1
     sep2 = uri.uri[sep1:].find("/") + sep1 + 1
@@ -1847,6 +1848,7 @@ def _parent_uri(uri: URI) -> URI:
 
 
 def _cache_uri_format(uri: URI) -> str:
+    assert uri.uri is not None
     return uri.uri.strip('/').replace("/", "_")
 
 
@@ -1901,17 +1903,19 @@ class DataTracker:
     """
     A class for interacting with the IETF DataTracker.
     """
-    def __init__(self, cache_dir: Path):
+    def __init__(self, use_cache: bool = False):
         """
         Parameters:
             cache_dir      -- If set, use this directory as a cache for Datatracker objects
         """
-        self.db       = MongoClient().ietfdata            #TODO: allow use of non-default server/port
-        self.session  = requests.Session()
-        self.ua       = "glasgow-ietfdata/0.4.0"          # Update when making a new relaase
-        self.base_url = "https://datatracker.ietf.org"
-        self.http_req = 0
-        self.cache_dir = cache_dir
+        if use_cache:
+            self.db    = MongoClient().ietfdata # type: Optional[Database]
+        else:
+            self.db    = None
+        self.session   = requests.Session()
+        self.ua        = "glasgow-ietfdata/0.4.0"          # Update when making a new relaase
+        self.base_url  = "https://datatracker.ietf.org"
+        self.http_req  = 0
         self.cache_req = 0
         self.cache_hit = 0
         self.get_count = 0
@@ -2018,6 +2022,8 @@ class DataTracker:
     # Private methods to manage the local cache:
 
     def _cache_update(self, obj_type_uri: URI, obj_type: Type[T]) -> None:
+        if self.db is None:
+            return None
         self._cache_create(obj_type_uri)
         now  = datetime.now(tz = dateutil.tz.gettz("America/Los_Angeles"))
         meta = self._cache_load_metadata(obj_type_uri)
@@ -2025,7 +2031,7 @@ class DataTracker:
         if meta.partial and (len(meta.queries)/(meta.total_count/100)) > 0.5:
             # Switch to caching all objects of this type
             self.log.info(F"switch to full cache {obj_type_uri.uri}")
-            self._cache_put_objects(obj_type_uri, obj_type_uri)
+            self._cache_put_objects(obj_type_uri, obj_type_uri, obj_type)
             meta = self._cache_load_metadata(obj_type_uri)
             meta.partial = False
             meta.queries = []
@@ -2038,7 +2044,7 @@ class DataTracker:
                 update_uri.params["time__gte"] = meta.updated.strftime("%Y-%m-%dT%H:%M:%S.%f")  # Avoid isoformat(), since don't want TZ offset
                 update_uri.params["time__lt"]  = now.strftime("%Y-%m-%dT%H:%M:%S.%f")
                 self.log.info(F"cache outdated {str(update_uri)}")
-                self._cache_put_objects(update_uri, obj_type_uri)
+                self._cache_put_objects(update_uri, obj_type_uri, obj_type)
                 meta = self._cache_load_metadata(obj_type_uri)
                 meta.updated = now
                 obj_count = self._cache_fetch_object_count(obj_type_uri)
@@ -2051,6 +2057,7 @@ class DataTracker:
 
 
     def _cache_load_metadata(self, obj_type_uri: URI) -> CacheMetadata:
+        assert self.db is not None
         meta_json = self.db.cache_info.find_one({"meta_key" : _cache_uri_format(obj_type_uri)})
         self.db_calls += 1
         assert isinstance(meta_json, dict)
@@ -2058,6 +2065,7 @@ class DataTracker:
 
 
     def _cache_save_metadata(self, obj_type_uri: URI, meta: CacheMetadata) -> None:
+        assert self.db is not None
         meta_dict : Dict[str, Any] = {}
         meta_dict["meta_key"]    = _cache_uri_format(obj_type_uri)
         meta_dict["created"]     = meta.created.isoformat()
@@ -2071,6 +2079,8 @@ class DataTracker:
 
 
     def _cache_create(self, obj_type_uri: URI) -> None:
+        if self.db is None:
+            return
         meta_key  = _cache_uri_format(obj_type_uri)
         self.db_calls += 1
         if not self.db.cache_info.find_one({"meta_key": meta_key}):
@@ -2090,7 +2100,9 @@ class DataTracker:
 
 
     def _cache_record_query(self, obj_uri: URI, obj_type_uri: URI) -> None:
-        assert "?" not in obj_uri.uri
+        if self.db is None:
+            return
+        assert obj_uri.uri is not None and "?" not in obj_uri.uri
         meta  = self._cache_load_metadata(obj_type_uri)
         if meta.partial:
             cache_uri = URI(obj_uri.uri)
@@ -2108,6 +2120,8 @@ class DataTracker:
 
 
     def _cache_has_object(self, obj_uri: URI) -> bool:
+        if self.db is None:
+            return False
         self.db_calls += 1
         if self.db[_cache_uri_format(_parent_uri(obj_uri))].find_one({"resource_uri": obj_uri.uri}):
             return True       # Object is in the local cache
@@ -2119,11 +2133,15 @@ class DataTracker:
 
 
     def _cache_get_object(self, obj_uri: URI) -> Optional[Dict[str, Any]]:
+        assert self.db is not None
         self.db_calls += 1
         return self.db[_cache_uri_format(_parent_uri(obj_uri))].find_one({"resource_uri": obj_uri.uri})
 
 
     def _cache_put_object(self, obj_uri: URI, obj_json: Dict[str, Any]) -> None:
+        if self.db is None:
+            return
+        assert obj_uri.uri is not None
         assert obj_uri.uri.startswith("/")
         assert obj_uri.uri.endswith("/")
         self._cache_create(_parent_uri(obj_uri))
@@ -2132,18 +2150,23 @@ class DataTracker:
 
 
     def _cache_has_all_objects(self, obj_type_uri: URI):
+        if self.db is None:
+            return False
         meta = self._cache_load_metadata(obj_type_uri)
         return not meta.partial
 
 
     def _cache_has_objects(self, obj_uri: URI, obj_type_uri: URI) -> bool:
+        if self.db is None:
+            return False
         meta = self._cache_load_metadata(obj_type_uri)
         return str(obj_uri) in meta.queries
 
 
     def _cache_get_objects(self, obj_uri: URI, obj_type_uri: URI, obj_type: Type[T]) -> Iterator[T]:
+        if self.db is None:
+            return
         self.db_calls += 1
-        #self.log.info(F"_cache_get_objects {_cache_uri_format(obj_type_uri)} {_translate_query(obj_uri, obj_type)}")
         if len(obj_uri.params) > 1:
             self.db[_cache_uri_format(obj_type_uri)].create_index([(field, ASCENDING) for field in list(_translate_query(obj_uri, obj_type).keys())])
         obj_jsons = self.db[_cache_uri_format(obj_type_uri)].find(_translate_query(obj_uri, obj_type))
@@ -2152,13 +2175,14 @@ class DataTracker:
             yield obj
 
 
-    def _cache_put_objects(self, obj_uri: URI, obj_type_uri: URI) -> None:
+    def _cache_put_objects(self, obj_uri: URI, obj_type_uri: URI, obj_type: Type[T]) -> Iterator[T]:
         if len(obj_uri.params) > 0:
             obj_uri = type(obj_type_uri)(F"{obj_uri.uri}?limit=100&{urllib.parse.urlencode(obj_uri.params)}")
         else:
             obj_uri = type(obj_type_uri)(F"{obj_uri.uri}?limit=100")
 
         total = None
+        fetched_objs = [] # type: List[Dict[Any, Any]]
         while obj_uri.uri is not None:
             self._rate_limit()
             retry = True
@@ -2174,8 +2198,7 @@ class DataTracker:
                         meta = r.json()['meta']
                         objs = r.json()['objects']
                         obj_uri  = URI(meta['next'])
-                        for obj_json in objs:
-                            self._cache_put_object(type(obj_type_uri)(obj_json["resource_uri"]), obj_json)
+                        fetched_objs = objs + fetched_objs
                         total = meta["total_count"]
                     elif r.status_code == 500:
                         if retry_time > 60:
@@ -2211,7 +2234,7 @@ class DataTracker:
                             r = self.session.get(str(obj_uri), headers = {"User-Agent": self.ua}, verify = True, stream = False)
                             if r.status_code == 200:
                                 new_json = r.json() # type: Dict[str, Any]
-                                self._cache_put_object(type(obj_type_uri)(split.path), new_json)
+                                fetched_objs = objs + fetched_objs
                                 failed = False
                             elif r.status_code == 400:
                                 self.log.info(F"  {r.status_code} {obj_uri}")
@@ -2237,10 +2260,19 @@ class DataTracker:
                     time.sleep(retry_time)
                     retry_time *= 2
                     retry = True
+        if self.db is not None:
+            for obj_json in fetched_objs:
+                self._cache_put_object(type(obj_type_uri)(obj_json["resource_uri"]), obj_json)
+        for obj_json in fetched_objs:
+            obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
+            yield obj
 
 
     def _cache_fetch_object_count(self, obj_type_uri: URI) -> Optional[int]:
-        req_url     = self.base_url + URI(F"{obj_type_uri.uri}?limit=1").uri
+        assert obj_type_uri.uri is not None
+        limited_uri = URI(F"{obj_type_uri.uri}?limit=1")
+        assert limited_uri.uri is not None
+        req_url     = self.base_url + limited_uri.uri
         req_headers = {'User-Agent': self.ua}
         r = self.session.get(req_url, headers = req_headers, verify = True, stream = False)
         if r.status_code == 200:
@@ -2267,6 +2299,7 @@ class DataTracker:
         if not self._cache_has_object(obj_uri):
             self._rate_limit()
             self.get_count += 1
+            assert obj_uri.uri is not None
             req_url     = self.base_url + obj_uri.uri
             req_headers = {'User-Agent': self.ua}
             req_params  = obj_uri.params
@@ -2314,9 +2347,9 @@ class DataTracker:
             for obj in self._cache_get_objects(obj_uri, obj_type_uri, obj_type):
                 yield obj # Type: T
         else:
-            self._cache_put_objects(cache_uri, obj_type_uri)
+            objs = self._cache_put_objects(cache_uri, obj_type_uri, obj_type)
             self._cache_record_query(cache_uri, obj_type_uri)
-            for obj in self._cache_get_objects(obj_uri, obj_type_uri, obj_type):
+            for obj in objs:
                 yield obj # Type: T
 
 

@@ -47,7 +47,7 @@ class TestDatatracker(unittest.TestCase):
 
     @classmethod
     def setUpClass(self) -> None:
-        self.dt = DataTracker(cache_dir=Path("cache"))
+        self.dt = DataTracker()
 
     def test_email(self) -> None:
         e  = self.dt.email(EmailURI("/api/v1/person/email/csp@csperkins.org/"))
