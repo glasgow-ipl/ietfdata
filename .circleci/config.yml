@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  python: circleci/python@0.2.1
+  python: circleci/python@1.3.2
 
 jobs:
   build-and-test:
@@ -13,7 +13,6 @@ jobs:
           environment:
             MYPYPATH: stubs
           command: |
-            sudo pip install pipenv
             pipenv install --dev
             pipenv run make test
             pipenv run coverage run --source ietfdata tests/test_rfcindex.py
