@@ -48,7 +48,7 @@ class HeaderDataMailHelper(MailArchiveHelper):
             pass
         timestamp = None
         try:
-            msg_date = email.utils.parsedate(msg["Date"])
+            msg_date = email.utils.parsedate(msg["Date"]) # type: Optional[Tuple[int, int, int, int, int, int, int, int, int]]
             if msg_date is not None:
                 timestamp = datetime.fromtimestamp(time.mktime(msg_date))
         except Exception as e:
