@@ -5,7 +5,8 @@ orbs:
 
 jobs:
   build-and-test:
-    executor: python/default
+    docker:
+      - image: cimg/python:3.8x
     steps:
       - checkout
       - run:
