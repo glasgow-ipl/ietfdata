@@ -13,7 +13,6 @@ coverage = "*"
 pymongo-stubs = "*"
 
 [packages]
-redis = "*"
 requests = "*"
 pavlova = "*"
 imapclient = "*"
@@ -21,4 +20,4 @@ python-dateutil = "*"
 pymongo = "*"
 
 [requires]
-python_version = "3.7"
+python_version = "3.8"
