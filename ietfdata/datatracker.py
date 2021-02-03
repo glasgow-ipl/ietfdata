@@ -2366,7 +2366,7 @@ class DataTracker:
             if n != "time__gte" and n != "time__lt":
                 cache_uri.params[n] = v
 
-        self._cache_create(obj_type_uri)
+        self._cache_update(_parent_uri(obj_uri), obj_type)
         self.cache_req += 1
 
         obj_jsons = self._retrieve_jsons(obj_uri, cache_uri, param_objs, obj_type_uri, obj_type)
