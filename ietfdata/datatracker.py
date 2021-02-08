@@ -1875,6 +1875,8 @@ def _translate_query(uri: URI, param_objs: Dict[str, Optional[Resource]], obj_ty
             param_type = obj_type.__dict__["__dataclass_fields__"][param].type
             if "__origin__" in param_type.__dict__ and param_type.__origin__ is Union:
                 param_type = param_type.__args__[0]
+            if not isinstance(param_type, type) and param in param_objs:
+                param_type = type(param_objs[param])
             if issubclass(param_type, URI):
                 translated_params[param] = f"{param_type.root}{value}/"
                 if param in param_objs:
