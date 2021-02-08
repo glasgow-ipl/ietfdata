@@ -3195,6 +3195,10 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(subs[0].email,        "colin.perkins@glasgow.ac.uk")
         self.assertEqual(subs[0].lists[0],     MailingListURI("/api/v1/mailinglists/list/461/"))
 
+    def test_mailing_list_subscriptions_by_list(self) -> None:
+        subs = list(self.dt.mailing_list_subscriptions(mailing_list=self.dt.mailing_list(MailingListURI("/api/v1/mailinglists/list/1/"))))
+        self.assertIsNot(subs, None)
+
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to statistics:
 
