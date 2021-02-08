@@ -1459,9 +1459,9 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(group_roles[3].id, 8465)   # IRTF Open Meeting chair
         self.assertEqual(group_roles[4].id, 8466)   # IRTF chair
         self.assertEqual(group_roles[5].id, 9355)   # RMCAT chair
-        self.assertEqual(group_roles[6].id, 10119)  # IRTF ANRW chair
         self.assertEqual(group_roles[7].id, 10200)  # IAB EDM programme member
         self.assertEqual(group_roles[8].id, 10204)  # TSV ART reviewer
+        self.assertEqual(group_roles[8].id, 10209)  # IRTF ANRW chair
 
 
     def test_group_roles_group(self) -> None:
@@ -1486,9 +1486,9 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(group_roles[3].id, 8465)   # IRTF Open Meeting chair
         self.assertEqual(group_roles[4].id, 8466)   # IRTF chair
         self.assertEqual(group_roles[5].id, 9355)   # RMCAT chair
-        self.assertEqual(group_roles[6].id, 10119)  # IRTF ANRW chair
         self.assertEqual(group_roles[7].id, 10200)  # IAB EDM programme member
         self.assertEqual(group_roles[8].id, 10204)  # TSV ART reviewer
+        self.assertEqual(group_roles[8].id, 10209)  # IRTF ANRW chair
 
 
     def test_group_milestone_history(self) -> None:
@@ -1613,7 +1613,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_person(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(person=self.dt.person(PersonURI("/api/v1/person/person/20209/"))))
-        self.assertEqual(len(group_role_histories), 33)
+        self.assertEqual(len(group_role_histories), 34)
 
 
     def test_group_state_change_event(self) -> None:
