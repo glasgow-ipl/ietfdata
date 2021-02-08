@@ -1954,7 +1954,10 @@ class DataTracker:
         # Configure logging
         logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
         self.log      = logging.getLogger("ietfdata")
-        self.log.info(self.ua)
+        if self.db is not None:
+            self.log.info(f"{self.ua}-caching")
+        else:
+            self.log.info(self.ua)
 
         # Register generic parsers for each URI type:
         self.pavlova = Pavlova()
