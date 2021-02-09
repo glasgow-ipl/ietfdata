@@ -2085,8 +2085,16 @@ class DataTracker:
                     meta.total_count = obj_count
                 self._cache_save_metadata(obj_type_uri, meta)
             else:
-                # FIXME: how to handle object types that don't have a modification time?
-                pass
+                update_uri = URI(obj_type_uri.uri)
+                self.log.info(F"cache outdated {str(obj_type_uri)}")
+                self._cache_delete(obj_type_uri)
+                self._cache_create(obj_type_uri)
+
+    def _cache_delete(self, obj_type_uri: URI) -> None:
+        assert self.db is not None
+        self.db.cache_info.delete_one({"meta_key": _cache_uri_format(obj_type_uri)})
+        self.db[_cache_uri_format(obj_type_uri)].drop()
+        self.log.info(f"deleted {str(obj_type_uri)} cache")
 
 
     def _cache_load_metadata(self, obj_type_uri: URI) -> CacheMetadata:
