@@ -1923,7 +1923,6 @@ class DataTracker:
             cache_dir      -- If set, use this directory as a cache for Datatracker objects
         """
         if os.environ.get('IETFDATA_CACHE_HOST') is not None:
-            print("cache enabled")
             use_cache = True
             cache_host = os.environ.get('IETFDATA_CACHE_HOST')
             cache_port = os.environ.get('IETFDATA_CACHE_PORT', 27017)
@@ -1959,7 +1958,7 @@ class DataTracker:
         logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
         self.log      = logging.getLogger("ietfdata")
         if self.db is not None:
-            self.log.info(f"{self.ua}-caching")
+            self.log.info(f"{self.ua} (cache enabled)")
         else:
             self.log.info(self.ua)
 
