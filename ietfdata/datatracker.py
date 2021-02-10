@@ -1948,6 +1948,7 @@ class DataTracker:
         self.http_req  = 0
         self.cache_req = 0
         self.cache_hit = 0
+        self.cache_ver = "0.1.0"
         self.get_count = 0
         self.db_calls  = 0
 
@@ -2038,6 +2039,9 @@ class DataTracker:
         self._cache_indexes[MeetingRegistrationURI]         = CacheIndex(MeetingRegistration, ["affiliation", "attended", "country_code", "email", "first_name", "last_name", "meeting", "person", "reg_type", "ticket_type"], ["id", "resource_uri"], ["id"], False)
         self._cache_indexes[SubmissionURI]                  = CacheIndex(Submission, ["time"], ["id", "resource_uri"], ["order", "id"], False)
         self._cache_indexes[SubmissionEventURI]             = CacheIndex(SubmissionEvent, ["time", "by", "submission"], ["id", "resource_uri"], ["order", "id"], False)
+
+        # check Datatracker and cache versions
+        self._cache_check_versions()
 
 
     def __del__(self):
@@ -2228,6 +2232,32 @@ class DataTracker:
             total_count = meta['total_count'] # type: int
             return total_count
         return None
+
+
+    def _cache_check_versions(self) -> None:
+        if self.db is None:
+            return
+        cache_version_metadata = self.db.cache_info.find_one({"meta_key": "_cache_versions"})
+        if not cache_version_metadata:
+            dt_version = None
+            cache_version = self.cache_ver
+        else:
+            dt_version = cache_version_metadata["dt_version"]
+            cache_version = cache_version_metadata["cache_version"]
+        dt_version_url = "https://datatracker.ietf.org/api/version"
+        req_headers = {'User-Agent': self.ua}
+        r = self.session.get(dt_version_url, headers = req_headers, verify = True, stream = False)
+        if r.status_code == 200:
+            url_obj = r.json()
+            self.log.info(f"Datatracker version: {url_obj['version']}")
+            if dt_version is None:
+                dt_version = url_obj["version"]
+            elif dt_version != url_obj["version"]:
+                self.log.info(f"Datatracker version does not match cache ({dt_version})")
+        else:
+            self.log.info(f"could not fetch Datatracker version: {r.status_code} {dt_version_url}")
+            return
+        self.db.cache_info.replace_one({"meta_key" : "_cache_versions"}, {"meta_key": "_cache_versions", "dt_version": dt_version, "cache_version": cache_version}, upsert=True)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
