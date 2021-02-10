@@ -2063,7 +2063,7 @@ class DataTracker:
         # Should we switch from a partial cache to full cache for this object type?
         if meta.partial and (len(meta.queries)/(meta.total_count/100)) > 0.5:
             # Switch to caching all objects of this type
-            self.log.info(F"switch to full cache {obj_type_uri.uri}")
+            self.log.info(F"switch to full cache {obj_type_uri.uri} ({meta.total_count} objects)")
             self._retrieve_jsons(obj_type_uri, obj_type_uri, {}, obj_type_uri, obj_type)
             meta = self._cache_load_metadata(obj_type_uri)
             meta.partial = False
