@@ -554,6 +554,7 @@ class RelatedDocument(Resource):
     target          : DocumentAliasURI
 
 
+@dataclass(frozen=True)
 class DocumentAuthorURI(URI):
     root : str = "/api/v1/doc/documentauthor/"
 
@@ -1705,6 +1706,7 @@ class HistoricalReviewAssignment(Resource):
     state                 : ReviewAssignmentStateURI
 
 
+@dataclass(frozen=True)
 class ReviewSecretarySettingsURI(URI):
     root : str = "/api/v1/review/reviewsecretarysettings/"
 
@@ -1949,7 +1951,7 @@ class DataTracker:
         self.http_req  = 0
         self.cache_req = 0
         self.cache_hit = 0
-        self.cache_ver = "0.1.0"
+        self.cache_ver = "0.1.0" # Update when changing cache architecture
         self.get_count = 0
         self.db_calls  = 0
 
@@ -2245,6 +2247,8 @@ class DataTracker:
         else:
             dt_version = cache_version_metadata["dt_version"]
             cache_version = cache_version_metadata["cache_version"]
+
+        # check Datatracker version
         dt_version_url = "https://datatracker.ietf.org/api/version"
         req_headers = {'User-Agent': self.ua}
         r = self.session.get(dt_version_url, headers = req_headers, verify = True, stream = False)
@@ -2258,11 +2262,19 @@ class DataTracker:
                     if "time" not in self._cache_indexes[cache_index_uri].fields:
                         if self.db.cache_info.find_one({"meta_key": _cache_uri_format(cache_obj_uri)}):
                             self._cache_delete(cache_obj_uri)
-                            self._cache_create(cache_obj_uri)
                 dt_version = url_obj["version"]
         else:
             self.log.info(f"could not fetch Datatracker version: {r.status_code} {dt_version_url}")
             return
+
+        # check cache version
+        if cache_version != self.cache_ver:
+            self.log.info(f"Library cache version ({self.cache_ver}) does not match cache ({cache_version})")
+            for cache_index_uri in self._cache_indexes:
+                cache_obj_uri = URI(uri=cache_index_uri(uri=None).root)
+                self._cache_delete(cache_obj_uri)
+            cache_version = self.cache_ver
+
         self.db.cache_info.replace_one({"meta_key" : "_cache_versions"}, {"meta_key": "_cache_versions", "dt_version": dt_version, "cache_version": cache_version}, upsert=True)
 
 
