@@ -2071,24 +2071,24 @@ class DataTracker:
             meta.updated = now
             self._cache_save_metadata(obj_type_uri, meta)
         # Do we need to update the cache?
-        if now - meta.updated > timedelta(hours=1):
-            if "time__gte" in obj_type_uri.params:
-                update_uri = URI(obj_type_uri.uri)
-                update_uri.params["time__gte"] = meta.updated.strftime("%Y-%m-%dT%H:%M:%S.%f")  # Avoid isoformat(), since don't want TZ offset
-                update_uri.params["time__lt"]  = now.strftime("%Y-%m-%dT%H:%M:%S.%f")
-                self.log.info(F"cache outdated {str(update_uri)}")
-                self._retrieve_jsons(update_uri, update_uri, {}, obj_type_uri, obj_type)
-                meta = self._cache_load_metadata(obj_type_uri)
-                meta.updated = now
-                obj_count = self._cache_fetch_object_count(obj_type_uri)
-                if obj_count is not None:
-                    meta.total_count = obj_count
-                self._cache_save_metadata(obj_type_uri, meta)
-            else:
-                update_uri = URI(obj_type_uri.uri)
-                self.log.info(F"cache outdated {str(obj_type_uri)}")
-                self._cache_delete(obj_type_uri)
-                self._cache_create(obj_type_uri)
+        if now - meta.updated > timedelta(hours=1) and "time__gte" in obj_type_uri.params:
+            update_uri = URI(obj_type_uri.uri)
+            update_uri.params["time__gte"] = meta.updated.strftime("%Y-%m-%dT%H:%M:%S.%f")  # Avoid isoformat(), since don't want TZ offset
+            update_uri.params["time__lt"]  = now.strftime("%Y-%m-%dT%H:%M:%S.%f")
+            self.log.info(F"cache outdated {str(update_uri)}")
+            self._retrieve_jsons(update_uri, update_uri, {}, obj_type_uri, obj_type)
+            meta = self._cache_load_metadata(obj_type_uri)
+            meta.updated = now
+            obj_count = self._cache_fetch_object_count(obj_type_uri)
+            if obj_count is not None:
+                meta.total_count = obj_count
+            self._cache_save_metadata(obj_type_uri, meta)
+        elif now - meta.updated > timedelta(hours=24):
+            update_uri = URI(obj_type_uri.uri)
+            self.log.info(F"cache outdated {str(obj_type_uri)}")
+            self._cache_delete(obj_type_uri)
+            self._cache_create(obj_type_uri)
+
 
     def _cache_delete(self, obj_type_uri: URI) -> None:
         assert self.db is not None
