@@ -1920,10 +1920,11 @@ class DataTracker:
         Parameters:
             cache_dir      -- If set, use this directory as a cache for Datatracker objects
         """
-        if os.environ.get('IETFDATA_CACHE') is not None:
+        if os.environ.get('IETFDATA_CACHE_HOST') is not None:
+            print("cache enabled")
             use_cache = True
             cache_host = os.environ.get('IETFDATA_CACHE_HOST')
-            cache_port = os.environ.get('IETFDATA_CACHE_PORT')
+            cache_port = os.environ.get('IETFDATA_CACHE_PORT', 27017)
             cache_username = os.environ.get('IETFDATA_CACHE_USER')
             cache_password = os.environ.get('IETFDATA_CACHE_PASSWORD')
             if cache_host is not None:
