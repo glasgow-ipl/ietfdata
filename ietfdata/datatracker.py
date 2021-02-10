@@ -2251,10 +2251,15 @@ class DataTracker:
         if r.status_code == 200:
             url_obj = r.json()
             self.log.info(f"Datatracker version: {url_obj['version']}")
-            if dt_version is None:
-                dt_version = url_obj["version"]
-            elif dt_version != url_obj["version"]:
+            if dt_version != url_obj["version"]:
                 self.log.info(f"Datatracker version does not match cache ({dt_version})")
+                for cache_index_uri in self._cache_indexes:
+                    cache_obj_uri = URI(uri=cache_index_uri(uri=None).root)
+                    if "time" not in self._cache_indexes[cache_index_uri].fields:
+                        if self.db.cache_info.find_one({"meta_key": _cache_uri_format(cache_obj_uri)}):
+                            self._cache_delete(cache_obj_uri)
+                            self._cache_create(cache_obj_uri)
+                dt_version = url_obj["version"]
         else:
             self.log.info(f"could not fetch Datatracker version: {r.status_code} {dt_version_url}")
             return
