@@ -46,11 +46,14 @@
 
 from datetime    import datetime, timedelta, timezone
 from enum        import Enum
-from typing      import List, Optional, Tuple, Dict, Iterator, Type, TypeVar, Any
+from inspect     import signature
+from typing      import List, Optional, Tuple, Dict, Iterator, Type, TypeVar, Any, Union, Generic
 from dataclasses import dataclass, field
 from pathlib     import Path
 from pavlova     import Pavlova
 from pavlova.parsers import GenericParser
+from pymongo         import MongoClient, ASCENDING, TEXT
+from pymongo.database import Database
 
 import ast
 import dateutil.tz
@@ -72,26 +75,28 @@ import urllib.parse
 
 @dataclass(frozen=True)
 class URI:
-    uri    : str
+    uri    : Optional[str]
+    root   : str = ""
     params : Dict[str, Any] = field(default_factory=dict)
 
     def __str__(self) -> str:
         if len(self.params) > 0:
             return F"{self.uri}?{urllib.parse.urlencode(self.params)}"
         else:
-            return self.uri
+            return str(self.uri)
+
+    def __post_init__(self) -> None:
+        assert self.uri is None or self.uri.startswith(self.root)
 
 
 @dataclass(frozen=True)
 class DocumentURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/doc/document/")
+    root : str = "/api/v1/doc/document/"
 
 
 @dataclass(frozen=True)
 class GroupURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/group/group/")
+    root : str = "/api/v1/group/group/"
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------
@@ -102,6 +107,7 @@ class Resource:
     resource_uri : URI
 
 T = TypeVar('T', bound=Resource)
+R = TypeVar('R', bound=Type[Resource])
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------
@@ -109,8 +115,12 @@ T = TypeVar('T', bound=Resource)
 
 @dataclass(frozen=True)
 class PersonURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/person/person/") or self.uri.startswith("/api/v1/person/historicalperson/")
+    root : str = "/api/v1/person/person/"
+
+
+@dataclass(frozen=True)
+class HistoricalPersonURI(URI):
+    root : str = "/api/v1/person/historicalperson/"
 
 
 @dataclass(frozen=True)
@@ -130,7 +140,19 @@ class Person(Resource):
 
 
 @dataclass(frozen=True)
-class HistoricalPerson(Person):
+class HistoricalPerson(Resource):
+    resource_uri          : HistoricalPersonURI
+    id                    : int
+    name                  : str
+    name_from_draft       : str
+    ascii                 : str
+    ascii_short           : Optional[str]
+    user                  : str
+    time                  : datetime
+    photo                 : str
+    photo_thumb           : str
+    biography             : str
+    consent               : bool
     history_change_reason : Optional[str]
     history_user          : Optional[str]
     history_id            : int
@@ -140,8 +162,7 @@ class HistoricalPerson(Person):
 
 @dataclass(frozen=True)
 class PersonAliasURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/person/alias/")
+    root : str = "/api/v1/person/alias/"
 
 
 @dataclass(frozen=True)
@@ -154,8 +175,7 @@ class PersonAlias(Resource):
 
 @dataclass(frozen=True)
 class PersonEventURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/person/personevent/")
+    root : str = "/api/v1/person/personevent/"
 
 
 @dataclass(frozen=True)
@@ -173,8 +193,12 @@ class PersonEvent(Resource):
 
 @dataclass(frozen=True)
 class EmailURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/person/email/") or self.uri.startswith("/api/v1/person/historicalemail/")
+    root : str = "/api/v1/person/email/"
+
+
+@dataclass(frozen=True)
+class HistoricalEmailURI(URI):
+    root : str = "/api/v1/person/historicalemail/"
 
 
 @dataclass(frozen=True)
@@ -189,7 +213,14 @@ class Email(Resource):
 
 
 @dataclass(frozen=True)
-class HistoricalEmail(Email):
+class HistoricalEmail(Resource):
+    resource_uri          : HistoricalEmailURI
+    person                : Optional[PersonURI]
+    address               : str # The email address
+    time                  : datetime
+    origin                : str
+    primary               : bool
+    active                : bool
     history_change_reason : Optional[str]
     history_user          : Optional[str]
     history_id            : int
@@ -202,8 +233,7 @@ class HistoricalEmail(Email):
 
 @dataclass(frozen=True)
 class DocumentTypeURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/doctypename/")
+    root : str = "/api/v1/name/doctypename/"
 
 
 @dataclass(frozen=True)
@@ -219,8 +249,7 @@ class DocumentType(Resource):
 
 @dataclass(frozen=True)
 class DocumentStateTypeURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/doc/statetype/")
+    root : str = "/api/v1/doc/statetype/"
 
 
 @dataclass(frozen=True)
@@ -232,8 +261,7 @@ class DocumentStateType(Resource):
 
 @dataclass(frozen=True)
 class DocumentStateURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/doc/state/")
+    root : str = "/api/v1/doc/state/"
 
 
 @dataclass(frozen=True)
@@ -251,8 +279,7 @@ class DocumentState(Resource):
 
 @dataclass(frozen=True)
 class StreamURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/streamname/")
+    root : str = "/api/v1/name/streamname/"
 
 
 @dataclass(frozen=True)
@@ -267,14 +294,12 @@ class Stream(Resource):
 
 @dataclass(frozen=True)
 class SubmissionURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/submit/submission/")
+    root : str = "/api/v1/submit/submission/"
 
 
 @dataclass(frozen=True)
 class SubmissionCheckURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/submit/submissioncheck/")
+    root : str = "/api/v1/submit/submissioncheck/"
 
 
 @dataclass(frozen=True)
@@ -319,8 +344,7 @@ class Submission(Resource):
 
 @dataclass(frozen=True)
 class SubmissionEventURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/submit/submissionevent/")
+    root : str = "/api/v1/submit/submissionevent/"
 
 
 @dataclass(frozen=True)
@@ -419,8 +443,7 @@ class Document(Resource):
 
 @dataclass(frozen=True)
 class DocumentAliasURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/doc/docalias/")
+    root : str = "/api/v1/doc/docalias/"
 
 
 @dataclass(frozen=True)
@@ -433,8 +456,7 @@ class DocumentAlias(Resource):
 
 @dataclass(frozen=True)
 class DocumentEventURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/doc/docevent/")
+    root : str = "/api/v1/doc/docevent/"
 
 
 @dataclass(frozen=True)
@@ -451,8 +473,7 @@ class DocumentEvent(Resource):
 
 @dataclass(frozen=True)
 class BallotPositionNameURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/ballotpositionname/")
+    root : str = "/api/v1/name/ballotpositionname/"
 
 
 @dataclass(frozen=True)
@@ -468,8 +489,7 @@ class BallotPositionName(Resource):
 
 @dataclass(frozen=True)
 class BallotTypeURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/doc/ballottype/")
+    root : str = "/api/v1/doc/ballottype/"
 
 
 @dataclass(frozen=True)
@@ -487,8 +507,7 @@ class BallotType(Resource):
 
 @dataclass(frozen=True)
 class BallotDocumentEventURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/doc/ballotdocevent/")
+    root : str = "/api/v1/doc/ballotdocevent/"
 
 
 @dataclass(frozen=True)
@@ -507,8 +526,7 @@ class BallotDocumentEvent(Resource):
 
 @dataclass(frozen=True)
 class RelationshipTypeURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/docrelationshipname/")
+    root : str = "/api/v1/name/docrelationshipname/"
 
 
 @dataclass(frozen=True)
@@ -524,8 +542,7 @@ class RelationshipType(Resource):
 
 @dataclass(frozen=True)
 class RelatedDocumentURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/doc/relateddocument/")
+    root : str = "/api/v1/doc/relateddocument/"
 
 
 @dataclass(frozen=True)
@@ -537,9 +554,9 @@ class RelatedDocument(Resource):
     target          : DocumentAliasURI
 
 
+@dataclass(frozen=True)
 class DocumentAuthorURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/doc/documentauthor/")
+    root : str = "/api/v1/doc/documentauthor/"
 
 
 @dataclass(frozen=True)
@@ -813,8 +830,7 @@ class DocumentAuthor(Resource):
 
 @dataclass(frozen=True)
 class GroupStateURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/groupstatename/")
+    root : str = "/api/v1/name/groupstatename/"
 
 
 @dataclass(frozen=True)
@@ -829,8 +845,7 @@ class GroupState(Resource):
 
 @dataclass(frozen=True)
 class GroupTypeNameURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/grouptypename/")
+    root : str = "/api/v1/name/grouptypename/"
 
 
 @dataclass(frozen=True)
@@ -870,8 +885,7 @@ class Group(Resource):
 
 @dataclass(frozen=True)
 class GroupHistoryURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/group/grouphistory/")
+    root : str = "/api/v1/group/grouphistory/"
 
 
 @dataclass(frozen=True)
@@ -898,8 +912,7 @@ class GroupHistory(Resource):
 
 @dataclass(frozen=True)
 class GroupEventURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/group/groupevent/")
+    root : str = "/api/v1/group/groupevent/"
 
 
 @dataclass(frozen=True)
@@ -915,8 +928,7 @@ class GroupEvent(Resource):
 
 @dataclass(frozen=True)
 class GroupUrlURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/group/groupurl/")
+    root : str = "/api/v1/group/groupurl/"
 
 
 @dataclass(frozen=True)
@@ -930,8 +942,7 @@ class GroupUrl(Resource):
 
 @dataclass(frozen=True)
 class GroupMilestoneStateNameURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/groupmilestonestatename/")
+    root : str = "/api/v1/name/groupmilestonestatename/"
 
 
 @dataclass(frozen=True)
@@ -946,8 +957,7 @@ class GroupMilestoneStateName(Resource):
 
 @dataclass(frozen=True)
 class GroupMilestoneURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/group/groupmilestone/")
+    root : str = "/api/v1/group/groupmilestone/"
 
 
 @dataclass(frozen=True)
@@ -966,8 +976,8 @@ class GroupMilestone(Resource):
 
 @dataclass(frozen=True)
 class RoleNameURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/rolename/")
+    root : str = "/api/v1/name/rolename/"
+
 
 @dataclass(frozen=True)
 class RoleName(Resource):
@@ -981,8 +991,7 @@ class RoleName(Resource):
 
 @dataclass(frozen=True)
 class GroupRoleURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/group/role/")
+    root : str = "/api/v1/group/role/"
 
 
 @dataclass(frozen=True)
@@ -996,8 +1005,7 @@ class GroupRole(Resource):
 
 @dataclass(frozen=True)
 class GroupMilestoneHistoryURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/group/groupmilestonehistory/")
+    root : str = "/api/v1/group/groupmilestonehistory/"
 
 
 @dataclass(frozen=True)
@@ -1017,8 +1025,7 @@ class GroupMilestoneHistory(Resource):
 
 @dataclass(frozen=True)
 class GroupMilestoneEventURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/group/milestonegroupevent/")
+    root : str = "/api/v1/group/milestonegroupevent/"
 
 
 @dataclass(frozen=True)
@@ -1036,8 +1043,7 @@ class GroupMilestoneEvent(Resource):
 
 @dataclass(frozen=True)
 class GroupRoleHistoryURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/group/rolehistory/")
+    root : str = "/api/v1/group/rolehistory/"
 
 
 @dataclass(frozen=True)
@@ -1052,8 +1058,7 @@ class GroupRoleHistory(Resource):
 
 @dataclass(frozen=True)
 class GroupStateChangeEventURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/group/changestategroupevent/")
+    root : str = "/api/v1/group/changestategroupevent/"
 
 
 @dataclass(frozen=True)
@@ -1080,14 +1085,12 @@ class MeetingStatus(Enum):
 
 @dataclass(frozen=True)
 class MeetingURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/meeting/meeting/")
+    root : str = "/api/v1/meeting/meeting/"
 
 
 @dataclass(frozen=True)
 class MeetingTypeURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/meetingtypename/")
+    root : str = "/api/v1/name/meetingtypename/"
 
 
 @dataclass(frozen=True)
@@ -1102,8 +1105,7 @@ class MeetingType(Resource):
 
 @dataclass(frozen=True)
 class ScheduleURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/meeting/schedule/")
+    root : str = "/api/v1/meeting/schedule/"
 
 
 @dataclass(frozen=True)
@@ -1171,14 +1173,12 @@ class Meeting(Resource):
 
 @dataclass(frozen=True)
 class SessionURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/meeting/session/")
+    root : str = "/api/v1/meeting/session/"
 
 
 @dataclass(frozen=True)
 class TimeslotURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/meeting/timeslot/")
+    root : str = "/api/v1/meeting/timeslot/"
 
 
 @dataclass(frozen=True)
@@ -1198,8 +1198,7 @@ class Timeslot(Resource):
 
 @dataclass(frozen=True)
 class SessionAssignmentURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/meeting/schedtimesessassignment/")
+    root : str = "/api/v1/meeting/schedtimesessassignment/"
 
 
 @dataclass(frozen=True)
@@ -1251,8 +1250,7 @@ class Session(Resource):
 
 @dataclass(frozen=True)
 class SessionStatusNameURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/sessionstatusname/")
+    root : str = "/api/v1/name/sessionstatusname/"
 
 
 @dataclass(frozen=True)
@@ -1267,8 +1265,7 @@ class SessionStatusName(Resource):
 
 @dataclass(frozen=True)
 class SchedulingEventURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/meeting/schedulingevent/")
+    root : str = "/api/v1/meeting/schedulingevent/"
 
 
 @dataclass(frozen=True)
@@ -1286,8 +1283,7 @@ class SchedulingEvent(Resource):
 
 @dataclass(frozen=True)
 class IPRDisclosureStateURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/iprdisclosurestatename/")
+    root : str = "/api/v1/name/iprdisclosurestatename/"
 
 
 @dataclass(frozen=True)
@@ -1302,8 +1298,7 @@ class IPRDisclosureState(Resource):
 
 @dataclass(frozen=True)
 class IPRDisclosureBaseURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/ipr/iprdisclosurebase/")
+    root : str = "/api/v1/ipr/iprdisclosurebase/"
 
 
 @dataclass(frozen=True)
@@ -1326,8 +1321,7 @@ class IPRDisclosureBase(Resource):
 
 @dataclass(frozen=True)
 class GenericIPRDisclosureURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/ipr/genericiprdisclosure/")
+    root : str = "/api/v1/ipr/genericiprdisclosure/"
 
 
 @dataclass(frozen=True)
@@ -1355,8 +1349,7 @@ class GenericIPRDisclosure(Resource):
 
 @dataclass(frozen=True)
 class IPRLicenseTypeURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/iprlicensetypename/")
+    root : str = "/api/v1/name/iprlicensetypename/"
 
 
 @dataclass(frozen=True)
@@ -1371,8 +1364,7 @@ class IPRLicenseType(Resource):
 
 @dataclass(frozen=True)
 class HolderIPRDisclosureURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/ipr/holderiprdisclosure/")
+    root : str = "/api/v1/ipr/holderiprdisclosure/"
 
 
 @dataclass(frozen=True)
@@ -1407,8 +1399,7 @@ class HolderIPRDisclosure(Resource):
 
 @dataclass(frozen=True)
 class ThirdPartyIPRDisclosureURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/ipr/thirdpartyiprdisclosure/")
+    root : str = "/api/v1/ipr/thirdpartyiprdisclosure/"
 
 
 @dataclass(frozen=True)
@@ -1440,8 +1431,7 @@ class ThirdPartyIPRDisclosure(Resource):
 
 @dataclass(frozen=True)
 class ReviewAssignmentStateURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/reviewassignmentstatename/")
+    root : str = "/api/v1/name/reviewassignmentstatename/"
 
 
 @dataclass(frozen=True)
@@ -1456,8 +1446,7 @@ class ReviewAssignmentState(Resource):
 
 @dataclass(frozen=True)
 class ReviewResultTypeURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/reviewresultname/")
+    root : str = "/api/v1/name/reviewresultname/"
 
 
 @dataclass(frozen=True)
@@ -1472,8 +1461,7 @@ class ReviewResultType(Resource):
 
 @dataclass(frozen=True)
 class ReviewTypeURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/reviewtypename/")
+    root : str = "/api/v1/name/reviewtypename/"
 
 
 @dataclass(frozen=True)
@@ -1488,8 +1476,7 @@ class ReviewType(Resource):
 
 @dataclass(frozen=True)
 class ReviewRequestStateURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/name/reviewrequeststatename/")
+    root : str = "/api/v1/name/reviewrequeststatename/"
 
 
 @dataclass(frozen=True)
@@ -1504,8 +1491,7 @@ class ReviewRequestState(Resource):
 
 @dataclass(frozen=True)
 class ReviewRequestURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/review/reviewrequest/")
+    root : str = "/api/v1/review/reviewrequest/"
 
 
 @dataclass(frozen=True)
@@ -1525,8 +1511,7 @@ class ReviewRequest(Resource):
 
 @dataclass(frozen=True)
 class ReviewAssignmentURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/review/reviewassignment/")
+    root : str = "/api/v1/review/reviewassignment/"
 
 
 @dataclass(frozen=True)
@@ -1546,8 +1531,7 @@ class ReviewAssignment(Resource):
 
 @dataclass(frozen=True)
 class ReviewWishURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/review/reviewwish/")
+    root : str = "/api/v1/review/reviewwish/"
 
 
 @dataclass(frozen=True)
@@ -1562,8 +1546,7 @@ class ReviewWish(Resource):
 
 @dataclass(frozen=True)
 class HistoricalUnavailablePeriodURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/review/historicalunavailableperiod/")
+    root : str = "/api/v1/review/historicalunavailableperiod/"
 
 
 @dataclass(frozen=True)
@@ -1584,8 +1567,7 @@ class HistoricalUnavailablePeriod(Resource):
 
 @dataclass(frozen=True)
 class HistoricalReviewRequestURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/review/historicalreviewrequest/")
+    root : str = "/api/v1/review/historicalreviewrequest/"
 
 
 @dataclass(frozen=True)
@@ -1609,8 +1591,7 @@ class HistoricalReviewRequest(Resource):
 
 @dataclass(frozen=True)
 class NextReviewerInTeamURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/review/nextreviewerinteam/")
+    root : str = "/api/v1/review/nextreviewerinteam/"
 
 
 @dataclass(frozen=True)
@@ -1623,8 +1604,7 @@ class NextReviewerInTeam(Resource):
 
 @dataclass(frozen=True)
 class ReviewTeamSettingsURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/review/reviewteamsettings/")
+    root : str = "/api/v1/review/reviewteamsettings/"
 
 
 @dataclass(frozen=True)
@@ -1642,8 +1622,7 @@ class ReviewTeamSettings(Resource):
 
 @dataclass(frozen=True)
 class ReviewerSettingsURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/review/reviewersettings/")
+    root : str = "/api/v1/review/reviewersettings/"
 
 
 @dataclass(frozen=True)
@@ -1663,8 +1642,7 @@ class ReviewerSettings(Resource):
 
 @dataclass(frozen=True)
 class UnavailablePeriodURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/review/unavailableperiod/")
+    root : str = "/api/v1/review/unavailableperiod/"
 
 
 @dataclass(frozen=True)
@@ -1681,8 +1659,7 @@ class UnavailablePeriod(Resource):
 
 @dataclass(frozen=True)
 class HistoricalReviewerSettingsURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/review/historicalreviewersettings/")
+    root : str = "/api/v1/review/historicalreviewersettings/"
 
 
 @dataclass(frozen=True)
@@ -1707,8 +1684,7 @@ class HistoricalReviewerSettings(Resource):
 
 @dataclass(frozen=True)
 class HistoricalReviewAssignmentURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/review/historicalreviewassignment/")
+    root : str = "/api/v1/review/historicalreviewassignment/"
 
 
 @dataclass(frozen=True)
@@ -1730,9 +1706,9 @@ class HistoricalReviewAssignment(Resource):
     state                 : ReviewAssignmentStateURI
 
 
+@dataclass(frozen=True)
 class ReviewSecretarySettingsURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/review/reviewsecretarysettings/")
+    root : str = "/api/v1/review/reviewsecretarysettings/"
 
 
 @dataclass(frozen=True)
@@ -1751,8 +1727,7 @@ class ReviewSecretarySettings(Resource):
 
 @dataclass(frozen=True)
 class MailingListURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/mailinglists/list/")
+    root : str = "/api/v1/mailinglists/list/"
 
 
 @dataclass(frozen=True)
@@ -1766,8 +1741,7 @@ class MailingList(Resource):
 
 @dataclass(frozen=True)
 class MailingListSubscriptionsURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/mailinglists/subscribed/")
+    root : str = "/api/v1/mailinglists/subscribed/"
 
 
 @dataclass(frozen=True)
@@ -1785,8 +1759,7 @@ class MailingListSubscriptions(Resource):
 
 @dataclass(frozen=True)
 class MeetingRegistrationURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/stats/meetingregistration/")
+    root : str = "/api/v1/stats/meetingregistration/"
 
 
 @dataclass(frozen=True)
@@ -1811,8 +1784,7 @@ class MeetingRegistration(Resource):
 
 @dataclass(frozen=True)
 class AnnouncementFromURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/message/announcementfrom/")
+    root : str = "/api/v1/message/announcementfrom/"
 
 
 @dataclass(frozen=True)
@@ -1826,8 +1798,7 @@ class AnnouncementFrom(Resource):
 
 @dataclass(frozen=True)
 class MessageURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/message/message/")
+    root : str = "/api/v1/message/message/"
 
 
 @dataclass(frozen=True)
@@ -1852,8 +1823,7 @@ class Message(Resource):
 
 @dataclass(frozen=True)
 class SendQueueURI(URI):
-    def __post_init__(self) -> None:
-        assert self.uri.startswith("/api/v1/message/sendqueue/")
+    root : str = "/api/v1/message/sendqueue/"
 
 
 @dataclass(frozen=True)
@@ -1872,8 +1842,52 @@ class SendQueueEntry(Resource):
 # A class to represent the datatracker:
 
 def _parent_uri(uri: URI) -> URI:
-    separator = uri.uri[:-1].rfind("/")
-    return URI(uri.uri[:separator + 1])
+    assert uri.uri is not None and uri.uri.startswith("/api/v1/")
+    sep0 = 8
+    sep1 = uri.uri[sep0:].find("/") + sep0 + 1
+    sep2 = uri.uri[sep1:].find("/") + sep1 + 1
+    return type(uri)(uri.uri[:sep2])
+
+
+def _cache_uri_format(uri: URI) -> str:
+    assert uri.uri is not None
+    return uri.uri.strip('/').replace("/", "_")
+
+
+def _translate_query(uri: URI, param_objs: Dict[str, Optional[Resource]], obj_type: Type[T]) -> Dict[Any, Any]:
+    translated_params : Dict[Any, Any] = {}
+
+    for (param, value) in uri.params.items():
+        if "__gte" in param:
+            param = param[:-5]
+            translated_params[param] = {**translated_params.get(param, {}), "$gte": value}
+        elif "__gt" in param:
+            param = param[:-4]
+            translated_params[param] = {**translated_params.get(param, {}), "$gt": value}
+        elif "__lte" in param:
+            param = param[:-5]
+            translated_params[param] = {**translated_params.get(param, {}), "$lte": value}
+        elif "__lt" in param:
+            param = param[:-4]
+            translated_params[param] = {**translated_params.get(param, {}), "$lt": value}
+        elif "__contains" in param:
+            param = param[:-10]
+            translated_params[param] = {**translated_params.get(param, {}), "$regex": value}
+        else:
+            param_type = obj_type.__dict__["__dataclass_fields__"][param].type
+            if "__origin__" in param_type.__dict__ and param_type.__origin__ is Union:
+                param_type = param_type.__args__[0]
+            if not isinstance(param_type, type) and param in param_objs:
+                param_type = type(param_objs[param])
+            if issubclass(param_type, URI):
+                translated_params[param] = f"{param_type.root}{value}/"
+                if param in param_objs:
+                    param_obj = param_objs[param]
+                    if param_obj is not None:
+                        translated_params[param] = param_obj.resource_uri.uri
+            else:
+                translated_params[param] = value
+    return translated_params
 
 
 def _sort_objs(obj: Tuple[str,Dict[Any, Any]]) -> str:
@@ -1883,222 +1897,261 @@ def _sort_objs(obj: Tuple[str,Dict[Any, Any]]) -> str:
 
 @dataclass
 class CacheMetadata:
-    created : datetime
-    updated : datetime
-    partial : bool
-    queries : List[str]
+    created     : datetime
+    updated     : datetime
+    partial     : bool
+    total_count : int
+    queries     : List[str]
 
 
 @dataclass
-class CacheHints:
-    deref   : Dict[str, Any]
-    trim    : List[str]
-    sort_by : List[str]
-    reverse : bool
-    timed   : bool
+class CacheIndex(Generic[T]):
+    resource_type : T
+    fields        : List[str]
+    unique_fields : List[str]
+    order_by      : List[str]
+    reverse       : bool
 
 
 class DataTracker:
     """
     A class for interacting with the IETF DataTracker.
     """
-    def __init__(self, cache_dir: Path):
+    def __init__(self, use_cache: bool = False, mongodb_hostname: str = "localhost", mongodb_port: int = 27017, mongodb_username: Optional[str] = None, mongodb_password: Optional[str] = None):
         """
         Parameters:
             cache_dir      -- If set, use this directory as a cache for Datatracker objects
         """
-        self.session  = requests.Session()
-        self.ua       = "glasgow-ietfdata/0.4.0"          # Update when making a new relaase
-        self.base_url = "https://datatracker.ietf.org"
-        self.http_req = 0
-        self.memcache : Dict[str, Dict[str, Any]] = {}
-        self.memcache_req = 0
-        self.memcache_hit = 0
-        self.cache_dir = cache_dir
+        if os.environ.get('IETFDATA_CACHE_HOST') is not None:
+            use_cache = True
+            cache_host = os.environ.get('IETFDATA_CACHE_HOST')
+            cache_port = os.environ.get('IETFDATA_CACHE_PORT', 27017)
+            cache_username = os.environ.get('IETFDATA_CACHE_USER')
+            cache_password = os.environ.get('IETFDATA_CACHE_PASSWORD')
+            if cache_host is not None:
+                mongodb_hostname = cache_host
+            if cache_port is not None:
+                mongodb_port = int(cache_port)
+            if cache_username is not None:
+                mongodb_username = cache_username
+            if cache_password is not None:
+                mongodb_password = cache_password
+        if use_cache:
+            self.db : Optional[Database] = None
+            if mongodb_username is not None:
+                self.db = MongoClient(host=mongodb_hostname, port=mongodb_port, username=mongodb_username, password=mongodb_password).ietfdata
+            else:
+                self.db = MongoClient(host=mongodb_hostname, port=mongodb_port).ietfdata
+        else:
+            self.db    = None
+        self.session   = requests.Session()
+        self.ua        = "glasgow-ietfdata/0.4.0"          # Update when making a new relaase
+        self.base_url  = "https://datatracker.ietf.org"
+        self.http_req  = 0
         self.cache_req = 0
         self.cache_hit = 0
+        self.cache_ver = "0.1.0" # Update when changing cache architecture
         self.get_count = 0
+        self.db_calls  = 0
 
         # Configure logging
         logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
         self.log      = logging.getLogger("ietfdata")
-        self.log.info(self.ua)
+        if self.db is not None:
+            self.log.info(f"{self.ua} (cache enabled)")
+        else:
+            self.log.info(self.ua)
 
         # Register generic parsers for each URI type:
         self.pavlova = Pavlova()
         for uri_type in URI.__subclasses__():
             self.pavlova.register_parser(uri_type, GenericParser(self.pavlova, uri_type))
         self.pavlova.register_parser(CacheMetadata, GenericParser(self.pavlova, CacheMetadata))
-        # Register cache hints:
-        self._cache_hints = {}
-        self._cache_hints["/api/v1/doc/ballotdocevent/"]                 = CacheHints({"doc": "id"}, ["ballot_type", "by"], ["id"], False, True)
-        self._cache_hints["/api/v1/doc/ballottype/"]                     = CacheHints({}, ["doc_type"], ["order", "id"], False, False)
-        self._cache_hints["/api/v1/doc/docalias/"]                       = CacheHints({}, [], ["id"], False, False)
-        self._cache_hints["/api/v1/doc/docevent/"]                       = CacheHints({"doc": "id"},      ["by"], ["id"], True, True)
-        self._cache_hints["/api/v1/doc/document/"]                       = CacheHints({}, ["type", "stream", "group"], ["id"], False, True)
-        self._cache_hints["/api/v1/doc/documentauthor/"]                 = CacheHints({"document": "id"}, ["email", "person"], ["order", "id"], False, False)
-        self._cache_hints["/api/v1/doc/relateddocument/"]                = CacheHints({"source": "id", "target": "id", "relationship": "slug"}, [], ["id"], False, False)
-        self._cache_hints["/api/v1/doc/state/"]                          = CacheHints({}, ["type"], ["order", "id", "slug"], False, False)
-        self._cache_hints["/api/v1/doc/statetype/"]                      = CacheHints({}, [], ["slug"], False, False)
-        self._cache_hints["/api/v1/group/changestategroupevent/"]        = CacheHints({}, ["by", "group", "state"], ["order", "id"], False, True)
-        self._cache_hints["/api/v1/group/group/"]                        = CacheHints({}, ["parent", "state"], ["id"], False, True)
-        self._cache_hints["/api/v1/group/groupevent/"]                   = CacheHints({}, ["by", "group"], ["id"], True, True)
-        self._cache_hints["/api/v1/group/grouphistory/"]                 = CacheHints({}, ["group", "parent", "state"], ["id"], False, True)
-        self._cache_hints["/api/v1/group/groupmilestone/"]               = CacheHints({}, ["group", "state"], ["id"], False, True)
-        self._cache_hints["/api/v1/group/groupmilestonehistory/"]        = CacheHints({}, ["group", "milestone", "state"], ["id"], False, True)
-        self._cache_hints["/api/v1/group/groupurl/"]                     = CacheHints({}, ["group"], ["id"], False, False)
-        self._cache_hints["/api/v1/group/milestonegroupevent/"]          = CacheHints({}, ["by", "group", "milestone"], ["id"], True, True)
-        self._cache_hints["/api/v1/group/role/"]                         = CacheHints({}, ["email", "group", "name", "person"], ["id"], False, False)
-        self._cache_hints["/api/v1/group/rolehistory/"]                  = CacheHints({}, ["email", "group", "name", "person"], ["id"], False, False)
-        self._cache_hints["/api/v1/ipr/genericiprdisclosure/"]           = CacheHints({}, ["by", "state"], ["order", "id"], False, True)
-        self._cache_hints["/api/v1/ipr/holderiprdisclosure/"]            = CacheHints({}, ["by", "licensing", "state"], ["order", "id"], False, True)
-        self._cache_hints["/api/v1/ipr/iprdisclosurebase/"]              = CacheHints({}, ["by", "state"], ["order", "id"], False, True)
-        self._cache_hints["/api/v1/ipr/thirdpartyiprdisclosure/"]        = CacheHints({}, ["by", "state"], ["order", "id"], False, True)
-        self._cache_hints["/api/v1/mailinglists/list/"]                  = CacheHints({}, [], ["id"], False, False)
-        self._cache_hints["/api/v1/mailinglists/subscribed/"]            = CacheHints({}, ["lists"], ["id"], False, True)
-        self._cache_hints["/api/v1/meeting/meeting/"]                    = CacheHints({}, ["type"], ["id"], False, False)
-        self._cache_hints["/api/v1/meeting/schedtimesessassignment/"]    = CacheHints({}, ["schedule"], ["id"], False, False)
-        self._cache_hints["/api/v1/meeting/schedule/"]                   = CacheHints({}, [], ["id"], False, False)
-        self._cache_hints["/api/v1/meeting/schedulingevent/"]            = CacheHints({}, ["session", "by"], ["id"], False, True)
-        self._cache_hints["/api/v1/meeting/session/"]                    = CacheHints({}, ["meeting", "group", "group_parent"], ["id"], False, False)
-        self._cache_hints["/api/v1/meeting/timeslot/"]                   = CacheHints({}, [], ["id"], False, True)
-        self._cache_hints["/api/v1/message/announcementfrom/"]           = CacheHints({}, ["group", "name"], ["id"], False, False)
-        self._cache_hints["/api/v1/message/message/"]                    = CacheHints({"related_doc": "id"}, ["by"], ["id"], False, True)
-        self._cache_hints["/api/v1/message/sendqueue/"]                  = CacheHints({}, ["by", "message"], ["id"], False, True)
-        self._cache_hints["/api/v1/name/ballotpositionname/"]            = CacheHints({}, [], ["order", "slug"], False, False)
-        self._cache_hints["/api/v1/name/docrelationshipname/"]           = CacheHints({}, [], ["slug"], False, False)
-        self._cache_hints["/api/v1/name/doctypename/"]                   = CacheHints({}, [], ["order", "slug"], False, False)
-        self._cache_hints["/api/v1/name/groupmilestonestatename/"]       = CacheHints({}, [], ["slug"], False, False)
-        self._cache_hints["/api/v1/name/groupstatename/"]                = CacheHints({}, [], ["slug"], False, False)
-        self._cache_hints["/api/v1/name/grouptypename/"]                 = CacheHints({}, [], ["slug"], False, False)
-        self._cache_hints["/api/v1/name/meetingtypename/"]               = CacheHints({}, [], ["slug"], False, False)
-        self._cache_hints["/api/v1/name/iprdisclosurestatename/"]        = CacheHints({}, [], ["slug"], False, False)
-        self._cache_hints["/api/v1/name/iprlicensetypename/"]            = CacheHints({}, [], ["slug"], False, False)
-        self._cache_hints["/api/v1/name/reviewassignmentstatename/"]     = CacheHints({}, [], ["slug"], False, False)
-        self._cache_hints["/api/v1/name/reviewresultname/"]              = CacheHints({}, [], ["slug"], False, False)
-        self._cache_hints["/api/v1/name/reviewtypename/"]                = CacheHints({}, [], ["slug"], False, False)
-        self._cache_hints["/api/v1/name/reviewrequeststatename/"]        = CacheHints({}, [], ["slug"], False, False)
-        self._cache_hints["/api/v1/name/rolename/"]                      = CacheHints({}, [], ["slug"], False, False)
-        self._cache_hints["/api/v1/name/sessionstatusname/"]             = CacheHints({}, [], ["slug"], False, False)
-        self._cache_hints["/api/v1/name/streamname/"]                    = CacheHints({}, [], ["slug"], False, False)
-        self._cache_hints["/api/v1/person/alias/"]                       = CacheHints({}, ["person"], ["id"], False, False)
-        self._cache_hints["/api/v1/person/email/"]                       = CacheHints({}, ["person"], ["address"], False, True)
-        self._cache_hints["/api/v1/person/historicalemail/"]             = CacheHints({}, ["person"], ["history_id"], True, True)
-        self._cache_hints["/api/v1/person/historicalperson/"]            = CacheHints({}, ["person"], ["history_id"], True, True)
-        self._cache_hints["/api/v1/person/person/"]                      = CacheHints({}, [], ["id"], False, True)
-        self._cache_hints["/api/v1/person/personevent/"]                 = CacheHints({}, ["person"], ["id"], False, True)
-        self._cache_hints["/api/v1/review/historicalreviewassignment/"]  = CacheHints({}, ["result", "review_request", "reviewer", "state"], ["id"], False, False)
-        self._cache_hints["/api/v1/review/historicalreviewersettings/"]  = CacheHints({}, ["person", "team"], ["order", "id"], False, False)
-        self._cache_hints["/api/v1/review/historicalreviewrequest/"]     = CacheHints({"doc": "id"}, ["requested_by", "state", "team", "type"], ["order", "id"], False, False)
-        self._cache_hints["/api/v1/review/historicalunavailableperiod/"] = CacheHints({}, ["person", "team"], ["id"], False, False)
-        self._cache_hints["/api/v1/review/nextreviewerinteam/"]          = CacheHints({}, ["team"], ["id"], False, False)
-        self._cache_hints["/api/v1/review/reviewassignment/"]            = CacheHints({}, ["result", "review_request", "reviewer", "state"], ["id"], False, False)
-        self._cache_hints["/api/v1/review/reviewersettings/"]            = CacheHints({}, ["person", "team"], ["id"], False, False)
-        self._cache_hints["/api/v1/review/reviewrequest/"]               = CacheHints({"doc": "id"}, ["requested_by", "state", "team", "type"], ["id"], False, True)
-        self._cache_hints["/api/v1/review/reviewsecretarysettings/"]     = CacheHints({}, ["person", "team"], ["order", "id"], False, False)
-        self._cache_hints["/api/v1/review/reviewteamsettings/"]          = CacheHints({}, ["group"], ["id"], False, False)
-        self._cache_hints["/api/v1/review/reviewwish/"]                  = CacheHints({"doc": "id"}, ["person", "team"], ["id"], False, True)
-        self._cache_hints["/api/v1/review/unavailableperiod/"]           = CacheHints({}, ["person", "team"], ["order", "id"], False, False)
-        self._cache_hints["/api/v1/stats/meetingregistration/"]          = CacheHints({}, ["meeting", "person"], ["id"], False, False)
-        self._cache_hints["/api/v1/submit/submission/"]                  = CacheHints({}, [], ["order", "id"], False, False)
-        self._cache_hints["/api/v1/submit/submissionevent/"]             = CacheHints({}, ["by", "submission"], ["order", "id"], False, True)
 
+        # Register cache hints:
+        self._cache_indexes = {} # type: Dict[Any, CacheIndex]
+        self._cache_indexes[BallotDocumentEventURI]         = CacheIndex(BallotDocumentEvent, ["time", "ballot_type", "event_type", "by", "doc"], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[BallotTypeURI]                  = CacheIndex(BallotType, ["doc_type"], ["id", "resource_uri"], ["order", "id"], False)
+        self._cache_indexes[DocumentAliasURI]               = CacheIndex(DocumentAlias, ["name"], ["id", "name", "resource_uri"], ["id"], False)
+        self._cache_indexes[DocumentEventURI]               = CacheIndex(DocumentEvent, ["time", "doc", "by", "event_type"], ["id", "resource_uri"], ["id"], True)
+        self._cache_indexes[DocumentURI]                    = CacheIndex(Document, ["time", "type", "stream", "group"], ["id", "name", "resource_uri"], ["id"], False)
+        self._cache_indexes[DocumentAuthorURI]              = CacheIndex(DocumentAuthor, ["document", "person", "email"], ["id", "resource_uri"], ["order", "id"], False)
+        self._cache_indexes[RelatedDocumentURI]             = CacheIndex(RelatedDocument, ["source", "target", "relationship"], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[DocumentStateURI]               = CacheIndex(DocumentState, ["type", "slug"], ["id", "resource_uri"], ["order", "id", "slug"], False)
+        self._cache_indexes[DocumentStateTypeURI]           = CacheIndex(DocumentStateType, [], ["slug", "resource_uri"], ["slug"], False)
+        self._cache_indexes[GroupStateChangeEventURI]       = CacheIndex(GroupStateChangeEvent, ["time", "by", "group", "state"], ["id", "resource_uri"], ["order", "id"], False)
+        self._cache_indexes[GroupURI]                       = CacheIndex(Group, ["time", "name", "state", "parent"], ["acronym", "id", "resource_uri"], ["id"], False)
+        self._cache_indexes[GroupEventURI]                  = CacheIndex(GroupEvent, ["time", "by", "group", "type"], ["id", "resource_uri"], ["id"], True)
+        self._cache_indexes[GroupHistoryURI]                = CacheIndex(GroupHistory, ["acronym", "time", "group", "state", "parent"], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[GroupMilestoneURI]              = CacheIndex(GroupMilestone, ["time", "group", "state"], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[GroupMilestoneHistoryURI]       = CacheIndex(GroupMilestoneHistory, ["time", "group", "milestone", "state"], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[GroupUrlURI]                    = CacheIndex(GroupUrl, ["group"], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[GroupMilestoneEventURI]         = CacheIndex(GroupMilestoneEvent, ["time", "by", "group", "milestone", "type"], ["id", "resource_uri"], ["id"], True)
+        self._cache_indexes[GroupRoleURI]                   = CacheIndex(GroupRole, ["email", "group", "name", "person"], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[GroupRoleHistoryURI]            = CacheIndex(GroupRoleHistory, ["email", "group", "name", "person"], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[GenericIPRDisclosureURI]        = CacheIndex(GenericIPRDisclosure, ["time", "by", "holder_legal_name", "holder_contact_name", "state", "submitter_email", "submitter_name"], ["id", "resource_uri"], ["order", "id"], False)
+        self._cache_indexes[HolderIPRDisclosureURI]         = CacheIndex(HolderIPRDisclosure, ["time", "by", "holder_legal_name", "holder_contact_name", "ietfer_contact_email", "ietfer_name", "licensing", "state", "submitter_email", "submitter_name"], ["id", "resource_uri"], ["order", "id"], False)
+        self._cache_indexes[IPRDisclosureBaseURI]           = CacheIndex(IPRDisclosureBase, ["time", "by", "holder_legal_name", "state", "submitter_email", "submitter_name"], ["id", "resource_uri"], ["order", "id"], False)
+        self._cache_indexes[ThirdPartyIPRDisclosureURI]     = CacheIndex(ThirdPartyIPRDisclosure, ["time", "by", "holder_legal_name", "ietfer_contact_email", "ietfer_name", "state", "submitter_email", "submitter_name"], ["id", "resource_uri"], ["order", "id"], False)
+        self._cache_indexes[MailingListURI]                 = CacheIndex(MailingList, ["name"], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[MailingListSubscriptionsURI]    = CacheIndex(MailingListSubscriptions, ["email", "lists"], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[MeetingURI]                     = CacheIndex(Meeting, ["date", "type"], ["id", "number", "resource_uri"], ["id"], False)
+        self._cache_indexes[SessionAssignmentURI]           = CacheIndex(SessionAssignment, ["schedule"], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[ScheduleURI]                    = CacheIndex(ScheduleURI, [], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[SchedulingEventURI]             = CacheIndex(SchedulingEventURI, ["session", "by"], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[SessionURI]                     = CacheIndex(Session, ["meeting", "group"], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[TimeslotURI]                    = CacheIndex(Timeslot, [], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[AnnouncementFromURI]            = CacheIndex(AnnouncementFrom, ["address", "group", "name"], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[MessageURI]                     = CacheIndex(Message, ["time", "by", "frm", "related_docs", "subject", "body"], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[SendQueueURI]                   = CacheIndex(SendQueueEntry, ["time", "by", "message"], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[BallotPositionNameURI]          = CacheIndex(BallotPositionName, [], ["slug", "resource_uri"], ["order", "slug"], False)
+        self._cache_indexes[RelationshipTypeURI]            = CacheIndex(RelationshipType, [], ["slug", "resource_uri"], ["slug"], False)
+        self._cache_indexes[DocumentTypeURI]                = CacheIndex(DocumentType, [], ["slug", "resource_uri"], ["order", "slug"], False)
+        self._cache_indexes[GroupMilestoneStateNameURI]     = CacheIndex(GroupMilestoneStateName, [], ["slug", "resource_uri"], ["slug"], False)
+        self._cache_indexes[GroupStateURI]                  = CacheIndex(GroupState, [], ["slug", "resource_uri"], ["slug"], False)
+        self._cache_indexes[GroupTypeNameURI]               = CacheIndex(GroupTypeName, [], ["slug", "resource_uri"], ["slug"], False)
+        self._cache_indexes[MeetingTypeURI]                 = CacheIndex(MeetingType, [], ["slug", "resource_uri"], ["slug"], False)
+        self._cache_indexes[IPRDisclosureStateURI]          = CacheIndex(IPRDisclosureBase, [], ["slug", "resource_uri"], ["slug"], False)
+        self._cache_indexes[IPRLicenseTypeURI]              = CacheIndex(IPRLicenseType, [], ["slug", "resource_uri"], ["slug"], False)
+        self._cache_indexes[ReviewAssignmentStateURI]       = CacheIndex(ReviewAssignmentState, [], ["slug", "resource_uri"], ["slug"], False)
+        self._cache_indexes[ReviewResultTypeURI]            = CacheIndex(ReviewResultType, [], ["slug", "resource_uri"], ["slug"], False)
+        self._cache_indexes[ReviewTypeURI]                  = CacheIndex(ReviewType, [], ["slug", "resource_uri"], ["slug"], False)
+        self._cache_indexes[ReviewRequestStateURI]          = CacheIndex(ReviewRequestState, [], ["slug", "resource_uri"], ["slug"], False)
+        self._cache_indexes[RoleNameURI]                    = CacheIndex(RoleName, [], ["slug", "resource_uri"], ["slug"], False)
+        self._cache_indexes[SessionStatusNameURI]           = CacheIndex(SessionStatusName, [], ["slug", "resource_uri"], ["slug"], False)
+        self._cache_indexes[StreamURI]                      = CacheIndex(Stream, [], ["slug", "resource_uri"], ["slug"], False)
+        self._cache_indexes[PersonAliasURI]                 = CacheIndex(PersonAlias, ["person"], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[EmailURI]                       = CacheIndex(Email, ["person", "time"], ["address", "resource_uri"], ["address"], False)
+        self._cache_indexes[HistoricalEmailURI]             = CacheIndex(HistoricalEmail, ["address", "person"], ["history_id", "resource_uri"], ["history_id"], True)
+        self._cache_indexes[HistoricalPersonURI]            = CacheIndex(HistoricalPerson, ["id"], ["history_id", "resource_uri"], ["history_id"], True)
+        self._cache_indexes[PersonURI]                      = CacheIndex(PersonURI, ["time", "name", "ascii"], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[PersonEventURI]                 = CacheIndex(PersonEvent, ["person"], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[HistoricalReviewAssignmentURI]  = CacheIndex(HistoricalReviewAssignment, ["assigned_on", "completed_on", "id", "result", "review_request", "reviewer", "state"], ["history_id", "resource_uri"], ["id"], False)
+        self._cache_indexes[HistoricalReviewerSettingsURI]  = CacheIndex(HistoricalReviewerSettingsURI, ["history_date", "id", "person", "team"], ["history_id", "resource_uri"], ["order", "id"], False)
+        self._cache_indexes[HistoricalReviewRequestURI]     = CacheIndex(HistoricalReviewRequest, ["time", "history_date", "doc", "requested_by", "state", "team", "type"], ["history_id", "resource_uri"], ["order", "id"], False)
+        self._cache_indexes[HistoricalUnavailablePeriodURI] = CacheIndex(HistoricalUnavailablePeriod, ["history_type", "id", "person", "team"], ["history_id", "resource_uri"], ["id"], False)
+        self._cache_indexes[NextReviewerInTeamURI]          = CacheIndex(NextReviewerInTeam, ["team"], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[ReviewAssignmentURI]            = CacheIndex(ReviewAssignment, ["assigned_on", "completed_on", "result", "review_request", "reviewer", "state"], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[ReviewerSettingsURI]            = CacheIndex(ReviewerSettings, ["person", "team"], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[ReviewRequestURI]               = CacheIndex(ReviewRequest, ["time", "doc", "requested_by", "state", "team", "type"], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[ReviewSecretarySettingsURI]     = CacheIndex(ReviewSecretarySettings, ["person", "team"], ["id", "resource_uri"], ["order", "id"], False)
+        self._cache_indexes[ReviewTeamSettingsURI]          = CacheIndex(ReviewTeamSettings, ["group"], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[ReviewWishURI]                  = CacheIndex(ReviewWish, ["time", "doc", "person", "team"], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[UnavailablePeriodURI]           = CacheIndex(UnavailablePeriod, ["person", "team"], ["id", "resource_uri"], ["order", "id"], False)
+        self._cache_indexes[MeetingRegistrationURI]         = CacheIndex(MeetingRegistration, ["affiliation", "attended", "country_code", "email", "first_name", "last_name", "meeting", "person", "reg_type", "ticket_type"], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[SubmissionURI]                  = CacheIndex(Submission, ["time"], ["id", "resource_uri"], ["order", "id"], False)
+        self._cache_indexes[SubmissionEventURI]             = CacheIndex(SubmissionEvent, ["time", "by", "submission"], ["id", "resource_uri"], ["order", "id"], False)
+
+        # check Datatracker and cache versions
+        self._cache_check_versions()
 
 
     def __del__(self):
-        self.log.info(F"memcache size: {len(self.memcache)}")
-        self.log.info(F"memcache requests: {self.memcache_req}")
-        if self.memcache_req == 0:
-            self.log.info(F"memcache hit rate: --")
-        else:
-            self.log.info(F"memcache hit rate: {self.memcache_hit / self.memcache_req * 100.0:.1f}%")
         self.log.info(F"cache requests: {self.cache_req}")
         if self.cache_req == 0:
             self.log.info(F"cache hit rate: -")
         else:
             self.log.info(F"cache hit rate: {self.cache_hit / self.cache_req * 100.0:.1f}%")
         self.log.info(F"HTTP GET calls: {self.get_count}")
+        self.log.info(F"db requests: {self.db_calls}")
         self.session.close()
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
     # Private methods to manage the local cache:
 
-    def _memcache_has_object(self, obj_uri: str) -> bool:
-        return obj_uri in self.memcache
-
-
-    def _memcache_get_object(self, obj_uri: str) -> Dict[str, Any]:
-        assert obj_uri in self.memcache
-        return self.memcache[obj_uri]
-
-
-    def _memcache_put_object(self, obj_uri: str, obj: Dict[str, Any]) -> None:
-        self.memcache[obj_uri] = obj
-
-
     def _cache_update(self, obj_type_uri: URI, obj_type: Type[T]) -> None:
+        if self.db is None:
+            return None
         self._cache_create(obj_type_uri)
         now  = datetime.now(tz = dateutil.tz.gettz("America/Los_Angeles"))
         meta = self._cache_load_metadata(obj_type_uri)
         # Should we switch from a partial cache to full cache for this object type?
-        if meta.partial and len(meta.queries) > 100:
+        if meta.partial and (len(meta.queries)/(meta.total_count/100)) > 0.5:
             # Switch to caching all objects of this type
-            self.log.info(F"switch to full cache {obj_type_uri.uri}")
-            self._cache_put_objects(obj_type_uri, obj_type_uri)
+            self.log.info(F"switch to full cache {obj_type_uri.uri} ({meta.total_count} objects)")
+            self._retrieve_jsons(obj_type_uri, obj_type_uri, {}, obj_type_uri, obj_type)
             meta = self._cache_load_metadata(obj_type_uri)
             meta.partial = False
             meta.queries = []
             meta.updated = now
             self._cache_save_metadata(obj_type_uri, meta)
         # Do we need to update the cache?
-        if now - meta.updated > timedelta(hours=1):
-            hints = self._cache_hints[obj_type_uri.uri]
-            if hints.timed:
-                update_uri = URI(obj_type_uri.uri)
-                update_uri.params["time__gte"] = meta.updated.strftime("%Y-%m-%dT%H:%M:%S.%f")  # Avoid isoformat(), since don't want TZ offset
-                update_uri.params["time__lt"]  = now.strftime("%Y-%m-%dT%H:%M:%S.%f")
-                self.log.info(F"cache outdated {str(update_uri)}")
-                self._cache_put_objects(update_uri, obj_type_uri)
-                meta = self._cache_load_metadata(obj_type_uri)
-                meta.updated = now
-                self._cache_save_metadata(obj_type_uri, meta)
-            else:
-                # FIXME: how to handle object types that don't have a modification time?
-                pass
+        if now - meta.updated > timedelta(hours=1) and "time__gte" in obj_type_uri.params:
+            update_uri = URI(obj_type_uri.uri)
+            update_uri.params["time__gte"] = meta.updated.strftime("%Y-%m-%dT%H:%M:%S.%f")  # Avoid isoformat(), since don't want TZ offset
+            update_uri.params["time__lt"]  = now.strftime("%Y-%m-%dT%H:%M:%S.%f")
+            self.log.info(F"cache outdated {str(update_uri)}")
+            self._retrieve_jsons(update_uri, update_uri, {}, obj_type_uri, obj_type)
+            meta = self._cache_load_metadata(obj_type_uri)
+            meta.updated = now
+            obj_count = self._cache_fetch_object_count(obj_type_uri)
+            if obj_count is not None:
+                meta.total_count = obj_count
+            self._cache_save_metadata(obj_type_uri, meta)
+        elif now - meta.updated > timedelta(hours=24):
+            update_uri = URI(obj_type_uri.uri)
+            self.log.info(F"cache outdated {str(obj_type_uri)}")
+            self._cache_delete(obj_type_uri)
+            self._cache_create(obj_type_uri)
+
+
+    def _cache_delete(self, obj_type_uri: URI) -> None:
+        assert self.db is not None
+        self.db.cache_info.delete_one({"meta_key": _cache_uri_format(obj_type_uri)})
+        self.db[_cache_uri_format(obj_type_uri)].drop()
+        self.log.info(f"deleted {str(obj_type_uri)} cache")
 
 
     def _cache_load_metadata(self, obj_type_uri: URI) -> CacheMetadata:
-        cache_filepath = Path(self.cache_dir, obj_type_uri.uri[1:-1], "_cache_info.json")
-        with open(cache_filepath, "r") as cache_file:
-            return self.pavlova.from_mapping(json.load(cache_file), CacheMetadata)
+        assert self.db is not None
+        meta_json = self.db.cache_info.find_one({"meta_key" : _cache_uri_format(obj_type_uri)})
+        self.db_calls += 1
+        assert isinstance(meta_json, dict)
+        return self.pavlova.from_mapping(meta_json, CacheMetadata)
 
 
     def _cache_save_metadata(self, obj_type_uri: URI, meta: CacheMetadata) -> None:
-        cache_filepath = Path(self.cache_dir, obj_type_uri.uri[1:-1], "_cache_info.json")
-        with open(cache_filepath, "w") as cache_file:
-            data : Dict[str, Any] = {}
-            data["created"] = meta.created.isoformat()
-            data["updated"] = meta.updated.isoformat()
-            data["partial"] = meta.partial
-            data["queries"] = meta.queries
-            json.dump(data, cache_file)
+        assert self.db is not None
+        meta_dict : Dict[str, Any] = {}
+        meta_dict["meta_key"]    = _cache_uri_format(obj_type_uri)
+        meta_dict["created"]     = meta.created.isoformat()
+        meta_dict["updated"]     = meta.updated.isoformat()
+        meta_dict["partial"]     = meta.partial
+        meta_dict["queries"]     = meta.queries
+        meta_dict["total_count"] = meta.total_count
+        self.db.cache_info.replace_one({"meta_key" : meta_dict["meta_key"]}, meta_dict, upsert=True)
+        self.db.cache_info.create_index([('meta_key', ASCENDING)], unique=True)
+        self.db_calls += 1
 
 
     def _cache_create(self, obj_type_uri: URI) -> None:
-        cache_filepath = Path(self.cache_dir, obj_type_uri.uri[1:-1])
-        if not cache_filepath.exists():
-            cache_filepath.mkdir(parents=True, exist_ok=True)
-        mdata_filepath = Path(cache_filepath, "_cache_info.json")
-        if not mdata_filepath.exists():
+        if self.db is None:
+            return
+        meta_key  = _cache_uri_format(obj_type_uri)
+        self.db_calls += 1
+        if not self.db.cache_info.find_one({"meta_key": meta_key}):
             created = datetime.now(tz = dateutil.tz.gettz("America/Los_Angeles"))
             updated = created
-            meta = CacheMetadata(created, updated, True, [])
+            total_count = self._cache_fetch_object_count(obj_type_uri)
+            if total_count is None:
+                total_count = 0
+            meta = CacheMetadata(created, updated, True, total_count, [])
             self._cache_save_metadata(obj_type_uri, meta)
-
+            self.log.info(F"_cache_create {meta_key}")
+            # create indexes
+            try:
+                for field in self._cache_indexes[type(obj_type_uri)].fields:
+                    self.db[_cache_uri_format(obj_type_uri)].create_index([(field, ASCENDING)], background=True)
+                for unique_field in self._cache_indexes[type(obj_type_uri)].unique_fields:
+                    self.db[_cache_uri_format(obj_type_uri)].create_index([(unique_field, ASCENDING)], unique=True, background=True)
+            except:
+                pass
 
     def _cache_record_query(self, obj_uri: URI, obj_type_uri: URI) -> None:
-        assert "?" not in obj_uri.uri
+        if self.db is None:
+            return
+        assert obj_uri.uri is not None and "?" not in obj_uri.uri
         meta  = self._cache_load_metadata(obj_type_uri)
         if meta.partial:
             cache_uri = URI(obj_uri.uri)
@@ -2116,228 +2169,113 @@ class DataTracker:
 
 
     def _cache_has_object(self, obj_uri: URI) -> bool:
-        if self._memcache_has_object(obj_uri.uri):
-            return True
+        if self.db is None:
+            return False
+        self.db_calls += 1
+        if self.db[_cache_uri_format(_parent_uri(obj_uri))].find_one({"resource_uri": obj_uri.uri}):
+            return True       # Object is in the local cache
         else:
-            cache_filepath = Path(self.cache_dir, obj_uri.uri[1:-1] + ".json")
-            if cache_filepath.exists():
-                return True       # Object is in the local cache
+            if self._cache_has_all_objects(_parent_uri(obj_uri)):
+                return True   # Object is known not to exist
             else:
-                if self._cache_has_all_objects(_parent_uri(obj_uri)):
-                    return True   # Object is known not to exist
-                else:
-                    return False  # Object is not in the cache
+                return False  # Object is not in the cache
 
 
     def _cache_get_object(self, obj_uri: URI) -> Optional[Dict[str, Any]]:
-        self.memcache_req += 1
-        if self._memcache_has_object(obj_uri.uri):
-            self.memcache_hit += 1
-            return self._memcache_get_object(obj_uri.uri)
-        else:
-            cache_filepath = Path(self.cache_dir, obj_uri.uri[1:-1] + ".json")
-            if cache_filepath.exists():
-                with open(cache_filepath) as cache_file:
-                    obj_json = json.load(cache_file) # type: Dict[str, Any]
-                    self._memcache_put_object(obj_uri.uri, obj_json)
-                    return obj_json
-            else:
-                return None
+        assert self.db is not None
+        self.db_calls += 1
+        return self.db[_cache_uri_format(_parent_uri(obj_uri))].find_one({"resource_uri": obj_uri.uri})
 
 
     def _cache_put_object(self, obj_uri: URI, obj_json: Dict[str, Any]) -> None:
+        if self.db is None:
+            return
+        assert obj_uri.uri is not None
         assert obj_uri.uri.startswith("/")
         assert obj_uri.uri.endswith("/")
-        cache_filepath = Path(self.cache_dir, obj_uri.uri[1:-1] + ".json")
-        if not cache_filepath.parent.exists():
-            self._cache_create(_parent_uri(obj_uri))
-        with open(cache_filepath, "w") as cache_file:
-            json.dump(obj_json, cache_file)
-        self._memcache_put_object(obj_uri.uri, obj_json)
+        self._cache_create(_parent_uri(obj_uri))
+        self.db[_cache_uri_format(_parent_uri(obj_uri))].replace_one({"resource_uri" : obj_json["resource_uri"]}, obj_json, upsert=True)
+        self.db_calls += 1
 
 
     def _cache_has_all_objects(self, obj_type_uri: URI):
+        if self.db is None:
+            return False
         meta = self._cache_load_metadata(obj_type_uri)
         return not meta.partial
 
 
     def _cache_has_objects(self, obj_uri: URI, obj_type_uri: URI) -> bool:
+        if self.db is None:
+            return False
         meta = self._cache_load_metadata(obj_type_uri)
         return str(obj_uri) in meta.queries
 
 
-    def _cache_obj_matches(self, obj: Dict[str, Any], query_uri: URI) -> bool:
-        hints = self._cache_hints[query_uri.uri]
-        # For each parameter in query_uri, check that obj contains matching key and value
-        res = True
-        for (k, v) in query_uri.params.items():
-            if v is not None:
-                if k in hints.trim:
-                    if obj[k] is None:
-                        res = False
-                    else:
-                        if isinstance(obj[k], list):
-                            found = False
-                            for item in obj[k]:
-                                tail = item.split("/")[-2]
-                                if str(v) == tail:
-                                    found = True
-                                    break
-                            if not found:
-                                res = False
-                        elif isinstance(obj[k], str):
-                            tail = obj[k].split("/")[-2]
-                            if str(v) != tail:
-                                res = False
-                        else:
-                            print("_cache_obj_matches failed: unknown obj[k] type")
-                            sys.exit(1)
-                elif k in hints.deref.keys():
-                    if obj[k] is None:
-                        res = False
-                    else:
-                        if isinstance(obj[k], list):
-                            found = False
-                            for item in obj[k]:
-                                deref_obj = self._retrieve_json(URI(item))
-                                if deref_obj is not None and v == deref_obj[hints.deref[k]]:
-                                    found = True
-                                    break
-                            if not found:
-                                res = False
-                        elif isinstance(obj[k], str):
-                            deref_obj = self._retrieve_json(URI(obj[k]))
-                            if deref_obj is None or v != deref_obj[hints.deref[k]]:
-                                res = False
-                        else:
-                            print("_cache_obj_matches failed: unknown obj[k] type")
-                            sys.exit(1)
-                elif "__contains" in k:
-                    k_base = k[:-10]
-                    if not v in obj[k_base]:
-                        res = False
-                elif "__gte" in k:
-                    k_base = k[:-5]
-                    if obj[k_base] < v:
-                        res = False
-                elif "__gt" in k:
-                    k_base = k[:-4]
-                    if obj[k_base] <= v:
-                        res = False
-                elif "__lte" in k:
-                    k_base = k[:-5]
-                    if obj[k_base] > v:
-                        res = False
-                elif "__lt" in k:
-                    k_base = k[:-4]
-                    if obj[k_base] >= v:
-                        res = False
-                else:
-                    if obj[k] != v:
-                        res = False
-        return res
+    def _cache_get_objects(self, obj_uri: URI, param_objs: Dict[str, Optional[Resource]], obj_type_uri: URI, obj_type: Type[T]) -> List[Dict[Any, Any]]:
+        if self.db is None:
+            return []
+        self.db_calls += 1
+        if len(obj_uri.params) > 1:
+            self.db[_cache_uri_format(obj_type_uri)].create_index([(field, ASCENDING) for field in list(_translate_query(obj_uri, param_objs, obj_type).keys())])
+        obj_jsons = self.db[_cache_uri_format(obj_type_uri)].find(_translate_query(obj_uri, param_objs, obj_type))
+        return list(obj_jsons)
 
 
-    def _cache_get_objects(self, obj_uri: URI, obj_type_uri: URI, obj_type: Type[T]) -> Iterator[T]:
-        hints = self._cache_hints[obj_type_uri.uri]
-        results = []
-        for obj_file in Path(self.cache_dir, obj_type_uri.uri[1:-1]).glob("*.json"):
-            if obj_file.name == "_cache_info.json":
-                continue
-
-            cache_uri = URI(obj_type_uri.uri + obj_file.name[:-5] + "/")
-            obj_json = self._cache_get_object(cache_uri)
-            assert obj_json is not None
-
-            if self._cache_obj_matches(obj_json, obj_uri):
-                sort_key = ""
-                for sb in hints.sort_by:
-                    sort_key += F" {obj_json[sb]:40}"
-                results.append((sort_key, obj_json))
-        results.sort(key=_sort_objs, reverse=hints.reverse)
-        for key, obj_json in results:
-            obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
-            yield obj
+    def _cache_fetch_object_count(self, obj_type_uri: URI) -> Optional[int]:
+        assert obj_type_uri.uri is not None
+        limited_uri = URI(F"{obj_type_uri.uri}?limit=1")
+        assert limited_uri.uri is not None
+        req_url     = self.base_url + limited_uri.uri
+        req_headers = {'User-Agent': self.ua}
+        r = self.session.get(req_url, headers = req_headers, verify = True, stream = False)
+        if r.status_code == 200:
+            meta = r.json()['meta']
+            total_count = meta['total_count'] # type: int
+            return total_count
+        return None
 
 
-    def _cache_put_objects(self, obj_uri: URI, obj_type_uri: URI) -> None:
-        if len(obj_uri.params) > 0:
-            obj_uri = URI(F"{obj_uri.uri}?limit=100&{urllib.parse.urlencode(obj_uri.params)}")
+    def _cache_check_versions(self) -> None:
+        if self.db is None:
+            return
+        cache_version_metadata = self.db.cache_info.find_one({"meta_key": "_cache_versions"})
+        if not cache_version_metadata:
+            dt_version = None
+            cache_version = self.cache_ver
         else:
-            obj_uri = URI(F"{obj_uri.uri}?limit=100")
+            dt_version = cache_version_metadata["dt_version"]
+            cache_version = cache_version_metadata["cache_version"]
 
-        total = None
-        while obj_uri.uri is not None:
-            self._rate_limit()
-            retry = True
-            retry_time = 1.875
-            while retry:
-                retry = False
-                self.get_count += 1
-                req_url     = self.base_url + obj_uri.uri
-                req_headers = {'User-Agent': self.ua}
-                r = self.session.get(req_url, headers = req_headers, verify = True, stream = False)
-                if r.status_code == 200:
-                    meta = r.json()['meta']
-                    objs = r.json()['objects']
-                    obj_uri  = URI(meta['next'])
-                    for obj_json in objs:
-                        self._cache_put_object(URI(obj_json["resource_uri"]), obj_json)
-                    total = meta["total_count"]
-                elif r.status_code == 500:
-                    if retry_time > 60:
-                        print("_cache_put_objects failed: retry_time exceeded")
-                        sys.exit(1)
-                    self.session.close()
-                    time.sleep(retry_time)
-                    retry_time *= 2
-                    retry = True
-                elif r.status_code == 400 and total is not None:
-                    # Error 400 = Bad Request
-                    # This should never happen in a range query such as this,
-                    # but occasionally does because of inconsistencies in the
-                    # database underlying the datatracker. Try to fetch each
-                    # object in the range in turn to isolate the problematic
-                    # object.
-                    self.log.info(F"_cache_put_objects failed: isolating bad request {req_url}")
-                    # Parse the URL to extract the query range:
-                    split = urllib.parse.urlsplit(req_url)
-                    query = urllib.parse.parse_qs(split.query)
-                    offset = int(query["offset"][0])
-                    finish = offset + 100 if offset < total else total
-                    failed = True
-                    # Fetch each object in the range in turn:
-                    for i in range(offset, finish):
-                        obj_uri = URI(self.base_url + split.path)
-                        for k, v in query.items():
-                            obj_uri.params[k] = v
-                        obj_uri.params["offset"] = i
-                        obj_uri.params["limit"]  = 1
-                        self.get_count += 1
-                        self._rate_limit()
-                        r = self.session.get(str(obj_uri), headers = {"User-Agent": self.ua}, verify = True, stream = False)
-                        if r.status_code == 200:
-                            new_json = r.json() # type: Dict[str, Any]
-                            self._cache_put_object(URI(split.path), new_json)
-                            failed = False
-                        elif r.status_code == 400:
-                            self.log.info(F"  {r.status_code} {obj_uri}")
-                        else:
-                            print(F"_cache_put_objects failed: error {r.status_code} after {self.http_req} requests {req_url}")
-                            sys.exit(1)
-                    if failed:
-                        print(F"_cache_put_objects failed: no request in range could be retrieved")
-                        sys.exit(1)
-                    # Construct the next range URL, and continue:
-                    obj_uri = URI(split.path)
-                    for k, v in query.items():
-                        obj_uri.params[k] = v
-                    obj_uri.params["offset"] = finish
-                    obj_uri.params["limit"]  = 100
-                    obj_uri = URI(F"{obj_uri.uri}?{urllib.parse.urlencode(obj_uri.params)}")
-                else:
-                    print(F"_cache_put_objects failed: error {r.status_code} after {self.http_req} requests {req_url}")
-                    sys.exit(1)
+        # check Datatracker version
+        dt_version_url = "https://datatracker.ietf.org/api/version"
+        req_headers = {'User-Agent': self.ua}
+        self._rate_limit()
+        r = self.session.get(dt_version_url, headers = req_headers, verify = True, stream = False)
+        if r.status_code == 200:
+            url_obj = r.json()
+            self.log.info(f"Datatracker version: {url_obj['version']}")
+            if dt_version != url_obj["version"]:
+                self.log.info(f"Datatracker version does not match cache ({dt_version})")
+                for cache_index_uri in self._cache_indexes:
+                    cache_obj_uri = URI(uri=cache_index_uri(uri=None).root)
+                    if "time" not in self._cache_indexes[cache_index_uri].fields:
+                        if self.db.cache_info.find_one({"meta_key": _cache_uri_format(cache_obj_uri)}):
+                            self._cache_delete(cache_obj_uri)
+                dt_version = url_obj["version"]
+        else:
+            self.log.info(f"could not fetch Datatracker version: {r.status_code} {dt_version_url}")
+            return
+
+        # check cache version
+        if cache_version != self.cache_ver:
+            self.log.info(f"Library cache version ({self.cache_ver}) does not match cache ({cache_version})")
+            for cache_index_uri in self._cache_indexes:
+                cache_obj_uri = URI(uri=cache_index_uri(uri=None).root)
+                self._cache_delete(cache_obj_uri)
+            cache_version = self.cache_ver
+
+        self.db.cache_info.replace_one({"meta_key" : "_cache_versions"}, {"meta_key": "_cache_versions", "dt_version": dt_version, "cache_version": cache_version}, upsert=True)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -2357,6 +2295,7 @@ class DataTracker:
         if not self._cache_has_object(obj_uri):
             self._rate_limit()
             self.get_count += 1
+            assert obj_uri.uri is not None
             req_url     = self.base_url + obj_uri.uri
             req_headers = {'User-Agent': self.ua}
             req_params  = obj_uri.params
@@ -2376,6 +2315,99 @@ class DataTracker:
             return self._cache_get_object(obj_uri)
 
 
+    def _retrieve_jsons(self, obj_uri: URI, cache_uri: URI, param_objs: Dict[str, Optional[Resource]], obj_type_uri: URI, obj_type: Type[T]) -> List[Dict[Any, Any]]:
+        if self._cache_has_objects(cache_uri, obj_type_uri) or self._cache_has_all_objects(obj_uri):
+            self.cache_hit += 1
+            return self._cache_get_objects(obj_uri, param_objs, obj_type_uri, obj_type)
+
+        if len(obj_uri.params) > 0:
+            obj_uri = type(obj_type_uri)(F"{obj_uri.uri}?limit=100&{urllib.parse.urlencode(obj_uri.params)}")
+        else:
+            obj_uri = type(obj_type_uri)(F"{obj_uri.uri}?limit=100")
+
+        total = None
+        fetched_objs = [] # type: List[Dict[Any, Any]]
+        while obj_uri.uri is not None:
+            self._rate_limit()
+            retry = True
+            retry_time = 1.875
+            while retry:
+                retry = False
+                self.get_count += 1
+                req_url     = self.base_url + obj_uri.uri
+                req_headers = {'User-Agent': self.ua}
+                try:
+                    r = self.session.get(req_url, headers = req_headers, verify = True, stream = False)
+                    if r.status_code == 200:
+                        meta = r.json()['meta']
+                        objs = r.json()['objects']
+                        obj_uri  = URI(meta['next'])
+                        fetched_objs = objs + fetched_objs
+                        total = meta["total_count"]
+                    elif r.status_code == 500:
+                        if retry_time > 60:
+                            print("_retrieve_jsons failed: retry_time exceeded")
+                            sys.exit(1)
+                        self.session.close()
+                        time.sleep(retry_time)
+                        retry_time *= 2
+                        retry = True
+                    elif r.status_code == 400 and total is not None:
+                        # Error 400 = Bad Request
+                        # This should never happen in a range query such as this,
+                        # but occasionally does because of inconsistencies in the
+                        # database underlying the datatracker. Try to fetch each
+                        # object in the range in turn to isolate the problematic
+                        # object.
+                        self.log.info(F"_retrieve_jsons failed: isolating bad request {req_url}")
+                        # Parse the URL to extract the query range:
+                        split = urllib.parse.urlsplit(req_url)
+                        query = urllib.parse.parse_qs(split.query)
+                        offset = int(query["offset"][0])
+                        finish = offset + 100 if offset < total else total
+                        failed = True
+                        # Fetch each object in the range in turn:
+                        for i in range(offset, finish):
+                            obj_uri = URI(self.base_url + split.path)
+                            for k, v in query.items():
+                                obj_uri.params[k] = v
+                            obj_uri.params["offset"] = i
+                            obj_uri.params["limit"]  = 1
+                            self.get_count += 1
+                            self._rate_limit()
+                            r = self.session.get(str(obj_uri), headers = {"User-Agent": self.ua}, verify = True, stream = False)
+                            if r.status_code == 200:
+                                new_json = r.json() # type: Dict[str, Any]
+                                fetched_objs = objs + fetched_objs
+                                failed = False
+                            elif r.status_code == 400:
+                                self.log.info(F"  {r.status_code} {obj_uri}")
+                            else:
+                                print(F"_retrieve_jsons failed: error {r.status_code} after {self.http_req} requests {req_url}")
+                                sys.exit(1)
+                        if failed:
+                            print(F"_retrieve_jsons failed: no request in range could be retrieved")
+                            sys.exit(1)
+                        # Construct the next range URL, and continue:
+                        obj_uri = type(obj_type_uri)(split.path)
+                        for k, v in query.items():
+                            obj_uri.params[k] = v
+                        obj_uri.params["offset"] = finish
+                        obj_uri.params["limit"]  = 100
+                        obj_uri = type(obj_type_uri)(F"{obj_uri.uri}?{urllib.parse.urlencode(obj_uri.params)}")
+                    else:
+                        print(F"_retrieve_jsons failed: error {r.status_code} after {self.http_req} requests {req_url}")
+                        sys.exit(1)
+                except requests.exceptions.ConnectionError:
+                    self.log.warn(F"_retrieve_jsons failed: connection error - will retry in {retry_time}")
+                    self.session.close()
+                    time.sleep(retry_time)
+                    retry_time *= 2
+                    retry = True
+        if self.db is not None:
+            for obj_json in fetched_objs:
+                self._cache_put_object(type(obj_type_uri)(obj_json["resource_uri"]), obj_json)
+        return fetched_objs
 
     def _retrieve(self, obj_uri: URI, obj_type: Type[T]) -> Optional[T]:
         self._cache_update(_parent_uri(obj_uri), obj_type)
@@ -2386,29 +2418,30 @@ class DataTracker:
             return None
 
 
-    def _retrieve_multi(self, obj_uri: URI, obj_type: Type[T]) -> Iterator[T]:
-        obj_type_uri = URI(obj_uri.uri)
-        cache_uri = URI(obj_uri.uri)
+    def _retrieve_multi(self, obj_uri: URI, param_objs: Dict[str, Optional[Resource]], obj_type: Type[T]) -> Iterator[T]:
+        obj_type_uri = type(obj_uri)(obj_uri.uri)
+        cache_uri = type(obj_uri)(obj_uri.uri)
         for n, v in obj_uri.params.items():
             assert n is not None
             assert v is not None
             if n != "time__gte" and n != "time__lt":
                 cache_uri.params[n] = v
 
-        self._cache_create(obj_type_uri)
+        self._cache_update(_parent_uri(obj_uri), obj_type)
         self.cache_req += 1
 
-        if self._cache_has_objects(cache_uri, obj_type_uri) or self._cache_has_all_objects(obj_type_uri):
-            self.cache_hit += 1
-            self._cache_update(obj_type_uri, obj_type)
-            for obj in self._cache_get_objects(obj_uri, obj_type_uri, obj_type):
-                yield obj # Type: T
-        else:
-            self._cache_put_objects(cache_uri, obj_type_uri)
-            self._cache_record_query(cache_uri, obj_type_uri)
-            for obj in self._cache_get_objects(obj_uri, obj_type_uri, obj_type):
-                yield obj # Type: T
-
+        obj_jsons = self._retrieve_jsons(obj_uri, cache_uri, param_objs, obj_type_uri, obj_type)
+        self._cache_record_query(cache_uri, obj_type_uri)
+        results = []
+        for fetched_obj in obj_jsons:
+            sort_key = ""
+            for sb in self._cache_indexes[type(obj_type_uri)].order_by:
+                sort_key += F" {fetched_obj[sb]:40}"
+            results.append((sort_key, fetched_obj))
+        results.sort(key=_sort_objs, reverse=self._cache_indexes[type(obj_type_uri)].reverse)
+        for key, obj_json in results:
+            obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
+            yield obj
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -2423,7 +2456,7 @@ class DataTracker:
 
 
     def person_from_email(self, email_addr: str) -> Optional[Person]:
-        email = self.email(EmailURI("/api/v1/person/email/" + email_addr.replace("/", "%40") + "/"))
+        email = self.email(EmailURI(F"/api/v1/person/email/{email_addr}/"))
         if email is not None and email.person is not None:
             return self.person(email.person)
         else:
@@ -2433,19 +2466,19 @@ class DataTracker:
     def person_aliases(self, person: Person) -> Iterator[PersonAlias]:
         url = PersonAliasURI("/api/v1/person/alias/")
         url.params["person"] = person.id
-        return self._retrieve_multi(url, PersonAlias)
+        return self._retrieve_multi(url, {"person": person}, PersonAlias)
 
 
     def person_history(self, person: Person) -> Iterator[HistoricalPerson]:
-        url = PersonURI("/api/v1/person/historicalperson/")
+        url = HistoricalPersonURI("/api/v1/person/historicalperson/")
         url.params["id"] = person.id
-        return self._retrieve_multi(url, HistoricalPerson)
+        return self._retrieve_multi(url, {"person": person}, HistoricalPerson)
 
 
     def person_events(self, person: Person) -> Iterator[PersonEvent]:
         url = PersonEventURI("/api/v1/person/personevent/")
         url.params["person"] = person.id
-        return self._retrieve_multi(url, PersonEvent)
+        return self._retrieve_multi(url, {"person": person}, PersonEvent)
 
 
     def people(self,
@@ -2472,7 +2505,7 @@ class DataTracker:
             url.params["name__contains"] = name_contains
         if ascii_contains is not None:
             url.params["ascii__contains"] = ascii_contains
-        return self._retrieve_multi(url, Person)
+        return self._retrieve_multi(url, {}, Person)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -2487,19 +2520,19 @@ class DataTracker:
     def email_for_person(self, person: Person) -> Iterator[Email]:
         uri = EmailURI("/api/v1/person/email/")
         uri.params["person"] = person.id
-        return self._retrieve_multi(uri, Email)
+        return self._retrieve_multi(uri, {"person": person}, Email)
 
 
     def email_history_for_address(self, email_addr: str) -> Iterator[HistoricalEmail]:
-        uri = EmailURI("/api/v1/person/historicalemail/")
-        uri.params["address"] = email_addr.replace("/", "%40")
-        return self._retrieve_multi(uri, HistoricalEmail)
+        uri = HistoricalEmailURI("/api/v1/person/historicalemail/")
+        uri.params["address"] = email_addr
+        return self._retrieve_multi(uri, {}, HistoricalEmail)
 
 
     def email_history_for_person(self, person: Person) -> Iterator[HistoricalEmail]:
-        uri = EmailURI("/api/v1/person/historicalemail/")
+        uri = HistoricalEmailURI("/api/v1/person/historicalemail/")
         uri.params["person"] = person.id
-        return self._retrieve_multi(uri, HistoricalEmail)
+        return self._retrieve_multi(uri, {"person": person}, HistoricalEmail)
 
 
     def emails(self,
@@ -2522,7 +2555,7 @@ class DataTracker:
         url.params["time__lt"]   = until
         if addr_contains is not None:
             url.params["address__contains"] = addr_contains
-        return self._retrieve_multi(url, Email)
+        return self._retrieve_multi(url, {}, Email)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -2549,7 +2582,7 @@ class DataTracker:
             url.params["stream"] = stream.slug
         if group is not None:
             url.params["group"] = group.id
-        return self._retrieve_multi(url, Document)
+        return self._retrieve_multi(url, {"type": doctype, "stream": stream, "group": group}, Document)
 
 
     # Datatracker API endpoints returning information about document aliases:
@@ -2572,7 +2605,7 @@ class DataTracker:
         url = DocumentAliasURI("/api/v1/doc/docalias/")
         if name is not None:
             url.params["name"] = name
-        return self._retrieve_multi(url, DocumentAlias)
+        return self._retrieve_multi(url, {}, DocumentAlias)
 
 
     def document_from_draft(self, draft: str) -> Optional[Document]:
@@ -2654,7 +2687,7 @@ class DataTracker:
 
 
     def document_types(self) -> Iterator[DocumentType]:
-        return self._retrieve_multi(DocumentTypeURI("/api/v1/name/doctypename/"), DocumentType)
+        return self._retrieve_multi(DocumentTypeURI("/api/v1/name/doctypename/"), {}, DocumentType)
 
 
     # Datatracker API endpoints returning information about document states:
@@ -2673,7 +2706,7 @@ class DataTracker:
             url.params["type"] = state_type.slug
         if slug is not None:
             url.params["slug"] = slug
-        return self._retrieve_multi(url, DocumentState)
+        return self._retrieve_multi(url, {"type": state_type}, DocumentState)
 
 
     def document_state_type(self, state_type_uri : DocumentStateTypeURI) -> Optional[DocumentStateType]:
@@ -2686,7 +2719,7 @@ class DataTracker:
 
     def document_state_types(self) -> Iterator[DocumentStateType]:
         url = DocumentStateTypeURI("/api/v1/doc/statetype/")
-        return self._retrieve_multi(url, DocumentStateType)
+        return self._retrieve_multi(url, {}, DocumentStateType)
 
 
     # Datatracker API endpoints returning information about document events:
@@ -2736,7 +2769,7 @@ class DataTracker:
         if by is not None:
             url.params["by"]   = by.id
         url.params["type"]     = event_type
-        return self._retrieve_multi(url, DocumentEvent)
+        return self._retrieve_multi(url, {"doc": doc, "by": by}, DocumentEvent)
 
 
     # Datatracker API endpoints returning information about document authorship:
@@ -2747,19 +2780,19 @@ class DataTracker:
     def document_authors(self, document : Document) -> Iterator[DocumentAuthor]:
         url = DocumentAuthorURI("/api/v1/doc/documentauthor/")
         url.params["document"] = document.id
-        return self._retrieve_multi(url, DocumentAuthor)
+        return self._retrieve_multi(url, {"document": document}, DocumentAuthor)
 
 
     def documents_authored_by_person(self, person : Person) -> Iterator[DocumentAuthor]:
         url = DocumentAuthorURI("/api/v1/doc/documentauthor/")
         url.params["person"] = person.id
-        return self._retrieve_multi(url, DocumentAuthor)
+        return self._retrieve_multi(url, {"person": person}, DocumentAuthor)
 
 
     def documents_authored_by_email(self, email : Email) -> Iterator[DocumentAuthor]:
         url = DocumentAuthorURI("/api/v1/doc/documentauthor/")
         url.params["email"] = email.address
-        return self._retrieve_multi(url, DocumentAuthor)
+        return self._retrieve_multi(url, {"email": email}, DocumentAuthor)
 
 
     # Datatracker API endpoints returning information about related documents:
@@ -2779,7 +2812,7 @@ class DataTracker:
             url.params["target"] = target.id
         if relationship_type is not None:
             url.params["relationship"] = relationship_type.slug
-        return self._retrieve_multi(url, RelatedDocument)
+        return self._retrieve_multi(url, {"source": source, "target": target, "relationship": relationship_type}, RelatedDocument)
 
 
     def relationship_type(self, relationship_type_uri: RelationshipTypeURI) -> Optional[RelationshipType]:
@@ -2811,7 +2844,7 @@ class DataTracker:
             An iterator of RelationshipType objects
         """
         url = RelationshipTypeURI("/api/v1/name/docrelationshipname/")
-        return self._retrieve_multi(url, RelationshipType)
+        return self._retrieve_multi(url, {}, RelationshipType)
 
 
     # Datatracker API endpoints returning information about document history:
@@ -2846,7 +2879,7 @@ class DataTracker:
            A sequence of BallotPositionName objects
         """
         url = BallotPositionNameURI("/api/v1/name/ballotpositionname/")
-        return self._retrieve_multi(url, BallotPositionName)
+        return self._retrieve_multi(url, {}, BallotPositionName)
 
 
     def ballot_type(self, ballot_type_uri : BallotTypeURI) -> Optional[BallotType]:
@@ -2866,7 +2899,7 @@ class DataTracker:
         url = BallotTypeURI("/api/v1/doc/ballottype/")
         if doc_type is not None:
             url.params["doc_type"] = doc_type.slug
-        return self._retrieve_multi(url, BallotType)
+        return self._retrieve_multi(url, {"doc_type": doc_type}, BallotType)
 
 
 
@@ -2906,7 +2939,7 @@ class DataTracker:
             url.params["doc"] = doc.id
         if event_type is not None:
             url.params["type"] = event_type
-        return self._retrieve_multi(url, BallotDocumentEvent)
+        return self._retrieve_multi(url, {"ballot_type": ballot_type, "by": by, "doc": doc}, BallotDocumentEvent)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -2926,7 +2959,7 @@ class DataTracker:
         url = SubmissionURI("/api/v1/submit/submission/")
         url.params["submission_date__gte"] = date_since
         url.params["submission_date__lt"] = date_until
-        return self._retrieve_multi(url, Submission)
+        return self._retrieve_multi(url, {}, Submission)
 
 
     def submission_event(self, event_uri: SubmissionEventURI) -> Optional[SubmissionEvent]:
@@ -2957,7 +2990,7 @@ class DataTracker:
             url.params["by"] = by.id
         if submission is not None:
             url.params["submission"] = submission.id
-        return self._retrieve_multi(url, SubmissionEvent)
+        return self._retrieve_multi(url, {"by": by, "submission": submission}, SubmissionEvent)
 
     # ----------------------------------------------------------------------------------------------------------------------------
     # Datatracker API endpoints returning miscellaneous information about documents:
@@ -2981,7 +3014,7 @@ class DataTracker:
 
 
     def streams(self) -> Iterator[Stream]:
-        return self._retrieve_multi(StreamURI("/api/v1/name/streamname/"), Stream)
+        return self._retrieve_multi(StreamURI("/api/v1/name/streamname/"), {}, Stream)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -3012,7 +3045,7 @@ class DataTracker:
     def group_from_acronym(self, acronym: str) -> Optional[Group]:
         url = GroupURI("/api/v1/group/group/")
         url.params["acronym"] = acronym
-        groups = list(self._retrieve_multi(url, Group))
+        groups = list(self._retrieve_multi(url, {}, Group))
         if len(groups) == 0:
             return None
         elif len(groups) == 1:
@@ -3036,7 +3069,7 @@ class DataTracker:
             url.params["state"] = state.slug
         if parent is not None:
             url.params["parent"] = parent.id
-        return self._retrieve_multi(url, Group)
+        return self._retrieve_multi(url, {"state": state, "parent": parent}, Group)
 
 
     def group_history(self, group_history_uri: GroupHistoryURI) -> Optional[GroupHistory]:
@@ -3046,7 +3079,7 @@ class DataTracker:
     def group_histories_from_acronym(self, acronym: str) -> Iterator[GroupHistory]:
         url = GroupHistoryURI("/api/v1/group/grouphistory/")
         url.params["acronym"] = acronym
-        return self._retrieve_multi(url, GroupHistory)
+        return self._retrieve_multi(url, {}, GroupHistory)
 
 
     def group_histories(self,
@@ -3064,7 +3097,7 @@ class DataTracker:
             url.params["state"] = state.slug
         if parent is not None:
             url.params["parent"] = parent.id
-        return self._retrieve_multi(url, GroupHistory)
+        return self._retrieve_multi(url, {"group": group, "state": state, "parent": parent}, GroupHistory)
 
 
     def group_event(self, group_event_uri : GroupEventURI) -> Optional[GroupEvent]:
@@ -3086,7 +3119,7 @@ class DataTracker:
             url.params["group"] = group.id
         if type is not None:
             url.params["type"]  = type
-        return self._retrieve_multi(url, GroupEvent)
+        return self._retrieve_multi(url, {"by": by, "group": group}, GroupEvent)
 
     def group_url(self, group_url_uri: GroupUrlURI) -> Optional[GroupUrl]:
         return self._retrieve(group_url_uri, GroupUrl)
@@ -3096,7 +3129,7 @@ class DataTracker:
         url = GroupUrlURI("/api/v1/group/groupurl/")
         if group is not None:
             url.params["group"] = group.id
-        return self._retrieve_multi(url, GroupUrl)
+        return self._retrieve_multi(url, {"group": group}, GroupUrl)
 
 
     def group_milestone_statename(self, group_milestone_statename_uri: GroupMilestoneStateNameURI) -> Optional[GroupMilestoneStateName]:
@@ -3104,7 +3137,7 @@ class DataTracker:
 
 
     def group_milestone_statenames(self) -> Iterator[GroupMilestoneStateName]:
-        return self._retrieve_multi(GroupMilestoneStateNameURI("/api/v1/name/groupmilestonestatename/"), GroupMilestoneStateName)
+        return self._retrieve_multi(GroupMilestoneStateNameURI("/api/v1/name/groupmilestonestatename/"), {}, GroupMilestoneStateName)
 
 
     def group_milestone(self, group_milestone_uri : GroupMilestoneURI) -> Optional[GroupMilestone]:
@@ -3123,7 +3156,7 @@ class DataTracker:
             url.params["group"] = group.id
         if state is not None:
             url.params["state"] = state.slug
-        return self._retrieve_multi(url, GroupMilestone)
+        return self._retrieve_multi(url, {"group": group, "state": state}, GroupMilestone)
 
 
     def role_name(self, role_name_uri: RoleNameURI) -> Optional[RoleName]:
@@ -3135,7 +3168,7 @@ class DataTracker:
 
 
     def role_names(self) -> Iterator[RoleName]:
-        return self._retrieve_multi(RoleNameURI("/api/v1/name/rolename/"), RoleName)
+        return self._retrieve_multi(RoleNameURI("/api/v1/name/rolename/"), {}, RoleName)
 
 
     def group_role(self, group_role_uri : GroupRoleURI) -> Optional[GroupRole]:
@@ -3156,7 +3189,7 @@ class DataTracker:
             url.params["name"] = name.slug
         if person is not None:
             url.params["person"] = person.id
-        return self._retrieve_multi(url, GroupRole)
+        return self._retrieve_multi(url, {"group": group, "name": name, "person": person}, GroupRole)
 
 
     def group_role_history(self, group_role_history_uri : GroupRoleHistoryURI) -> Optional[GroupRoleHistory]:
@@ -3177,7 +3210,7 @@ class DataTracker:
             url.params["name"] = name.slug
         if person is not None:
             url.params["person"] = person.id
-        return self._retrieve_multi(url, GroupRoleHistory)
+        return self._retrieve_multi(url, {"name": name, "person": person}, GroupRoleHistory)
 
 
     def group_milestone_history(self, group_milestone_history_uri : GroupMilestoneHistoryURI) -> Optional[GroupMilestoneHistory]:
@@ -3199,7 +3232,7 @@ class DataTracker:
             url.params["milestone"] = milestone.id
         if state is not None:
             url.params["state"] = state.slug
-        return self._retrieve_multi(url, GroupMilestoneHistory)
+        return self._retrieve_multi(url, {"group": group, "milestone": milestone, "state": state}, GroupMilestoneHistory)
 
 
     def group_milestone_event(self, group_milestone_event_uri : GroupMilestoneEventURI) -> Optional[GroupMilestoneEvent]:
@@ -3224,7 +3257,7 @@ class DataTracker:
             url.params["milestone"] = milestone.id
         if type is not None:
             url.params["type"] = type
-        return self._retrieve_multi(url, GroupMilestoneEvent)
+        return self._retrieve_multi(url, {"by": by, "group": group, "milestone": milestone}, GroupMilestoneEvent)
 
 
     def group_state_change_event(self, group_state_change_event_uri : GroupStateChangeEventURI) -> Optional[GroupStateChangeEvent]:
@@ -3246,7 +3279,7 @@ class DataTracker:
             url.params["group"] = group.id
         if state is not None:
             url.params["state"] = state.slug
-        return self._retrieve_multi(url, GroupStateChangeEvent)
+        return self._retrieve_multi(url, {"by": by, "group": group, "state": state}, GroupStateChangeEvent)
 
 
     def group_state(self, group_state_uri : GroupStateURI) -> Optional[GroupState]:
@@ -3259,7 +3292,7 @@ class DataTracker:
 
     def group_states(self) -> Iterator[GroupState]:
         url = GroupStateURI("/api/v1/name/groupstatename/")
-        return self._retrieve_multi(url, GroupState)
+        return self._retrieve_multi(url, {}, GroupState)
 
 
     def group_type_name(self, group_type_name_uri : GroupTypeNameURI) -> Optional[GroupTypeName]:
@@ -3271,7 +3304,7 @@ class DataTracker:
 
 
     def group_type_names(self) -> Iterator[GroupTypeName]:
-        return self._retrieve_multi(GroupTypeNameURI("/api/v1/name/grouptypename/"), GroupTypeName)
+        return self._retrieve_multi(GroupTypeNameURI("/api/v1/name/grouptypename/"), {}, GroupTypeName)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -3312,7 +3345,7 @@ class DataTracker:
         """
         url = SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/")
         url.params["schedule"] = schedule.id
-        return self._retrieve_multi(url, SessionAssignment)
+        return self._retrieve_multi(url, {"schedule": schedule}, SessionAssignment)
 
 
     def meeting_session_status(self, session: Session) -> SessionStatusName:
@@ -3331,7 +3364,7 @@ class DataTracker:
 
 
     def meeting_session_status_names(self) -> Iterator[SessionStatusName]:
-        return self._retrieve_multi(SessionStatusNameURI("/api/v1/name/sessionstatusname/"), SessionStatusName)
+        return self._retrieve_multi(SessionStatusNameURI("/api/v1/name/sessionstatusname/"), {}, SessionStatusName)
 
 
     def meeting_session(self, session_uri : SessionURI) -> Optional[Session]:
@@ -3345,7 +3378,7 @@ class DataTracker:
         url.params["meeting"]  = meeting.id
         if group is not None:
             url.params["group"] = group.id
-        return self._retrieve_multi(url, Session)
+        return self._retrieve_multi(url, {"meeting": meeting, "group": group}, Session)
 
 
     def meeting_timeslot(self, timeslot_uri: TimeslotURI) -> Optional[Timeslot]:
@@ -3364,7 +3397,7 @@ class DataTracker:
             url.params["session"] = session.id
         if by is not None:
             url.params["by"] = by.id
-        return self._retrieve_multi(url, SchedulingEvent)
+        return self._retrieve_multi(url, {"session": session, "by": by}, SchedulingEvent)
 
 
     def meeting_schedule(self, schedule_uri : ScheduleURI) -> Optional[Schedule]:
@@ -3401,7 +3434,7 @@ class DataTracker:
         url.params["date__lte"] = end_date
         if meeting_type is not None:
             url.params["type"] = meeting_type.slug
-        return self._retrieve_multi(url, Meeting)
+        return self._retrieve_multi(url, {"type": meeting_type}, Meeting)
 
 
 
@@ -3423,7 +3456,7 @@ class DataTracker:
         Returns:
             An iterator of MeetingType objects
         """
-        return self._retrieve_multi(MeetingTypeURI("/api/v1/name/meetingtypename/"), MeetingType)
+        return self._retrieve_multi(MeetingTypeURI("/api/v1/name/meetingtypename/"), {}, MeetingType)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -3451,7 +3484,7 @@ class DataTracker:
 
 
     def ipr_disclosure_states(self) -> Iterator[IPRDisclosureState]:
-        return self._retrieve_multi(IPRDisclosureStateURI("/api/v1/name/iprdisclosurestatename/"), IPRDisclosureState)
+        return self._retrieve_multi(IPRDisclosureStateURI("/api/v1/name/iprdisclosurestatename/"), {}, IPRDisclosureState)
 
 
     def ipr_disclosure_base(self, ipr_disclosure_base_uri: IPRDisclosureBaseURI) -> Optional[IPRDisclosureBase]:
@@ -3479,7 +3512,7 @@ class DataTracker:
             url.params["submitter_email"] = submitter_email
         if submitter_name is not None:
             url.params["submitter_name"] = submitter_name
-        return self._retrieve_multi(url, IPRDisclosureBase)
+        return self._retrieve_multi(url, {"state": state}, IPRDisclosureBase)
 
 
     def generic_ipr_disclosure(self, generic_ipr_disclosure_uri: GenericIPRDisclosureURI) -> Optional[GenericIPRDisclosure]:
@@ -3510,7 +3543,7 @@ class DataTracker:
             url.params["submitter_email"] = submitter_email
         if submitter_name is not None:
             url.params["submitter_name"] = submitter_name
-        return self._retrieve_multi(url, GenericIPRDisclosure)
+        return self._retrieve_multi(url, {"by": by, "state": state}, GenericIPRDisclosure)
 
 
     def ipr_license_type(self, ipr_license_type_uri: IPRLicenseTypeURI) -> Optional[IPRLicenseType]:
@@ -3518,7 +3551,7 @@ class DataTracker:
 
 
     def ipr_license_types(self) -> Iterator[IPRLicenseType]:
-        return self._retrieve_multi(IPRLicenseTypeURI("/api/v1/name/iprlicensetypename/"), IPRLicenseType)
+        return self._retrieve_multi(IPRLicenseTypeURI("/api/v1/name/iprlicensetypename/"), {}, IPRLicenseType)
 
 
     def holder_ipr_disclosure(self, holder_ipr_disclosure_uri: HolderIPRDisclosureURI) -> Optional[HolderIPRDisclosure]:
@@ -3558,7 +3591,7 @@ class DataTracker:
             url.params["submitter_email"] = submitter_email
         if submitter_name is not None:
             url.params["submitter_name"] = submitter_name
-        return self._retrieve_multi(url, HolderIPRDisclosure)
+        return self._retrieve_multi(url, {"by": by, "licensing": licensing, "state": state}, HolderIPRDisclosure)
 
 
     def thirdparty_ipr_disclosure(self, thirdparty_ipr_disclosure_uri: ThirdPartyIPRDisclosureURI) -> Optional[ThirdPartyIPRDisclosure]:
@@ -3592,7 +3625,7 @@ class DataTracker:
             url.params["submitter_email"] = submitter_email
         if submitter_name is not None:
             url.params["submitter_name"] = submitter_name
-        return self._retrieve_multi(url, HolderIPRDisclosure)
+        return self._retrieve_multi(url, {"by": by, "state": state}, HolderIPRDisclosure)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -3642,7 +3675,7 @@ class DataTracker:
 
 
     def review_assignment_states(self) -> Iterator[ReviewAssignmentState]:
-        return self._retrieve_multi(ReviewAssignmentStateURI("/api/v1/name/reviewassignmentstatename/"), ReviewAssignmentState)
+        return self._retrieve_multi(ReviewAssignmentStateURI("/api/v1/name/reviewassignmentstatename/"), {}, ReviewAssignmentState)
 
 
     def review_result_type(self, review_result_uri: ReviewResultTypeURI) -> Optional[ReviewResultType]:
@@ -3654,7 +3687,7 @@ class DataTracker:
 
 
     def review_result_types(self) -> Iterator[ReviewResultType]:
-        return self._retrieve_multi(ReviewResultTypeURI("/api/v1/name/reviewresultname/"), ReviewResultType)
+        return self._retrieve_multi(ReviewResultTypeURI("/api/v1/name/reviewresultname/"), {}, ReviewResultType)
 
 
     def review_type(self, review_type_uri: ReviewTypeURI) -> Optional[ReviewType]:
@@ -3666,7 +3699,7 @@ class DataTracker:
 
 
     def review_types(self) -> Iterator[ReviewType]:
-        return self._retrieve_multi(ReviewTypeURI("/api/v1/name/reviewtypename/"), ReviewType)
+        return self._retrieve_multi(ReviewTypeURI("/api/v1/name/reviewtypename/"), {}, ReviewType)
 
 
     def review_request_state(self, review_request_state_uri: ReviewRequestStateURI) -> Optional[ReviewRequestState]:
@@ -3678,7 +3711,7 @@ class DataTracker:
 
 
     def review_request_states(self) -> Iterator[ReviewRequestState]:
-        return self._retrieve_multi(ReviewRequestStateURI("/api/v1/name/reviewrequeststatename/"), ReviewRequestState)
+        return self._retrieve_multi(ReviewRequestStateURI("/api/v1/name/reviewrequeststatename/"), {}, ReviewRequestState)
 
 
     def review_request(self, review_request_uri: ReviewRequestURI) -> Optional[ReviewRequest]:
@@ -3706,7 +3739,7 @@ class DataTracker:
             url.params["team"] = team.id
         if type is not None:
             url.params["type"] = type.slug
-        return self._retrieve_multi(url, ReviewRequest)
+        return self._retrieve_multi(url, {"doc": doc, "requested_by": requested_by, "state": state, "team": team, "type": type}, ReviewRequest)
 
 
     def review_assignment(self, review_assignment_uri: ReviewAssignmentURI) -> Optional[ReviewAssignment]:
@@ -3735,7 +3768,7 @@ class DataTracker:
             url.params["reviewer"] = reviewer.address
         if state is not None:
             url.params["state"] = state.slug
-        return self._retrieve_multi(url, ReviewAssignment)
+        return self._retrieve_multi(url, {"result": result, "review_request": review_request, "reviewer": reviewer, "state": state}, ReviewAssignment)
 
 
     def review_wish(self, review_wish_uri: ReviewWishURI) -> Optional[ReviewWish]:
@@ -3757,7 +3790,7 @@ class DataTracker:
             url.params["person"] = person.id
         if team is not None:
             url.params["team"] = team.id
-        return self._retrieve_multi(url, ReviewWish)
+        return self._retrieve_multi(url, {"doc": doc, "person": person, "team": team}, ReviewWish)
 
 
     def historical_unavailable_period(self, historical_unavailable_period_uri: HistoricalUnavailablePeriodURI) -> Optional[HistoricalUnavailablePeriod]:
@@ -3778,7 +3811,7 @@ class DataTracker:
             url.params["person"] = person.id
         if team is not None:
             url.params["team"] = team.id
-        return self._retrieve_multi(url, HistoricalUnavailablePeriod)
+        return self._retrieve_multi(url, {"person": person, "team": team}, HistoricalUnavailablePeriod)
 
 
     def historical_review_request(self, historical_review_request_uri: HistoricalReviewRequestURI) -> Optional[HistoricalReviewRequest]:
@@ -3812,7 +3845,7 @@ class DataTracker:
             url.params["team"] = team.id
         if type is not None:
             url.params["type"] = type.slug
-        return self._retrieve_multi(url, HistoricalReviewRequest)
+        return self._retrieve_multi(url, {"doc": doc, "requested_by": requested_by, "state": state, "team": team, "type": type}, HistoricalReviewRequest)
 
 
     def next_reviewer_in_team(self, next_reviewer_in_team_uri: NextReviewerInTeamURI) -> Optional[NextReviewerInTeam]:
@@ -3824,7 +3857,7 @@ class DataTracker:
         url = NextReviewerInTeamURI("/api/v1/review/nextreviewerinteam/")
         if team is not None:
             url.params["team"] = team.id
-        return self._retrieve_multi(url, NextReviewerInTeam)
+        return self._retrieve_multi(url, {"team": team}, NextReviewerInTeam)
 
 
     def review_team_settings(self, review_team_settings_uri: ReviewTeamSettingsURI) -> Optional[ReviewTeamSettings]:
@@ -3836,7 +3869,7 @@ class DataTracker:
         url = ReviewTeamSettingsURI("/api/v1/review/reviewteamsettings/")
         if group is not None:
             url.params["group"] = group.id
-        return self._retrieve_multi(url, ReviewTeamSettings)
+        return self._retrieve_multi(url, {"group": group}, ReviewTeamSettings)
 
 
     def reviewer_settings(self, reviewer_settings_uri: ReviewerSettingsURI) -> Optional[ReviewerSettings]:
@@ -3851,7 +3884,7 @@ class DataTracker:
             url.params["person"] = person.id
         if team is not None:
             url.params["team"] = team.id
-        return self._retrieve_multi(url, ReviewerSettings)
+        return self._retrieve_multi(url, {"person": person, "team": team}, ReviewerSettings)
 
 
     def unavailable_period(self, unavailable_period_uri: UnavailablePeriodURI) -> Optional[UnavailablePeriod]:
@@ -3866,7 +3899,7 @@ class DataTracker:
             url.params["person"] = person.id
         if team is not None:
             url.params["team"] = team.id
-        return self._retrieve_multi(url, UnavailablePeriod)
+        return self._retrieve_multi(url, {"person": person, "team": team}, UnavailablePeriod)
 
 
     def historical_reviewer_settings(self, historical_reviewer_settings_uri: HistoricalReviewerSettingsURI) -> Optional[HistoricalReviewerSettings]:
@@ -3888,7 +3921,7 @@ class DataTracker:
             url.params["person"] = person.id
         if team is not None:
             url.params["team"] = team.id
-        return self._retrieve_multi(url, HistoricalReviewerSettings)
+        return self._retrieve_multi(url, {"person": person, "team": team}, HistoricalReviewerSettings)
 
 
     def historical_review_assignment(self, historical_review_assignment_uri: HistoricalReviewAssignmentURI) -> Optional[HistoricalReviewAssignment]:
@@ -3920,7 +3953,7 @@ class DataTracker:
             url.params["reviewer"] = reviewer.address
         if state is not None:
             url.params["state"] = state.slug
-        return self._retrieve_multi(url, HistoricalReviewAssignment)
+        return self._retrieve_multi(url, {"result": result, "review_request": review_request, "reviewer": reviewer, "state": state}, HistoricalReviewAssignment)
 
 
     def review_secretary_settings(self, review_secretary_settings_uri: ReviewSecretarySettingsURI) -> Optional[ReviewSecretarySettings]:
@@ -3935,7 +3968,7 @@ class DataTracker:
             url.params["person"] = person.id
         if team is not None:
             url.params["team"] = team.id
-        return self._retrieve_multi(url, ReviewSecretarySettings)
+        return self._retrieve_multi(url, {"person": person, "team": team}, ReviewSecretarySettings)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -3952,18 +3985,18 @@ class DataTracker:
         url = MailingListURI("/api/v1/mailinglists/list/")
         if name is not None:
             url.params["name"] = name
-        return self._retrieve_multi(url, MailingList)
+        return self._retrieve_multi(url, {}, MailingList)
 
 
-    def mailing_list_subscriptions(self, 
-            email_addr   : Optional[str] = None, 
+    def mailing_list_subscriptions(self,
+            email_addr   : Optional[str] = None,
             mailing_list : Optional[MailingList] = None) -> Iterator[MailingListSubscriptions]:
         url = MailingListSubscriptionsURI("/api/v1/mailinglists/subscribed/")
         if email_addr is not None:
-            url.params["email"] = email_addr.replace("/", "%40")
+            url.params["email"] = email_addr
         if mailing_list is not None:
             url.params["lists"] = mailing_list.id
-        return self._retrieve_multi(url, MailingListSubscriptions)
+        return self._retrieve_multi(url, {"lists": mailing_list}, MailingListSubscriptions)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -4031,7 +4064,7 @@ class DataTracker:
             url.params["reg_type"] = reg_type
         if ticket_type is not None:
             url.params["ticket_type"] = ticket_type
-        return self._retrieve_multi(url, MeetingRegistration)
+        return self._retrieve_multi(url, {"meeting": meeting, "person": person}, MeetingRegistration)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -4057,7 +4090,7 @@ class DataTracker:
             url.params["group"] = group.id
         if name is not None:
             url.params["name"] = name.slug
-        return self._retrieve_multi(url, AnnouncementFrom)
+        return self._retrieve_multi(url, {"group": group, "name": name}, AnnouncementFrom)
 
 
     #def message(self, message_uri: MessageURI) -> Optional[Message]:
@@ -4104,7 +4137,7 @@ class DataTracker:
             url.params["by"] = by.id
         if message is not None:
             url.params["message"] = message.id
-        return self._retrieve_multi(url, SendQueueEntry)
+        return self._retrieve_multi(url, {"by": by, "message": message}, SendQueueEntry)
 
 
 # =================================================================================================================================

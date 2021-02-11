@@ -1,25 +1,43 @@
 version: 2.1
 
 orbs:
-  python: circleci/python@0.2.1
+  python: circleci/python@1.3.2
 
 jobs:
   build-and-test:
-    executor: python/default
+    docker:
+      - image: cimg/python:3.8
     steps:
       - checkout
       - run:
           environment:
             MYPYPATH: stubs
           command: |
-            sudo pip install pipenv
             pipenv install --dev
             pipenv run make test
             pipenv run coverage run --source ietfdata tests/test_rfcindex.py
-            pipenv run coverage run -a --source ietfdata tests/test_datatracker.py 
+            pipenv run coverage run -a --source ietfdata tests/test_datatracker.py
             pipenv run coverage report
             pipenv run coverage html
           name: Test
+      - store_artifacts:
+          path: htmlcov
+
+  build-and-test-mongodb:
+    docker:
+      - image: cimg/python:3.8
+      - image: circleci/mongo:4.4.2
+    steps:
+      - checkout
+      - run:
+          environment:
+            MYPYPATH: stubs
+            IETFDATA_CACHE: true
+          command: |
+            pipenv install --dev
+            pipenv run make test
+            pipenv run make test
+          name: Test-Cache
       - store_artifacts:
           path: htmlcov
 
@@ -27,3 +45,4 @@ workflows:
   main:
     jobs:
       - build-and-test
+      - build-and-test-mongodb

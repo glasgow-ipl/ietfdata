@@ -10,12 +10,14 @@ wheel = "*"
 twine = "*"
 keyring = "*"
 coverage = "*"
+pymongo-stubs = "*"
 
 [packages]
 requests = "*"
 pavlova = "*"
 imapclient = "*"
 python-dateutil = "*"
+pymongo = "*"
 
 [requires]
-python_version = "3.7"
+python_version = "3.8"

@@ -47,7 +47,7 @@ class TestDatatracker(unittest.TestCase):
 
     @classmethod
     def setUpClass(self) -> None:
-        self.dt = DataTracker(cache_dir=Path("cache"))
+        self.dt = DataTracker()
 
     def test_email(self) -> None:
         e  = self.dt.email(EmailURI("/api/v1/person/email/csp@csperkins.org/"))
@@ -80,7 +80,7 @@ class TestDatatracker(unittest.TestCase):
     def test_email_history_for_address(self) -> None:
         h  = list(self.dt.email_history_for_address("csp@isi.edu"))
         self.assertEqual(len(h), 2)
-        self.assertEqual(h[0].resource_uri, EmailURI("/api/v1/person/historicalemail/71987/"))
+        self.assertEqual(h[0].resource_uri, HistoricalEmailURI("/api/v1/person/historicalemail/71987/"))
         self.assertEqual(h[0].address,      "csp@isi.edu")
         self.assertEqual(h[0].person,       PersonURI("/api/v1/person/person/20209/"))
         self.assertEqual(h[0].origin,       "author: draft-ietf-avt-rtptest")
@@ -93,7 +93,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(h[0].history_user, "")
         self.assertEqual(h[0].history_change_reason, None)
 
-        self.assertEqual(h[1].resource_uri, EmailURI("/api/v1/person/historicalemail/2090/"))
+        self.assertEqual(h[1].resource_uri, HistoricalEmailURI("/api/v1/person/historicalemail/2090/"))
         self.assertEqual(h[1].address,      "csp@isi.edu")
         self.assertEqual(h[1].person,       PersonURI("/api/v1/person/person/20209/"))
         self.assertEqual(h[1].origin,       "author: draft-ietf-avt-rtptest")
@@ -173,7 +173,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(len(h), 3)
 
             self.assertEqual(h[0].id,              20209)
-            self.assertEqual(h[0].resource_uri,    PersonURI("/api/v1/person/historicalperson/11731/"))
+            self.assertEqual(h[0].resource_uri,    HistoricalPersonURI("/api/v1/person/historicalperson/11731/"))
             self.assertEqual(h[0].name,            "Colin Perkins")
             self.assertEqual(h[0].name_from_draft, "Colin Perkins")
             self.assertEqual(h[0].ascii,           "Colin Perkins")
@@ -191,7 +191,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(h[0].history_date,    datetime.fromisoformat("2019-09-29T14:39:48.278674"))
 
             self.assertEqual(h[1].id,              20209)
-            self.assertEqual(h[1].resource_uri,    PersonURI("/api/v1/person/historicalperson/10878/"))
+            self.assertEqual(h[1].resource_uri,    HistoricalPersonURI("/api/v1/person/historicalperson/10878/"))
             self.assertEqual(h[1].name,            "Colin Perkins")
             self.assertEqual(h[1].name_from_draft, "Colin Perkins")
             self.assertEqual(h[1].ascii,           "Colin Perkins")
@@ -209,7 +209,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(h[1].history_date,    datetime.fromisoformat("2019-03-29T02:44:28.426049"))
 
             self.assertEqual(h[2].id,              20209)
-            self.assertEqual(h[2].resource_uri,    PersonURI("/api/v1/person/historicalperson/127/"))
+            self.assertEqual(h[2].resource_uri,    HistoricalPersonURI("/api/v1/person/historicalperson/127/"))
             self.assertEqual(h[2].name,            "Colin Perkins")
             self.assertEqual(h[2].name_from_draft, "Colin Perkins")
             self.assertEqual(h[2].ascii,           "Colin Perkins")
@@ -1459,9 +1459,9 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(group_roles[3].id, 8465)   # IRTF Open Meeting chair
         self.assertEqual(group_roles[4].id, 8466)   # IRTF chair
         self.assertEqual(group_roles[5].id, 9355)   # RMCAT chair
-        self.assertEqual(group_roles[6].id, 10119)  # IRTF ANRW chair
-        self.assertEqual(group_roles[7].id, 10200)  # IAB EDM programme member
-        self.assertEqual(group_roles[8].id, 10204)  # TSV ART reviewer
+        self.assertEqual(group_roles[6].id, 10200)  # IAB EDM programme member
+        self.assertEqual(group_roles[7].id, 10204)  # TSV ART reviewer
+        self.assertEqual(group_roles[8].id, 10644)  # IRTF ANRW chair
 
 
     def test_group_roles_group(self) -> None:
@@ -1486,9 +1486,9 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(group_roles[3].id, 8465)   # IRTF Open Meeting chair
         self.assertEqual(group_roles[4].id, 8466)   # IRTF chair
         self.assertEqual(group_roles[5].id, 9355)   # RMCAT chair
-        self.assertEqual(group_roles[6].id, 10119)  # IRTF ANRW chair
-        self.assertEqual(group_roles[7].id, 10200)  # IAB EDM programme member
-        self.assertEqual(group_roles[8].id, 10204)  # TSV ART reviewer
+        self.assertEqual(group_roles[6].id, 10200)  # IAB EDM programme member
+        self.assertEqual(group_roles[7].id, 10204)  # TSV ART reviewer
+        self.assertEqual(group_roles[8].id, 10644)  # IRTF ANRW chair
 
 
     def test_group_milestone_history(self) -> None:
@@ -1594,7 +1594,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_email(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(email="csp@csperkins.org"))
-        self.assertEqual(len(group_role_histories), 33)
+        self.assertEqual(len(group_role_histories), 34)
 
 
     def test_group_role_histories_group(self) -> None:
@@ -1613,7 +1613,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_person(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(person=self.dt.person(PersonURI("/api/v1/person/person/20209/"))))
-        self.assertEqual(len(group_role_histories), 33)
+        self.assertEqual(len(group_role_histories), 34)
 
 
     def test_group_state_change_event(self) -> None:
@@ -3194,6 +3194,10 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(subs[0].resource_uri, MailingListSubscriptionsURI(uri="/api/v1/mailinglists/subscribed/66700/"))
         self.assertEqual(subs[0].email,        "colin.perkins@glasgow.ac.uk")
         self.assertEqual(subs[0].lists[0],     MailingListURI("/api/v1/mailinglists/list/461/"))
+
+    def test_mailing_list_subscriptions_by_list(self) -> None:
+        subs = list(self.dt.mailing_list_subscriptions(mailing_list=self.dt.mailing_list(MailingListURI("/api/v1/mailinglists/list/1/"))))
+        self.assertIsNot(subs, None)
 
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to statistics:
