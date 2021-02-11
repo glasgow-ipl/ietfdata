@@ -124,26 +124,33 @@ class MailingListMessage:
 
 
 class MessageThread:
-    _msg_ids : List[str]
-    messages: List[Tuple[int, MailingListMessage]]
+    class MessageThreadNode:
+        def __init__(self, message: MailingListMessage):
+            self.parent = None
+            self.children = []
+            self.message = message
 
-    def __init__(self, index: int, first_message: MailingListMessage):
-        self._msg_ids =  [first_message.message['Message-ID']]
-        self.messages = [(index, first_message)]
+        def add_child(self, child):
+            self.children.append(child)
+
+    root : MessageThreadNode
+
+    def __init__(self, root: MessageThreadNode):
+        self.root = root
 
 
-    def should_contain(self, msg: MailingListMessage) -> bool:
-        if "References" in msg.message:
-            for msg_id in msg.message["References"].split():
-                if msg_id in self._msg_ids:
-                    return msg_id in self._msg_ids
-        return msg.message["In-Reply-To"] in self._msg_ids
-
-
-    def append(self, index: int, msg: MailingListMessage) -> None:
-        assert self.should_contain(msg)
-        self._msg_ids.append(msg.message["Message-ID"])
-        self.messages.append((index, msg))
+    # def should_contain(self, msg: MailingListMessage) -> bool:
+    #     if "References" in msg.message:
+    #         for msg_id in msg.message["References"].split():
+    #             if msg_id in self._msg_ids:
+    #                 return msg_id in self._msg_ids
+    #     return msg.message["In-Reply-To"] in self._msg_ids
+    #
+    #
+    # def append(self, index: int, msg: MailingListMessage) -> None:
+    #     assert self.should_contain(msg)
+    #     self._msg_ids.append(msg.message["Message-ID"])
+    #     self.messages.append((index, msg))
 
 # =================================================================================================
 
@@ -293,17 +300,16 @@ class MailingList:
 
 
     def threads(self) -> List[MessageThread]:
-        threads : List[MessageThread] = []
-        for index, message in self.messages():
-            threaded = False
-            for thread in threads:
-                if thread.should_contain(message):
-                    thread.append(index, message)
-                    threaded = True
-                if threaded:
-                    break
-            if not threaded:
-                threads.append(MessageThread(index, message))
+        threads = []
+        msg_nodes = {}
+        for index, msg in self.messages():
+            msg_nodes[msg.message["Message-ID"]] = MessageThread.MessageThreadNode(msg)
+        for msg_id in msg_nodes:
+            in_reply_to = msg_nodes[msg_id].message.message["In-Reply-To"]
+            if in_reply_to is not None and in_reply_to in msg_nodes:
+                msg_nodes[in_reply_to].add_child(msg_nodes[msg_id])
+            else:
+                threads.append(MessageThread(msg_nodes[msg_id]))
         return threads
 
 
