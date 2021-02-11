@@ -32,10 +32,12 @@ import ietfdata.datatracker as dt
 import abc
 import os
 import logging
+import gridfs
 
 from datetime      import datetime, timedelta
 from typing        import List, Optional, Tuple, Dict, Iterator, Type, TypeVar, Any
 from pathlib       import Path
+from pymongo       import MongoClient
 from email.message import Message
 from imapclient    import IMAPClient
 
@@ -108,7 +110,7 @@ class MailingListMessage:
         self.message = message
         self._metadata = {}
         for helper_name in metadata:
-            self._metadata = {**self._metadata, **metadata[helper_name]}
+           self._metadata = {**self._metadata, **metadata[helper_name]}
 
 
     def has_metadata(self, name: str) -> bool:
@@ -147,8 +149,6 @@ class MessageThread:
 
 class MailingList:
     _list_name         : str
-    _cache_dir         : Path
-    _cache_folder      : Path
     _last_updated      : datetime
     _num_messages      : int
     _archive_urls      : Dict[str, int]
@@ -156,45 +156,42 @@ class MailingList:
     _msg_metadata      : Dict[int, Dict[str, Any]]
     _cached_metadata   : Dict[str, Dict[str, Any]]
 
-    def __init__(self, cache_dir: Path, list_name: str, helpers: List[MailArchiveHelper] = [], _reuse_imap=None):
+    def __init__(self, db, fs, list_name: str, helpers: List[MailArchiveHelper] = [], _reuse_imap=None):
         logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
-        self.log            = logging.getLogger("ietfdata")
+        self.log           = logging.getLogger("ietfdata")
         self._list_name    = list_name
-        self._cache_dir    = cache_dir
-        self._cache_folder = Path(self._cache_dir, "mailing-lists", self._list_name)
-        self._cache_folder.mkdir(parents=True, exist_ok=True)
-        self._num_messages = len(list(self._cache_folder.glob("*.msg")))
+        self._db           = db
+        self._fs           = fs
+        self._num_messages = self._db.metadata.find({"list": self._list_name}).count()
         self._archive_urls = {}
         self._helpers = helpers
         self._msg_metadata = {}
         self._cached_metadata = {}
 
         # Rebuild the metadata cache:
-        metadata_cache = Path(self._cache_folder, "metadata.json")
-        metadata_cache_tmp = Path(self._cache_folder, "metadata.json.tmp")
-        if metadata_cache.exists():
-            with open(metadata_cache, "r") as metadata_file:
-                self._cached_metadata = json.load(metadata_file)
-                message_metadata = self._cached_metadata["message_metadata"] # type: Dict[str, Dict[str, Dict[str, Any]]]
-                for msg_id_str in message_metadata:
-                    msg_id = int(msg_id_str)
-                    if not Path(self._cache_folder, F"{msg_id:06d}.msg").exists():
-                        self.log.warn(F"dropping metadata for non-existing message {self._list_name}/{msg_id:06d}.msg")
-                        continue
-                    metadata : Dict[str, Dict[str, Any]] = {}
-                    message_text = None
-                    for helper in self._helpers:
-                        if helper.name in self._cached_metadata["helpers"] and helper.version != self._cached_metadata["helpers"][helper.name]:
-                            self.log.info(F"{helper.name}: version changed, discarding cached metadata")
-                            (message_metadata[msg_id_str]).pop(helper.name)
-                        if helper.name not in message_metadata[msg_id_str] or not all(metadata_field in message_metadata[msg_id_str][helper.name] for metadata_field in helper.provided_fields):
-                            if message_text is None:
-                                message_text = self.raw_message(msg_id)
-                            self.log.info(F"scan message {self._list_name}/{msg_id:06} for metadata - {helper.name:15} (cache update)")
-                            metadata[helper.name] = helper.scan_message(message_text)
-                        else:
-                            metadata[helper.name] = helper.deserialise(message_metadata[msg_id_str][helper.name])
-                    self._msg_metadata[msg_id] = metadata
+        metadata_cache = self._db.metadata_cache.find_one({"list": self._list_name})
+        if metadata_cache:
+            self._cached_metadata = metadata_cache["cached_metadata"]
+            message_metadata = self._cached_metadata["message_metadata"] # type: Dict[str, Dict[str, Dict[str, Any]]]
+            for msg_id_str in message_metadata:
+                msg_id = int(msg_id_str)
+                if not self._db.metadata.find_one({"list": self._list_name, "id": msg_id}):
+                    self.log.warn(F"dropping metadata for non-existing message {self._list_name}/{msg_id:06d}.msg")
+                    continue
+                metadata : Dict[str, Dict[str, Any]] = {}
+                message_text = None
+                for helper in self._helpers:
+                    if helper.name in self._cached_metadata["helpers"] and helper.version != self._cached_metadata["helpers"][helper.name]:
+                        self.log.info(F"{helper.name}: version changed, discarding cached metadata")
+                        (message_metadata[msg_id_str]).pop(helper.name)
+                    if helper.name not in message_metadata[msg_id_str] or not all(metadata_field in message_metadata[msg_id_str][helper.name] for metadata_field in helper.provided_fields):
+                        if message_text is None:
+                            message_text = self.raw_message(msg_id)
+                        self.log.info(F"scan message {self._list_name}/{msg_id:06} for metadata - {helper.name:15} (cache update)")
+                        metadata[helper.name] = helper.scan_message(message_text)
+                    else:
+                        metadata[helper.name] = helper.deserialise(message_metadata[msg_id_str][helper.name])
+                self._msg_metadata[msg_id] = metadata
         else:
             self.log.info(F"no metadata cache for mailing list {self._list_name}")
             for index in self.message_indices():
@@ -220,11 +217,9 @@ class MailingList:
         self.serialise_metadata()
 
         # Rebuild the archived-at cache:
-        aa_cache     = Path(self._cache_folder, "aa-cache.json")
-        aa_cache_tmp = Path(self._cache_folder, "aa-cache.json.tmp")
-        if aa_cache.exists():
-            with open(aa_cache, "r") as cache_file:
-                self._archive_urls = json.load(cache_file)
+        aa_cache = self._db.aa_cache.find_one({"list": self._list_name})
+        if aa_cache:
+            self._archive_urls = aa_cache["archive_urls"]
         else:
             self.log.info(F"no archived-at cache for mailing list {self._list_name}")
             for index, msg in self.messages():
@@ -232,10 +227,7 @@ class MailingList:
                     self.log.info(F"scan message {self._list_name}/{index:06} for archived-at")
                     list_name, msg_hash = _parse_archive_url(msg.message["Archived-At"])
                     self._archive_urls[msg_hash] = index
-            with open(aa_cache_tmp, "w") as cache_file:
-                json.dump(self._archive_urls, cache_file, indent=4)
-            aa_cache_tmp.rename(aa_cache)
-
+            self._db.aa_cache.replace_one({"list" : self._list_name}, {"list" : self._list_name, "archive_urls": self._archive_urls}, upsert=True)
 
 
     def name(self) -> str:
@@ -247,19 +239,16 @@ class MailingList:
 
 
     def serialise_metadata(self) -> None:
-        metadata_cache = Path(self._cache_folder, "metadata.json")
-        metadata_cache_tmp = Path(self._cache_folder, "metadata.json.tmp")
-        with open(metadata_cache_tmp, "w") as metadata_file:
-            serialised_metadata = {"helpers": {}, "message_metadata": {}} # type: Dict[str, Dict[Any, Any]]
-            serialised_metadata["helpers"] = {}
-            serialised_metadata["helpers"] = {**serialised_metadata["helpers"], **self._cached_metadata.get("helpers", {})}
-            for helper in self._helpers:
-                serialised_metadata["helpers"][helper.name] = helper.version
-            for msg_id in self._msg_metadata:
-                serialised_metadata["message_metadata"][msg_id] = self.serialise_message(msg_id)
-                serialised_metadata["message_metadata"][msg_id] = {**serialised_metadata["message_metadata"][msg_id], **(self._cached_metadata.get("message_metadata", {}).get(str(msg_id), {}))}
-            json.dump(serialised_metadata, metadata_file, indent=4)
-        metadata_cache_tmp.rename(metadata_cache)
+        serialised_metadata = {"helpers": {}, "message_metadata": {}} # type: Dict[str, Dict[Any, Any]]
+        serialised_metadata["helpers"] = {}
+        serialised_metadata["helpers"] = {**serialised_metadata["helpers"], **self._cached_metadata.get("helpers", {})}
+        for helper in self._helpers:
+            serialised_metadata["helpers"][helper.name] = helper.version
+        for msg_id in self._msg_metadata:
+            serialised_metadata["message_metadata"][str(msg_id)] = self.serialise_message(msg_id)
+            serialised_metadata["message_metadata"][str(msg_id)] = {**serialised_metadata["message_metadata"][str(msg_id)], **(self._cached_metadata.get("message_metadata", {}).get(str(msg_id), {}))}
+        print(serialised_metadata)
+        self._db.metadata_cache.replace_one({"list" : self._list_name}, {"list" : self._list_name, "cached_metadata": serialised_metadata}, upsert=True)
 
 
     def serialise_message(self, msg_id: int) -> Dict[str, Dict[str, Any]]:
@@ -270,14 +259,16 @@ class MailingList:
 
 
     def raw_message(self, msg_id: int) -> Message:
-        cache_file = Path(self._cache_folder, "{:06d}.msg".format(msg_id))
-        with open(cache_file, "rb") as inf:
-            message = email.message_from_binary_file(inf)
+        cache_metadata = self._db.metadata.find_one({"list" : self._list_name, "id": msg_id})
+        if cache_metadata:
+            message = email.message_from_bytes(self._fs.get(cache_metadata["gridfs_id"]).read())
         return message
 
 
     def message_indices(self) -> List[int]:
-        return [int(str(msg_path).split("/")[-1][:-4]) for msg_path in sorted(self._cache_folder.glob("*.msg"))]
+        cache_metadata = self._db.metadata.find({"list" : self._list_name})
+        indices = [message_metadata["id"] for message_metadata in cache_metadata]
+        return sorted(indices)
 
 
     def message_from_archive_url(self, archive_url:str) -> MailingListMessage:
@@ -294,9 +285,9 @@ class MailingList:
         for msg_id in self.message_indices():
             include_msg = True
             for helper in self._helpers:
-                if not helper.filter(self._msg_metadata[msg_id][helper.name], **kwargs):
-                    include_msg = False
-                    break
+               if not helper.filter(self._msg_metadata[msg_id][helper.name], **kwargs):
+                   include_msg = False
+                   break
             if include_msg:
                 yield msg_id, self.message(msg_id)
 
@@ -329,45 +320,36 @@ class MailingList:
         msg_fetch = []
 
         for msg_id, msg in imap.fetch(msg_list, "RFC822.SIZE").items():
-            cache_file = Path(self._cache_folder, F"{msg_id:06d}.msg")
-            if not cache_file.exists():
+            cache_metadata = self._db.metadata.find_one({"list" : self._list_name, "id" : msg_id})
+            if not cache_metadata:
                 msg_fetch.append(msg_id)
             else:
-                file_size = cache_file.stat().st_size
+                cache_file = self._fs.get(cache_metadata["gridfs_id"])
+                file_size = cache_file.length
                 imap_size = msg[b"RFC822.SIZE"]
-                if file_size != imap_size:
+                if not cache_file or file_size != imap_size:
                     self.log.warn(F"message size mismatch: {self._list_name}/{msg_id:06d}.msg ({file_size} != {imap_size})")
-                    cache_file.unlink()
+                    cache_file.delete()
+                    self._db.metadata.delete_one({"list" : self._list_name, "id" : msg_id})
                     msg_fetch.append(msg_id)
 
         if len(msg_fetch) > 0:
-            aa_cache     = Path(self._cache_folder, "aa-cache.json")
-            aa_cache_tmp = Path(self._cache_folder, "aa-cache.json.tmp")
-            aa_cache.unlink()
-
             for msg_id, msg in imap.fetch(msg_fetch, "RFC822").items():
-                cache_file = Path(self._cache_folder, F"{msg_id:06d}.msg")
-                fetch_file = Path(self._cache_folder, F"{msg_id:06d}.msg.download")
-                if not cache_file.exists():
-                    with open(fetch_file, "wb") as outf:
-                        outf.write(msg[b"RFC822"])
-                    fetch_file.rename(cache_file)
+                cache_file_id = self._fs.put(msg[b"RFC822"])
+                self._db.metadata.replace_one({"list" : self._list_name, "id": msg_id}, {"list" : self._list_name, "id": msg_id, "gridfs_id": cache_file_id}, upsert=True)
+                e = email.message_from_bytes(msg[b"RFC822"])
+                if e["Archived-At"] is not None:
+                    list_name, msg_hash = _parse_archive_url(e["Archived-At"])
+                    self._archive_urls[msg_hash] = msg_id
+                self._num_messages += 1
+                new_msgs.append(msg_id)
 
-                    e = email.message_from_bytes(msg[b"RFC822"])
-                    if e["Archived-At"] is not None:
-                        list_name, msg_hash = _parse_archive_url(e["Archived-At"])
-                        self._archive_urls[msg_hash] = msg_id
-                    self._num_messages += 1
-                    new_msgs.append(msg_id)
+                self._msg_metadata[msg_id] = {}
+                for helper in self._helpers:
+                    self.log.info(F"{helper.name}: scan message {self._list_name}/{msg_id:06} for metadata")
+                    self._msg_metadata[msg_id][helper.name] = helper.scan_message(e)
 
-                    self._msg_metadata[msg_id] = {}
-                    for helper in self._helpers:
-                        self.log.info(F"{helper.name}: scan message {self._list_name}/{msg_id:06} for metadata")
-                        self._msg_metadata[msg_id][helper.name] = helper.scan_message(e)
-
-            with open(aa_cache_tmp, "w") as aa_cache_file:
-                json.dump(self._archive_urls, aa_cache_file)
-            aa_cache_tmp.rename(aa_cache)
+            self._db.aa_cache.replace_one({"list" : self._list_name}, {"list" : self._list_name, "archive_urls": self._archive_urls}, upsert=True)
 
         self.serialise_metadata()
 
@@ -385,16 +367,34 @@ class MailingList:
 # =================================================================================================
 
 class MailArchive:
-    _cache_dir     : Path
     _mailing_lists : Dict[str,MailingList]
     _helpers       : List[MailArchiveHelper]
 
-    def __init__(self, cache_dir: Path, helpers: List[MailArchiveHelper] = []):
+
+    def __init__(self, mongodb_hostname: str = "localhost", mongodb_port: int = 27017, mongodb_username: Optional[str] = None, mongodb_password: Optional[str] = None, helpers: List[MailArchiveHelper] = []):
         logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
         self.log            = logging.getLogger("ietfdata")
-        self._cache_dir     = cache_dir
         self._mailing_lists = {}
         self._helpers       = helpers
+
+        cache_host = os.environ.get('IETFDATA_CACHE_HOST')
+        cache_port = os.environ.get('IETFDATA_CACHE_PORT', 27017)
+        cache_username = os.environ.get('IETFDATA_CACHE_USER')
+        cache_password = os.environ.get('IETFDATA_CACHE_PASSWORD')
+        if cache_host is not None:
+            mongodb_hostname = cache_host
+        if cache_port is not None:
+            mongodb_port = int(cache_port)
+        if cache_username is not None:
+            mongodb_username = cache_username
+        if cache_password is not None:
+            mongodb_password = cache_password
+
+        if mongodb_username is not None:
+            self._db = MongoClient(host=mongodb_hostname, port=mongodb_port, username=mongodb_username, password=mongodb_password).ietfdata_mailarchive
+        else:
+            self._db = MongoClient(host=mongodb_hostname, port=mongodb_port).ietfdata_mailarchive
+        self._fs            = gridfs.GridFS(self._db)
 
 
     def mailing_list_names(self) -> Iterator[str]:
@@ -409,7 +409,7 @@ class MailArchive:
 
     def mailing_list(self, mailing_list_name: str, _reuse_imap=None) -> MailingList:
         if not mailing_list_name in self._mailing_lists:
-            self._mailing_lists[mailing_list_name] = MailingList(self._cache_dir, mailing_list_name, self._helpers, _reuse_imap)
+            self._mailing_lists[mailing_list_name] = MailingList(self._db, self._fs, mailing_list_name, self._helpers, _reuse_imap)
         return self._mailing_lists[mailing_list_name]
 
 
