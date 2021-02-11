@@ -2250,6 +2250,7 @@ class DataTracker:
         # check Datatracker version
         dt_version_url = "https://datatracker.ietf.org/api/version"
         req_headers = {'User-Agent': self.ua}
+        self._rate_limit()
         r = self.session.get(dt_version_url, headers = req_headers, verify = True, stream = False)
         if r.status_code == 200:
             url_obj = r.json()
