@@ -37,7 +37,7 @@ import gridfs
 from datetime      import datetime, timedelta
 from typing        import List, Optional, Tuple, Dict, Iterator, Type, TypeVar, Any
 from pathlib       import Path
-from pymongo       import MongoClient
+from pymongo       import MongoClient, ASCENDING
 from email.message import Message
 from imapclient    import IMAPClient
 
@@ -169,7 +169,7 @@ class MailingList:
         self._list_name    = list_name
         self._db           = db
         self._fs           = fs
-        self._num_messages = self._db.metadata.find({"list": self._list_name}).count()
+        self._num_messages = self._db.messages.find({"list": self._list_name}).count()
         self._archive_urls = {}
         self._helpers = helpers
         self._msg_metadata = {}
@@ -182,7 +182,7 @@ class MailingList:
             message_metadata = self._cached_metadata["message_metadata"] # type: Dict[str, Dict[str, Dict[str, Any]]]
             for msg_id_str in message_metadata:
                 msg_id = int(msg_id_str)
-                if not self._db.metadata.find_one({"list": self._list_name, "id": msg_id}):
+                if not self._db.messages.find_one({"list": self._list_name, "imap_uid": msg_id}):
                     self.log.warn(F"dropping metadata for non-existing message {self._list_name}/{msg_id:06d}.msg")
                     continue
                 metadata : Dict[str, Dict[str, Any]] = {}
@@ -254,7 +254,6 @@ class MailingList:
         for msg_id in self._msg_metadata:
             serialised_metadata["message_metadata"][str(msg_id)] = self.serialise_message(msg_id)
             serialised_metadata["message_metadata"][str(msg_id)] = {**serialised_metadata["message_metadata"][str(msg_id)], **(self._cached_metadata.get("message_metadata", {}).get(str(msg_id), {}))}
-        print(serialised_metadata)
         self._db.metadata_cache.replace_one({"list" : self._list_name}, {"list" : self._list_name, "cached_metadata": serialised_metadata}, upsert=True)
 
 
@@ -266,15 +265,15 @@ class MailingList:
 
 
     def raw_message(self, msg_id: int) -> Message:
-        cache_metadata = self._db.metadata.find_one({"list" : self._list_name, "id": msg_id})
+        cache_metadata = self._db.messages.find_one({"list" : self._list_name, "imap_uid": msg_id})
         if cache_metadata:
             message = email.message_from_bytes(self._fs.get(cache_metadata["gridfs_id"]).read())
         return message
 
 
     def message_indices(self) -> List[int]:
-        cache_metadata = self._db.metadata.find({"list" : self._list_name})
-        indices = [message_metadata["id"] for message_metadata in cache_metadata]
+        cache_metadata = self._db.messages.find({"list" : self._list_name})
+        indices = [message_metadata["imap_uid"] for message_metadata in cache_metadata]
         return sorted(indices)
 
 
@@ -325,29 +324,27 @@ class MailingList:
         msg_list  = imap.search()
         msg_fetch = []
 
+        cached_messages = {msg["imap_uid"] : msg for msg in self._db.messages.find({"list": self._list_name})}
+
         for msg_id, msg in imap.fetch(msg_list, "RFC822.SIZE").items():
-            cache_metadata = self._db.metadata.find_one({"list" : self._list_name, "id" : msg_id})
-            if not cache_metadata:
+            if msg_id not in cached_messages:
                 msg_fetch.append(msg_id)
-            else:
-                cache_file = self._fs.get(cache_metadata["gridfs_id"])
-                file_size = cache_file.length
-                imap_size = msg[b"RFC822.SIZE"]
-                if not cache_file or file_size != imap_size:
-                    self.log.warn(F"message size mismatch: {self._list_name}/{msg_id:06d}.msg ({file_size} != {imap_size})")
-                    cache_file.delete()
-                    self._db.metadata.delete_one({"list" : self._list_name, "id" : msg_id})
-                    msg_fetch.append(msg_id)
+            elif cached_messages[msg_id]["size"] != msg[b"RFC822.SIZE"]:
+                self.log.warn(F"message size mismatch: {self._list_name}/{msg_id:06d}.msg ({cached_messages[msg_id]['size']} != {msg[b'RFC822.SIZE']})")
+                cache_file = self._fs.get(cached_messages[msg_id]["gridfs_id"])
+                cache_file.delete()
+                self._db.messages.delete_one({"list" : self._list_name, "imap_uid" : msg_id})
+                msg_fetch.append(msg_id)
 
         if len(msg_fetch) > 0:
             for msg_id, msg in imap.fetch(msg_fetch, "RFC822").items():
                 cache_file_id = self._fs.put(msg[b"RFC822"])
-                self._db.metadata.replace_one({"list" : self._list_name, "id": msg_id}, {"list" : self._list_name, "id": msg_id, "gridfs_id": cache_file_id}, upsert=True)
                 e = email.message_from_bytes(msg[b"RFC822"])
                 if e["Archived-At"] is not None:
                     list_name, msg_hash = _parse_archive_url(e["Archived-At"])
                     self._archive_urls[msg_hash] = msg_id
                 self._num_messages += 1
+                self._db.messages.replace_one({"list" : self._list_name, "id": msg_id}, {"list" : self._list_name, "imap_uid": msg_id, "size": len(msg[b"RFC822"]), "message-id": e["Message-ID"], "gridfs_id": cache_file_id}, upsert=True)
                 new_msgs.append(msg_id)
 
                 self._msg_metadata[msg_id] = {}
@@ -401,6 +398,11 @@ class MailArchive:
         else:
             self._db = MongoClient(host=mongodb_hostname, port=mongodb_port).ietfdata_mailarchive
         self._fs            = gridfs.GridFS(self._db)
+
+        self._db.messages.create_index([('list', ASCENDING), ('imap_uid', ASCENDING)], unique=True)
+        self._db.messages.create_index([('list', ASCENDING)], unique=False)
+        self._db.aa_cache.create_index([('list', ASCENDING)], unique=True)
+        self._db.metadata_cache.create_index([('list', ASCENDING)], unique=True)
 
 
     def mailing_list_names(self) -> Iterator[str]:
