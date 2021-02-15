@@ -125,6 +125,10 @@ class MailingListMessage:
 
 class MessageThread:
     class MessageThreadNode:
+        parent   : Optional[MessageThread.MessageThreadNode]
+        children : List[MessageThread.MessageThreadNode]
+        message  : MailingListMessage
+
         def __init__(self, message: MailingListMessage):
             self.parent = None
             self.children = []
@@ -133,11 +137,19 @@ class MessageThread:
         def add_child(self, child):
             self.children.append(child)
 
+        def num_messages(self):
+            num_messages = 1
+            for child in self.children:
+                num_messages += child.num_messages()
+            return num_messages
+
     root : MessageThreadNode
 
     def __init__(self, root: MessageThreadNode):
         self.root = root
 
+    def num_messages(self):
+        return self.root.num_messages()
 
     # def should_contain(self, msg: MailingListMessage) -> bool:
     #     if "References" in msg.message:
