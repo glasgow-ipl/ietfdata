@@ -153,18 +153,6 @@ class MessageThread:
     def num_messages(self):
         return self.root.num_messages()
 
-    # def should_contain(self, msg: MailingListMessage) -> bool:
-    #     if "References" in msg.message:
-    #         for msg_id in msg.message["References"].split():
-    #             if msg_id in self._msg_ids:
-    #                 return msg_id in self._msg_ids
-    #     return msg.message["In-Reply-To"] in self._msg_ids
-    #
-    #
-    # def append(self, index: int, msg: MailingListMessage) -> None:
-    #     assert self.should_contain(msg)
-    #     self._msg_ids.append(msg.message["Message-ID"])
-    #     self.messages.append((index, msg))
 
 # =================================================================================================
 
