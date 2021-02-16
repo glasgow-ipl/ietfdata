@@ -40,6 +40,7 @@ from datetime      import datetime, timedelta
 from typing        import List, Optional, Tuple, Dict, Iterator, Type, TypeVar, Any
 from pathlib       import Path
 from pymongo       import MongoClient, ASCENDING
+from email         import policy
 from email.message import Message
 from imapclient    import IMAPClient
 
@@ -271,7 +272,7 @@ class MailingList:
     def raw_message(self, msg_id: int) -> Message:
         cache_metadata = self._db.messages.find_one({"list" : self._list_name, "imap_uid": msg_id})
         if cache_metadata:
-            message = email.message_from_bytes(self._fs.get(cache_metadata["gridfs_id"]).read())
+            message = email.message_from_bytes(self._fs.get(cache_metadata["gridfs_id"]).read(), policy=policy.default)
         return message
 
 
@@ -332,6 +333,7 @@ class MailingList:
         cached_messages = {msg["imap_uid"] : msg for msg in self._db.messages.find({"list": self._list_name})}
 
         for msg_id, msg in imap.fetch(msg_list, "RFC822.SIZE").items():
+            curr_keepalive = datetime.now()
             if msg_id not in cached_messages:
                 msg_fetch.append(msg_id)
             elif cached_messages[msg_id]["size"] != msg[b"RFC822.SIZE"]:
@@ -353,7 +355,14 @@ class MailingList:
                 new_msgs.append(msg_id)
 
                 self._msg_metadata[msg_id] = {}
+                last_keepalive = datetime.now()
                 for helper in self._helpers:
+                    curr_keepalive = datetime.now()
+                    if (curr_keepalive - last_keepalive) > timedelta(seconds=10):
+                        if _reuse_imap is not None:
+                            self.log.info("imap keepalive")
+                            _reuse_imap.noop()
+                            last_keepalive = curr_keepalive
                     self.log.info(F"{helper.name}: scan message {self._list_name}/{msg_id:06} for metadata")
                     self._msg_metadata[msg_id][helper.name] = helper.scan_message(e)
 
