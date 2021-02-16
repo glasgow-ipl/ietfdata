@@ -164,6 +164,7 @@ class MailingList:
     _helpers           : List[MailArchiveHelper]
     _msg_metadata      : Dict[int, Dict[str, Any]]
     _cached_metadata   : Dict[str, Dict[str, Any]]
+    _threads           : List[MessageThread]
 
     def __init__(self, db, fs, list_name: str, helpers: List[MailArchiveHelper] = [], _reuse_imap=None):
         logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
@@ -176,6 +177,7 @@ class MailingList:
         self._helpers = helpers
         self._msg_metadata = {}
         self._cached_metadata = {}
+        self._threads         = []
 
         # Rebuild the metadata cache:
         metadata_cache = self._db.metadata_cache.find_one({"list": self._list_name})
@@ -301,20 +303,21 @@ class MailingList:
 
 
     def threads(self) -> List[MessageThread]:
-        threads = []
-        msg_nodes = {}
-        for index, msg in self.messages():
-            msg_nodes[msg.message["Message-ID"]] = MessageThread.MessageThreadNode(msg)
-        for msg_id in msg_nodes:
-            in_reply_to = msg_nodes[msg_id].message.message["In-Reply-To"]
-            if in_reply_to is not None and in_reply_to in msg_nodes:
-                msg_nodes[in_reply_to].add_child(msg_nodes[msg_id])
-            else:
-                threads.append(MessageThread(msg_nodes[msg_id]))
-        return threads
+        if self._threads == []:
+            msg_nodes = {}
+            for index, msg in self.messages():
+                msg_nodes[msg.message["Message-ID"]] = MessageThread.MessageThreadNode(msg)
+            for msg_id in msg_nodes:
+                in_reply_to = msg_nodes[msg_id].message.message["In-Reply-To"]
+                if in_reply_to is not None and in_reply_to in msg_nodes:
+                    msg_nodes[in_reply_to].add_child(msg_nodes[msg_id])
+                else:
+                    self._threads.append(MessageThread(msg_nodes[msg_id]))
+        return self._threads
 
 
     def update(self, _reuse_imap=None) -> List[int]:
+        self._threads = []
         new_msgs = []
         if _reuse_imap is None:
             imap = IMAPClient(host='imap.ietf.org', ssl=False, use_uid=True)
