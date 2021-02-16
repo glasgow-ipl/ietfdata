@@ -1917,11 +1917,12 @@ class DataTracker:
     """
     A class for interacting with the IETF DataTracker.
     """
-    def __init__(self, use_cache: bool = False, mongodb_hostname: str = "localhost", mongodb_port: int = 27017, mongodb_username: Optional[str] = None, mongodb_password: Optional[str] = None):
-        """
-        Parameters:
-            cache_dir      -- If set, use this directory as a cache for Datatracker objects
-        """
+    def __init__(self,
+            use_cache: bool = False,
+            mongodb_hostname: str = "localhost",
+            mongodb_port: int = 27017,
+            mongodb_username: Optional[str] = None,
+            mongodb_password: Optional[str] = None):
         if os.environ.get('IETFDATA_CACHE_HOST') is not None:
             use_cache = True
             cache_host = os.environ.get('IETFDATA_CACHE_HOST')
