@@ -76,7 +76,7 @@ class DataTrackerExt(DataTracker):
             submission = self.submission(submission_uri)
             if submission is not None:
                 submissions.append(submission)
-                if submission.replaces is not "":
+                if submission.replaces != "":
                     for replaces_draft in submission.replaces.split(","):
                         replaces_doc = self.document_from_draft(replaces_draft)
                         if replaces_doc is not None:
