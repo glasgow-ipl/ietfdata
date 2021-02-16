@@ -43,6 +43,16 @@ class DataTrackerExt(DataTracker):
     perform complex queries across multiple API endpoints.
     """
 
+    def __init__(self,
+            use_cache: bool = False,
+            mongodb_hostname: str = "localhost",
+            mongodb_port: int = 27017,
+            mongodb_username: Optional[str] = None,
+            mongodb_password: Optional[str] = None):
+        super().__init__(use_cache, mongodb_hostname, mongodb_port, mongodb_username, mongodb_password)
+
+
+
     def draft_history(self, draft: Document) -> List[DraftHistory]:
         """
         Find the previous versions of an Internet-Draft
