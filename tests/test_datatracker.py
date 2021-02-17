@@ -1477,7 +1477,7 @@ class TestDatatracker(unittest.TestCase):
         chair = self.dt.role_name_from_slug("chair")
         group_roles = list(self.dt.group_roles(group = iab, name = chair))
         self.assertEqual(len(group_roles), 1)
-        self.assertEqual(group_roles[0].id, 3038)   # IAB chair is Mirja Kühlewind
+        self.assertEqual(group_roles[0].id, 9605)   # IAB chair is Mirja Kühlewind
 
 
 
