@@ -2091,10 +2091,15 @@ class DataTracker:
                 meta.total_count = obj_count
             self._cache_save_metadata(obj_type_uri, meta)
         elif now - meta.updated > timedelta(hours=24):
-            update_uri = URI(obj_type_uri.uri)
             self.log.info(F"cache outdated {str(obj_type_uri)}")
             self._cache_delete(obj_type_uri)
             self._cache_create(obj_type_uri)
+        # Is the cache metadata consistent?
+        if not meta.partial and self._cache_fetch_object_count(obj_type_uri) != self.db[_cache_uri_format(obj_type_uri)].count_documents({}):
+            self.log.info(F"cache inconsistent {str(obj_type_uri)}")
+            self._cache_delete(obj_type_uri)
+            self._cache_create(obj_type_uri)
+
 
 
     def _cache_delete(self, obj_type_uri: URI) -> None:
