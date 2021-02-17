@@ -1472,6 +1472,15 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(group_roles[2].id, 3038)   # Chair is Mirja Kühlewind
 
 
+    def test_group_roles_group_name(self) -> None:
+        iab   = self.dt.group_from_acronym("iab")
+        chair = self.dt.role_name_from_slug("chair")
+        group_roles = list(self.dt.group_roles(group = iab, name = chair))
+        self.assertEqual(len(group_roles), 1)
+        self.assertEqual(group_roles[0].id, 3038)   # IAB chair is Mirja Kühlewind
+
+
+
     def test_group_roles_name(self) -> None:
         group_roles = self.dt.group_roles(name=self.dt.role_name(RoleNameURI("/api/v1/name/rolename/chair/")))
         self.assertIsNot(group_roles, None)
