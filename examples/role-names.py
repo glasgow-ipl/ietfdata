@@ -32,7 +32,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from pathlib              import Path
 from ietfdata.datatracker import *
 
-dt = DataTracker(cache_dir=Path("cache"))
+dt = DataTracker()
 
 def group_roles(group: Group):
     print(F"Group: {group.name}")

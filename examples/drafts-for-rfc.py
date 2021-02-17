@@ -33,7 +33,7 @@ from ietfdata.datatracker     import *
 from ietfdata.datatracker_ext import *
 from ietfdata.rfcindex        import *
 
-dt = DataTrackerExt(cache_dir=Path("cache"))
+dt = DataTrackerExt()
 ri = RFCIndex()
 
 rfc = ri.rfc("RFC8280")

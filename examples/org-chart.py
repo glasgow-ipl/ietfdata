@@ -34,13 +34,13 @@ from ietfdata.datatracker import *
 # =============================================================================
 # Example: print an organisational chart for the IETF
 
-dt = DataTracker(cache_dir=Path("cache"))
+dt = DataTracker()
 
 def print_group(group : Group, level : int):
     for i in range(0, level):
         print("  ", end="")
     print(group.name)
-    for g in dt.groups(parent = group, state = dt.group_state("active")):
+    for g in dt.groups(parent = group, state = dt.group_state_from_slug("active")):
         print_group(g, level + 1)
 
 print_group(dt.group_from_acronym("ietf"), 0)

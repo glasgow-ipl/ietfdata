@@ -34,7 +34,7 @@ from ietfdata.datatracker     import *
 from ietfdata.datatracker_ext import *
 from dateutil.parser          import *
 
-dt    = DataTrackerExt(cache_dir=Path("cache"))
+dt = DataTrackerExt()
 
 # =============================================================================
 # Information about the IAB:

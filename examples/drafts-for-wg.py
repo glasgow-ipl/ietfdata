@@ -32,7 +32,7 @@ from pathlib                  import Path
 from ietfdata.datatracker     import *
 from ietfdata.datatracker_ext import *
 
-dt = DataTracker(cache_dir=Path("cache"))
+dt = DataTracker()
 
 g  = dt.group_from_acronym("rmcat")
 for draft in dt.documents(group=g, doctype=dt.document_type_from_slug("draft")):
