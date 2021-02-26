@@ -257,14 +257,12 @@ class DataTrackerExt(DataTracker):
         """
         next_meeting = None
         for meeting in self.meetings(meeting_type = self.meeting_type_from_slug("ietf")):
-            if meeting.status() == MeetingStatus.FUTURE:
-                if next_meeting is None:
-                    next_meeting = meeting
-                elif meeting.date < next_meeting.date:
-                    next_meeting = meeting
-            elif meeting.status() == MeetingStatus.ONGOING:
+            if meeting.status() == MeetingStatus.ONGOING:
                 next_meeting = meeting
                 break
+            elif meeting.status() == MeetingStatus.FUTURE:
+                if next_meeting is None or meeting.date < next_meeting.date:
+                    next_meeting = meeting
             elif meeting.status() == MeetingStatus.COMPLETED:
                 pass
         return next_meeting
