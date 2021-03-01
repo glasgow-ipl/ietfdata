@@ -251,5 +251,21 @@ class DataTrackerExt(DataTracker):
                     yield person
 
 
+    def next_ietf_meeting(self) -> Optional[Meeting]:
+        """
+        Return the next upcoming, or currently ongoing, IETF meeting.
+        """
+        next_meeting = None
+        for meeting in self.meetings(meeting_type = self.meeting_type_from_slug("ietf")):
+            if meeting.status() == MeetingStatus.ONGOING:
+                next_meeting = meeting
+                break
+            elif meeting.status() == MeetingStatus.FUTURE:
+                if next_meeting is None or meeting.date < next_meeting.date:
+                    next_meeting = meeting
+            elif meeting.status() == MeetingStatus.COMPLETED:
+                pass
+        return next_meeting
+
 # =================================================================================================================================
 # vim: set tw=0 ai:
