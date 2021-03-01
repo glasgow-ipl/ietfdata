@@ -1972,15 +1972,15 @@ class DataTracker:
         # Register cache hints:
         self._cache_indexes = {} # type: Dict[Any, CacheIndex]
         self._cache_indexes[BallotDocumentEventURI]         = CacheIndex(BallotDocumentEvent, ["time", "ballot_type", "event_type", "by", "doc"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[BallotTypeURI]                  = CacheIndex(BallotType, ["doc_type"], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[BallotTypeURI]                  = CacheIndex(BallotType, ["doc_type"], ["id", "resource_uri"], ["order", "id"], False)
         self._cache_indexes[DocumentAliasURI]               = CacheIndex(DocumentAlias, ["name"], ["id", "name", "resource_uri"], ["id"], False)
         self._cache_indexes[DocumentEventURI]               = CacheIndex(DocumentEvent, ["time", "doc", "by", "event_type"], ["id", "resource_uri"], ["id"], True)
         self._cache_indexes[DocumentURI]                    = CacheIndex(Document, ["time", "type", "stream", "group"], ["id", "name", "resource_uri"], ["id"], False)
-        self._cache_indexes[DocumentAuthorURI]              = CacheIndex(DocumentAuthor, ["document", "person", "email"], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[DocumentAuthorURI]              = CacheIndex(DocumentAuthor, ["document", "person", "email"], ["id", "resource_uri"], ["order", "id"], False)
         self._cache_indexes[RelatedDocumentURI]             = CacheIndex(RelatedDocument, ["source", "target", "relationship"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[DocumentStateURI]               = CacheIndex(DocumentState, ["type", "slug"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[DocumentStateTypeURI]           = CacheIndex(DocumentStateType, [], ["slug", "resource_uri"], [], False)
-        self._cache_indexes[GroupStateChangeEventURI]       = CacheIndex(GroupStateChangeEvent, ["time", "by", "group", "state"], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[DocumentStateURI]               = CacheIndex(DocumentState, ["type", "slug"], ["id", "resource_uri"], ["order", "id", "slug"], False)
+        self._cache_indexes[DocumentStateTypeURI]           = CacheIndex(DocumentStateType, [], ["slug", "resource_uri"], ["slug"], False)
+        self._cache_indexes[GroupStateChangeEventURI]       = CacheIndex(GroupStateChangeEvent, ["time", "by", "group", "state"], ["id", "resource_uri"], ["order", "id"], False)
         self._cache_indexes[GroupURI]                       = CacheIndex(Group, ["time", "name", "state", "parent"], ["acronym", "id", "resource_uri"], ["id"], False)
         self._cache_indexes[GroupEventURI]                  = CacheIndex(GroupEvent, ["time", "by", "group", "type"], ["id", "resource_uri"], ["id"], True)
         self._cache_indexes[GroupHistoryURI]                = CacheIndex(GroupHistory, ["acronym", "time", "group", "state", "parent"], ["id", "resource_uri"], ["id"], False)
@@ -1990,10 +1990,10 @@ class DataTracker:
         self._cache_indexes[GroupMilestoneEventURI]         = CacheIndex(GroupMilestoneEvent, ["time", "by", "group", "milestone", "type"], ["id", "resource_uri"], ["id"], True)
         self._cache_indexes[GroupRoleURI]                   = CacheIndex(GroupRole, ["email", "group", "name", "person"], ["id", "resource_uri"], ["id"], False)
         self._cache_indexes[GroupRoleHistoryURI]            = CacheIndex(GroupRoleHistory, ["email", "group", "name", "person"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[GenericIPRDisclosureURI]        = CacheIndex(GenericIPRDisclosure, ["time", "by", "holder_legal_name", "holder_contact_name", "state", "submitter_email", "submitter_name"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[HolderIPRDisclosureURI]         = CacheIndex(HolderIPRDisclosure, ["time", "by", "holder_legal_name", "holder_contact_name", "ietfer_contact_email", "ietfer_name", "licensing", "state", "submitter_email", "submitter_name"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[IPRDisclosureBaseURI]           = CacheIndex(IPRDisclosureBase, ["time", "by", "holder_legal_name", "state", "submitter_email", "submitter_name"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[ThirdPartyIPRDisclosureURI]     = CacheIndex(ThirdPartyIPRDisclosure, ["time", "by", "holder_legal_name", "ietfer_contact_email", "ietfer_name", "state", "submitter_email", "submitter_name"], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[GenericIPRDisclosureURI]        = CacheIndex(GenericIPRDisclosure, ["time", "by", "holder_legal_name", "holder_contact_name", "state", "submitter_email", "submitter_name"], ["id", "resource_uri"], ["order", "id"], False)
+        self._cache_indexes[HolderIPRDisclosureURI]         = CacheIndex(HolderIPRDisclosure, ["time", "by", "holder_legal_name", "holder_contact_name", "ietfer_contact_email", "ietfer_name", "licensing", "state", "submitter_email", "submitter_name"], ["id", "resource_uri"], ["order", "id"], False)
+        self._cache_indexes[IPRDisclosureBaseURI]           = CacheIndex(IPRDisclosureBase, ["time", "by", "holder_legal_name", "state", "submitter_email", "submitter_name"], ["id", "resource_uri"], ["order", "id"], False)
+        self._cache_indexes[ThirdPartyIPRDisclosureURI]     = CacheIndex(ThirdPartyIPRDisclosure, ["time", "by", "holder_legal_name", "ietfer_contact_email", "ietfer_name", "state", "submitter_email", "submitter_name"], ["id", "resource_uri"], ["order", "id"], False)
         self._cache_indexes[MailingListURI]                 = CacheIndex(MailingList, ["name"], ["id", "resource_uri"], ["id"], False)
         self._cache_indexes[MailingListSubscriptionsURI]    = CacheIndex(MailingListSubscriptions, ["email", "lists"], ["id", "resource_uri"], ["id"], False)
         self._cache_indexes[MeetingURI]                     = CacheIndex(Meeting, ["date", "type"], ["id", "number", "resource_uri"], ["id"], False)
@@ -2005,22 +2005,22 @@ class DataTracker:
         self._cache_indexes[AnnouncementFromURI]            = CacheIndex(AnnouncementFrom, ["address", "group", "name"], ["id", "resource_uri"], ["id"], False)
         self._cache_indexes[MessageURI]                     = CacheIndex(Message, ["time", "by", "frm", "related_docs", "subject", "body"], ["id", "resource_uri"], ["id"], False)
         self._cache_indexes[SendQueueURI]                   = CacheIndex(SendQueueEntry, ["time", "by", "message"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[BallotPositionNameURI]          = CacheIndex(BallotPositionName, [], ["slug", "resource_uri"], [], False)
-        self._cache_indexes[RelationshipTypeURI]            = CacheIndex(RelationshipType, [], ["slug", "resource_uri"], [], False)
-        self._cache_indexes[DocumentTypeURI]                = CacheIndex(DocumentType, [], ["slug", "resource_uri"], [], False)
-        self._cache_indexes[GroupMilestoneStateNameURI]     = CacheIndex(GroupMilestoneStateName, [], ["slug", "resource_uri"], [], False)
-        self._cache_indexes[GroupStateURI]                  = CacheIndex(GroupState, [], ["slug", "resource_uri"], [], False)
-        self._cache_indexes[GroupTypeNameURI]               = CacheIndex(GroupTypeName, [], ["slug", "resource_uri"], [], False)
-        self._cache_indexes[MeetingTypeURI]                 = CacheIndex(MeetingType, [], ["slug", "resource_uri"], [], False)
-        self._cache_indexes[IPRDisclosureStateURI]          = CacheIndex(IPRDisclosureBase, [], ["slug", "resource_uri"], [], False)
-        self._cache_indexes[IPRLicenseTypeURI]              = CacheIndex(IPRLicenseType, [], ["slug", "resource_uri"], [], False)
-        self._cache_indexes[ReviewAssignmentStateURI]       = CacheIndex(ReviewAssignmentState, [], ["slug", "resource_uri"], [], False)
-        self._cache_indexes[ReviewResultTypeURI]            = CacheIndex(ReviewResultType, [], ["slug", "resource_uri"], [], False)
-        self._cache_indexes[ReviewTypeURI]                  = CacheIndex(ReviewType, [], ["slug", "resource_uri"], [], False)
-        self._cache_indexes[ReviewRequestStateURI]          = CacheIndex(ReviewRequestState, [], ["slug", "resource_uri"], [], False)
-        self._cache_indexes[RoleNameURI]                    = CacheIndex(RoleName, [], ["slug", "resource_uri"], [], False)
-        self._cache_indexes[SessionStatusNameURI]           = CacheIndex(SessionStatusName, [], ["slug", "resource_uri"], [], False)
-        self._cache_indexes[StreamURI]                      = CacheIndex(Stream, [], ["slug", "resource_uri"], [], False)
+        self._cache_indexes[BallotPositionNameURI]          = CacheIndex(BallotPositionName, [], ["slug", "resource_uri"], ["order", "slug"], False)
+        self._cache_indexes[RelationshipTypeURI]            = CacheIndex(RelationshipType, [], ["slug", "resource_uri"], ["slug"], False)
+        self._cache_indexes[DocumentTypeURI]                = CacheIndex(DocumentType, [], ["slug", "resource_uri"], ["order", "slug"], False)
+        self._cache_indexes[GroupMilestoneStateNameURI]     = CacheIndex(GroupMilestoneStateName, [], ["slug", "resource_uri"], ["slug"], False)
+        self._cache_indexes[GroupStateURI]                  = CacheIndex(GroupState, [], ["slug", "resource_uri"], ["slug"], False)
+        self._cache_indexes[GroupTypeNameURI]               = CacheIndex(GroupTypeName, [], ["slug", "resource_uri"], ["slug"], False)
+        self._cache_indexes[MeetingTypeURI]                 = CacheIndex(MeetingType, [], ["slug", "resource_uri"], ["slug"], False)
+        self._cache_indexes[IPRDisclosureStateURI]          = CacheIndex(IPRDisclosureBase, [], ["slug", "resource_uri"], ["slug"], False)
+        self._cache_indexes[IPRLicenseTypeURI]              = CacheIndex(IPRLicenseType, [], ["slug", "resource_uri"], ["slug"], False)
+        self._cache_indexes[ReviewAssignmentStateURI]       = CacheIndex(ReviewAssignmentState, [], ["slug", "resource_uri"], ["slug"], False)
+        self._cache_indexes[ReviewResultTypeURI]            = CacheIndex(ReviewResultType, [], ["slug", "resource_uri"], ["slug"], False)
+        self._cache_indexes[ReviewTypeURI]                  = CacheIndex(ReviewType, [], ["slug", "resource_uri"], ["slug"], False)
+        self._cache_indexes[ReviewRequestStateURI]          = CacheIndex(ReviewRequestState, [], ["slug", "resource_uri"], ["slug"], False)
+        self._cache_indexes[RoleNameURI]                    = CacheIndex(RoleName, [], ["slug", "resource_uri"], ["slug"], False)
+        self._cache_indexes[SessionStatusNameURI]           = CacheIndex(SessionStatusName, [], ["slug", "resource_uri"], ["slug"], False)
+        self._cache_indexes[StreamURI]                      = CacheIndex(Stream, [], ["slug", "resource_uri"], ["slug"], False)
         self._cache_indexes[PersonAliasURI]                 = CacheIndex(PersonAlias, ["person"], ["id", "resource_uri"], ["id"], False)
         self._cache_indexes[EmailURI]                       = CacheIndex(Email, ["person", "time"], ["address", "resource_uri"], ["address"], False)
         self._cache_indexes[HistoricalEmailURI]             = CacheIndex(HistoricalEmail, ["address", "person"], ["history_id", "resource_uri"], ["history_id"], True)
@@ -2028,20 +2028,20 @@ class DataTracker:
         self._cache_indexes[PersonURI]                      = CacheIndex(PersonURI, ["time", "name", "ascii"], ["id", "resource_uri"], ["id"], False)
         self._cache_indexes[PersonEventURI]                 = CacheIndex(PersonEvent, ["person"], ["id", "resource_uri"], ["id"], False)
         self._cache_indexes[HistoricalReviewAssignmentURI]  = CacheIndex(HistoricalReviewAssignment, ["assigned_on", "completed_on", "id", "result", "review_request", "reviewer", "state"], ["history_id", "resource_uri"], ["id"], False)
-        self._cache_indexes[HistoricalReviewerSettingsURI]  = CacheIndex(HistoricalReviewerSettingsURI, ["history_date", "id", "person", "team"], ["history_id", "resource_uri"], ["id"], False)
-        self._cache_indexes[HistoricalReviewRequestURI]     = CacheIndex(HistoricalReviewRequest, ["time", "history_date", "doc", "requested_by", "state", "team", "type"], ["history_id", "resource_uri"], ["id"], False)
+        self._cache_indexes[HistoricalReviewerSettingsURI]  = CacheIndex(HistoricalReviewerSettingsURI, ["history_date", "id", "person", "team"], ["history_id", "resource_uri"], ["order", "id"], False)
+        self._cache_indexes[HistoricalReviewRequestURI]     = CacheIndex(HistoricalReviewRequest, ["time", "history_date", "doc", "requested_by", "state", "team", "type"], ["history_id", "resource_uri"], ["order", "id"], False)
         self._cache_indexes[HistoricalUnavailablePeriodURI] = CacheIndex(HistoricalUnavailablePeriod, ["history_type", "id", "person", "team"], ["history_id", "resource_uri"], ["id"], False)
         self._cache_indexes[NextReviewerInTeamURI]          = CacheIndex(NextReviewerInTeam, ["team"], ["id", "resource_uri"], ["id"], False)
         self._cache_indexes[ReviewAssignmentURI]            = CacheIndex(ReviewAssignment, ["assigned_on", "completed_on", "result", "review_request", "reviewer", "state"], ["id", "resource_uri"], ["id"], False)
         self._cache_indexes[ReviewerSettingsURI]            = CacheIndex(ReviewerSettings, ["person", "team"], ["id", "resource_uri"], ["id"], False)
         self._cache_indexes[ReviewRequestURI]               = CacheIndex(ReviewRequest, ["time", "doc", "requested_by", "state", "team", "type"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[ReviewSecretarySettingsURI]     = CacheIndex(ReviewSecretarySettings, ["person", "team"], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[ReviewSecretarySettingsURI]     = CacheIndex(ReviewSecretarySettings, ["person", "team"], ["id", "resource_uri"], ["order", "id"], False)
         self._cache_indexes[ReviewTeamSettingsURI]          = CacheIndex(ReviewTeamSettings, ["group"], ["id", "resource_uri"], ["id"], False)
         self._cache_indexes[ReviewWishURI]                  = CacheIndex(ReviewWish, ["time", "doc", "person", "team"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[UnavailablePeriodURI]           = CacheIndex(UnavailablePeriod, ["person", "team"], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[UnavailablePeriodURI]           = CacheIndex(UnavailablePeriod, ["person", "team"], ["id", "resource_uri"], ["order", "id"], False)
         self._cache_indexes[MeetingRegistrationURI]         = CacheIndex(MeetingRegistration, ["affiliation", "attended", "country_code", "email", "first_name", "last_name", "meeting", "person", "reg_type", "ticket_type"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[SubmissionURI]                  = CacheIndex(Submission, ["time"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[SubmissionEventURI]             = CacheIndex(SubmissionEvent, ["time", "by", "submission"], ["id", "resource_uri"], ["id"], False)
+        self._cache_indexes[SubmissionURI]                  = CacheIndex(Submission, ["time"], ["id", "resource_uri"], ["order", "id"], False)
+        self._cache_indexes[SubmissionEventURI]             = CacheIndex(SubmissionEvent, ["time", "by", "submission"], ["id", "resource_uri"], ["order", "id"], False)
 
         # check Datatracker and cache versions
         self._cache_check_versions()
@@ -2097,8 +2097,8 @@ class DataTracker:
         # Is the cache metadata consistent?
         if not meta.partial and meta.total_count != self.db[_cache_uri_format(obj_type_uri)].count_documents({}):
             self.log.info(F"cache inconsistent {str(obj_type_uri)}")
-            self._cache_delete(obj_type_uri)
-            self._cache_create(obj_type_uri)
+            #self._cache_delete(obj_type_uri)
+            #self._cache_create(obj_type_uri)
 
 
 
@@ -2331,8 +2331,8 @@ class DataTracker:
         else:
             obj_uri = type(obj_type_uri)(F"{obj_uri.uri}?limit=100")
 
-        if obj_uri.uri is not None and "order_by" not in obj_uri.uri and len(self._cache_indexes[type(obj_type_uri)].order_by) > 0:
-            obj_uri = type(obj_type_uri)(F"{obj_uri.uri}&order_by={self._cache_indexes[type(obj_type_uri)].order_by[0]}")
+        if obj_uri.uri is not None and "order_by" not in obj_uri.uri and "id" in self._cache_indexes[type(obj_type_uri)].order_by:
+            obj_uri = type(obj_type_uri)(F"{obj_uri.uri}&order_by=id")
 
         total = None
         fetched_objs = [] # type: List[Dict[Any, Any]]
@@ -2379,7 +2379,7 @@ class DataTracker:
                         for i in range(offset, finish):
                             obj_uri = URI(self.base_url + split.path)
                             for k, v in query.items():
-                                obj_uri.params[k] = v
+                                obj_uri.params[k] = v[0]
                             obj_uri.params["offset"] = i
                             obj_uri.params["limit"]  = 1
                             self.get_count += 1
@@ -2400,7 +2400,7 @@ class DataTracker:
                         # Construct the next range URL, and continue:
                         obj_uri = type(obj_type_uri)(split.path)
                         for k, v in query.items():
-                            obj_uri.params[k] = v
+                            obj_uri.params[k] = v[0]
                         obj_uri.params["offset"] = finish
                         obj_uri.params["limit"]  = 100
                         obj_uri = type(obj_type_uri)(F"{obj_uri.uri}?{urllib.parse.urlencode(obj_uri.params)}")
