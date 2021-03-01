@@ -2097,9 +2097,6 @@ class DataTracker:
         # Is the cache metadata consistent?
         if not meta.partial and meta.total_count != self.db[_cache_uri_format(obj_type_uri)].count_documents({}):
             self.log.info(F"cache inconsistent {str(obj_type_uri)}")
-            #self._cache_delete(obj_type_uri)
-            #self._cache_create(obj_type_uri)
-
 
 
     def _cache_delete(self, obj_type_uri: URI) -> None:
