@@ -2091,10 +2091,12 @@ class DataTracker:
                 meta.total_count = obj_count
             self._cache_save_metadata(obj_type_uri, meta)
         elif now - meta.updated > timedelta(hours=24):
-            update_uri = URI(obj_type_uri.uri)
             self.log.info(F"cache outdated {str(obj_type_uri)}")
             self._cache_delete(obj_type_uri)
             self._cache_create(obj_type_uri)
+        # Is the cache metadata consistent?
+        if not meta.partial and meta.total_count != self.db[_cache_uri_format(obj_type_uri)].count_documents({}):
+            self.log.info(F"cache inconsistent {str(obj_type_uri)}")
 
 
     def _cache_delete(self, obj_type_uri: URI) -> None:
@@ -2326,6 +2328,9 @@ class DataTracker:
         else:
             obj_uri = type(obj_type_uri)(F"{obj_uri.uri}?limit=100")
 
+        if obj_uri.uri is not None and "order_by" not in obj_uri.uri and "id" in self._cache_indexes[type(obj_type_uri)].order_by:
+            obj_uri = type(obj_type_uri)(F"{obj_uri.uri}&order_by=id")
+
         total = None
         fetched_objs = [] # type: List[Dict[Any, Any]]
         while obj_uri.uri is not None:
@@ -2371,7 +2376,7 @@ class DataTracker:
                         for i in range(offset, finish):
                             obj_uri = URI(self.base_url + split.path)
                             for k, v in query.items():
-                                obj_uri.params[k] = v
+                                obj_uri.params[k] = v[0]
                             obj_uri.params["offset"] = i
                             obj_uri.params["limit"]  = 1
                             self.get_count += 1
@@ -2392,7 +2397,7 @@ class DataTracker:
                         # Construct the next range URL, and continue:
                         obj_uri = type(obj_type_uri)(split.path)
                         for k, v in query.items():
-                            obj_uri.params[k] = v
+                            obj_uri.params[k] = v[0]
                         obj_uri.params["offset"] = finish
                         obj_uri.params["limit"]  = 100
                         obj_uri = type(obj_type_uri)(F"{obj_uri.uri}?{urllib.parse.urlencode(obj_uri.params)}")
@@ -2409,6 +2414,7 @@ class DataTracker:
             for obj_json in fetched_objs:
                 self._cache_put_object(type(obj_type_uri)(obj_json["resource_uri"]), obj_json)
         return fetched_objs
+
 
     def _retrieve(self, obj_uri: URI, obj_type: Type[T]) -> Optional[T]:
         self._cache_update(_parent_uri(obj_uri), obj_type)
