@@ -22,5 +22,6 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.7',
+    setup_requires=["setuptools-pipfile"],
+    use_pipfile=True
 )
-
