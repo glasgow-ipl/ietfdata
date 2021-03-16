@@ -1142,7 +1142,7 @@ class TestDatatracker(unittest.TestCase):
     def test_stream(self) -> None:
         stream = self.dt.stream(StreamURI("/api/v1/name/streamname/irtf/"))
         if stream is not None:
-            self.assertEqual(stream.desc,         "IRTF Stream")
+            self.assertEqual(stream.desc,         "Internet Research Task Force (IRTF)")
             self.assertEqual(stream.name,         "IRTF")
             self.assertEqual(stream.order,        3)
             self.assertEqual(stream.resource_uri, StreamURI("/api/v1/name/streamname/irtf/"))
@@ -1155,7 +1155,7 @@ class TestDatatracker(unittest.TestCase):
     def test_stream_from_slug(self) -> None:
         stream = self.dt.stream_from_slug("irtf")
         if stream is not None:
-            self.assertEqual(stream.desc,         "IRTF Stream")
+            self.assertEqual(stream.desc,         "Internet Research Task Force (IRTF)")
             self.assertEqual(stream.name,         "IRTF")
             self.assertEqual(stream.order,        3)
             self.assertEqual(stream.resource_uri, StreamURI("/api/v1/name/streamname/irtf/"))
@@ -1462,8 +1462,8 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(group_roles[4].id, 8466)   # IRTF chair
         self.assertEqual(group_roles[5].id, 9355)   # RMCAT chair
         self.assertEqual(group_roles[6].id, 10200)  # IAB EDM programme member
-        self.assertEqual(group_roles[7].id, 10644)  # IRTF ANRW chair
-        self.assertEqual(group_roles[8].id, 11103)  # TSV ART reviewer
+        self.assertEqual(group_roles[7].id, 11103)  # TSV ART reviewer
+        self.assertEqual(group_roles[8].id, 11680)  # IRTF ANRW chair
 
 
     def test_group_roles_group(self) -> None:
@@ -1498,8 +1498,8 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(group_roles[4].id, 8466)   # IRTF chair
         self.assertEqual(group_roles[5].id, 9355)   # RMCAT chair
         self.assertEqual(group_roles[6].id, 10200)  # IAB EDM programme member
-        self.assertEqual(group_roles[7].id, 10644)  # IRTF ANRW chair
-        self.assertEqual(group_roles[8].id, 11103)  # TSV ART reviewer
+        self.assertEqual(group_roles[7].id, 11103)  # TSV ART reviewer
+        self.assertEqual(group_roles[8].id, 11680)  # IRTF ANRW chair
 
 
     def test_group_milestone_history(self) -> None:
@@ -1605,7 +1605,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_email(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(email="csp@csperkins.org"))
-        self.assertEqual(len(group_role_histories), 35)
+        self.assertEqual(len(group_role_histories), 42)
 
 
     def test_group_role_histories_group(self) -> None:
@@ -1624,7 +1624,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_person(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(person=self.dt.person(PersonURI("/api/v1/person/person/20209/"))))
-        self.assertEqual(len(group_role_histories), 35)
+        self.assertEqual(len(group_role_histories), 42)
 
 
     def test_group_state_change_event(self) -> None:
