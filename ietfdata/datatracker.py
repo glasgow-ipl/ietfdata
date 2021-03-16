@@ -2231,6 +2231,7 @@ class DataTracker:
         assert limited_uri.uri is not None
         req_url     = self.base_url + limited_uri.uri
         req_headers = {'User-Agent': self.ua}
+        self.get_count += 1
         r = self.session.get(req_url, headers = req_headers, verify = True, stream = False)
         if r.status_code == 200:
             meta = r.json()['meta']
@@ -2254,6 +2255,7 @@ class DataTracker:
         dt_version_url = "https://datatracker.ietf.org/api/version"
         req_headers = {'User-Agent': self.ua}
         self._rate_limit()
+        self.get_count += 1
         r = self.session.get(dt_version_url, headers = req_headers, verify = True, stream = False)
         if r.status_code == 200:
             url_obj = r.json()
@@ -2297,11 +2299,11 @@ class DataTracker:
         self.cache_req += 1
         if not self._cache_has_object(obj_uri):
             self._rate_limit()
-            self.get_count += 1
             assert obj_uri.uri is not None
             req_url     = self.base_url + obj_uri.uri
             req_headers = {'User-Agent': self.ua}
             req_params  = obj_uri.params
+            self.get_count += 1
             r = self.session.get(req_url, params = req_params, headers = req_headers, verify = True, stream = False)
             if r.status_code == 200:
                 url_obj = r.json() # type: Dict[str, Any]
@@ -2339,10 +2341,10 @@ class DataTracker:
             retry_time = 1.875
             while retry:
                 retry = False
-                self.get_count += 1
                 req_url     = self.base_url + obj_uri.uri
                 req_headers = {'User-Agent': self.ua}
                 try:
+                    self.get_count += 1
                     r = self.session.get(req_url, headers = req_headers, verify = True, stream = False)
                     if r.status_code == 200:
                         meta = r.json()['meta']
@@ -2379,8 +2381,8 @@ class DataTracker:
                                 obj_uri.params[k] = v[0]
                             obj_uri.params["offset"] = i
                             obj_uri.params["limit"]  = 1
-                            self.get_count += 1
                             self._rate_limit()
+                            self.get_count += 1
                             r = self.session.get(str(obj_uri), headers = {"User-Agent": self.ua}, verify = True, stream = False)
                             if r.status_code == 200:
                                 new_json = r.json() # type: Dict[str, Any]
