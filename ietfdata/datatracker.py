@@ -2321,6 +2321,8 @@ class DataTracker:
 
 
     def _retrieve_jsons(self, obj_uri: URI, cache_uri: URI, param_objs: Dict[str, Optional[Resource]], obj_type_uri: URI, obj_type: Type[T]) -> List[Dict[Any, Any]]:
+        # FIXME: this is called by _cache_update() to fetch new objects,
+        #        but it returns values from the cache - is that correct?
         if self._cache_has_objects(cache_uri, obj_type_uri) or self._cache_has_all_objects(obj_uri):
             self.cache_hit += 1
             return self._cache_get_objects(obj_uri, param_objs, obj_type_uri, obj_type)
