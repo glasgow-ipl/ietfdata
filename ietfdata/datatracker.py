@@ -2091,7 +2091,7 @@ class DataTracker:
                 meta.total_count = obj_count
             self._cache_save_metadata(obj_type_uri, meta)
         elif now - meta.updated > timedelta(hours=24):
-            self.log.info(F"cache outdated {str(obj_type_uri)}")
+            self.log.info(F"cache outdated {str(obj_type_uri)} - will delete and recreate")
             self._cache_delete(obj_type_uri)
             self._cache_create(obj_type_uri)
         # Is the cache metadata consistent?
