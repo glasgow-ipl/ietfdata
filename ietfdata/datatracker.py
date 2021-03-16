@@ -2078,11 +2078,11 @@ class DataTracker:
             meta.updated = now
             self._cache_save_metadata(obj_type_uri, meta)
         # Do we need to update the cache?
-        if now - meta.updated > timedelta(hours=1) and "time__gte" in obj_type_uri.params:
+        if now - meta.updated > timedelta(hours=1) and "time" in obj_type.__dict__["__dataclass_fields__"]:
             update_uri = URI(obj_type_uri.uri)
             update_uri.params["time__gte"] = meta.updated.strftime("%Y-%m-%dT%H:%M:%S.%f")  # Avoid isoformat(), since don't want TZ offset
             update_uri.params["time__lt"]  = now.strftime("%Y-%m-%dT%H:%M:%S.%f")
-            self.log.info(F"cache outdated {str(update_uri)}")
+            self.log.info(F"cache outdated {str(obj_type_uri)} ({update_uri.params['time__gte']} -> {update_uri.params['time__lt']})")
             self._retrieve_jsons(update_uri, update_uri, {}, obj_type_uri, obj_type)
             meta = self._cache_load_metadata(obj_type_uri)
             meta.updated = now
