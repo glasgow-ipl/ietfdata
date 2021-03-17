@@ -2059,7 +2059,42 @@ class DataTracker:
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
-    # Private methods to manage the local cache:
+    # Private methods to access the datatracker.
+    #
+    # The _datatracker_get_single() and _datatracker_get_multi() functions
+    # retrieve data from the IETF datatracker without using the cache. They are
+    # used by the cache layer to access the datatracker when updating the cache,
+    # and by the retrieval layer to retrieve objects from the datatracker if the
+    # cache is disabled.
+
+    def _datatracker_get_single(self, obj_uri: URI) -> Optional[Dict[str, Any]]:
+        assert obj_uri.uri is not None
+        req_url     = self.base_url + obj_uri.uri
+        req_headers = {'User-Agent': self.ua}
+        req_params  = obj_uri.params
+        self._rate_limit()
+        self.get_count += 1
+        r = self.session.get(req_url, params = req_params, headers = req_headers, verify = True, stream = False)
+        if r.status_code == 200:
+            self.log.info(F"_datatracker_get_single (r.status_code) {obj_uri}")
+            url_obj = r.json() # type: Dict[str, Any]
+            return url_obj
+        elif r.status_code == 404:
+            self.log.info(F"_datatracker_get_single (r.status_code) {obj_uri}")
+            return None
+        else:
+            # This should never happen in normal use, so we log as a warning
+            self.log.warn(F"_datatracker_get_single (r.status_code) {obj_uri}")
+            return None
+
+
+    def _datatracker_get_multi(self, obj_uri: URI, order_by: str) -> List[Dict[Any, Any]]:
+        # FIXME: implement this
+        pass
+
+
+    # ----------------------------------------------------------------------------------------------------------------------------
+    # Private methods to manage the local cache.
 
     def _cache_update(self, obj_type_uri: URI, obj_type: Type[T]) -> None:
         if self.db is None:
@@ -2171,14 +2206,18 @@ class DataTracker:
             pass
 
 
-    def _cache_has_object(self, obj_uri: URI) -> bool:
+    def _cache_has_object(self, obj_uri: URI, obj_type: Type[T]) -> bool:
         if self.db is None:
             return False
-        self.db_calls += 1
+        self._cache_update(_parent_uri(obj_uri), obj_type)
+        self.cache_req += 1
+        self.db_calls  += 1
         if self.db[_cache_uri_format(_parent_uri(obj_uri))].find_one({"resource_uri": obj_uri.uri}):
+            self.cache_hit += 1
             return True       # Object is in the local cache
         else:
             if self._cache_has_all_objects(_parent_uri(obj_uri)):
+                self.cache_hit += 1
                 return True   # Object is known not to exist
             else:
                 return False  # Object is not in the cache
@@ -2295,32 +2334,8 @@ class DataTracker:
             self.session.close()
 
 
-    def _retrieve_json(self, obj_uri: URI) -> Optional[Dict[str, Any]]:
-        self.cache_req += 1
-        if not self._cache_has_object(obj_uri):
-            self._rate_limit()
-            assert obj_uri.uri is not None
-            req_url     = self.base_url + obj_uri.uri
-            req_headers = {'User-Agent': self.ua}
-            req_params  = obj_uri.params
-            self.get_count += 1
-            r = self.session.get(req_url, params = req_params, headers = req_headers, verify = True, stream = False)
-            if r.status_code == 200:
-                url_obj = r.json() # type: Dict[str, Any]
-                self._cache_put_object(obj_uri, url_obj)
-                self._cache_record_query(obj_uri, _parent_uri(obj_uri))
-                return url_obj
-            elif r.status_code == 404:
-                return None
-            else:
-                print("_retrieve_json failed: {} {}".format(r.status_code, self.base_url + obj_uri.uri))
-                sys.exit(1)
-        else:
-            self.cache_hit += 1
-            return self._cache_get_object(obj_uri)
-
-
     def _retrieve_jsons(self, obj_uri: URI, cache_uri: URI, param_objs: Dict[str, Optional[Resource]], obj_type_uri: URI, obj_type: Type[T]) -> List[Dict[Any, Any]]:
+        # FIXME: much of this should move to _datatracker_get_multi()
         # FIXME: this is called by _cache_update() to fetch new objects,
         #        but it returns values from the cache - is that correct?
         if self._cache_has_objects(cache_uri, obj_type_uri) or self._cache_has_all_objects(obj_uri):
@@ -2421,12 +2436,20 @@ class DataTracker:
 
 
     def _retrieve(self, obj_uri: URI, obj_type: Type[T]) -> Optional[T]:
-        self._cache_update(_parent_uri(obj_uri), obj_type)
-        obj_json = self._retrieve_json(obj_uri)
-        if obj_json is not None:
-            return self.pavlova.from_mapping(obj_json, obj_type)
+        if self._cache_has_object(obj_uri, obj_type):
+            obj_json = self._cache_get_object(obj_uri)
+            if obj_json is not None:
+                return self.pavlova.from_mapping(obj_json, obj_type)
+            else:
+                return None
         else:
-            return None
+            obj_json = self._datatracker_get_single(obj_uri)
+            if obj_json is not None:
+                self._cache_put_object(obj_uri, obj_json)
+                self._cache_record_query(obj_uri, _parent_uri(obj_uri))
+                return self.pavlova.from_mapping(obj_json, obj_type)
+            else:
+                return None
 
 
     def _retrieve_multi(self, obj_uri: URI, param_objs: Dict[str, Optional[Resource]], obj_type: Type[T]) -> Iterator[T]:
