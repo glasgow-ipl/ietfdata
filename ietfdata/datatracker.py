@@ -2076,7 +2076,7 @@ class DataTracker:
         self.get_count += 1
         r = self.session.get(req_url, params = req_params, headers = req_headers, verify = True, stream = False)
         if r.status_code == 200:
-            self.log.info(F"_datatracker_get_single (r.status_code) {obj_uri}")
+            self.log.info(F"_datatracker_get_single ({r.status_code}) {obj_uri}")
             url_obj = r.json() # type: Dict[str, Any]
             return url_obj
         elif r.status_code == 404:
