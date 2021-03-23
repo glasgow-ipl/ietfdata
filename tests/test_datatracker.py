@@ -49,6 +49,18 @@ class TestDatatracker(unittest.TestCase):
     def setUpClass(self) -> None:
         self.dt = DataTracker()
 
+    def test__datatracker_get_single(self) -> None:
+        json = self.dt._datatracker_get_single(URI("/api/v1/person/email/csp@csperkins.org/"))
+        if json is not None:
+            self.assertEqual(json["resource_uri"], "/api/v1/person/email/csp@csperkins.org/")
+            self.assertEqual(json["address"],      "csp@csperkins.org")
+            self.assertEqual(json["person"],       "/api/v1/person/person/20209/")
+            self.assertEqual(json["time"],         "1970-01-01T23:59:59")
+            self.assertEqual(json["primary"],      True)
+            self.assertEqual(json["active"],       True)
+        else:
+            self.fail("Cannot retrieve single JSON item")
+
     def test_email(self) -> None:
         e  = self.dt.email(EmailURI("/api/v1/person/email/csp@csperkins.org/"))
         if e is not None:
