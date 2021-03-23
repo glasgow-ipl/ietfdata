@@ -52,7 +52,7 @@ from dataclasses import dataclass, field
 from pathlib     import Path
 from pavlova     import Pavlova
 from pavlova.parsers import GenericParser
-from pymongo         import MongoClient, ASCENDING, TEXT
+from pymongo         import MongoClient, ASCENDING, TEXT, ReplaceOne
 from pymongo.database import Database
 
 import ast
@@ -2088,9 +2088,96 @@ class DataTracker:
             return None
 
 
-    def _datatracker_get_multi(self, obj_uri: URI, order_by: str) -> List[Dict[Any, Any]]:
-        # FIXME: implement this
-        pass
+    def _datatracker_get_multi(self, obj_uri: URI) -> Iterator[Dict[Any, Any]]:
+        obj_type_uri = type(obj_uri)(obj_uri.uri)
+        if len(obj_uri.params) > 0:
+            obj_uri = type(obj_type_uri)(F"{obj_uri.uri}?limit=100&{urllib.parse.urlencode(obj_uri.params)}")
+        else:
+            obj_uri = type(obj_type_uri)(F"{obj_uri.uri}?limit=100")
+
+        if obj_uri.uri is not None and "order_by" not in obj_uri.uri and "id" in self._cache_indexes[type(obj_type_uri)].order_by:
+            obj_uri = type(obj_type_uri)(F"{obj_uri.uri}&order_by=id")
+
+        total = None
+        while obj_uri.uri is not None:
+            self._rate_limit()
+            retry = True
+            retry_time = 1.875
+            while retry:
+                retry = False
+                req_url     = self.base_url + obj_uri.uri
+                req_headers = {'User-Agent': self.ua}
+                try:
+                    self.get_count += 1
+                    r = self.session.get(req_url, headers = req_headers, verify = True, stream = False)
+                    if r.status_code == 200:
+                        meta = r.json()['meta']
+                        objs = r.json()['objects']
+                        obj_uri  = URI(meta['next'])
+                        yield from objs
+                        total = meta["total_count"]
+                        self.log.info(F"_datatracker_get_multi ({r.status_code}) {req_url} ({len(objs)} objects, {total} total)")
+                    elif r.status_code == 500:
+                        if retry_time > 60:
+                            self.log.info(F"_datatracker_get_multi ({r.status_code}) {req_url} - retry time exceeded")
+                            sys.exit(1)
+                        self.session.close()
+                        time.sleep(retry_time)
+                        retry_time *= 2
+                        retry = True
+                    elif r.status_code == 400 and total is not None:
+                        # Error 400 = Bad Request
+                        # This should never happen in a range query such as this,
+                        # but occasionally does because of inconsistencies in the
+                        # database underlying the datatracker. Try to fetch each
+                        # object in the range in turn to isolate the problematic
+                        # object.
+                        self.log.info(F"_datatracker_get_multi ({r.status_code}) {req_url} - isolating bad request")
+                        # Parse the URL to extract the query range:
+                        split = urllib.parse.urlsplit(req_url)
+                        query = urllib.parse.parse_qs(split.query)
+                        offset = int(query["offset"][0])
+                        finish = offset + 100 if offset < total else total
+                        failed = True
+                        # Fetch each object in the range in turn:
+                        for i in range(offset, finish):
+                            obj_uri = URI(self.base_url + split.path)
+                            for k, v in query.items():
+                                obj_uri.params[k] = v[0]
+                            obj_uri.params["offset"] = i
+                            obj_uri.params["limit"]  = 1
+                            self._rate_limit()
+                            self.get_count += 1
+                            r = self.session.get(str(obj_uri), headers = {"User-Agent": self.ua}, verify = True, stream = False)
+                            if r.status_code == 200:
+                                new_json = r.json() # type: Dict[str, Any]
+                                yield new_json
+                                failed = False
+                                self.log.info(F"_datatracker_get_multi ({r.status_code}) {req_url}")
+                            elif r.status_code == 400:
+                                self.log.info(F"  {r.status_code} {obj_uri}")
+                            else:
+                                print(F"_datatracker_get_multi ({r.status_code}) failed after {self.http_req} requests {req_url}")
+                                sys.exit(1)
+                        if failed:
+                            print(F"_datatracker_get_multi ({r.status_code}) failed: no request in range could be retrieved")
+                            sys.exit(1)
+                        # Construct the next range URL, and continue:
+                        obj_uri = type(obj_type_uri)(split.path)
+                        for k, v in query.items():
+                            obj_uri.params[k] = v[0]
+                        obj_uri.params["offset"] = finish
+                        obj_uri.params["limit"]  = 100
+                        obj_uri = type(obj_type_uri)(F"{obj_uri.uri}?{urllib.parse.urlencode(obj_uri.params)}")
+                    else:
+                        print(F"_datatracker_get_multi ({r.status_code}) failed after {self.http_req} requests {req_url}")
+                        sys.exit(1)
+                except requests.exceptions.ConnectionError:
+                    self.log.warn(F"_datatracker_get_multi: connection error - will retry in {retry_time}")
+                    self.session.close()
+                    time.sleep(retry_time)
+                    retry_time *= 2
+                    retry = True
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -2106,7 +2193,9 @@ class DataTracker:
         if meta.partial and (len(meta.queries)/(meta.total_count/100)) > 0.5:
             # Switch to caching all objects of this type
             self.log.info(F"switch to full cache {obj_type_uri.uri} ({meta.total_count} objects)")
-            self._retrieve_jsons(obj_type_uri, obj_type_uri, {}, obj_type_uri, obj_type)
+            #self._retrieve_jsons(obj_type_uri, obj_type_uri, {}, obj_type_uri, obj_type)
+            obj_jsons = self._datatracker_get_multi(obj_type_uri)
+            self._cache_put_objects(obj_type_uri, obj_jsons)
             meta = self._cache_load_metadata(obj_type_uri)
             meta.partial = False
             meta.queries = []
@@ -2114,11 +2203,13 @@ class DataTracker:
             self._cache_save_metadata(obj_type_uri, meta)
         # Do we need to update the cache?
         if now - meta.updated > timedelta(hours=1) and "time" in obj_type.__dict__["__dataclass_fields__"]:
-            update_uri = URI(obj_type_uri.uri)
+            update_uri = type(obj_type_uri)(obj_type_uri.uri)
             update_uri.params["time__gte"] = meta.updated.strftime("%Y-%m-%dT%H:%M:%S.%f")  # Avoid isoformat(), since don't want TZ offset
             update_uri.params["time__lt"]  = now.strftime("%Y-%m-%dT%H:%M:%S.%f")
             self.log.info(F"cache outdated {str(obj_type_uri)} ({update_uri.params['time__gte']} -> {update_uri.params['time__lt']})")
-            self._retrieve_jsons(update_uri, update_uri, {}, obj_type_uri, obj_type)
+            #self._retrieve_jsons(update_uri, update_uri, {}, obj_type_uri, obj_type)
+            obj_jsons = self._datatracker_get_multi(update_uri)
+            self._cache_put_objects(update_uri, obj_jsons)
             meta = self._cache_load_metadata(obj_type_uri)
             meta.updated = now
             obj_count = self._cache_fetch_object_count(obj_type_uri)
@@ -2240,6 +2331,21 @@ class DataTracker:
         self.db_calls += 1
 
 
+    def _cache_put_objects(self, obj_uri: URI, obj_jsons: Iterator[Dict[str, Any]]) -> None:
+        if self.db is None:
+            return
+        assert obj_uri.uri is not None
+        assert obj_uri.uri.startswith("/")
+        assert obj_uri.uri.endswith("/")
+        self._cache_create(_parent_uri(obj_uri))
+        objs_to_write = []
+        for obj_json in obj_jsons:
+            objs_to_write.append(ReplaceOne({"resource_uri" : obj_json["resource_uri"]}, obj_json, upsert=True))
+        if len(objs_to_write) > 0:
+            self.db[_cache_uri_format(_parent_uri(obj_uri))].bulk_write(objs_to_write) # type: ignore
+            self.db_calls += 1
+
+
     def _cache_has_all_objects(self, obj_type_uri: URI):
         if self.db is None:
             return False
@@ -2254,14 +2360,14 @@ class DataTracker:
         return str(obj_uri) in meta.queries
 
 
-    def _cache_get_objects(self, obj_uri: URI, param_objs: Dict[str, Optional[Resource]], obj_type_uri: URI, obj_type: Type[T]) -> List[Dict[Any, Any]]:
+    def _cache_get_objects(self, obj_uri: URI, param_objs: Dict[str, Optional[Resource]], obj_type_uri: URI, obj_type: Type[T]) -> Iterator[Dict[Any, Any]]:
         if self.db is None:
-            return []
+            return [] # type: ignore
         self.db_calls += 1
         if len(obj_uri.params) > 1:
             self.db[_cache_uri_format(obj_type_uri)].create_index([(field, ASCENDING) for field in list(_translate_query(obj_uri, param_objs, obj_type).keys())])
         obj_jsons = self.db[_cache_uri_format(obj_type_uri)].find(_translate_query(obj_uri, param_objs, obj_type))
-        return list(obj_jsons)
+        return iter(obj_jsons)
 
 
     def _cache_fetch_object_count(self, obj_type_uri: URI) -> Optional[int]:
@@ -2334,107 +2440,6 @@ class DataTracker:
             self.session.close()
 
 
-    def _retrieve_jsons(self, obj_uri: URI, cache_uri: URI, param_objs: Dict[str, Optional[Resource]], obj_type_uri: URI, obj_type: Type[T]) -> List[Dict[Any, Any]]:
-        # FIXME: much of this should move to _datatracker_get_multi()
-        # FIXME: this is called by _cache_update() to fetch new objects,
-        #        but it returns values from the cache - is that correct?
-        if self._cache_has_objects(cache_uri, obj_type_uri) or self._cache_has_all_objects(obj_uri):
-            self.cache_hit += 1
-            return self._cache_get_objects(obj_uri, param_objs, obj_type_uri, obj_type)
-
-        if len(obj_uri.params) > 0:
-            obj_uri = type(obj_type_uri)(F"{obj_uri.uri}?limit=100&{urllib.parse.urlencode(obj_uri.params)}")
-        else:
-            obj_uri = type(obj_type_uri)(F"{obj_uri.uri}?limit=100")
-
-        if obj_uri.uri is not None and "order_by" not in obj_uri.uri and "id" in self._cache_indexes[type(obj_type_uri)].order_by:
-            obj_uri = type(obj_type_uri)(F"{obj_uri.uri}&order_by=id")
-
-        total = None
-        fetched_objs = [] # type: List[Dict[Any, Any]]
-        while obj_uri.uri is not None:
-            self._rate_limit()
-            retry = True
-            retry_time = 1.875
-            while retry:
-                retry = False
-                req_url     = self.base_url + obj_uri.uri
-                req_headers = {'User-Agent': self.ua}
-                try:
-                    self.get_count += 1
-                    r = self.session.get(req_url, headers = req_headers, verify = True, stream = False)
-                    if r.status_code == 200:
-                        meta = r.json()['meta']
-                        objs = r.json()['objects']
-                        obj_uri  = URI(meta['next'])
-                        fetched_objs = objs + fetched_objs
-                        total = meta["total_count"]
-                    elif r.status_code == 500:
-                        if retry_time > 60:
-                            print("_retrieve_jsons failed: retry_time exceeded")
-                            sys.exit(1)
-                        self.session.close()
-                        time.sleep(retry_time)
-                        retry_time *= 2
-                        retry = True
-                    elif r.status_code == 400 and total is not None:
-                        # Error 400 = Bad Request
-                        # This should never happen in a range query such as this,
-                        # but occasionally does because of inconsistencies in the
-                        # database underlying the datatracker. Try to fetch each
-                        # object in the range in turn to isolate the problematic
-                        # object.
-                        self.log.info(F"_retrieve_jsons failed: isolating bad request {req_url}")
-                        # Parse the URL to extract the query range:
-                        split = urllib.parse.urlsplit(req_url)
-                        query = urllib.parse.parse_qs(split.query)
-                        offset = int(query["offset"][0])
-                        finish = offset + 100 if offset < total else total
-                        failed = True
-                        # Fetch each object in the range in turn:
-                        for i in range(offset, finish):
-                            obj_uri = URI(self.base_url + split.path)
-                            for k, v in query.items():
-                                obj_uri.params[k] = v[0]
-                            obj_uri.params["offset"] = i
-                            obj_uri.params["limit"]  = 1
-                            self._rate_limit()
-                            self.get_count += 1
-                            r = self.session.get(str(obj_uri), headers = {"User-Agent": self.ua}, verify = True, stream = False)
-                            if r.status_code == 200:
-                                new_json = r.json() # type: Dict[str, Any]
-                                fetched_objs = objs + fetched_objs
-                                failed = False
-                            elif r.status_code == 400:
-                                self.log.info(F"  {r.status_code} {obj_uri}")
-                            else:
-                                print(F"_retrieve_jsons failed: error {r.status_code} after {self.http_req} requests {req_url}")
-                                sys.exit(1)
-                        if failed:
-                            print(F"_retrieve_jsons failed: no request in range could be retrieved")
-                            sys.exit(1)
-                        # Construct the next range URL, and continue:
-                        obj_uri = type(obj_type_uri)(split.path)
-                        for k, v in query.items():
-                            obj_uri.params[k] = v[0]
-                        obj_uri.params["offset"] = finish
-                        obj_uri.params["limit"]  = 100
-                        obj_uri = type(obj_type_uri)(F"{obj_uri.uri}?{urllib.parse.urlencode(obj_uri.params)}")
-                    else:
-                        print(F"_retrieve_jsons failed: error {r.status_code} after {self.http_req} requests {req_url}")
-                        sys.exit(1)
-                except requests.exceptions.ConnectionError:
-                    self.log.warn(F"_retrieve_jsons failed: connection error - will retry in {retry_time}")
-                    self.session.close()
-                    time.sleep(retry_time)
-                    retry_time *= 2
-                    retry = True
-        if self.db is not None:
-            for obj_json in fetched_objs:
-                self._cache_put_object(type(obj_type_uri)(obj_json["resource_uri"]), obj_json)
-        return fetched_objs
-
-
     def _retrieve(self, obj_uri: URI, obj_type: Type[T]) -> Optional[T]:
         if self._cache_has_object(obj_uri, obj_type):
             obj_json = self._cache_get_object(obj_uri)
@@ -2461,11 +2466,16 @@ class DataTracker:
             if n != "time__gte" and n != "time__lt":
                 cache_uri.params[n] = v
 
-        self._cache_update(_parent_uri(obj_uri), obj_type)
-        self.cache_req += 1
+        self._cache_update(obj_type_uri, obj_type)
 
-        obj_jsons = self._retrieve_jsons(obj_uri, cache_uri, param_objs, obj_type_uri, obj_type)
+        if self._cache_has_objects(cache_uri, obj_type_uri) or self._cache_has_all_objects(obj_uri):
+            obj_jsons = self._cache_get_objects(obj_uri, param_objs, obj_type_uri, obj_type)
+        else:
+            obj_jsons = self._datatracker_get_multi(obj_uri)
+            self._cache_put_objects(obj_uri, obj_jsons)
+
         self._cache_record_query(cache_uri, obj_type_uri)
+
         results = []
         for fetched_obj in obj_jsons:
             sort_key = ""
