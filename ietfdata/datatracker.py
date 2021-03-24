@@ -135,6 +135,7 @@ class Person(Resource):
     time            : datetime
     photo           : str
     photo_thumb     : str
+    plain           : str
     biography       : str
     consent         : bool
 
@@ -151,6 +152,7 @@ class HistoricalPerson(Resource):
     time                  : datetime
     photo                 : str
     photo_thumb           : str
+    plain                 : str
     biography             : str
     consent               : bool
     history_change_reason : Optional[str]
@@ -329,6 +331,8 @@ class Submission(Resource):
     submitter       : str
     title           : str
     words           : Optional[int]
+    xml_version     : str
+
 
     """
     URLs from which this submission can be downloaded.
@@ -864,23 +868,26 @@ class GroupTypeName(Resource):
 
 @dataclass(frozen=True)
 class Group(Resource):
-    acronym        : str
-    ad             : Optional[PersonURI]
-    charter        : Optional[DocumentURI]
-    comments       : str
-    description    : str
-    id             : int
-    list_archive   : str
-    list_email     : str
-    list_subscribe : str
-    name           : str
-    parent         : Optional[GroupURI]
-    resource_uri   : GroupURI
-    state          : GroupStateURI
-    time           : datetime
-    type           : GroupTypeNameURI
-    unused_states  : List[str]
-    unused_tags    : List[str]
+    acronym              : str
+    ad                   : Optional[PersonURI]
+    charter              : Optional[DocumentURI]
+    comments             : str
+    description          : str
+    id                   : int
+    list_archive         : str
+    list_email           : str
+    list_subscribe       : str
+    meeting_seen_as_area : bool
+    name                 : str
+    parent               : Optional[GroupURI]
+    resource_uri         : GroupURI
+    state                : GroupStateURI
+    time                 : datetime
+    type                 : GroupTypeNameURI
+    unused_states        : List[str]
+    unused_tags          : List[str]
+    used_roles           : List[str]
+    uses_milestone_dates : bool
 
 
 @dataclass(frozen=True)
@@ -899,6 +906,7 @@ class GroupHistory(Resource):
     list_archive         : str
     list_email           : str
     list_subscribe       : str
+    meeting_seen_as_area : bool
     name                 : str
     parent               : Optional[GroupURI]
     resource_uri         : GroupHistoryURI
@@ -907,6 +915,7 @@ class GroupHistory(Resource):
     type                 : GroupTypeNameURI
     unused_states        : List[str]
     unused_tags          : List[str]
+    used_roles           : bool
     uses_milestone_dates : bool
 
 
@@ -1118,6 +1127,7 @@ class Schedule(Resource):
     """
     id           : int
     name         : str
+    notes        : str
     resource_uri : ScheduleURI
     owner        : PersonURI
     meeting      : MeetingURI
