@@ -915,7 +915,7 @@ class GroupHistory(Resource):
     type                 : GroupTypeNameURI
     unused_states        : List[str]
     unused_tags          : List[str]
-    used_roles           : bool
+    used_roles           : List[str]
     uses_milestone_dates : bool
 
 
