@@ -886,7 +886,7 @@ class Group(Resource):
     type                 : GroupTypeNameURI
     unused_states        : List[str]
     unused_tags          : List[str]
-    used_roles           : List[str]
+    used_roles           : str
     uses_milestone_dates : bool
 
 
@@ -915,7 +915,7 @@ class GroupHistory(Resource):
     type                 : GroupTypeNameURI
     unused_states        : List[str]
     unused_tags          : List[str]
-    used_roles           : List[str]
+    used_roles           : str
     uses_milestone_dates : bool
 
 
