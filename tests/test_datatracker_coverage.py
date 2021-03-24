@@ -69,12 +69,12 @@ class TestDatatrackerCoverage(unittest.TestCase):
         for covered_uri in self.dt._cache_indexes:
             covered_uris.append(covered_uri.root)
         for endpoint_uri in self.endpoint_uris:
-            with self.subTest(msg=f"{endpoint_uri[1:].replace('/', '.')}"):
+            with self.subTest(msg=endpoint_uri):
                 self.assertIn(endpoint_uri, covered_uris)
 
 
     def test_endpoint_fields(self) -> None:
         for uri in self.dt._cache_indexes:
             if uri.root in self.endpoint_uris:
-                with self.subTest(msg=f"{uri.root[1:].replace('/', '.')}"):
+                with self.subTest(msg=f"{uri.root}, {self.dt._cache_indexes[uri].resource_type.__name__}"):
                     self.assertCountEqual(list(self.dt._cache_indexes[uri].resource_type.__dict__["__dataclass_fields__"].keys()), self.endpoint_uris[uri.root])
