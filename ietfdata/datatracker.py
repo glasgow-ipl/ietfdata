@@ -2183,8 +2183,8 @@ class DataTracker:
             # Switch to caching all objects of this type
             self.log.info(F"switch to full cache {obj_type_uri.uri} ({meta.total_count} objects)")
             #self._retrieve_jsons(obj_type_uri, obj_type_uri, {}, obj_type_uri, obj_type)
-            obj_jsons = self._datatracker_get_multi(obj_type_uri)
-            self._cache_put_objects(obj_type_uri, obj_jsons)
+            for obj_json in self._datatracker_get_multi(obj_type_uri):
+                self._cache_put_object(obj_json)
             meta = self._cache_load_metadata(obj_type_uri)
             meta.partial = False
             meta.queries = []
@@ -2197,8 +2197,8 @@ class DataTracker:
             update_uri.params["time__lt"]  = now.strftime("%Y-%m-%dT%H:%M:%S.%f")
             self.log.info(F"cache outdated {str(obj_type_uri)} ({update_uri.params['time__gte']} -> {update_uri.params['time__lt']})")
             #self._retrieve_jsons(update_uri, update_uri, {}, obj_type_uri, obj_type)
-            obj_jsons = self._datatracker_get_multi(update_uri)
-            self._cache_put_objects(update_uri, obj_jsons)
+            for obj_json in self._datatracker_get_multi(update_uri):
+                self._cache_put_object(obj_json)
             meta = self._cache_load_metadata(obj_type_uri)
             meta.updated = now
             obj_count = self._datatracker_get_multi_count(obj_type_uri)
@@ -2265,7 +2265,6 @@ class DataTracker:
             except:
                 pass
 
-
     def _cache_record_query(self, obj_uri: URI, obj_type_uri: URI) -> None:
         if self.db is None:
             return
@@ -2309,30 +2308,13 @@ class DataTracker:
         return self.db[_cache_uri_format(_parent_uri(obj_uri))].find_one({"resource_uri": obj_uri.uri})
 
 
-    def _cache_put_object(self, obj_uri: URI, obj_json: Dict[str, Any]) -> None:
+    def _cache_put_object(self, obj_json: Dict[str, Any]) -> None:
         if self.db is None:
             return
-        assert obj_uri.uri is not None
-        assert obj_uri.uri.startswith("/")
-        assert obj_uri.uri.endswith("/")
-        self._cache_create(_parent_uri(obj_uri))
-        self.db[_cache_uri_format(_parent_uri(obj_uri))].replace_one({"resource_uri" : obj_json["resource_uri"]}, obj_json, upsert=True)
+        self.log.info(F"_cache_put_object: {obj_json['resource_uri']}")
+        self._cache_create(_parent_uri(URI(obj_json['resource_uri'])))
+        self.db[_cache_uri_format(_parent_uri(URI(obj_json['resource_uri'])))].replace_one({"resource_uri" : obj_json['resource_uri']}, obj_json, upsert=True)
         self.db_calls += 1
-
-
-    def _cache_put_objects(self, obj_uri: URI, obj_jsons: Iterator[Dict[str, Any]]) -> None:
-        if self.db is None:
-            return
-        assert obj_uri.uri is not None
-        assert obj_uri.uri.startswith("/")
-        assert obj_uri.uri.endswith("/")
-        self._cache_create(_parent_uri(obj_uri))
-        objs_to_write = []
-        for obj_json in obj_jsons:
-            objs_to_write.append(ReplaceOne({"resource_uri" : obj_json["resource_uri"]}, obj_json, upsert=True))
-        if len(objs_to_write) > 0:
-            self.db[_cache_uri_format(_parent_uri(obj_uri))].bulk_write(objs_to_write) # type: ignore
-            self.db_calls += 1
 
 
     def _cache_has_all_objects(self, obj_type_uri: URI):
@@ -2418,7 +2400,8 @@ class DataTracker:
         else:
             obj_json = self._datatracker_get_single(obj_uri)
             if obj_json is not None:
-                self._cache_put_object(obj_uri, obj_json)
+                self.log.info(F"_retrieve {obj_uri}")
+                self._cache_put_object(obj_json)
                 self._cache_record_query(obj_uri, _parent_uri(obj_uri))
                 return self.pavlova.from_mapping(obj_json, obj_type)
             else:
@@ -2426,6 +2409,7 @@ class DataTracker:
 
 
     def _retrieve_multi(self, obj_uri: URI, param_objs: Dict[str, Optional[Resource]], obj_type: Type[T]) -> Iterator[T]:
+        self.log.info(F"_retrieve_multi: obj_uri {obj_uri}")
         obj_type_uri = type(obj_uri)(obj_uri.uri)
         cache_uri = type(obj_uri)(obj_uri.uri)
         for n, v in obj_uri.params.items():
@@ -2436,11 +2420,16 @@ class DataTracker:
 
         self._cache_update(obj_type_uri, obj_type)
 
+        obj_jsons = [] # type: List[Dict[str, Any]]
         if self._cache_has_objects(cache_uri, obj_type_uri) or self._cache_has_all_objects(obj_uri):
-            obj_jsons = self._cache_get_objects(obj_uri, param_objs, obj_type_uri, obj_type)
+            self.log.info(F"_retrieve_multi: cache hit {cache_uri} {obj_uri}")
+            for obj_json in self._cache_get_objects(obj_uri, param_objs, obj_type_uri, obj_type):
+                obj_jsons.append(obj_json)
         else:
-            obj_jsons = self._datatracker_get_multi(obj_uri)
-            self._cache_put_objects(obj_uri, obj_jsons)
+            self.log.info(F"_retrieve_multi: cache miss {cache_uri} {obj_uri}")
+            for obj_json in self._datatracker_get_multi(obj_uri):
+                self._cache_put_object(obj_json)
+                obj_jsons.append(obj_json)
 
         self._cache_record_query(cache_uri, obj_type_uri)
 
