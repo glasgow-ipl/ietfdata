@@ -2362,42 +2362,36 @@ class DataTracker:
     def _cache_check_versions(self) -> None:
         if self.db is None:
             return
+
         cache_version_metadata = self.db.cache_info.find_one({"meta_key": "_cache_versions"})
-        if not cache_version_metadata:
-            dt_version = None
+        if cache_version_metadata is None:
+            dt_version    = None
             cache_version = self.cache_ver
         else:
-            dt_version = cache_version_metadata["dt_version"]
+            dt_version    = cache_version_metadata["dt_version"]
             cache_version = cache_version_metadata["cache_version"]
 
+        # check cache version
+        if cache_version != self.cache_ver:
+            self.log.info(f"cache version updated {cache_version} -> {self.cache_ver}")
+            for cache_index_uri in self._cache_indexes:
+                cache_obj_uri = URI(uri=cache_index_uri(uri=None).root)
+                self._cache_delete(cache_obj_uri)
+            cache_version = self.cache_ver
+
         # check Datatracker version
-        dt_version_url = "https://datatracker.ietf.org/api/version"
-        req_headers = {'User-Agent': self.ua}
-        self._rate_limit()
-        self.get_count += 1
-        r = self.session.get(dt_version_url, headers = req_headers, verify = True, stream = False)
-        if r.status_code == 200:
-            url_obj = r.json()
-            self.log.info(f"Datatracker version: {url_obj['version']}")
-            if dt_version != url_obj["version"]:
-                self.log.info(f"Datatracker version does not match cache ({dt_version})")
+        version_info = self._datatracker_get_single(URI("/api/version/"))
+        if version_info is not None:
+            if dt_version != version_info["version"]:
+                self.log.info(f"datatracker version updated {dt_version} -> {version_info['version']}")
                 for cache_index_uri in self._cache_indexes:
                     cache_obj_uri = URI(uri=cache_index_uri(uri=None).root)
                     if "time" not in self._cache_indexes[cache_index_uri].fields:
                         if self.db.cache_info.find_one({"meta_key": _cache_uri_format(cache_obj_uri)}):
                             self._cache_delete(cache_obj_uri)
-                dt_version = url_obj["version"]
+                dt_version = version_info["version"]
         else:
-            self.log.info(f"could not fetch Datatracker version: {r.status_code} {dt_version_url}")
-            return
-
-        # check cache version
-        if cache_version != self.cache_ver:
-            self.log.info(f"Library cache version ({self.cache_ver}) does not match cache ({cache_version})")
-            for cache_index_uri in self._cache_indexes:
-                cache_obj_uri = URI(uri=cache_index_uri(uri=None).root)
-                self._cache_delete(cache_obj_uri)
-            cache_version = self.cache_ver
+            self.log.warning("could not check datatracker version")
 
         self.db.cache_info.replace_one({"meta_key" : "_cache_versions"}, {"meta_key": "_cache_versions", "dt_version": dt_version, "cache_version": cache_version}, upsert=True)
 
