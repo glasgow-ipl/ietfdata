@@ -2409,7 +2409,7 @@ class DataTracker:
 
 
     def _retrieve_multi(self, obj_uri: URI, param_objs: Dict[str, Optional[Resource]], obj_type: Type[T]) -> Iterator[T]:
-        self.log.info(F"_retrieve_multi: obj_uri {obj_uri}")
+        self.log.debug(F"_retrieve_multi: obj_uri {obj_uri}")
         obj_type_uri = type(obj_uri)(obj_uri.uri)
         cache_uri = type(obj_uri)(obj_uri.uri)
         for n, v in obj_uri.params.items():
@@ -2422,11 +2422,11 @@ class DataTracker:
 
         obj_jsons = [] # type: List[Dict[str, Any]]
         if self._cache_has_objects(cache_uri, obj_type_uri) or self._cache_has_all_objects(obj_uri):
-            self.log.info(F"_retrieve_multi: cache hit {cache_uri} {obj_uri}")
+            self.log.debug(F"_retrieve_multi: cache hit {cache_uri} {obj_uri}")
             for obj_json in self._cache_get_objects(obj_uri, param_objs, obj_type_uri, obj_type):
                 obj_jsons.append(obj_json)
         else:
-            self.log.info(F"_retrieve_multi: cache miss {cache_uri} {obj_uri}")
+            self.log.debug(F"_retrieve_multi: cache miss {cache_uri} {obj_uri}")
             for obj_json in self._datatracker_get_multi(obj_uri):
                 self._cache_put_object(obj_json)
                 obj_jsons.append(obj_json)
