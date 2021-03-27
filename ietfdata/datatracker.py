@@ -2216,9 +2216,11 @@ class DataTracker:
 
     def _cache_delete(self, obj_type_uri: URI) -> None:
         assert self.db is not None
-        self.db.cache_info.delete_one({"meta_key": _cache_uri_format(obj_type_uri)})
-        self.db[_cache_uri_format(obj_type_uri)].drop()
-        self.log.info(f"deleted {str(obj_type_uri)} cache")
+        meta_key = _cache_uri_format(obj_type_uri)
+        self.log.info(f"_cache_delete: {meta_key}")
+        self.db.cache_info.delete_one({"meta_key": meta_key})
+        self.db[meta_key].drop()
+        self.db_calls += 1
 
 
     def _cache_load_metadata(self, obj_type_uri: URI) -> CacheMetadata:
