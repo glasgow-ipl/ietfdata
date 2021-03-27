@@ -2076,11 +2076,11 @@ class DataTracker:
         self.get_count += 1
         r = self.session.get(req_url, params = req_params, headers = req_headers, verify = True, stream = False)
         if r.status_code == 200:
-            self.log.info(F"_datatracker_get_single ({r.status_code}) {obj_uri}")
+            self.log.debug(F"_datatracker_get_single ({r.status_code}) {obj_uri}")
             url_obj = r.json() # type: Dict[str, Any]
             return url_obj
         elif r.status_code == 404:
-            self.log.info(F"_datatracker_get_single ({r.status_code}) {obj_uri}")
+            self.log.debug(F"_datatracker_get_single ({r.status_code}) {obj_uri}")
             return None
         else:
             # This should never happen in normal use, so we log as a warning
@@ -2111,7 +2111,7 @@ class DataTracker:
                     self.get_count += 1
                     r = self.session.get(url = req_url, params = req_params, headers = req_headers, verify = True, stream = False)
                     if r.status_code == 200:
-                        self.log.info(F"_datatracker_get_multi ({r.status_code}) {obj_uri}")
+                        self.log.debug(F"_datatracker_get_multi ({r.status_code}) {obj_uri}")
                         meta = r.json()['meta']
                         objs = r.json()['objects']
                         obj_uri  = URI(meta['next'])
