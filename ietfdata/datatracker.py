@@ -2088,17 +2088,16 @@ class DataTracker:
             return None
 
 
-    def _datatracker_get_multi(self, obj_uri: URI) -> Iterator[Dict[Any, Any]]:
-        obj_type_uri = type(obj_uri)(obj_uri.uri)
-        if len(obj_uri.params) > 0:
-            obj_uri = type(obj_type_uri)(F"{obj_uri.uri}?limit=100&{urllib.parse.urlencode(obj_uri.params)}")
-        else:
-            obj_uri = type(obj_type_uri)(F"{obj_uri.uri}?limit=100")
+    def _datatracker_get_multi(self, obj_uri: URI, order_by: Optional[str] = None) -> Iterator[Dict[Any, Any]]:
+        assert "order_by" not in obj_uri.params
+        assert "limit"    not in obj_uri.params
 
-        if obj_uri.uri is not None and "order_by" not in obj_uri.uri and "id" in self._cache_indexes[type(obj_type_uri)].order_by:
-            obj_uri = type(obj_type_uri)(F"{obj_uri.uri}&order_by=id")
+        if order_by != None:
+            obj_uri.params["order_by"] = order_by
+        obj_uri.params[   "limit"] = 100
 
-        total = None
+        total_count  = -1
+        fetched_objs = {} # type: Dict[str, Dict[Any, Any]]
         while obj_uri.uri is not None:
             self._rate_limit()
             retry = True
@@ -2106,71 +2105,38 @@ class DataTracker:
             while retry:
                 retry = False
                 req_url     = self.base_url + obj_uri.uri
+                req_params  = obj_uri.params
                 req_headers = {'User-Agent': self.ua}
                 try:
                     self.get_count += 1
-                    r = self.session.get(req_url, headers = req_headers, verify = True, stream = False)
+                    r = self.session.get(url = req_url, params = req_params, headers = req_headers, verify = True, stream = False)
                     if r.status_code == 200:
+                        self.log.info(F"_datatracker_get_multi ({r.status_code}) {obj_uri}")
                         meta = r.json()['meta']
                         objs = r.json()['objects']
                         obj_uri  = URI(meta['next'])
-                        yield from objs
-                        total = meta["total_count"]
-                        self.log.info(F"_datatracker_get_multi ({r.status_code}) {req_url} ({len(objs)} objects, {total} total)")
+                        for obj in objs:
+                            # API requests returning lists should never return duplicate
+                            # objects, but due to datatracker bugs this sometimes happens.
+                            # Check for and log such problems, but pass the duplicates up
+                            # to the higher layers for reconcilition.
+                            if obj["resource_uri"] in fetched_objs:
+                                self.log.warning(F"_datatracker_get_multi duplicate object {obj['resource_uri']}")
+                            else:
+                                fetched_objs[obj["resource_uri"]] = obj
+                            yield obj
+                        total_count = meta["total_count"]
                     elif r.status_code == 500:
+                        self.log.warning(F"_datatracker_get_multi ({r.status_code}) {obj_uri}")
                         if retry_time > 60:
-                            self.log.info(F"_datatracker_get_multi ({r.status_code}) {req_url} - retry time exceeded")
+                            self.log.info(F"_datatracker_get_multi retry time exceeded")
                             sys.exit(1)
                         self.session.close()
                         time.sleep(retry_time)
                         retry_time *= 2
                         retry = True
-                    elif r.status_code == 400 and total is not None:
-                        # Error 400 = Bad Request
-                        # This should never happen in a range query such as this,
-                        # but occasionally does because of inconsistencies in the
-                        # database underlying the datatracker. Try to fetch each
-                        # object in the range in turn to isolate the problematic
-                        # object.
-                        self.log.info(F"_datatracker_get_multi ({r.status_code}) {req_url} - isolating bad request")
-                        # Parse the URL to extract the query range:
-                        split = urllib.parse.urlsplit(req_url)
-                        query = urllib.parse.parse_qs(split.query)
-                        offset = int(query["offset"][0])
-                        finish = offset + 100 if offset < total else total
-                        failed = True
-                        # Fetch each object in the range in turn:
-                        for i in range(offset, finish):
-                            obj_uri = URI(self.base_url + split.path)
-                            for k, v in query.items():
-                                obj_uri.params[k] = v[0]
-                            obj_uri.params["offset"] = i
-                            obj_uri.params["limit"]  = 1
-                            self._rate_limit()
-                            self.get_count += 1
-                            r = self.session.get(str(obj_uri), headers = {"User-Agent": self.ua}, verify = True, stream = False)
-                            if r.status_code == 200:
-                                new_json = r.json() # type: Dict[str, Any]
-                                yield new_json
-                                failed = False
-                                self.log.info(F"_datatracker_get_multi ({r.status_code}) {req_url}")
-                            elif r.status_code == 400:
-                                self.log.info(F"  {r.status_code} {obj_uri}")
-                            else:
-                                print(F"_datatracker_get_multi ({r.status_code}) failed after {self.http_req} requests {req_url}")
-                                sys.exit(1)
-                        if failed:
-                            print(F"_datatracker_get_multi ({r.status_code}) failed: no request in range could be retrieved")
-                            sys.exit(1)
-                        # Construct the next range URL, and continue:
-                        obj_uri = type(obj_type_uri)(split.path)
-                        for k, v in query.items():
-                            obj_uri.params[k] = v[0]
-                        obj_uri.params["offset"] = finish
-                        obj_uri.params["limit"]  = 100
-                        obj_uri = type(obj_type_uri)(F"{obj_uri.uri}?{urllib.parse.urlencode(obj_uri.params)}")
                     else:
-                        print(F"_datatracker_get_multi ({r.status_code}) failed after {self.http_req} requests {req_url}")
+                        self.log.error(F"_datatracker_get_multi ({r.status_code}) {obj_uri}")
                         sys.exit(1)
                 except requests.exceptions.ConnectionError:
                     self.log.warn(F"_datatracker_get_multi: connection error - will retry in {retry_time}")
@@ -2178,6 +2144,9 @@ class DataTracker:
                     time.sleep(retry_time)
                     retry_time *= 2
                     retry = True
+        if total_count != len(fetched_objs):
+            self.log.warning(F"_datatracker_get_multi: expected {total_count} objects but got {len(fetched_objs)}")
+
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
