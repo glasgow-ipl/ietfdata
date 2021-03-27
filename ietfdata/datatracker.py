@@ -2148,9 +2148,29 @@ class DataTracker:
             self.log.warning(F"_datatracker_get_multi: expected {total_count} objects but got {len(fetched_objs)}")
 
 
+    def _datatracker_get_multi_count(self, obj_type_uri: URI) -> int:
+        assert obj_type_uri.uri is not None
+        assert obj_type_uri.params == {}
+
+        req_url     = self.base_url + obj_type_uri.uri
+        req_params  = {"limit": 1}
+        req_headers = {'User-Agent': self.ua}
+        self.get_count += 1
+        r = self.session.get(url = req_url, params = req_params, headers = req_headers, verify = True, stream = False)
+        if r.status_code == 200:
+            meta = r.json()['meta']
+            total_count = meta['total_count'] # type: int
+            self.log.debug(F"_datatracker_get_multi_count: {r.status_code} {obj_type_uri} count={total_count}")
+            return total_count
+        else:
+            self.log.error(F"_datatracker_get_multi_count: {r.status_code} {obj_type_uri}")
+            sys.exit()
+
 
     # ----------------------------------------------------------------------------------------------------------------------------
     # Private methods to manage the local cache.
+    #
+    # With the exception of _cache_update(), these should only access the local cache.
 
     def _cache_update(self, obj_type_uri: URI, obj_type: Type[T]) -> None:
         if self.db is None:
@@ -2181,7 +2201,7 @@ class DataTracker:
             self._cache_put_objects(update_uri, obj_jsons)
             meta = self._cache_load_metadata(obj_type_uri)
             meta.updated = now
-            obj_count = self._cache_fetch_object_count(obj_type_uri)
+            obj_count = self._datatracker_get_multi_count(obj_type_uri)
             if obj_count is not None:
                 meta.total_count = obj_count
             self._cache_save_metadata(obj_type_uri, meta)
@@ -2224,16 +2244,13 @@ class DataTracker:
 
 
     def _cache_create(self, obj_type_uri: URI) -> None:
-        if self.db is None:
-            return
+        assert self.db is not None
         meta_key  = _cache_uri_format(obj_type_uri)
         self.db_calls += 1
         if not self.db.cache_info.find_one({"meta_key": meta_key}):
             created = datetime.now(tz = dateutil.tz.gettz("America/Los_Angeles"))
             updated = created
-            total_count = self._cache_fetch_object_count(obj_type_uri)
-            if total_count is None:
-                total_count = 0
+            total_count = self._datatracker_get_multi_count(obj_type_uri)
             meta = CacheMetadata(created, updated, True, total_count, [])
             self._cache_save_metadata(obj_type_uri, meta)
             self.log.info(F"_cache_create {meta_key}")
@@ -2245,6 +2262,7 @@ class DataTracker:
                     self.db[_cache_uri_format(obj_type_uri)].create_index([(unique_field, ASCENDING)], unique=True, background=True)
             except:
                 pass
+
 
     def _cache_record_query(self, obj_uri: URI, obj_type_uri: URI) -> None:
         if self.db is None:
@@ -2337,21 +2355,6 @@ class DataTracker:
             self.db[_cache_uri_format(obj_type_uri)].create_index([(field, ASCENDING) for field in list(_translate_query(obj_uri, param_objs, obj_type).keys())])
         obj_jsons = self.db[_cache_uri_format(obj_type_uri)].find(_translate_query(obj_uri, param_objs, obj_type))
         return iter(obj_jsons)
-
-
-    def _cache_fetch_object_count(self, obj_type_uri: URI) -> Optional[int]:
-        assert obj_type_uri.uri is not None
-        limited_uri = URI(F"{obj_type_uri.uri}?limit=1")
-        assert limited_uri.uri is not None
-        req_url     = self.base_url + limited_uri.uri
-        req_headers = {'User-Agent': self.ua}
-        self.get_count += 1
-        r = self.session.get(req_url, headers = req_headers, verify = True, stream = False)
-        if r.status_code == 200:
-            meta = r.json()['meta']
-            total_count = meta['total_count'] # type: int
-            return total_count
-        return None
 
 
     def _cache_check_versions(self) -> None:
