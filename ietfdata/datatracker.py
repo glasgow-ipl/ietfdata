@@ -2080,11 +2080,11 @@ class DataTracker:
             url_obj = r.json() # type: Dict[str, Any]
             return url_obj
         elif r.status_code == 404:
-            self.log.info(F"_datatracker_get_single (r.status_code) {obj_uri}")
+            self.log.info(F"_datatracker_get_single ({r.status_code}) {obj_uri}")
             return None
         else:
             # This should never happen in normal use, so we log as a warning
-            self.log.warn(F"_datatracker_get_single (r.status_code) {obj_uri}")
+            self.log.warn(F"_datatracker_get_single ({r.status_code}) {obj_uri}")
             return None
 
 
