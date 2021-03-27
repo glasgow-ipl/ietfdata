@@ -2251,12 +2251,11 @@ class DataTracker:
         meta_key  = _cache_uri_format(obj_type_uri)
         self.db_calls += 1
         if not self.db.cache_info.find_one({"meta_key": meta_key}):
-            created = datetime.now(tz = dateutil.tz.gettz("America/Los_Angeles"))
-            updated = created
+            self.log.info(F"_cache_create: {meta_key}")
+            created     = datetime.now(tz = dateutil.tz.gettz("America/Los_Angeles"))
+            updated     = created
             total_count = self._datatracker_get_multi_count(obj_type_uri)
-            meta = CacheMetadata(created, updated, True, total_count, [])
-            self._cache_save_metadata(obj_type_uri, meta)
-            self.log.info(F"_cache_create {meta_key}")
+            self._cache_save_metadata(obj_type_uri, CacheMetadata(created, updated, True, total_count, []))
             # create indexes
             try:
                 for field in self._cache_indexes[type(obj_type_uri)].fields:
