@@ -42,12 +42,12 @@ from ietfdata.datatracker import *
 class TestDatatracker(unittest.TestCase):
     dt : DataTracker
 
-    # -----------------------------------------------------------------------------------------------------------------------------
-    # Tests relating to email addresses:
-
     @classmethod
     def setUpClass(self) -> None:
         self.dt = DataTracker()
+
+    # -----------------------------------------------------------------------------------------------------------------------------
+    # Tests relating to the datatracker access layer:
 
     def test__datatracker_get_single(self) -> None:
         json = self.dt._datatracker_get_single(URI("/api/v1/person/email/csp@csperkins.org/"))
@@ -60,6 +60,34 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(json["active"],       True)
         else:
             self.fail("Cannot retrieve single JSON item")
+
+
+    def test__datatracker_get_multi_small(self) -> None:
+        url = URI("/api/v1/doc/document/")
+        url.params["group"] = 1963
+        url.params["type"]  = "draft"
+        json = list(self.dt._datatracker_get_multi(url, "id"))
+        self.assertEqual(len(json), 2)
+        self.assertEqual(json[0][  "id"], 63980)
+        self.assertEqual(json[0]["name"], "draft-ietf-netvc-requirements")
+        self.assertEqual(json[1][  "id"], 64020)
+        self.assertEqual(json[1]["name"], "draft-ietf-netvc-testing")
+
+
+    def test__datatracker_get_multi_large(self) -> None:
+        url = URI("/api/v1/meeting/meeting/")
+        url.params["type"]  = "ietf"
+        json = list(self.dt._datatracker_get_multi(url, "id"))
+        self.assertGreaterEqual(len(json), 111)
+
+
+    def test__datatracker_get_multi_count(self) -> None:
+        count = self.dt._datatracker_get_multi_count(URI("/api/v1/name/stdlevelname/"))
+        self.assertEqual(count, 8)
+
+
+    # -----------------------------------------------------------------------------------------------------------------------------
+    # Tests relating to email addresses:
 
     def test_email(self) -> None:
         e  = self.dt.email(EmailURI("/api/v1/person/email/csp@csperkins.org/"))
