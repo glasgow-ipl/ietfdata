@@ -2225,7 +2225,8 @@ class DataTracker:
 
     def _cache_load_metadata(self, obj_type_uri: URI) -> CacheMetadata:
         assert self.db is not None
-        meta_json = self.db.cache_info.find_one({"meta_key" : _cache_uri_format(obj_type_uri)})
+        meta_key  = _cache_uri_format(obj_type_uri)
+        meta_json = self.db.cache_info.find_one({"meta_key" : meta_key})
         self.db_calls += 1
         assert isinstance(meta_json, dict)
         return self.pavlova.from_mapping(meta_json, CacheMetadata)
