@@ -1961,7 +1961,7 @@ class DataTracker:
         if self.db is not None:
             self.log.info(f"{self.ua} (cache enabled)")
         else:
-            self.log.info(self.ua)
+            self.log.info(f"{self.ua} (cache disabled)")
 
         # Register generic parsers for each URI type:
         self.pavlova = Pavlova()
