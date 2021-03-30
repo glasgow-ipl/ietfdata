@@ -56,6 +56,7 @@ from pymongo         import MongoClient, ASCENDING, TEXT, ReplaceOne
 from pymongo.database import Database
 
 import ast
+import copy
 import dateutil.tz
 import glob
 import json
@@ -2088,7 +2089,9 @@ class DataTracker:
             return None
 
 
-    def _datatracker_get_multi(self, obj_uri: URI, order_by: Optional[str] = None) -> Iterator[Dict[Any, Any]]:
+    def _datatracker_get_multi(self, get_uri: URI, order_by: Optional[str] = None) -> Iterator[Dict[Any, Any]]:
+        obj_uri = copy.deepcopy(get_uri)
+
         assert "order_by" not in obj_uri.params
         assert "limit"    not in obj_uri.params
 
