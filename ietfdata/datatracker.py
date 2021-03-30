@@ -2191,6 +2191,10 @@ class DataTracker:
             meta.partial = False
             meta.queries = []
             meta.updated = now
+            obj_count = self._datatracker_get_multi_count(obj_type_uri)
+            if obj_count is not None:
+                self.log.info(f"_cache_update: updated total_count {obj_type_uri} {meta.total_count}->{obj_count}")
+                meta.total_count = obj_count
             self._cache_save_metadata(obj_type_uri, meta)
         # Do we need to update the cache?
         if now - meta.updated > timedelta(hours=1) and "time" in obj_type.__dict__["__dataclass_fields__"]:
