@@ -2185,7 +2185,6 @@ class DataTracker:
         if meta.partial and (len(meta.queries)/(meta.total_count/100)) > 0.5:
             # Switch to caching all objects of this type
             self.log.info(F"switch to full cache {obj_type_uri.uri} ({meta.total_count} objects)")
-            #self._retrieve_jsons(obj_type_uri, obj_type_uri, {}, obj_type_uri, obj_type)
             for obj_json in self._datatracker_get_multi(obj_type_uri):
                 self._cache_put_object(obj_json)
             meta = self._cache_load_metadata(obj_type_uri)
@@ -2198,18 +2197,18 @@ class DataTracker:
             update_uri = type(obj_type_uri)(obj_type_uri.uri)
             update_uri.params["time__gte"] = meta.updated.strftime("%Y-%m-%dT%H:%M:%S.%f")  # Avoid isoformat(), since don't want TZ offset
             update_uri.params["time__lt"]  = now.strftime("%Y-%m-%dT%H:%M:%S.%f")
-            self.log.info(F"cache outdated {str(obj_type_uri)} ({update_uri.params['time__gte']} -> {update_uri.params['time__lt']})")
-            #self._retrieve_jsons(update_uri, update_uri, {}, obj_type_uri, obj_type)
+            self.log.info(F"cache outdated {obj_type_uri} ({update_uri.params['time__gte']} -> {update_uri.params['time__lt']})")
             for obj_json in self._datatracker_get_multi(update_uri):
                 self._cache_put_object(obj_json)
             meta = self._cache_load_metadata(obj_type_uri)
             meta.updated = now
             obj_count = self._datatracker_get_multi_count(obj_type_uri)
             if obj_count is not None:
+                self.log.info(f"_cache_update: updated total_count {obj_type_uri} {meta.total_count}->{obj_count}")
                 meta.total_count = obj_count
             self._cache_save_metadata(obj_type_uri, meta)
         elif now - meta.updated > timedelta(hours=24):
-            self.log.info(F"cache outdated {str(obj_type_uri)} - will delete and recreate")
+            self.log.info(F"cache outdated {obj_type_uri} - will delete and recreate")
             self._cache_delete(obj_type_uri)
             self._cache_create(obj_type_uri)
         # Is the cache metadata consistent?
