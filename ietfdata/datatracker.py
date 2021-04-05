@@ -2174,6 +2174,17 @@ class DataTracker:
     # Private methods to manage the local cache.
     #
     # With the exception of _cache_update(), these should only access the local cache.
+    #
+    # The cache stores objects in the `ietfdata` database of the specified MongoDB instance.
+    #
+    # Objects are stored in collections named after the Datatracker URI with slashes replaced
+    # by underscores (e.g., objects with URIs starting "/api/v1/person/person/" are stored in
+    # the collection "api_v1_person_person"). The _db_collection() function can be used to
+    # convert a URI to a collection name.
+    #
+    # Documents within those collections hold the JSON as retrieved from the datatracker.
+    #
+    # There is also a "cache_info" collection, containing metadata about the cache.
 
     def _cache_update(self, obj_type_uri: URI, obj_type: Type[T]) -> None:
         if self.db is None:
