@@ -2338,13 +2338,20 @@ class DataTracker:
 
 
     def _cache_get_objects(self, obj_uri: URI, param_objs: Dict[str, Optional[Resource]], obj_type_uri: URI, obj_type: Type[T]) -> Iterator[Dict[Any, Any]]:
-        if self.db is None:
-            return [] # type: ignore
+        assert self.db is not None
+        self.log.debug(F"_cache_get_objects: obj_uri={obj_uri}")
         self.db_calls += 1
         if len(obj_uri.params) > 1:
-            self.db[_cache_uri_format(obj_type_uri)].create_index([(field, ASCENDING) for field in list(_translate_query(obj_uri, param_objs, obj_type).keys())])
-        obj_jsons = self.db[_cache_uri_format(obj_type_uri)].find(_translate_query(obj_uri, param_objs, obj_type))
-        return iter(obj_jsons)
+            for field in _translate_query(obj_uri, param_objs, obj_type).keys():
+                self.log.debug(F"_cache_get_objects: create index '{field}'")
+                self.db[_cache_uri_format(obj_type_uri)].create_index([(field, ASCENDING)])
+        query = _translate_query(obj_uri, param_objs, obj_type)
+        dbkey = _cache_uri_format(obj_type_uri)
+        self.log.debug(F"_cache_get_objects: query {query}")
+        self.log.debug(F"_cache_get_objects: dbkey {dbkey}")
+        for obj_json in self.db[dbkey].find(query):
+            self.log.debug(F"_cache_get_objects: get {obj_json['resource_uri']}")
+            yield obj_json
 
 
     def _cache_check_versions(self) -> None:
