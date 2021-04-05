@@ -3065,7 +3065,7 @@ class DataTracker:
         elif len(groups) == 1:
             return groups[0]
         else:
-            raise RuntimeError
+            raise RuntimeError("group_from_acronym: multiple groups returned, expected 0 or 1")
 
 
     def groups(self,
