@@ -47,7 +47,7 @@
 from datetime    import datetime, timedelta, timezone
 from enum        import Enum
 from inspect     import signature
-from typing      import List, Optional, Tuple, Dict, Iterator, Type, TypeVar, Any, Union, Generic
+from typing      import List, Optional, Tuple, Dict, Iterator, Type, TypeVar, Any, Union, Generic, get_origin
 from dataclasses import dataclass, field
 from pathlib     import Path
 from pavlova     import Pavlova
@@ -1850,15 +1850,16 @@ def _parent_uri(uri: URI) -> URI:
     return type(uri)(uri.uri[:sep2])
 
 
-def _cache_uri_format(uri: URI) -> str:
+def _db_collection(uri: URI) -> str:
     assert uri.uri is not None
     return uri.uri.strip('/').replace("/", "_")
 
 
-def _translate_query(uri: URI, param_objs: Dict[str, Optional[Resource]], obj_type: Type[T]) -> Dict[Any, Any]:
+def _translate_query(uri: URI, obj_type: Type[T]) -> Dict[Any, Any]:
     translated_params : Dict[Any, Any] = {}
 
     for (param, value) in uri.params.items():
+        #print(F"_translate_query: param={param} value={value}")
         if "__gte" in param:
             param = param[:-5]
             translated_params[param] = {**translated_params.get(param, {}), "$gte": value}
@@ -1876,18 +1877,18 @@ def _translate_query(uri: URI, param_objs: Dict[str, Optional[Resource]], obj_ty
             translated_params[param] = {**translated_params.get(param, {}), "$regex": value}
         else:
             param_type = obj_type.__dict__["__dataclass_fields__"][param].type
-            if "__origin__" in param_type.__dict__ and param_type.__origin__ is Union:
+            if get_origin(param_type) is Union:
                 param_type = param_type.__args__[0]
-            if not isinstance(param_type, type) and param in param_objs:
-                param_type = type(param_objs[param])
+            if get_origin(param_type) is list:
+                param_type = param_type.__args__[0]
             if issubclass(param_type, URI):
-                translated_params[param] = f"{param_type.root}{value}/"
-                if param in param_objs:
-                    param_obj = param_objs[param]
-                    if param_obj is not None:
-                        translated_params[param] = param_obj.resource_uri.uri
+                if isinstance(value, str) and value.startswith(param_type.root):
+                    translated_params[param] = value
+                else:
+                    translated_params[param] = f"{param_type.root}{value}/"
             else:
                 translated_params[param] = value
+        #print(F"translated = {translated_params[param]}")
     return translated_params
 
 
@@ -1906,12 +1907,9 @@ class CacheMetadata:
 
 
 @dataclass
-class CacheIndex(Generic[T]):
-    resource_type : T
-    fields        : List[str]
-    unique_fields : List[str]
-    order_by      : List[str]
-    reverse       : bool
+class Hints(Generic[T]):
+    sort_by : str
+    deref   : Dict[str, str]
 
 
 class DataTracker:
@@ -1952,7 +1950,7 @@ class DataTracker:
         self.http_req  = 0
         self.cache_req = 0
         self.cache_hit = 0
-        self.cache_ver = "0.1.0" # Update when changing cache architecture
+        self.cache_ver = "1" # Increment when changing cache architecture
         self.get_count = 0
         self.db_calls  = 0
 
@@ -1971,78 +1969,78 @@ class DataTracker:
         self.pavlova.register_parser(CacheMetadata, GenericParser(self.pavlova, CacheMetadata))
 
         # Register cache hints:
-        self._cache_indexes = {} # type: Dict[Any, CacheIndex]
-        self._cache_indexes[BallotDocumentEventURI]         = CacheIndex(BallotDocumentEvent, ["time", "ballot_type", "event_type", "by", "doc"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[BallotTypeURI]                  = CacheIndex(BallotType, ["doc_type"], ["id", "resource_uri"], ["order", "id"], False)
-        self._cache_indexes[DocumentAliasURI]               = CacheIndex(DocumentAlias, ["name"], ["id", "name", "resource_uri"], ["id"], False)
-        self._cache_indexes[DocumentEventURI]               = CacheIndex(DocumentEvent, ["time", "doc", "by", "event_type"], ["id", "resource_uri"], ["id"], True)
-        self._cache_indexes[DocumentURI]                    = CacheIndex(Document, ["time", "type", "stream", "group"], ["id", "name", "resource_uri"], ["id"], False)
-        self._cache_indexes[DocumentAuthorURI]              = CacheIndex(DocumentAuthor, ["document", "person", "email"], ["id", "resource_uri"], ["order", "id"], False)
-        self._cache_indexes[RelatedDocumentURI]             = CacheIndex(RelatedDocument, ["source", "target", "relationship"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[DocumentStateURI]               = CacheIndex(DocumentState, ["type", "slug"], ["id", "resource_uri"], ["order", "id", "slug"], False)
-        self._cache_indexes[DocumentStateTypeURI]           = CacheIndex(DocumentStateType, [], ["slug", "resource_uri"], ["slug"], False)
-        self._cache_indexes[GroupStateChangeEventURI]       = CacheIndex(GroupStateChangeEvent, ["time", "by", "group", "state"], ["id", "resource_uri"], ["order", "id"], False)
-        self._cache_indexes[GroupURI]                       = CacheIndex(Group, ["time", "name", "state", "parent"], ["acronym", "id", "resource_uri"], ["id"], False)
-        self._cache_indexes[GroupEventURI]                  = CacheIndex(GroupEvent, ["time", "by", "group", "type"], ["id", "resource_uri"], ["id"], True)
-        self._cache_indexes[GroupHistoryURI]                = CacheIndex(GroupHistory, ["acronym", "time", "group", "state", "parent"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[GroupMilestoneURI]              = CacheIndex(GroupMilestone, ["time", "group", "state"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[GroupMilestoneHistoryURI]       = CacheIndex(GroupMilestoneHistory, ["time", "group", "milestone", "state"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[GroupUrlURI]                    = CacheIndex(GroupUrl, ["group"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[GroupMilestoneEventURI]         = CacheIndex(GroupMilestoneEvent, ["time", "by", "group", "milestone", "type"], ["id", "resource_uri"], ["id"], True)
-        self._cache_indexes[GroupRoleURI]                   = CacheIndex(GroupRole, ["email", "group", "name", "person"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[GroupRoleHistoryURI]            = CacheIndex(GroupRoleHistory, ["email", "group", "name", "person"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[GenericIPRDisclosureURI]        = CacheIndex(GenericIPRDisclosure, ["time", "by", "holder_legal_name", "holder_contact_name", "state", "submitter_email", "submitter_name"], ["id", "resource_uri"], ["order", "id"], False)
-        self._cache_indexes[HolderIPRDisclosureURI]         = CacheIndex(HolderIPRDisclosure, ["time", "by", "holder_legal_name", "holder_contact_name", "ietfer_contact_email", "ietfer_name", "licensing", "state", "submitter_email", "submitter_name"], ["id", "resource_uri"], ["order", "id"], False)
-        self._cache_indexes[IPRDisclosureBaseURI]           = CacheIndex(IPRDisclosureBase, ["time", "by", "holder_legal_name", "state", "submitter_email", "submitter_name"], ["id", "resource_uri"], ["order", "id"], False)
-        self._cache_indexes[ThirdPartyIPRDisclosureURI]     = CacheIndex(ThirdPartyIPRDisclosure, ["time", "by", "holder_legal_name", "ietfer_contact_email", "ietfer_name", "state", "submitter_email", "submitter_name"], ["id", "resource_uri"], ["order", "id"], False)
-        self._cache_indexes[MailingListURI]                 = CacheIndex(MailingList, ["name"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[MailingListSubscriptionsURI]    = CacheIndex(MailingListSubscriptions, ["email", "lists"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[MeetingURI]                     = CacheIndex(Meeting, ["date", "type"], ["id", "number", "resource_uri"], ["id"], False)
-        self._cache_indexes[SessionAssignmentURI]           = CacheIndex(SessionAssignment, ["schedule"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[ScheduleURI]                    = CacheIndex(ScheduleURI, [], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[SchedulingEventURI]             = CacheIndex(SchedulingEventURI, ["session", "by"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[SessionURI]                     = CacheIndex(Session, ["meeting", "group"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[TimeslotURI]                    = CacheIndex(Timeslot, [], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[AnnouncementFromURI]            = CacheIndex(AnnouncementFrom, ["address", "group", "name"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[MessageURI]                     = CacheIndex(Message, ["time", "by", "frm", "related_docs", "subject", "body"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[SendQueueURI]                   = CacheIndex(SendQueueEntry, ["time", "by", "message"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[BallotPositionNameURI]          = CacheIndex(BallotPositionName, [], ["slug", "resource_uri"], ["order", "slug"], False)
-        self._cache_indexes[RelationshipTypeURI]            = CacheIndex(RelationshipType, [], ["slug", "resource_uri"], ["slug"], False)
-        self._cache_indexes[DocumentTypeURI]                = CacheIndex(DocumentType, [], ["slug", "resource_uri"], ["order", "slug"], False)
-        self._cache_indexes[GroupMilestoneStateNameURI]     = CacheIndex(GroupMilestoneStateName, [], ["slug", "resource_uri"], ["slug"], False)
-        self._cache_indexes[GroupStateURI]                  = CacheIndex(GroupState, [], ["slug", "resource_uri"], ["slug"], False)
-        self._cache_indexes[GroupTypeNameURI]               = CacheIndex(GroupTypeName, [], ["slug", "resource_uri"], ["slug"], False)
-        self._cache_indexes[MeetingTypeURI]                 = CacheIndex(MeetingType, [], ["slug", "resource_uri"], ["slug"], False)
-        self._cache_indexes[IPRDisclosureStateURI]          = CacheIndex(IPRDisclosureBase, [], ["slug", "resource_uri"], ["slug"], False)
-        self._cache_indexes[IPRLicenseTypeURI]              = CacheIndex(IPRLicenseType, [], ["slug", "resource_uri"], ["slug"], False)
-        self._cache_indexes[ReviewAssignmentStateURI]       = CacheIndex(ReviewAssignmentState, [], ["slug", "resource_uri"], ["slug"], False)
-        self._cache_indexes[ReviewResultTypeURI]            = CacheIndex(ReviewResultType, [], ["slug", "resource_uri"], ["slug"], False)
-        self._cache_indexes[ReviewTypeURI]                  = CacheIndex(ReviewType, [], ["slug", "resource_uri"], ["slug"], False)
-        self._cache_indexes[ReviewRequestStateURI]          = CacheIndex(ReviewRequestState, [], ["slug", "resource_uri"], ["slug"], False)
-        self._cache_indexes[RoleNameURI]                    = CacheIndex(RoleName, [], ["slug", "resource_uri"], ["slug"], False)
-        self._cache_indexes[SessionStatusNameURI]           = CacheIndex(SessionStatusName, [], ["slug", "resource_uri"], ["slug"], False)
-        self._cache_indexes[StreamURI]                      = CacheIndex(Stream, [], ["slug", "resource_uri"], ["slug"], False)
-        self._cache_indexes[PersonAliasURI]                 = CacheIndex(PersonAlias, ["person"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[EmailURI]                       = CacheIndex(Email, ["person", "time"], ["address", "resource_uri"], ["address"], False)
-        self._cache_indexes[HistoricalEmailURI]             = CacheIndex(HistoricalEmail, ["address", "person"], ["history_id", "resource_uri"], ["history_id"], True)
-        self._cache_indexes[HistoricalPersonURI]            = CacheIndex(HistoricalPerson, ["id"], ["history_id", "resource_uri"], ["history_id"], True)
-        self._cache_indexes[PersonURI]                      = CacheIndex(PersonURI, ["time", "name", "ascii"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[PersonEventURI]                 = CacheIndex(PersonEvent, ["person"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[HistoricalReviewAssignmentURI]  = CacheIndex(HistoricalReviewAssignment, ["assigned_on", "completed_on", "id", "result", "review_request", "reviewer", "state"], ["history_id", "resource_uri"], ["id"], False)
-        self._cache_indexes[HistoricalReviewerSettingsURI]  = CacheIndex(HistoricalReviewerSettingsURI, ["history_date", "id", "person", "team"], ["history_id", "resource_uri"], ["order", "id"], False)
-        self._cache_indexes[HistoricalReviewRequestURI]     = CacheIndex(HistoricalReviewRequest, ["time", "history_date", "doc", "requested_by", "state", "team", "type"], ["history_id", "resource_uri"], ["order", "id"], False)
-        self._cache_indexes[HistoricalUnavailablePeriodURI] = CacheIndex(HistoricalUnavailablePeriod, ["history_type", "id", "person", "team"], ["history_id", "resource_uri"], ["id"], False)
-        self._cache_indexes[NextReviewerInTeamURI]          = CacheIndex(NextReviewerInTeam, ["team"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[ReviewAssignmentURI]            = CacheIndex(ReviewAssignment, ["assigned_on", "completed_on", "result", "review_request", "reviewer", "state"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[ReviewerSettingsURI]            = CacheIndex(ReviewerSettings, ["person", "team"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[ReviewRequestURI]               = CacheIndex(ReviewRequest, ["time", "doc", "requested_by", "state", "team", "type"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[ReviewSecretarySettingsURI]     = CacheIndex(ReviewSecretarySettings, ["person", "team"], ["id", "resource_uri"], ["order", "id"], False)
-        self._cache_indexes[ReviewTeamSettingsURI]          = CacheIndex(ReviewTeamSettings, ["group"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[ReviewWishURI]                  = CacheIndex(ReviewWish, ["time", "doc", "person", "team"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[UnavailablePeriodURI]           = CacheIndex(UnavailablePeriod, ["person", "team"], ["id", "resource_uri"], ["order", "id"], False)
-        self._cache_indexes[MeetingRegistrationURI]         = CacheIndex(MeetingRegistration, ["affiliation", "attended", "country_code", "email", "first_name", "last_name", "meeting", "person", "reg_type", "ticket_type"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[SubmissionURI]                  = CacheIndex(Submission, ["time"], ["id", "resource_uri"], ["order", "id"], False)
-        self._cache_indexes[SubmissionEventURI]             = CacheIndex(SubmissionEvent, ["time", "by", "submission"], ["id", "resource_uri"], ["order", "id"], False)
+        self._hints = {} # type: Dict[Type[URI], Hints]
+        self._hints[BallotDocumentEventURI]         = Hints("id", {"doc": "id"})
+        self._hints[BallotTypeURI]                  = Hints("slug", {})
+        self._hints[DocumentAliasURI]               = Hints("id", {})
+        self._hints[DocumentEventURI]               = Hints("id", {"doc": "id"})
+        self._hints[DocumentURI]                    = Hints("id", {})
+        self._hints[DocumentAuthorURI]              = Hints("id", {"document": "id"})
+        self._hints[RelatedDocumentURI]             = Hints("id", {"source": "id", "target": "id", "relationship": "slug"})
+        self._hints[DocumentStateURI]               = Hints("id", {})
+        self._hints[DocumentStateTypeURI]           = Hints("slug", {})
+        self._hints[GroupStateChangeEventURI]       = Hints("id", {})
+        self._hints[GroupURI]                       = Hints("id", {})
+        self._hints[GroupEventURI]                  = Hints("id", {})
+        self._hints[GroupHistoryURI]                = Hints("id", {})
+        self._hints[GroupMilestoneURI]              = Hints("id", {})
+        self._hints[GroupMilestoneHistoryURI]       = Hints("id", {})
+        self._hints[GroupUrlURI]                    = Hints("id", {})
+        self._hints[GroupMilestoneEventURI]         = Hints("id", {})
+        self._hints[GroupRoleURI]                   = Hints("id", {})
+        self._hints[GroupRoleHistoryURI]            = Hints("id", {})
+        self._hints[GenericIPRDisclosureURI]        = Hints("id", {})
+        self._hints[HolderIPRDisclosureURI]         = Hints("id", {})
+        self._hints[IPRDisclosureBaseURI]           = Hints("id", {})
+        self._hints[ThirdPartyIPRDisclosureURI]     = Hints("id", {})
+        self._hints[MailingListURI]                 = Hints("id", {})
+        self._hints[MailingListSubscriptionsURI]    = Hints("id", {})
+        self._hints[MeetingURI]                     = Hints("id", {})
+        self._hints[SessionAssignmentURI]           = Hints("id", {})
+        self._hints[ScheduleURI]                    = Hints("id", {})
+        self._hints[SchedulingEventURI]             = Hints("id", {})
+        self._hints[SessionURI]                     = Hints("id", {})
+        self._hints[TimeslotURI]                    = Hints("id", {})
+        self._hints[AnnouncementFromURI]            = Hints("id", {})
+        self._hints[MessageURI]                     = Hints("id", {"related_doc": "id"})
+        self._hints[SendQueueURI]                   = Hints("id", {})
+        self._hints[BallotPositionNameURI]          = Hints("slug", {})
+        self._hints[RelationshipTypeURI]            = Hints("slug", {})
+        self._hints[DocumentTypeURI]                = Hints("slug", {})
+        self._hints[GroupMilestoneStateNameURI]     = Hints("slug", {})
+        self._hints[GroupStateURI]                  = Hints("slug", {})
+        self._hints[GroupTypeNameURI]               = Hints("slug", {})
+        self._hints[MeetingTypeURI]                 = Hints("slug", {})
+        self._hints[IPRDisclosureStateURI]          = Hints("slug", {})
+        self._hints[IPRLicenseTypeURI]              = Hints("slug", {})
+        self._hints[ReviewAssignmentStateURI]       = Hints("slug", {})
+        self._hints[ReviewResultTypeURI]            = Hints("slug", {})
+        self._hints[ReviewTypeURI]                  = Hints("slug", {})
+        self._hints[ReviewRequestStateURI]          = Hints("slug", {})
+        self._hints[RoleNameURI]                    = Hints("slug", {})
+        self._hints[SessionStatusNameURI]           = Hints("slug", {})
+        self._hints[StreamURI]                      = Hints("slug", {})
+        self._hints[PersonAliasURI]                 = Hints("id", {})
+        self._hints[EmailURI]                       = Hints("address", {})
+        self._hints[HistoricalEmailURI]             = Hints("address", {})
+        self._hints[HistoricalPersonURI]            = Hints("id", {})
+        self._hints[PersonURI]                      = Hints("id", {})
+        self._hints[PersonEventURI]                 = Hints("id", {})
+        self._hints[HistoricalReviewAssignmentURI]  = Hints("id", {})
+        self._hints[HistoricalReviewerSettingsURI]  = Hints("id", {})
+        self._hints[HistoricalReviewRequestURI]     = Hints("id", {"doc": "id"})
+        self._hints[HistoricalUnavailablePeriodURI] = Hints("id", {})
+        self._hints[NextReviewerInTeamURI]          = Hints("id", {})
+        self._hints[ReviewAssignmentURI]            = Hints("id", {})
+        self._hints[ReviewerSettingsURI]            = Hints("id", {})
+        self._hints[ReviewRequestURI]               = Hints("id", {"doc": "id"})
+        self._hints[ReviewSecretarySettingsURI]     = Hints("id", {})
+        self._hints[ReviewTeamSettingsURI]          = Hints("id", {})
+        self._hints[ReviewWishURI]                  = Hints("id", {"doc": "id"})
+        self._hints[UnavailablePeriodURI]           = Hints("id", {})
+        self._hints[MeetingRegistrationURI]         = Hints("id", {})
+        self._hints[SubmissionURI]                  = Hints("id", {})
+        self._hints[SubmissionEventURI]             = Hints("id", {})
 
         # check Datatracker and cache versions
         self._cache_check_versions()
@@ -2142,7 +2140,7 @@ class DataTracker:
                         self.log.error(F"_datatracker_get_multi ({r.status_code}) {obj_uri}")
                         sys.exit(1)
                 except requests.exceptions.ConnectionError:
-                    self.log.warn(F"_datatracker_get_multi: connection error - will retry in {retry_time}")
+                    self.log.warning(F"_datatracker_get_multi: connection error - will retry in {retry_time}")
                     self.session.close()
                     time.sleep(retry_time)
                     retry_time *= 2
@@ -2186,64 +2184,65 @@ class DataTracker:
     #
     # There is also a "cache_info" collection, containing metadata about the cache.
 
-    def _cache_update(self, obj_type_uri: URI, obj_type: Type[T]) -> None:
+    def _cache_update(self, obj_type_uri: URI) -> None:
         if self.db is None:
             return None
         self._cache_create(obj_type_uri)
-        now  = datetime.now(tz = dateutil.tz.gettz("America/Los_Angeles"))
-        meta = self._cache_load_metadata(obj_type_uri)
-        # Should we switch from a partial cache to full cache for this object type?
-        if meta.partial and (len(meta.queries)/(meta.total_count/100)) > 0.5:
-            # Switch to caching all objects of this type
-            self.log.info(F"switch to full cache {obj_type_uri.uri} ({meta.total_count} objects)")
-            for obj_json in self._datatracker_get_multi(obj_type_uri):
-                self._cache_put_object(obj_json)
-            meta = self._cache_load_metadata(obj_type_uri)
-            meta.partial = False
-            meta.queries = []
-            meta.updated = now
-            obj_count = self._datatracker_get_multi_count(obj_type_uri)
-            if obj_count is not None:
-                self.log.info(f"_cache_update: updated total_count {obj_type_uri} {meta.total_count}->{obj_count}")
-                meta.total_count = obj_count
-            self._cache_save_metadata(obj_type_uri, meta)
-        # Do we need to update the cache?
-        if now - meta.updated > timedelta(hours=1) and "time" in obj_type.__dict__["__dataclass_fields__"]:
-            update_uri = type(obj_type_uri)(obj_type_uri.uri)
-            update_uri.params["time__gte"] = meta.updated.strftime("%Y-%m-%dT%H:%M:%S.%f")  # Avoid isoformat(), since don't want TZ offset
-            update_uri.params["time__lt"]  = now.strftime("%Y-%m-%dT%H:%M:%S.%f")
-            self.log.info(F"cache outdated {obj_type_uri} ({update_uri.params['time__gte']} -> {update_uri.params['time__lt']})")
-            for obj_json in self._datatracker_get_multi(update_uri):
-                self._cache_put_object(obj_json)
-            meta = self._cache_load_metadata(obj_type_uri)
-            meta.updated = now
-            obj_count = self._datatracker_get_multi_count(obj_type_uri)
-            if obj_count is not None:
-                self.log.info(f"_cache_update: updated total_count {obj_type_uri} {meta.total_count}->{obj_count}")
-                meta.total_count = obj_count
-            self._cache_save_metadata(obj_type_uri, meta)
-        elif now - meta.updated > timedelta(hours=24):
-            self.log.info(F"cache outdated {obj_type_uri} - will delete and recreate")
-            self._cache_delete(obj_type_uri)
-            self._cache_create(obj_type_uri)
-        # Is the cache metadata consistent?
-        if not meta.partial and meta.total_count != self.db[_cache_uri_format(obj_type_uri)].count_documents({}):
-            self.log.info(F"cache inconsistent {str(obj_type_uri)}")
+        # now  = datetime.now(tz = dateutil.tz.gettz("America/Los_Angeles"))
+        # meta = self._cache_load_metadata(obj_type_uri)
+        # # Should we switch from a partial cache to full cache for this object type?
+        # if meta.partial and (len(meta.queries)/(meta.total_count/100)) > 0.5:
+        #     # Switch to caching all objects of this type
+        #     self.log.info(F"switch to full cache {obj_type_uri.uri} ({meta.total_count} objects)")
+        #     for obj_json in self._datatracker_get_multi(obj_type_uri):
+        #         self._cache_put_object(obj_json)
+        #     meta = self._cache_load_metadata(obj_type_uri)
+        #     meta.partial = False
+        #     meta.queries = []
+        #     meta.updated = now
+        #     obj_count = self._datatracker_get_multi_count(obj_type_uri)
+        #     if obj_count is not None:
+        #         self.log.info(f"_cache_update: updated total_count {obj_type_uri} {meta.total_count}->{obj_count}")
+        #         meta.total_count = obj_count
+        #     self._cache_save_metadata(obj_type_uri, meta)
+        # # Do we need to update the cache?
+        # if now - meta.updated > timedelta(hours=1) and "time" in obj_type.__dict__["__dataclass_fields__"]:
+        #     update_uri = type(obj_type_uri)(obj_type_uri.uri)
+        #     update_uri.params["time__gte"] = meta.updated.strftime("%Y-%m-%dT%H:%M:%S.%f")  # Avoid isoformat(), since don't want TZ offset
+        #     update_uri.params["time__lt"]  = now.strftime("%Y-%m-%dT%H:%M:%S.%f")
+        #     self.log.info(F"cache outdated {obj_type_uri} ({update_uri.params['time__gte']} -> {update_uri.params['time__lt']})")
+        #     for obj_json in self._datatracker_get_multi(update_uri):
+        #         self._cache_put_object(obj_json)
+        #     meta = self._cache_load_metadata(obj_type_uri)
+        #     meta.updated = now
+        #     obj_count = self._datatracker_get_multi_count(obj_type_uri)
+        #     if obj_count is not None:
+        #         self.log.info(f"_cache_update: updated total_count {obj_type_uri} {meta.total_count}->{obj_count}")
+        #         meta.total_count = obj_count
+        #     self._cache_save_metadata(obj_type_uri, meta)
+        # elif now - meta.updated > timedelta(hours=24):
+        #     self.log.info(F"cache outdated {obj_type_uri} - will delete and recreate")
+        #     self._cache_delete(obj_type_uri)
+        #     self._cache_create(obj_type_uri)
+        # # Is the cache metadata consistent?
+        # if not meta.partial and meta.total_count != self.db[_db_collection(obj_type_uri)].count_documents({}):
+        #     self.log.info(F"cache inconsistent {str(obj_type_uri)}")
+        pass
 
 
     def _cache_delete(self, obj_type_uri: URI) -> None:
         assert self.db is not None
-        meta_key = _cache_uri_format(obj_type_uri)
-        self.log.info(f"_cache_delete: {meta_key}")
-        self.db.cache_info.delete_one({"meta_key": meta_key})
-        self.db[meta_key].drop()
+        collection = _db_collection(obj_type_uri)
+        self.log.info(f"_cache_delete: remove collection {collection}")
+        self.db.cache_info.delete_one({"collection": collection})
+        self.db[collection].drop()
         self.db_calls += 1
 
 
     def _cache_load_metadata(self, obj_type_uri: URI) -> CacheMetadata:
         assert self.db is not None
-        meta_key  = _cache_uri_format(obj_type_uri)
-        meta_json = self.db.cache_info.find_one({"meta_key" : meta_key})
+        collection  = _db_collection(obj_type_uri)
+        meta_json = self.db.cache_info.find_one({"collection" : collection})
         self.db_calls += 1
         assert isinstance(meta_json, dict)
         return self.pavlova.from_mapping(meta_json, CacheMetadata)
@@ -2252,35 +2251,38 @@ class DataTracker:
     def _cache_save_metadata(self, obj_type_uri: URI, meta: CacheMetadata) -> None:
         assert self.db is not None
         meta_dict : Dict[str, Any] = {}
-        meta_dict["meta_key"]    = _cache_uri_format(obj_type_uri)
+        meta_dict["collection"]  = _db_collection(obj_type_uri)
         meta_dict["created"]     = meta.created.isoformat()
         meta_dict["updated"]     = meta.updated.isoformat()
         meta_dict["partial"]     = meta.partial
         meta_dict["queries"]     = meta.queries
         meta_dict["total_count"] = meta.total_count
-        self.db.cache_info.replace_one({"meta_key" : meta_dict["meta_key"]}, meta_dict, upsert=True)
-        self.db.cache_info.create_index([('meta_key', ASCENDING)], unique=True)
+        self.db.cache_info.replace_one({"collection" : meta_dict["collection"]}, meta_dict, upsert=True)
+        self.db.cache_info.create_index([('collection', ASCENDING)], unique=True)
         self.db_calls += 1
 
 
     def _cache_create(self, obj_type_uri: URI) -> None:
         assert self.db is not None
-        meta_key  = _cache_uri_format(obj_type_uri)
+        collection  = _db_collection(obj_type_uri)
         self.db_calls += 1
-        if not self.db.cache_info.find_one({"meta_key": meta_key}):
-            self.log.info(F"_cache_create: {meta_key}")
+        if self.db.cache_info.find_one({"collection": collection}):
+            self.log.debug(F"_cache_create: {collection} already exists")
+        else:
+            self.log.info(F"_cache_create: {collection}")
             created     = datetime.now(tz = dateutil.tz.gettz("America/Los_Angeles"))
             updated     = created
             total_count = self._datatracker_get_multi_count(obj_type_uri)
             self._cache_save_metadata(obj_type_uri, CacheMetadata(created, updated, True, total_count, []))
-            # create indexes
-            try:
-                for field in self._cache_indexes[type(obj_type_uri)].fields:
-                    self.db[_cache_uri_format(obj_type_uri)].create_index([(field, ASCENDING)], background=True)
-                for unique_field in self._cache_indexes[type(obj_type_uri)].unique_fields:
-                    self.db[_cache_uri_format(obj_type_uri)].create_index([(unique_field, ASCENDING)], unique=True, background=True)
-            except:
-                pass
+            # # create indexes
+            # try:
+            #     for field in self._hints[type(obj_type_uri)].fields:
+            #         self.db[_db_collection(obj_type_uri)].create_index([(field, ASCENDING)], background=True)
+            #     for unique_field in self._hints[type(obj_type_uri)].unique_fields:
+            #         self.db[_db_collection(obj_type_uri)].create_index([(unique_field, ASCENDING)], unique=True, background=True)
+            # except:
+            #     pass
+
 
     def _cache_record_query(self, obj_uri: URI, obj_type_uri: URI) -> None:
         if self.db is None:
@@ -2302,13 +2304,13 @@ class DataTracker:
             pass
 
 
-    def _cache_has_object(self, obj_uri: URI, obj_type: Type[T]) -> bool:
+    def _cache_has_object(self, obj_uri: URI) -> bool:
         if self.db is None:
             return False
-        self._cache_update(_parent_uri(obj_uri), obj_type)
+        self._cache_update(_parent_uri(obj_uri))
         self.cache_req += 1
         self.db_calls  += 1
-        if self.db[_cache_uri_format(_parent_uri(obj_uri))].find_one({"resource_uri": obj_uri.uri}):
+        if self.db[_db_collection(_parent_uri(obj_uri))].find_one({"resource_uri": obj_uri.uri}):
             self.cache_hit += 1
             return True       # Object is in the local cache
         else:
@@ -2322,7 +2324,8 @@ class DataTracker:
     def _cache_get_object(self, obj_uri: URI) -> Optional[Dict[str, Any]]:
         assert self.db is not None
         self.db_calls += 1
-        return self.db[_cache_uri_format(_parent_uri(obj_uri))].find_one({"resource_uri": obj_uri.uri})
+        self.log.debug(F"_cache_get_object: {obj_uri}")
+        return self.db[_db_collection(_parent_uri(obj_uri))].find_one({"resource_uri": obj_uri.uri})
 
 
     def _cache_put_object(self, obj_json: Dict[str, Any]) -> None:
@@ -2330,7 +2333,7 @@ class DataTracker:
             return
         self.log.info(F"_cache_put_object: {obj_json['resource_uri']}")
         self._cache_create(_parent_uri(URI(obj_json['resource_uri'])))
-        self.db[_cache_uri_format(_parent_uri(URI(obj_json['resource_uri'])))].replace_one({"resource_uri" : obj_json['resource_uri']}, obj_json, upsert=True)
+        self.db[_db_collection(_parent_uri(URI(obj_json['resource_uri'])))].replace_one({"resource_uri" : obj_json['resource_uri']}, obj_json, upsert=True)
         self.db_calls += 1
 
 
@@ -2348,18 +2351,29 @@ class DataTracker:
         return str(obj_uri) in meta.queries
 
 
-    def _cache_get_objects(self, obj_uri: URI, param_objs: Dict[str, Optional[Resource]], obj_type_uri: URI, obj_type: Type[T]) -> Iterator[Dict[Any, Any]]:
+    def _cache_get_objects(self, obj_uri: URI, obj_type_uri: URI, obj_type: Type[T]) -> Iterator[Dict[Any, Any]]:
         assert self.db is not None
         self.log.debug(F"_cache_get_objects: obj_uri={obj_uri}")
-        self.db_calls += 1
-        if len(obj_uri.params) > 1:
-            for field in _translate_query(obj_uri, param_objs, obj_type).keys():
-                self.log.debug(F"_cache_get_objects: create index '{field}'")
-                self.db[_cache_uri_format(obj_type_uri)].create_index([(field, ASCENDING)])
-        query = _translate_query(obj_uri, param_objs, obj_type)
-        dbkey = _cache_uri_format(obj_type_uri)
+        #if len(obj_uri.params) > 1:
+        #    for field in _translate_query(obj_uri, param_objs, obj_type).keys():
+        #        self.log.debug(F"_cache_get_objects: create index '{field}'")
+        #        self.db[_db_collection(obj_type_uri)].create_index([(field, ASCENDING)])
+        obj_type_uri = type(obj_uri)(obj_uri.uri)
+        deref = self._hints[type(obj_type_uri)].deref
+        for s, d in deref.items():
+            if s in obj_uri.params:
+                deref_uri = obj_type.__dict__["__dataclass_fields__"][s].type.root
+                deref_key = _db_collection(URI(deref_uri))
+                self.log.debug(F"_cache_get_objects: deref {deref_uri}")
+                self.db_calls += 1
+                deref_json = self.db[deref_key].find_one({d: obj_uri.params[s]})
+                assert deref_json is not None
+                obj_uri.params[s] = deref_json["resource_uri"]
+        query = _translate_query(obj_uri, obj_type)
+        dbkey = _db_collection(obj_type_uri)
         self.log.debug(F"_cache_get_objects: query {query}")
         self.log.debug(F"_cache_get_objects: dbkey {dbkey}")
+        self.db_calls += 1
         for obj_json in self.db[dbkey].find(query):
             self.log.debug(F"_cache_get_objects: get {obj_json['resource_uri']}")
             yield obj_json
@@ -2369,7 +2383,7 @@ class DataTracker:
         if self.db is None:
             return
 
-        cache_version_metadata = self.db.cache_info.find_one({"meta_key": "_cache_versions"})
+        cache_version_metadata = self.db.cache_info.find_one({"collection": "_cache_versions"})
         if cache_version_metadata is None:
             dt_version    = None
             cache_version = self.cache_ver
@@ -2380,7 +2394,8 @@ class DataTracker:
         # check cache version
         if cache_version != self.cache_ver:
             self.log.info(f"cache version updated {cache_version} -> {self.cache_ver}")
-            for cache_index_uri in self._cache_indexes:
+            # FIXME
+            for cache_index_uri in self._hints: 
                 cache_obj_uri = URI(uri=cache_index_uri(uri=None).root)
                 self._cache_delete(cache_obj_uri)
             cache_version = self.cache_ver
@@ -2390,16 +2405,16 @@ class DataTracker:
         if version_info is not None:
             if dt_version != version_info["version"]:
                 self.log.info(f"datatracker version updated {dt_version} -> {version_info['version']}")
-                for cache_index_uri in self._cache_indexes:
-                    cache_obj_uri = URI(uri=cache_index_uri(uri=None).root)
-                    if "time" not in self._cache_indexes[cache_index_uri].fields:
-                        if self.db.cache_info.find_one({"meta_key": _cache_uri_format(cache_obj_uri)}):
-                            self._cache_delete(cache_obj_uri)
-                dt_version = version_info["version"]
+                # for cache_index_uri in self._hints:
+                #     cache_obj_uri = URI(uri=cache_index_uri(uri=None).root)
+                #     if "time" not in self._hints[cache_index_uri].fields:
+                #         if self.db.cache_info.find_one({"collection": _db_collection(cache_obj_uri)}):
+                #             self._cache_delete(cache_obj_uri)
+                # dt_version = version_info["version"]
         else:
             self.log.warning("could not check datatracker version")
 
-        self.db.cache_info.replace_one({"meta_key" : "_cache_versions"}, {"meta_key": "_cache_versions", "dt_version": dt_version, "cache_version": cache_version}, upsert=True)
+        self.db.cache_info.replace_one({"collection" : "_cache_versions"}, {"collection": "_cache_versions", "dt_version": dt_version, "cache_version": cache_version}, upsert=True)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -2415,7 +2430,7 @@ class DataTracker:
 
 
     def _retrieve(self, obj_uri: URI, obj_type: Type[T]) -> Optional[T]:
-        if self._cache_has_object(obj_uri, obj_type):
+        if self._cache_has_object(obj_uri):
             obj_json = self._cache_get_object(obj_uri)
             if obj_json is not None:
                 return self.pavlova.from_mapping(obj_json, obj_type)
@@ -2424,7 +2439,7 @@ class DataTracker:
         else:
             obj_json = self._datatracker_get_single(obj_uri)
             if obj_json is not None:
-                self.log.info(F"_retrieve {obj_uri}")
+                self.log.debug(F"_retrieve {obj_uri}")
                 self._cache_put_object(obj_json)
                 self._cache_record_query(obj_uri, _parent_uri(obj_uri))
                 return self.pavlova.from_mapping(obj_json, obj_type)
@@ -2441,9 +2456,7 @@ class DataTracker:
             assert v is not None
             if n != "time__gte" and n != "time__lt":
                 cache_uri.params[n] = v
-
-        self._cache_update(obj_type_uri, obj_type)
-
+        self._cache_update(obj_type_uri)
         obj_jsons = [] # type: List[Dict[str, Any]]
         if self._cache_has_objects(cache_uri, obj_type_uri) or self._cache_has_all_objects(obj_uri):
             self.log.debug(F"_retrieve_multi: cache hit {cache_uri} {obj_uri}")
@@ -2452,21 +2465,24 @@ class DataTracker:
         else:
             self.log.debug(F"_retrieve_multi: cache miss {cache_uri} {obj_uri}")
             for obj_json in self._datatracker_get_multi(obj_uri):
-                self._cache_put_object(obj_json)
                 obj_jsons.append(obj_json)
-
+                self._cache_put_object(obj_json)
+                # If this object has a deref field, we need to fetch and cache the referenced object too
+                if self.db is not None:
+                    for s, d in self._hints[type(obj_type_uri)].deref.items():
+                        deref_uri  = URI(obj_json[s])
+                        if self._cache_has_object(deref_uri):
+                            self.log.info(F"_retrieve_multri deref {deref_uri} already cached")
+                        else:
+                            deref_json = self._datatracker_get_single(deref_uri)
+                            if deref_json is not None:
+                                self.log.info(F"_retrieve_multri deref {deref_uri}")
+                                self._cache_put_object(deref_json)
         self._cache_record_query(cache_uri, obj_type_uri)
-
-        results = []
-        for fetched_obj in obj_jsons:
-            sort_key = ""
-            for sb in self._cache_indexes[type(obj_type_uri)].order_by:
-                sort_key += F" {fetched_obj[sb]:40}"
-            results.append((sort_key, fetched_obj))
-        results.sort(key=_sort_objs, reverse=self._cache_indexes[type(obj_type_uri)].reverse)
-        for key, obj_json in results:
-            obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
-            yield obj
+        sort_by = self._hints[type(obj_type_uri)].sort_by
+        for obj_json in sorted(obj_jsons, key=lambda k: k[sort_by]):  # type: ignore
+            fetch_obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
+            yield fetch_obj
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
