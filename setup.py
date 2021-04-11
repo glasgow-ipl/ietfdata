@@ -21,7 +21,7 @@ setuptools.setup(
         "License :: OSI Approved :: BSD License",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.7',
+    python_requires='>=3.9',
     setup_requires=["setuptools-pipfile"],
     use_pipfile=True
 )
