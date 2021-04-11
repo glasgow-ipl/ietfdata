@@ -2383,6 +2383,44 @@ class DataTracker:
         if self.db is None:
             return
 
+        # Check for and upgrade v0.1.0 cache format to v1 cache format:
+        cache_version_metadata = self.db.cache_info.find_one({"meta_key": "_cache_versions"})
+        if cache_version_metadata is not None:
+            if cache_version_metadata["cache_version"] == "0.1.0":
+                # This is an instance of the original MongoDB cache. The cached data is useful,
+                # but the format of the indexes and cache_info collections has changed. Remove
+                # the old indexes, and update the cache_info collection to match the new format:
+                self.log.info(f"_cache_check_versions: cache version changed 0.1.0 -> {self.cache_ver}")
+                self.log.info(f"_cache_check_versions: drop index on cache_info")
+                self.db.cache_info.drop_indexes()
+                new_items : List[Dict[str, Any]] = []
+                for item in self.db.cache_info.find():
+                    collection = item["meta_key"]
+                    if collection == "_cache_versions":
+                        new_item = {
+                            "collection"    : item["meta_key"],
+                            "dt_version"    : item["dt_version"],
+                            "cache_version" : self.cache_ver
+                        }
+                    else:
+                        self.log.info(f"_cache_check_versions: drop index on {collection}")
+                        self.db[collection].drop_indexes()
+                        new_item = {
+                            "collection"  : item["meta_key"],
+                            "created"     : item["created"],
+                            "updated"     : item["updated"],
+                            "partial"     : item["partial"],
+                            "queries"     : item["queries"],
+                            "total_count" : item["total_count"]
+                        }
+                    new_items.append(new_item)
+                for item in new_items:
+                    self.log.info(f"_cache_check_versions: remove old cache_info {item['collection']}")
+                    self.db.cache_info.delete_one({"meta_key": item['collection']})
+                    self.log.info(f"_cache_check_versions: insert new cache_info {item['collection']}")
+                    self.db.cache_info.insert_one(item)
+
+        # Find cache and datatracker versions:
         cache_version_metadata = self.db.cache_info.find_one({"collection": "_cache_versions"})
         if cache_version_metadata is None:
             dt_version    = None
@@ -2391,31 +2429,35 @@ class DataTracker:
             dt_version    = cache_version_metadata["dt_version"]
             cache_version = cache_version_metadata["cache_version"]
 
-        # check cache version
+        # Check cache version
         if cache_version != self.cache_ver:
-            self.log.info(f"cache version updated {cache_version} -> {self.cache_ver}")
-            # FIXME
-            for cache_index_uri in self._hints: 
-                cache_obj_uri = URI(uri=cache_index_uri(uri=None).root)
-                self._cache_delete(cache_obj_uri)
-            cache_version = self.cache_ver
+            # Exit if the cache version doesn't match that we're expecting. Need to add code above
+            # to update the cache if the format changes, as was done with the v0.1.1 to v1 change.
+            self.log.error(f"_cache_check_versions: cache version changed {cache_version} -> {self.cache_ver}")
+            sys.exit()
+        else:
+            self.log.info(f"_cache_check_versions: cache version {self.cache_ver}")
 
         # check Datatracker version
         version_info = self._datatracker_get_single(URI("/api/version/"))
         if version_info is not None:
             if dt_version != version_info["version"]:
-                self.log.info(f"datatracker version updated {dt_version} -> {version_info['version']}")
+                self.log.info(f"_cache_check_versions: datatracker version updated {dt_version} -> {version_info['version']}")
                 # for cache_index_uri in self._hints:
                 #     cache_obj_uri = URI(uri=cache_index_uri(uri=None).root)
                 #     if "time" not in self._hints[cache_index_uri].fields:
                 #         if self.db.cache_info.find_one({"collection": _db_collection(cache_obj_uri)}):
                 #             self._cache_delete(cache_obj_uri)
                 # dt_version = version_info["version"]
+            else:
+                self.log.info(f"_cache_check_versions: datatracker version {dt_version}")
         else:
-            self.log.warning("could not check datatracker version")
+            self.log.warning("_cache_check_versions: could not check datatracker version")
 
-        self.db.cache_info.replace_one({"collection" : "_cache_versions"}, {"collection": "_cache_versions", "dt_version": dt_version, "cache_version": cache_version}, upsert=True)
-
+        self.db.cache_info.replace_one(
+                {"collection": "_cache_versions"},
+                {"collection": "_cache_versions", "dt_version": dt_version, "cache_version": cache_version},
+                upsert=True)
 
     # ----------------------------------------------------------------------------------------------------------------------------
     # Private methods to retrieve objects from the datatracker:
