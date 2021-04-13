@@ -2224,10 +2224,11 @@ class DataTracker:
         #     self.log.info(F"cache outdated {obj_type_uri} - will delete and recreate")
         #     self._cache_delete(obj_type_uri)
         #     self._cache_create(obj_type_uri)
-        # # Is the cache metadata consistent?
-        # if not meta.partial and meta.total_count != self.db[_db_collection(obj_type_uri)].count_documents({}):
-        #     self.log.info(F"cache inconsistent {str(obj_type_uri)}")
-        pass
+
+        # Is the cache metadata consistent?
+        cached_size = self.db[_db_collection(obj_type_uri)].count_documents({})
+        if not meta.partial and meta.total_count != cached_size:
+            self.log.info(F"cache inconsistent {str(obj_type_uri)}: have {cached_size} objects, expected {meta.total_count}")
 
 
     def _cache_delete(self, obj_type_uri: URI) -> None:
