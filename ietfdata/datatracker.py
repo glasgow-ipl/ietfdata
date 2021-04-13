@@ -1969,78 +1969,78 @@ class DataTracker:
         self.pavlova.register_parser(CacheMetadata, GenericParser(self.pavlova, CacheMetadata))
 
         # Register cache hints:
-        self._hints = {} # type: Dict[Type[URI], Hints]
-        self._hints[BallotDocumentEventURI]         = Hints("id", {"doc": "id"})
-        self._hints[BallotTypeURI]                  = Hints("slug", {})
-        self._hints[DocumentAliasURI]               = Hints("id", {})
-        self._hints[DocumentEventURI]               = Hints("id", {"doc": "id"})
-        self._hints[DocumentURI]                    = Hints("id", {})
-        self._hints[DocumentAuthorURI]              = Hints("id", {"document": "id"})
-        self._hints[RelatedDocumentURI]             = Hints("id", {"source": "id", "target": "id", "relationship": "slug"})
-        self._hints[DocumentStateURI]               = Hints("id", {})
-        self._hints[DocumentStateTypeURI]           = Hints("slug", {})
-        self._hints[GroupStateChangeEventURI]       = Hints("id", {})
-        self._hints[GroupURI]                       = Hints("id", {})
-        self._hints[GroupEventURI]                  = Hints("id", {})
-        self._hints[GroupHistoryURI]                = Hints("id", {})
-        self._hints[GroupMilestoneURI]              = Hints("id", {})
-        self._hints[GroupMilestoneHistoryURI]       = Hints("id", {})
-        self._hints[GroupUrlURI]                    = Hints("id", {})
-        self._hints[GroupMilestoneEventURI]         = Hints("id", {})
-        self._hints[GroupRoleURI]                   = Hints("id", {})
-        self._hints[GroupRoleHistoryURI]            = Hints("id", {})
-        self._hints[GenericIPRDisclosureURI]        = Hints("id", {})
-        self._hints[HolderIPRDisclosureURI]         = Hints("id", {})
-        self._hints[IPRDisclosureBaseURI]           = Hints("id", {})
-        self._hints[ThirdPartyIPRDisclosureURI]     = Hints("id", {})
-        self._hints[MailingListURI]                 = Hints("id", {})
-        self._hints[MailingListSubscriptionsURI]    = Hints("id", {})
-        self._hints[MeetingURI]                     = Hints("id", {})
-        self._hints[SessionAssignmentURI]           = Hints("id", {})
-        self._hints[ScheduleURI]                    = Hints("id", {})
-        self._hints[SchedulingEventURI]             = Hints("id", {})
-        self._hints[SessionURI]                     = Hints("id", {})
-        self._hints[TimeslotURI]                    = Hints("id", {})
-        self._hints[AnnouncementFromURI]            = Hints("id", {})
-        self._hints[MessageURI]                     = Hints("id", {"related_doc": "id"})
-        self._hints[SendQueueURI]                   = Hints("id", {})
-        self._hints[BallotPositionNameURI]          = Hints("slug", {})
-        self._hints[RelationshipTypeURI]            = Hints("slug", {})
-        self._hints[DocumentTypeURI]                = Hints("slug", {})
-        self._hints[GroupMilestoneStateNameURI]     = Hints("slug", {})
-        self._hints[GroupStateURI]                  = Hints("slug", {})
-        self._hints[GroupTypeNameURI]               = Hints("slug", {})
-        self._hints[MeetingTypeURI]                 = Hints("slug", {})
-        self._hints[IPRDisclosureStateURI]          = Hints("slug", {})
-        self._hints[IPRLicenseTypeURI]              = Hints("slug", {})
-        self._hints[ReviewAssignmentStateURI]       = Hints("slug", {})
-        self._hints[ReviewResultTypeURI]            = Hints("slug", {})
-        self._hints[ReviewTypeURI]                  = Hints("slug", {})
-        self._hints[ReviewRequestStateURI]          = Hints("slug", {})
-        self._hints[RoleNameURI]                    = Hints("slug", {})
-        self._hints[SessionStatusNameURI]           = Hints("slug", {})
-        self._hints[StreamURI]                      = Hints("slug", {})
-        self._hints[PersonAliasURI]                 = Hints("id", {})
-        self._hints[EmailURI]                       = Hints("address", {})
-        self._hints[HistoricalEmailURI]             = Hints("address", {})
-        self._hints[HistoricalPersonURI]            = Hints("id", {})
-        self._hints[PersonURI]                      = Hints("id", {})
-        self._hints[PersonEventURI]                 = Hints("id", {})
-        self._hints[HistoricalReviewAssignmentURI]  = Hints("id", {})
-        self._hints[HistoricalReviewerSettingsURI]  = Hints("id", {})
-        self._hints[HistoricalReviewRequestURI]     = Hints("id", {"doc": "id"})
-        self._hints[HistoricalUnavailablePeriodURI] = Hints("id", {})
-        self._hints[NextReviewerInTeamURI]          = Hints("id", {})
-        self._hints[ReviewAssignmentURI]            = Hints("id", {})
-        self._hints[ReviewerSettingsURI]            = Hints("id", {})
-        self._hints[ReviewRequestURI]               = Hints("id", {"doc": "id"})
-        self._hints[ReviewSecretarySettingsURI]     = Hints("id", {})
-        self._hints[ReviewTeamSettingsURI]          = Hints("id", {})
-        self._hints[ReviewWishURI]                  = Hints("id", {"doc": "id"})
-        self._hints[UnavailablePeriodURI]           = Hints("id", {})
-        self._hints[MeetingRegistrationURI]         = Hints("id", {})
-        self._hints[SubmissionURI]                  = Hints("id", {})
-        self._hints[SubmissionEventURI]             = Hints("id", {})
+        self._hints = {} # type: Dict[str, Hints]
+        self._hints["/api/v1/doc/ballotdocevent/"]                 = Hints("id", {"doc": "id"})
+        self._hints["/api/v1/doc/ballottype/"]                     = Hints("slug", {})
+        self._hints["/api/v1/doc/docalias/"]                       = Hints("id", {})
+        self._hints["/api/v1/doc/docevent/"]                       = Hints("id", {"doc": "id"})
+        self._hints["/api/v1/doc/document/"]                       = Hints("id", {})
+        self._hints["/api/v1/doc/documentauthor/"]                 = Hints("id", {"document": "id"})
+        self._hints["/api/v1/doc/relateddocument/"]                = Hints("id", {"source": "id", "target": "id", "relationship": "slug"})
+        self._hints["/api/v1/doc/state/"]                          = Hints("id", {})
+        self._hints["/api/v1/doc/statetype/"]                      = Hints("slug", {})
+        self._hints["/api/v1/group/changestategroupevent/"]        = Hints("id", {})
+        self._hints["/api/v1/group/group/"]                        = Hints("id", {})
+        self._hints["/api/v1/group/groupevent/"]                   = Hints("id", {})
+        self._hints["/api/v1/group/grouphistory/"]                 = Hints("id", {})
+        self._hints["/api/v1/group/groupmilestone/"]               = Hints("id", {})
+        self._hints["/api/v1/group/groupmilestonehistory/"]        = Hints("id", {})
+        self._hints["/api/v1/group/groupurl/"]                     = Hints("id", {})
+        self._hints["/api/v1/group/milestonegroupevent/"]          = Hints("id", {})
+        self._hints["/api/v1/group/role/"]                         = Hints("id", {})
+        self._hints["/api/v1/group/rolehistory/"]                  = Hints("id", {})
+        self._hints["/api/v1/ipr/genericiprdisclosure/"]           = Hints("id", {})
+        self._hints["/api/v1/ipr/holderiprdisclosure/"]            = Hints("id", {})
+        self._hints["/api/v1/ipr/iprdisclosurebase/"]              = Hints("id", {})
+        self._hints["/api/v1/ipr/thirdpartyiprdisclosure/"]        = Hints("id", {})
+        self._hints["/api/v1/mailinglists/list/"]                  = Hints("id", {})
+        self._hints["/api/v1/mailinglists/subscribed/"]            = Hints("id", {})
+        self._hints["/api/v1/meeting/meeting/"]                    = Hints("id", {})
+        self._hints["/api/v1/meeting/schedtimesessassignment/"]    = Hints("id", {})
+        self._hints["/api/v1/meeting/schedule/"]                   = Hints("id", {})
+        self._hints["/api/v1/meeting/schedulingevent/"]            = Hints("id", {})
+        self._hints["/api/v1/meeting/session/"]                    = Hints("id", {})
+        self._hints["/api/v1/meeting/timeslot/"]                   = Hints("id", {})
+        self._hints["/api/v1/message/announcementfrom/"]           = Hints("id", {})
+        self._hints["/api/v1/message/message/"]                    = Hints("id", {"related_doc": "id"})
+        self._hints["/api/v1/message/sendqueue/"]                  = Hints("id", {})
+        self._hints["/api/v1/name/ballotpositionname/"]            = Hints("slug", {})
+        self._hints["/api/v1/name/docrelationshipname/"]           = Hints("slug", {})
+        self._hints["/api/v1/name/doctypename/"]                   = Hints("slug", {})
+        self._hints["/api/v1/name/groupmilestonestatename/"]       = Hints("slug", {})
+        self._hints["/api/v1/name/groupstatename/"]                = Hints("slug", {})
+        self._hints["/api/v1/name/grouptypename/"]                 = Hints("slug", {})
+        self._hints["/api/v1/name/meetingtypename/"]               = Hints("slug", {})
+        self._hints["/api/v1/name/iprdisclosurestatename/"]        = Hints("slug", {})
+        self._hints["/api/v1/name/iprlicensetypename/"]            = Hints("slug", {})
+        self._hints["/api/v1/name/reviewassignmentstatename/"]     = Hints("slug", {})
+        self._hints["/api/v1/name/reviewresultname/"]              = Hints("slug", {})
+        self._hints["/api/v1/name/reviewtypename/"]                = Hints("slug", {})
+        self._hints["/api/v1/name/reviewrequeststatename/"]        = Hints("slug", {})
+        self._hints["/api/v1/name/rolename/"]                      = Hints("slug", {})
+        self._hints["/api/v1/name/sessionstatusname/"]             = Hints("slug", {})
+        self._hints["/api/v1/name/streamname/"]                    = Hints("slug", {})
+        self._hints["/api/v1/person/alias/"]                       = Hints("id", {})
+        self._hints["/api/v1/person/email/"]                       = Hints("address", {})
+        self._hints["/api/v1/person/historicalemail/"]             = Hints("address", {})
+        self._hints["/api/v1/person/historicalperson/"]            = Hints("id", {})
+        self._hints["/api/v1/person/person/"]                      = Hints("id", {})
+        self._hints["/api/v1/person/personevent/"]                 = Hints("id", {})
+        self._hints["/api/v1/review/historicalreviewassignment/"]  = Hints("id", {})
+        self._hints["/api/v1/review/historicalreviewersettings/"]  = Hints("id", {})
+        self._hints["/api/v1/review/historicalreviewrequest/"]     = Hints("id", {"doc": "id"})
+        self._hints["/api/v1/review/historicalunavailableperiod/"] = Hints("id", {})
+        self._hints["/api/v1/review/nextreviewerinteam/"]          = Hints("id", {})
+        self._hints["/api/v1/review/reviewassignment/"]            = Hints("id", {})
+        self._hints["/api/v1/review/reviewersettings/"]            = Hints("id", {})
+        self._hints["/api/v1/review/reviewrequest/"]               = Hints("id", {"doc": "id"})
+        self._hints["/api/v1/reivew/reviewsecretarysettings/"]     = Hints("id", {})
+        self._hints["/api/v1/review/reviewteamsettings/"]          = Hints("id", {})
+        self._hints["/api/v1/review/reviewwish/"]                  = Hints("id", {"doc": "id"})
+        self._hints["/api/v1/review/unavailableperiod/"]           = Hints("id", {})
+        self._hints["/api/v1/states/meetingregistration/"]         = Hints("id", {})
+        self._hints["/api/v1/submit/submission/"]                  = Hints("id", {})
+        self._hints["/api/v1/submit/submissionevent/"]             = Hints("id", {})
 
         # check Datatracker and cache versions
         self._cache_check_versions()
@@ -2353,14 +2353,15 @@ class DataTracker:
 
 
     def _cache_get_objects(self, obj_uri: URI, obj_type_uri: URI, obj_type: Type[T]) -> Iterator[Dict[Any, Any]]:
-        assert self.db is not None
+        assert self.db          is not None
+        assert obj_uri.uri      is not None
+        assert obj_type_uri.uri is not None
         self.log.debug(F"_cache_get_objects: obj_uri={obj_uri}")
         #if len(obj_uri.params) > 1:
         #    for field in _translate_query(obj_uri, param_objs, obj_type).keys():
         #        self.log.debug(F"_cache_get_objects: create index '{field}'")
         #        self.db[_db_collection(obj_type_uri)].create_index([(field, ASCENDING)])
-        obj_type_uri = type(obj_uri)(obj_uri.uri)
-        deref = self._hints[type(obj_type_uri)].deref
+        deref = self._hints[obj_type_uri.uri].deref
         for s, d in deref.items():
             if s in obj_uri.params:
                 deref_uri = obj_type.__dict__["__dataclass_fields__"][s].type.root
@@ -2494,6 +2495,9 @@ class DataTracker:
         self.log.debug(F"_retrieve_multi: obj_uri {obj_uri}")
         obj_type_uri = type(obj_uri)(obj_uri.uri)
         cache_uri = type(obj_uri)(obj_uri.uri)
+        assert obj_uri.uri      is not None
+        assert obj_type_uri.uri is not None
+        assert cache_uri.uri    is not None
         for n, v in obj_uri.params.items():
             assert n is not None
             assert v is not None
@@ -2512,7 +2516,7 @@ class DataTracker:
                 self._cache_put_object(obj_json)
                 # If this object has a deref field, we need to fetch and cache the referenced object too
                 if self.db is not None:
-                    for s, d in self._hints[type(obj_type_uri)].deref.items():
+                    for s, d in self._hints[obj_type_uri.uri].deref.items():
                         deref_uri  = URI(obj_json[s])
                         if self._cache_has_object(deref_uri):
                             self.log.info(F"_retrieve_multri deref {deref_uri} already cached")
@@ -2522,7 +2526,7 @@ class DataTracker:
                                 self.log.info(F"_retrieve_multri deref {deref_uri}")
                                 self._cache_put_object(deref_json)
         self._cache_record_query(cache_uri, obj_type_uri)
-        sort_by = self._hints[type(obj_type_uri)].sort_by
+        sort_by = self._hints[obj_type_uri.uri].sort_by
         for obj_json in sorted(obj_jsons, key=lambda k: k[sort_by]):  # type: ignore
             fetch_obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
             yield fetch_obj
