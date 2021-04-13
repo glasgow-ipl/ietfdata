@@ -2034,11 +2034,11 @@ class DataTracker:
         self._hints["/api/v1/review/reviewassignment/"]            = Hints("id", {})
         self._hints["/api/v1/review/reviewersettings/"]            = Hints("id", {})
         self._hints["/api/v1/review/reviewrequest/"]               = Hints("id", {"doc": "id"})
-        self._hints["/api/v1/reivew/reviewsecretarysettings/"]     = Hints("id", {})
+        self._hints["/api/v1/review/reviewsecretarysettings/"]     = Hints("id", {})
         self._hints["/api/v1/review/reviewteamsettings/"]          = Hints("id", {})
         self._hints["/api/v1/review/reviewwish/"]                  = Hints("id", {"doc": "id"})
         self._hints["/api/v1/review/unavailableperiod/"]           = Hints("id", {})
-        self._hints["/api/v1/states/meetingregistration/"]         = Hints("id", {})
+        self._hints["/api/v1/stats/meetingregistration/"]          = Hints("id", {})
         self._hints["/api/v1/submit/submission/"]                  = Hints("id", {})
         self._hints["/api/v1/submit/submissionevent/"]             = Hints("id", {})
 
