@@ -2188,24 +2188,24 @@ class DataTracker:
         if self.db is None:
             return None
         self._cache_create(obj_type_uri)
-        # now  = datetime.now(tz = dateutil.tz.gettz("America/Los_Angeles"))
-        # meta = self._cache_load_metadata(obj_type_uri)
-        # # Should we switch from a partial cache to full cache for this object type?
-        # if meta.partial and (len(meta.queries)/(meta.total_count/100)) > 0.5:
-        #     # Switch to caching all objects of this type
-        #     self.log.info(F"switch to full cache {obj_type_uri.uri} ({meta.total_count} objects)")
-        #     for obj_json in self._datatracker_get_multi(obj_type_uri):
-        #         self._cache_put_object(obj_json)
-        #     meta = self._cache_load_metadata(obj_type_uri)
-        #     meta.partial = False
-        #     meta.queries = []
-        #     meta.updated = now
-        #     obj_count = self._datatracker_get_multi_count(obj_type_uri)
-        #     if obj_count is not None:
-        #         self.log.info(f"_cache_update: updated total_count {obj_type_uri} {meta.total_count}->{obj_count}")
-        #         meta.total_count = obj_count
-        #     self._cache_save_metadata(obj_type_uri, meta)
-        # # Do we need to update the cache?
+        now  = datetime.now(tz = dateutil.tz.gettz("America/Los_Angeles"))
+        meta = self._cache_load_metadata(obj_type_uri)
+        # Should we switch from a partial cache to full cache for this object type?
+        cached_size = self.db[_db_collection(obj_type_uri)].count_documents({})
+        if meta.partial and cached_size / meta.total_count > 0.10:
+            self.log.info(F"switch to full cache {obj_type_uri.uri}: cached {cached_size} of {meta.total_count} objects")
+            for obj_json in self._datatracker_get_multi(obj_type_uri):
+                self._cache_put_object(obj_json)
+            meta.partial = False
+            meta.queries = []
+            meta.updated = now
+            obj_count = self._datatracker_get_multi_count(obj_type_uri)
+            if obj_count is not None and obj_count != meta.total_count:
+                self.log.info(f"_cache_update: updated total_count {obj_type_uri} {meta.total_count}->{obj_count}")
+                meta.total_count = obj_count
+            self._cache_save_metadata(obj_type_uri, meta)
+        # Do we need to update the cache?
+
         # if now - meta.updated > timedelta(hours=1) and "time" in obj_type.__dict__["__dataclass_fields__"]:
         #     update_uri = type(obj_type_uri)(obj_type_uri.uri)
         #     update_uri.params["time__gte"] = meta.updated.strftime("%Y-%m-%dT%H:%M:%S.%f")  # Avoid isoformat(), since don't want TZ offset
