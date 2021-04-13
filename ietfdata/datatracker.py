@@ -2187,9 +2187,19 @@ class DataTracker:
     def _cache_update(self, obj_type_uri: URI, dt_version_changed:bool) -> None:
         if self.db is None:
             return None
+        assert(obj_type_uri.uri) is not None
         self._cache_create(obj_type_uri)
         now  = datetime.now(tz = dateutil.tz.gettz("America/Los_Angeles"))
         meta = self._cache_load_metadata(obj_type_uri)
+
+        # URIs under /api/v1/name/ are internal names used by the datatracker. 
+        # Delete and recreate these caches if the datatracker version changed.
+        if obj_type_uri.uri.startswith("/api/v1/name/") and dt_version_changed:
+            self.log.info(f"_cache_update: drop {obj_type_uri} due to datatracker version change")
+            self._cache_delete(obj_type_uri)
+            self._cache_create(obj_type_uri)
+            meta = self._cache_load_metadata(obj_type_uri) # Reload metadata since cache entry recreated
+
         # Should we switch from a partial cache to full cache for this object type?
         cached_size = self.db[_db_collection(obj_type_uri)].count_documents({})
         if meta.partial and meta.total_count > 0 and cached_size / meta.total_count > 0.10:
@@ -2204,8 +2214,8 @@ class DataTracker:
                 self.log.info(f"_cache_update: updated total_count {obj_type_uri} {meta.total_count}->{obj_count}")
                 meta.total_count = obj_count
             self._cache_save_metadata(obj_type_uri, meta)
-        # Do we need to update the cache?
 
+        # Do we need to update the cache?
         # if now - meta.updated > timedelta(hours=1) and "time" in obj_type.__dict__["__dataclass_fields__"]:
         #     update_uri = type(obj_type_uri)(obj_type_uri.uri)
         #     update_uri.params["time__gte"] = meta.updated.strftime("%Y-%m-%dT%H:%M:%S.%f")  # Avoid isoformat(), since don't want TZ offset
@@ -2234,7 +2244,7 @@ class DataTracker:
     def _cache_delete(self, obj_type_uri: URI) -> None:
         assert self.db is not None
         collection = _db_collection(obj_type_uri)
-        self.log.info(f"_cache_delete: remove collection {collection}")
+        self.log.info(f"_cache_delete: {collection}")
         self.db.cache_info.delete_one({"collection": collection})
         self.db[collection].drop()
         self.db_calls += 1
