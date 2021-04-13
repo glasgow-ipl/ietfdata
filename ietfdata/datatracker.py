@@ -2184,7 +2184,7 @@ class DataTracker:
     #
     # There is also a "cache_info" collection, containing metadata about the cache.
 
-    def _cache_update(self, obj_type_uri: URI) -> None:
+    def _cache_update(self, obj_type_uri: URI, dt_version_changed:bool) -> None:
         if self.db is None:
             return None
         self._cache_create(obj_type_uri)
@@ -2192,7 +2192,7 @@ class DataTracker:
         meta = self._cache_load_metadata(obj_type_uri)
         # Should we switch from a partial cache to full cache for this object type?
         cached_size = self.db[_db_collection(obj_type_uri)].count_documents({})
-        if meta.partial and cached_size / meta.total_count > 0.10:
+        if meta.partial and meta.total_count > 0 and cached_size / meta.total_count > 0.10:
             self.log.info(F"switch to full cache {obj_type_uri.uri}: cached {cached_size} of {meta.total_count} objects")
             for obj_json in self._datatracker_get_multi(obj_type_uri):
                 self._cache_put_object(obj_json)
@@ -2308,7 +2308,7 @@ class DataTracker:
     def _cache_has_object(self, obj_uri: URI) -> bool:
         if self.db is None:
             return False
-        self._cache_update(_parent_uri(obj_uri))
+        self._cache_update(_parent_uri(obj_uri), False)
         self.cache_req += 1
         self.db_calls  += 1
         if self.db[_db_collection(_parent_uri(obj_uri))].find_one({"resource_uri": obj_uri.uri}):
@@ -2445,12 +2445,10 @@ class DataTracker:
         if version_info is not None:
             if dt_version != version_info["version"]:
                 self.log.info(f"_cache_check_versions: datatracker version updated {dt_version} -> {version_info['version']}")
-                # for cache_index_uri in self._hints:
-                #     cache_obj_uri = URI(uri=cache_index_uri(uri=None).root)
-                #     if "time" not in self._hints[cache_index_uri].fields:
-                #         if self.db.cache_info.find_one({"collection": _db_collection(cache_obj_uri)}):
-                #             self._cache_delete(cache_obj_uri)
-                # dt_version = version_info["version"]
+                for cache_uri in self._hints:
+                    self.log.info(f"_cache_check_versions: update cache {cache_uri}")
+                    self._cache_update(URI(cache_uri), True)
+                dt_version = version_info["version"]
             else:
                 self.log.info(f"_cache_check_versions: datatracker version {dt_version}")
         else:
@@ -2503,7 +2501,7 @@ class DataTracker:
             assert v is not None
             if n != "time__gte" and n != "time__lt":
                 cache_uri.params[n] = v
-        self._cache_update(obj_type_uri)
+        self._cache_update(obj_type_uri, False)
         obj_jsons = [] # type: List[Dict[str, Any]]
         if self._cache_has_objects(cache_uri, obj_type_uri) or self._cache_has_all_objects(obj_uri):
             self.log.debug(F"_retrieve_multi: cache hit {cache_uri} {obj_uri}")
