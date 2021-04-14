@@ -1909,6 +1909,7 @@ class CacheMetadata:
 @dataclass
 class Hints(Generic[T]):
     sort_by : str
+    update_strategy : str
     deref   : Dict[str, str]
 
 
@@ -1970,77 +1971,77 @@ class DataTracker:
 
         # Register cache hints:
         self._hints = {} # type: Dict[str, Hints]
-        self._hints["/api/v1/doc/ballotdocevent/"]                 = Hints("id", {"doc": "id"})
-        self._hints["/api/v1/doc/ballottype/"]                     = Hints("slug", {})
-        self._hints["/api/v1/doc/docalias/"]                       = Hints("id", {})
-        self._hints["/api/v1/doc/docevent/"]                       = Hints("id", {"doc": "id"})
-        self._hints["/api/v1/doc/document/"]                       = Hints("id", {})
-        self._hints["/api/v1/doc/documentauthor/"]                 = Hints("id", {"document": "id"})
-        self._hints["/api/v1/doc/relateddocument/"]                = Hints("id", {"source": "id", "target": "id", "relationship": "slug"})
-        self._hints["/api/v1/doc/state/"]                          = Hints("id", {})
-        self._hints["/api/v1/doc/statetype/"]                      = Hints("slug", {})
-        self._hints["/api/v1/group/changestategroupevent/"]        = Hints("id", {})
-        self._hints["/api/v1/group/group/"]                        = Hints("id", {})
-        self._hints["/api/v1/group/groupevent/"]                   = Hints("id", {})
-        self._hints["/api/v1/group/grouphistory/"]                 = Hints("id", {})
-        self._hints["/api/v1/group/groupmilestone/"]               = Hints("id", {})
-        self._hints["/api/v1/group/groupmilestonehistory/"]        = Hints("id", {})
-        self._hints["/api/v1/group/groupurl/"]                     = Hints("id", {})
-        self._hints["/api/v1/group/milestonegroupevent/"]          = Hints("id", {})
-        self._hints["/api/v1/group/role/"]                         = Hints("id", {})
-        self._hints["/api/v1/group/rolehistory/"]                  = Hints("id", {})
-        self._hints["/api/v1/ipr/genericiprdisclosure/"]           = Hints("id", {})
-        self._hints["/api/v1/ipr/holderiprdisclosure/"]            = Hints("id", {})
-        self._hints["/api/v1/ipr/iprdisclosurebase/"]              = Hints("id", {})
-        self._hints["/api/v1/ipr/thirdpartyiprdisclosure/"]        = Hints("id", {})
-        self._hints["/api/v1/mailinglists/list/"]                  = Hints("id", {})
-        self._hints["/api/v1/mailinglists/subscribed/"]            = Hints("id", {})
-        self._hints["/api/v1/meeting/meeting/"]                    = Hints("id", {})
-        self._hints["/api/v1/meeting/schedtimesessassignment/"]    = Hints("id", {})
-        self._hints["/api/v1/meeting/schedule/"]                   = Hints("id", {})
-        self._hints["/api/v1/meeting/schedulingevent/"]            = Hints("id", {})
-        self._hints["/api/v1/meeting/session/"]                    = Hints("id", {})
-        self._hints["/api/v1/meeting/timeslot/"]                   = Hints("id", {})
-        self._hints["/api/v1/message/announcementfrom/"]           = Hints("id", {})
-        self._hints["/api/v1/message/message/"]                    = Hints("id", {"related_doc": "id"})
-        self._hints["/api/v1/message/sendqueue/"]                  = Hints("id", {})
-        self._hints["/api/v1/name/ballotpositionname/"]            = Hints("slug", {})
-        self._hints["/api/v1/name/docrelationshipname/"]           = Hints("slug", {})
-        self._hints["/api/v1/name/doctypename/"]                   = Hints("slug", {})
-        self._hints["/api/v1/name/groupmilestonestatename/"]       = Hints("slug", {})
-        self._hints["/api/v1/name/groupstatename/"]                = Hints("slug", {})
-        self._hints["/api/v1/name/grouptypename/"]                 = Hints("slug", {})
-        self._hints["/api/v1/name/meetingtypename/"]               = Hints("slug", {})
-        self._hints["/api/v1/name/iprdisclosurestatename/"]        = Hints("slug", {})
-        self._hints["/api/v1/name/iprlicensetypename/"]            = Hints("slug", {})
-        self._hints["/api/v1/name/reviewassignmentstatename/"]     = Hints("slug", {})
-        self._hints["/api/v1/name/reviewresultname/"]              = Hints("slug", {})
-        self._hints["/api/v1/name/reviewtypename/"]                = Hints("slug", {})
-        self._hints["/api/v1/name/reviewrequeststatename/"]        = Hints("slug", {})
-        self._hints["/api/v1/name/rolename/"]                      = Hints("slug", {})
-        self._hints["/api/v1/name/sessionstatusname/"]             = Hints("slug", {})
-        self._hints["/api/v1/name/streamname/"]                    = Hints("slug", {})
-        self._hints["/api/v1/person/alias/"]                       = Hints("id", {})
-        self._hints["/api/v1/person/email/"]                       = Hints("address", {})
-        self._hints["/api/v1/person/historicalemail/"]             = Hints("address", {})
-        self._hints["/api/v1/person/historicalperson/"]            = Hints("id", {})
-        self._hints["/api/v1/person/person/"]                      = Hints("id", {})
-        self._hints["/api/v1/person/personevent/"]                 = Hints("id", {})
-        self._hints["/api/v1/review/historicalreviewassignment/"]  = Hints("id", {})
-        self._hints["/api/v1/review/historicalreviewersettings/"]  = Hints("id", {})
-        self._hints["/api/v1/review/historicalreviewrequest/"]     = Hints("id", {"doc": "id"})
-        self._hints["/api/v1/review/historicalunavailableperiod/"] = Hints("id", {})
-        self._hints["/api/v1/review/nextreviewerinteam/"]          = Hints("id", {})
-        self._hints["/api/v1/review/reviewassignment/"]            = Hints("id", {})
-        self._hints["/api/v1/review/reviewersettings/"]            = Hints("id", {})
-        self._hints["/api/v1/review/reviewrequest/"]               = Hints("id", {"doc": "id"})
-        self._hints["/api/v1/review/reviewsecretarysettings/"]     = Hints("id", {})
-        self._hints["/api/v1/review/reviewteamsettings/"]          = Hints("id", {})
-        self._hints["/api/v1/review/reviewwish/"]                  = Hints("id", {"doc": "id"})
-        self._hints["/api/v1/review/unavailableperiod/"]           = Hints("id", {})
-        self._hints["/api/v1/stats/meetingregistration/"]          = Hints("id", {})
-        self._hints["/api/v1/submit/submission/"]                  = Hints("id", {})
-        self._hints["/api/v1/submit/submissionevent/"]             = Hints("id", {})
+        self._hints["/api/v1/doc/ballotdocevent/"]                 = Hints("id", "T", {"doc": "id"})
+        self._hints["/api/v1/doc/ballottype/"]                     = Hints("slug", "-", {})
+        self._hints["/api/v1/doc/docalias/"]                       = Hints("id", "-", {})
+        self._hints["/api/v1/doc/docevent/"]                       = Hints("id", "T", {"doc": "id"})
+        self._hints["/api/v1/doc/document/"]                       = Hints("id", "T", {})
+        self._hints["/api/v1/doc/documentauthor/"]                 = Hints("id", "-", {"document": "id"})
+        self._hints["/api/v1/doc/relateddocument/"]                = Hints("id", "-", {"source": "id", "target": "id", "relationship": "slug"})
+        self._hints["/api/v1/doc/state/"]                          = Hints("id", "V", {})
+        self._hints["/api/v1/doc/statetype/"]                      = Hints("slug", "V", {})
+        self._hints["/api/v1/group/changestategroupevent/"]        = Hints("id", "T", {})
+        self._hints["/api/v1/group/group/"]                        = Hints("id", "T", {})
+        self._hints["/api/v1/group/groupevent/"]                   = Hints("id", "T", {})
+        self._hints["/api/v1/group/grouphistory/"]                 = Hints("id", "T", {})
+        self._hints["/api/v1/group/groupmilestone/"]               = Hints("id", "T", {})
+        self._hints["/api/v1/group/groupmilestonehistory/"]        = Hints("id", "T", {})
+        self._hints["/api/v1/group/groupurl/"]                     = Hints("id", "-", {})
+        self._hints["/api/v1/group/milestonegroupevent/"]          = Hints("id", "T", {})
+        self._hints["/api/v1/group/role/"]                         = Hints("id", "-", {})
+        self._hints["/api/v1/group/rolehistory/"]                  = Hints("id", "-", {})
+        self._hints["/api/v1/ipr/genericiprdisclosure/"]           = Hints("id", "-", {})
+        self._hints["/api/v1/ipr/holderiprdisclosure/"]            = Hints("id", "-", {})
+        self._hints["/api/v1/ipr/iprdisclosurebase/"]              = Hints("id", "-", {})
+        self._hints["/api/v1/ipr/thirdpartyiprdisclosure/"]        = Hints("id", "-", {})
+        self._hints["/api/v1/mailinglists/list/"]                  = Hints("id", "-", {})
+        self._hints["/api/v1/mailinglists/subscribed/"]            = Hints("id", "-", {})
+        self._hints["/api/v1/meeting/meeting/"]                    = Hints("id", "-", {})
+        self._hints["/api/v1/meeting/schedtimesessassignment/"]    = Hints("id", "-", {})
+        self._hints["/api/v1/meeting/schedule/"]                   = Hints("id", "-", {})
+        self._hints["/api/v1/meeting/schedulingevent/"]            = Hints("id", "T", {})
+        self._hints["/api/v1/meeting/session/"]                    = Hints("id", "M", {})
+        self._hints["/api/v1/meeting/timeslot/"]                   = Hints("id", "-", {})
+        self._hints["/api/v1/message/announcementfrom/"]           = Hints("id", "-", {})
+        self._hints["/api/v1/message/message/"]                    = Hints("id", "-", {"related_doc": "id"})
+        self._hints["/api/v1/message/sendqueue/"]                  = Hints("id", "-", {})
+        self._hints["/api/v1/name/ballotpositionname/"]            = Hints("slug", "V", {})
+        self._hints["/api/v1/name/docrelationshipname/"]           = Hints("slug", "V", {})
+        self._hints["/api/v1/name/doctypename/"]                   = Hints("slug", "V", {})
+        self._hints["/api/v1/name/groupmilestonestatename/"]       = Hints("slug", "V", {})
+        self._hints["/api/v1/name/groupstatename/"]                = Hints("slug", "V", {})
+        self._hints["/api/v1/name/grouptypename/"]                 = Hints("slug", "V", {})
+        self._hints["/api/v1/name/meetingtypename/"]               = Hints("slug", "V", {})
+        self._hints["/api/v1/name/iprdisclosurestatename/"]        = Hints("slug", "V", {})
+        self._hints["/api/v1/name/iprlicensetypename/"]            = Hints("slug", "V", {})
+        self._hints["/api/v1/name/reviewassignmentstatename/"]     = Hints("slug", "V", {})
+        self._hints["/api/v1/name/reviewresultname/"]              = Hints("slug", "V", {})
+        self._hints["/api/v1/name/reviewtypename/"]                = Hints("slug", "V", {})
+        self._hints["/api/v1/name/reviewrequeststatename/"]        = Hints("slug", "V", {})
+        self._hints["/api/v1/name/rolename/"]                      = Hints("slug", "V", {})
+        self._hints["/api/v1/name/sessionstatusname/"]             = Hints("slug", "V", {})
+        self._hints["/api/v1/name/streamname/"]                    = Hints("slug", "V", {})
+        self._hints["/api/v1/person/alias/"]                       = Hints("id", "-", {})
+        self._hints["/api/v1/person/email/"]                       = Hints("address", "T", {})
+        self._hints["/api/v1/person/historicalemail/"]             = Hints("address", "T", {})
+        self._hints["/api/v1/person/historicalperson/"]            = Hints("id", "-", {})
+        self._hints["/api/v1/person/person/"]                      = Hints("id", "T", {})
+        self._hints["/api/v1/person/personevent/"]                 = Hints("id", "T", {})
+        self._hints["/api/v1/review/historicalreviewassignment/"]  = Hints("id", "-", {})
+        self._hints["/api/v1/review/historicalreviewersettings/"]  = Hints("id", "-", {})
+        self._hints["/api/v1/review/historicalreviewrequest/"]     = Hints("id", "-", {"doc": "id"})
+        self._hints["/api/v1/review/historicalunavailableperiod/"] = Hints("id", "-", {})
+        self._hints["/api/v1/review/nextreviewerinteam/"]          = Hints("id", "-", {})
+        self._hints["/api/v1/review/reviewassignment/"]            = Hints("id", "-", {})
+        self._hints["/api/v1/review/reviewersettings/"]            = Hints("id", "-", {})
+        self._hints["/api/v1/review/reviewrequest/"]               = Hints("id", "-", {"doc": "id"})
+        self._hints["/api/v1/review/reviewsecretarysettings/"]     = Hints("id", "-", {})
+        self._hints["/api/v1/review/reviewteamsettings/"]          = Hints("id", "-", {})
+        self._hints["/api/v1/review/reviewwish/"]                  = Hints("id", "-", {"doc": "id"})
+        self._hints["/api/v1/review/unavailableperiod/"]           = Hints("id", "-", {})
+        self._hints["/api/v1/stats/meetingregistration/"]          = Hints("id", "-", {})
+        self._hints["/api/v1/submit/submission/"]                  = Hints("id", "-", {})
+        self._hints["/api/v1/submit/submissionevent/"]             = Hints("id", "T", {})
 
         # check Datatracker and cache versions
         self._cache_check_versions()
@@ -2184,6 +2185,24 @@ class DataTracker:
     #
     # There is also a "cache_info" collection, containing metadata about the cache.
 
+    def _cache_update_timed(self, obj_type_uri: URI, now: datetime, meta: CacheMetadata, field: str) -> None:
+        start_time = meta.updated.strftime("%Y-%m-%dT%H:%M:%S.%f")  # Avoid isoformat(), since don't want TZ offset
+        until_time  = now.strftime("%Y-%m-%dT%H:%M:%S.%f")
+        update_uri = URI(obj_type_uri.uri)
+        update_uri.params[F"{field}__gte"] = start_time
+        update_uri.params[F"{field}__lt"]  = until_time
+        self.log.info(F"_cache_update: {obj_type_uri} {start_time} -> {until_time}")
+        for obj_json in self._datatracker_get_multi(update_uri):
+            self._cache_put_object(obj_json)
+        meta = self._cache_load_metadata(obj_type_uri)
+        meta.updated = now
+        obj_count = self._datatracker_get_multi_count(obj_type_uri)
+        if obj_count is not None and obj_count != meta.total_count:
+            self.log.info(f"_cache_update: updated total_count {obj_type_uri} {meta.total_count} -> {obj_count}")
+            meta.total_count = obj_count
+        self._cache_save_metadata(obj_type_uri, meta)
+
+
     def _cache_update(self, obj_type_uri: URI, dt_version_changed:bool) -> None:
         if self.db is None:
             return None
@@ -2194,7 +2213,7 @@ class DataTracker:
 
         # URIs under /api/v1/name/ are internal names used by the datatracker. 
         # Delete and recreate these caches if the datatracker version changed.
-        if obj_type_uri.uri.startswith("/api/v1/name/") and dt_version_changed:
+        if self._hints[obj_type_uri.uri].update_strategy == "V" and dt_version_changed:
             self.log.info(f"_cache_update: drop {obj_type_uri} due to datatracker version change")
             self._cache_delete(obj_type_uri)
             self._cache_create(obj_type_uri)
@@ -2215,25 +2234,17 @@ class DataTracker:
                 meta.total_count = obj_count
             self._cache_save_metadata(obj_type_uri, meta)
 
-        # Do we need to update the cache?
-        # if now - meta.updated > timedelta(hours=1) and "time" in obj_type.__dict__["__dataclass_fields__"]:
-        #     update_uri = type(obj_type_uri)(obj_type_uri.uri)
-        #     update_uri.params["time__gte"] = meta.updated.strftime("%Y-%m-%dT%H:%M:%S.%f")  # Avoid isoformat(), since don't want TZ offset
-        #     update_uri.params["time__lt"]  = now.strftime("%Y-%m-%dT%H:%M:%S.%f")
-        #     self.log.info(F"cache outdated {obj_type_uri} ({update_uri.params['time__gte']} -> {update_uri.params['time__lt']})")
-        #     for obj_json in self._datatracker_get_multi(update_uri):
-        #         self._cache_put_object(obj_json)
-        #     meta = self._cache_load_metadata(obj_type_uri)
-        #     meta.updated = now
-        #     obj_count = self._datatracker_get_multi_count(obj_type_uri)
-        #     if obj_count is not None:
-        #         self.log.info(f"_cache_update: updated total_count {obj_type_uri} {meta.total_count}->{obj_count}")
-        #         meta.total_count = obj_count
-        #     self._cache_save_metadata(obj_type_uri, meta)
-        # elif now - meta.updated > timedelta(hours=24):
-        #     self.log.info(F"cache outdated {obj_type_uri} - will delete and recreate")
-        #     self._cache_delete(obj_type_uri)
-        #     self._cache_create(obj_type_uri)
+        # Update object types that have a "time" field giving last modified time:
+        if self._hints[obj_type_uri.uri].update_strategy == "T" and now - meta.updated > timedelta(hours=1):
+            self._cache_update_timed(obj_type_uri, now, meta, "time")
+
+        # Update object types that have a "modified" field giving last modified time:
+        if self._hints[obj_type_uri.uri].update_strategy == "M" and now - meta.updated > timedelta(hours=1):
+            self._cache_update_timed(obj_type_uri, now, meta, "modified")
+
+        # Warn if there are object types we don't know how to update
+        if self._hints[obj_type_uri.uri].update_strategy == "-":
+            self.log.warning(f"_cache_update: {obj_type_uri} - don't know how to update cache")
 
         # Is the cache metadata consistent?
         cached_size = self.db[_db_collection(obj_type_uri)].count_documents({})
