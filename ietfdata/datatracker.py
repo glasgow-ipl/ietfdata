@@ -2023,13 +2023,13 @@ class DataTracker:
         self._hints["/api/v1/name/streamname/"]                    = Hints("slug", "V", {})
         self._hints["/api/v1/person/alias/"]                       = Hints("id", "-", {})
         self._hints["/api/v1/person/email/"]                       = Hints("address", "T", {})
-        self._hints["/api/v1/person/historicalemail/"]             = Hints("address", "T", {})
-        self._hints["/api/v1/person/historicalperson/"]            = Hints("id", "-", {})
+        self._hints["/api/v1/person/historicalemail/"]             = Hints("address", "H", {})
+        self._hints["/api/v1/person/historicalperson/"]            = Hints("id", "H", {})
         self._hints["/api/v1/person/person/"]                      = Hints("id", "T", {})
         self._hints["/api/v1/person/personevent/"]                 = Hints("id", "T", {})
-        self._hints["/api/v1/review/historicalreviewassignment/"]  = Hints("id", "-", {})
-        self._hints["/api/v1/review/historicalreviewersettings/"]  = Hints("id", "-", {})
-        self._hints["/api/v1/review/historicalreviewrequest/"]     = Hints("id", "-", {"doc": "id"})
+        self._hints["/api/v1/review/historicalreviewassignment/"]  = Hints("id", "C", {})
+        self._hints["/api/v1/review/historicalreviewersettings/"]  = Hints("id", "H", {})
+        self._hints["/api/v1/review/historicalreviewrequest/"]     = Hints("id", "T", {"doc": "id"})
         self._hints["/api/v1/review/historicalunavailableperiod/"] = Hints("id", "-", {})
         self._hints["/api/v1/review/nextreviewerinteam/"]          = Hints("id", "-", {})
         self._hints["/api/v1/review/reviewassignment/"]            = Hints("id", "-", {})
@@ -2241,6 +2241,14 @@ class DataTracker:
         # Update object types that have a "modified" field giving last modified time:
         if self._hints[obj_type_uri.uri].update_strategy == "M" and now - meta.updated > timedelta(hours=1):
             self._cache_update_timed(obj_type_uri, now, meta, "modified")
+
+        # Update object types that have a "history_date" field giving last modified time:
+        if self._hints[obj_type_uri.uri].update_strategy == "H" and now - meta.updated > timedelta(hours=1):
+            self._cache_update_timed(obj_type_uri, now, meta, "history_date")
+
+        # Update object types that have a "completed_on" field giving last modified time:
+        if self._hints[obj_type_uri.uri].update_strategy == "C" and now - meta.updated > timedelta(hours=1):
+            self._cache_update_timed(obj_type_uri, now, meta, "completed_on")
 
         # Warn if there are object types we don't know how to update
         if self._hints[obj_type_uri.uri].update_strategy == "-":
