@@ -2632,6 +2632,11 @@ class DataTracker:
         return self._retrieve(email_uri, Email)
 
 
+    def email_for_address(self, email_addr: str) -> Optional[Email]:
+        uri = EmailURI(F"/api/v1/person/email/{email_addr}/")
+        return self.email(uri)
+
+
     def email_for_person(self, person: Person) -> Iterator[Email]:
         uri = EmailURI("/api/v1/person/email/")
         uri.params["person"] = person.id

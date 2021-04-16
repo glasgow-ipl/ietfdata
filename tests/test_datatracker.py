@@ -103,6 +103,20 @@ class TestDatatracker(unittest.TestCase):
             self.fail("Cannot find email address")
 
 
+    def test_email_for_address(self) -> None:
+        e  = self.dt.email_for_address("csp@csperkins.org")
+        if e is not None:
+            self.assertEqual(e.resource_uri, EmailURI("/api/v1/person/email/csp@csperkins.org/"))
+            self.assertEqual(e.address,      "csp@csperkins.org")
+            self.assertEqual(e.person,       PersonURI("/api/v1/person/person/20209/"))
+            self.assertEqual(e.time,         datetime.fromisoformat("1970-01-01T23:59:59"))
+            # self.assertEqual(e.origin,     "author: draft-ietf-mmusic-rfc4566bis")
+            self.assertEqual(e.primary,      True)
+            self.assertEqual(e.active,       True)
+        else:
+            self.fail("Cannot find email address")
+
+
     def test_email_for_person(self) -> None:
         p  = self.dt.person_from_email("csp@csperkins.org")
         if p is not None:
