@@ -1,4 +1,4 @@
-# Copyright (C) 2020 University of Glasgow
+# Copyright (C) 2021 University of Glasgow
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -40,7 +40,7 @@ from ietfdata.mailarchive import *
 from ietfdata.mailhelper_headerdata  import *
 from ietfdata.mailhelper_datatracker import *
 
-dt      = DataTracker(cache_dir=Path("cache"))
+dt      = DataTracker()
 archive = MailArchive(cache_dir=Path("cache"))
 lists   = list(archive.mailing_list_names())
 addrs   = {}
@@ -61,7 +61,7 @@ for ml_name in lists:
             year = date.timetuple().tm_year
             if year == 2019:
                 n, e = email.utils.parseaddr(msg.message["from"])
-                if e is not "" and e not in addrs:
+                if e != "" and e not in addrs:
                     addrs[e] = e
         except:
             failed += 1
