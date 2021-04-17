@@ -286,7 +286,7 @@ class TestDatatracker(unittest.TestCase):
     def test_person_aliases(self) -> None:
         p  = self.dt.person(PersonURI("/api/v1/person/person/20209/"))
         if p is not None:
-            aliases  = list(self.dt.person_aliases(p))
+            aliases  = list(self.dt.person_aliases(person = p))
             self.assertEqual(len(aliases), 2)
             self.assertEqual(aliases[0].id,           62)
             self.assertEqual(aliases[0].resource_uri, PersonAliasURI("/api/v1/person/alias/62/"))
