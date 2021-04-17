@@ -2069,23 +2069,38 @@ class DataTracker:
 
     def _datatracker_get_single(self, obj_uri: URI) -> Optional[Dict[str, Any]]:
         assert obj_uri.uri is not None
-        req_url     = self.base_url + obj_uri.uri
-        req_headers = {'User-Agent': self.ua}
-        req_params  = obj_uri.params
-        self._rate_limit()
-        self.get_count += 1
-        r = self.session.get(req_url, params = req_params, headers = req_headers, verify = True, stream = False)
-        if r.status_code == 200:
-            self.log.debug(F"_datatracker_get_single ({r.status_code}) {obj_uri}")
-            url_obj = r.json() # type: Dict[str, Any]
-            return url_obj
-        elif r.status_code == 404:
-            self.log.debug(F"_datatracker_get_single ({r.status_code}) {obj_uri}")
-            return None
-        else:
-            # This should never happen in normal use, so we log as a warning
-            self.log.warn(F"_datatracker_get_single ({r.status_code}) {obj_uri}")
-            return None
+        retry_time  = 1.875
+        while True:
+            try:
+                req_url     = self.base_url + obj_uri.uri
+                req_headers = {'User-Agent': self.ua}
+                req_params  = obj_uri.params
+                self._rate_limit()
+                self.get_count += 1
+                r = self.session.get(req_url, params = req_params, headers = req_headers, verify = True, stream = False)
+                if r.status_code == 200:
+                    self.log.debug(F"_datatracker_get_single: ({r.status_code}) {obj_uri}")
+                    url_obj = r.json() # type: Dict[str, Any]
+                    return url_obj
+                elif r.status_code == 404:
+                    self.log.debug(F"_datatracker_get_single: ({r.status_code}) {obj_uri}")
+                    return None
+                else:
+                    self.log.warning(F"_datatracker_get_single: error {r.status_code} {obj_uri} - retry in {retry_time}")
+                    if retry_time > 60:
+                        self.log.error(F"_datatracker_get_single: error - retry limit exceeded")
+                        sys.exit(1)
+                    self.session.close()
+                    time.sleep(retry_time)
+                    retry_time *= 2
+            except requests.exceptions.ConnectionError:
+                self.log.warning(F"_datatracker_get_single: connection error - retry in {retry_time}")
+                if retry_time > 60:
+                    self.log.error(F"_datatracker_get_single: error - retry limit exceeded")
+                    sys.exit(1)
+                self.session.close()
+                time.sleep(retry_time)
+                retry_time *= 2
 
 
     def _datatracker_get_multi(self, get_uri: URI, order_by: Optional[str] = None) -> Iterator[Dict[Any, Any]]:
@@ -2154,19 +2169,35 @@ class DataTracker:
         assert obj_type_uri.uri is not None
         assert obj_type_uri.params == {}
 
-        req_url     = self.base_url + obj_type_uri.uri
-        req_params  = {"limit": 1}
-        req_headers = {'User-Agent': self.ua}
-        self.get_count += 1
-        r = self.session.get(url = req_url, params = req_params, headers = req_headers, verify = True, stream = False)
-        if r.status_code == 200:
-            meta = r.json()['meta']
-            total_count = meta['total_count'] # type: int
-            self.log.debug(F"_datatracker_get_multi_count: {r.status_code} {obj_type_uri} count={total_count}")
-            return total_count
-        else:
-            self.log.error(F"_datatracker_get_multi_count: {r.status_code} {obj_type_uri}")
-            sys.exit()
+        retry_time  = 1.875
+        while True:
+            try:
+                req_url     = self.base_url + obj_type_uri.uri
+                req_params  = {"limit": 1}
+                req_headers = {'User-Agent': self.ua}
+                self.get_count += 1
+                r = self.session.get(url = req_url, params = req_params, headers = req_headers, verify = True, stream = False)
+                if r.status_code == 200:
+                    meta = r.json()['meta']
+                    total_count = meta['total_count'] # type: int
+                    self.log.debug(F"_datatracker_get_multi_count: {r.status_code} {obj_type_uri} count={total_count}")
+                    return total_count
+                else:
+                    self.log.warning(F"_datatracker_get_multi_count: error {r.status_code} {obj_type_uri} - retry in {retry_time}")
+                    if retry_time > 60:
+                        self.log.error(F"_datatracker_get_multi_count: error - retry limit exceeded")
+                        sys.exit(1)
+                    self.session.close()
+                    time.sleep(retry_time)
+                    retry_time *= 2
+            except requests.exceptions.ConnectionError:
+                self.log.warning(F"_datatracker_get_multi_count: connection error - retry in {retry_time}")
+                if retry_time > 60:
+                    self.log.error(F"_datatracker_get_multi_count: error - retry limit exceeded")
+                    sys.exit(1)
+                self.session.close()
+                time.sleep(retry_time)
+                retry_time *= 2
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
