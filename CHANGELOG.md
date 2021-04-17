@@ -6,6 +6,7 @@ Change Log -- ietfdata
  - Update cache support
  - Expand parameters for `person_aliases()`
  - Expand parameters for `people()`
+ - Add `person_from_name_email()` to DatatrackerExt
 
 
 ## Version 0.4.0 -- 2021-03-02
