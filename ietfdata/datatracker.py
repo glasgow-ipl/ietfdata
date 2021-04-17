@@ -2386,8 +2386,10 @@ class DataTracker:
     def people(self,
             since : str ="1970-01-01T00:00:00",
             until : str ="2038-01-19T03:14:07",
-            name_contains : Optional[str] = None,
-            ascii_contains : Optional[str] = None) -> Iterator[Person]:
+            name                : Optional[str] = None,
+            name_contains       : Optional[str] = None,
+            name_ascii          : Optional[str] = None,
+            name_ascii_contains : Optional[str] = None) -> Iterator[Person]:
         """
         A generator that returns people recorded in the datatracker. As of April
         2018, there are approximately 21500 people recorded.
@@ -2403,10 +2405,14 @@ class DataTracker:
         url = PersonURI("/api/v1/person/person/")
         url.params["time__gte"] = since
         url.params["time__lt"]  = until
+        if name is not None:
+            url.params["name"] = name
         if name_contains is not None:
             url.params["name__contains"] = name_contains
-        if ascii_contains is not None:
-            url.params["ascii__contains"] = ascii_contains
+        if name_ascii is not None:
+            url.params["ascii"] = name_ascii
+        if name_ascii_contains is not None:
+            url.params["ascii__contains"] = name_ascii_contains
         return self._retrieve_multi(url, Person)
 
 

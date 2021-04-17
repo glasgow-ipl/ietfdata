@@ -5,6 +5,7 @@ Change Log -- ietfdata
 
  - Update cache support
  - Expand parameters for `person_aliases()`
+ - Expand parameters for `people()`
 
 
 ## Version 0.4.0 -- 2021-03-02
