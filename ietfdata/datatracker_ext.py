@@ -54,23 +54,24 @@ def names_to_try(name: str, email: str) -> List[str]:
             names.append(alias)
 
     # Derive names from the email address:
-    local, remote = email.split("@")
-    split = local.split(".")
+    if "@" in email:
+        local, remote = email.split("@")
+        split = local.split(".")
 
-    if split[-1].lower() == "ietf":
-        split = split[:-1]
+        if split[-1].lower() == "ietf":
+            split = split[:-1]
 
-    # If given, e.g., "colin.perkins@glasgow.ac.uk" also try "Colin Perkins":
-    if len(split) == 2 and len(split[0]) > 1 and len(split[1]) > 1:
-        alias = split[0][0].upper() + split[0][1:] + " " + split[1][0].upper() + split[1][1:]
-        names.append(alias)
+        # If given, e.g., "colin.perkins@glasgow.ac.uk" also try "Colin Perkins":
+        if len(split) == 2 and len(split[0]) > 1 and len(split[1]) > 1:
+            alias = split[0][0].upper() + split[0][1:] + " " + split[1][0].upper() + split[1][1:]
+            names.append(alias)
 
-    # If given, e.g., "mary.h.barnes@gmail.com" also try "Mary H. Barnes" and "Mary Barnes":
-    if len(split) == 3 and len(split[0]) > 1 and len(split[1]) == 1 and len(split[2]) > 1:
-        alias = split[0][0].upper() + split[0][1:] + " " + split[1].upper() + ". " + split[2][0].upper() + split[2][1:]
-        names.append(alias)
-        alias = split[0][0].upper() + split[0][1:] + " " + split[2][0].upper() + split[2][1:]
-        names.append(alias)
+        # If given, e.g., "mary.h.barnes@gmail.com" also try "Mary H. Barnes" and "Mary Barnes":
+        if len(split) == 3 and len(split[0]) > 1 and len(split[1]) == 1 and len(split[2]) > 1:
+            alias = split[0][0].upper() + split[0][1:] + " " + split[1].upper() + ". " + split[2][0].upper() + split[2][1:]
+            names.append(alias)
+            alias = split[0][0].upper() + split[0][1:] + " " + split[2][0].upper() + split[2][1:]
+            names.append(alias)
 
     return names
 
