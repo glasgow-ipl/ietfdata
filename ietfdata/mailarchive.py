@@ -398,7 +398,7 @@ class MailArchive:
 
 
     def mailing_list_names(self) -> Iterator[str]:
-        imap = IMAPClient(host='imap.ietf.org', ssl=False, use_uid=True)
+        imap = IMAPClient(host='imap.ietf.org', ssl=True, use_uid=True)
         imap.login("anonymous", "anonymous")
         for (flags, delimiter, name) in imap.list_folders():
             if name != "Shared Folders":
@@ -440,7 +440,7 @@ class MailArchive:
         ml_names = list(self.mailing_list_names())
         num_list = len(ml_names)
 
-        imap = IMAPClient(host='imap.ietf.org', ssl=False, use_uid=True)
+        imap = IMAPClient(host='imap.ietf.org', ssl=True, use_uid=True)
         imap.login("anonymous", "anonymous")
         for index, ml_name in enumerate(ml_names):
             print(F"Updating list {index+1:4d}/{num_list:4d}: {ml_name} ", end="", flush=True)
