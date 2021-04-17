@@ -2357,9 +2357,17 @@ class DataTracker:
             return None
 
 
-    def person_aliases(self, person: Person) -> Iterator[PersonAlias]:
+    def person_aliases(self,
+            person        : Optional[Person] = None,
+            name          : Optional[str] = None,
+            name_contains : Optional[str] = None) -> Iterator[PersonAlias]:
         url = PersonAliasURI("/api/v1/person/alias/")
-        url.params["person"] = person.id
+        if person is not None:
+            url.params["person"] = person.id
+        if name is not None:
+            url.params["name"] = name
+        if name_contains is not None:
+            url.params["name__contains"] = name_contains
         return self._retrieve_multi(url, PersonAlias)
 
 

@@ -4,6 +4,7 @@ Change Log -- ietfdata
 ## Version 0.4.1 -- ??
 
  - Update cache support
+ - Expand parameters for `person_aliases()`
 
 
 ## Version 0.4.0 -- 2021-03-02
