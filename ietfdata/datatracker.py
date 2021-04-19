@@ -2280,16 +2280,19 @@ class DataTracker:
 
 
     def _retrieve(self, obj_uri: URI, obj_type: Type[T]) -> Optional[T]:
+        self.log.debug(F"_retrieve {obj_uri}")
+        self._cache_update(_parent_uri(obj_uri), False)
         if self._cache_has_object(obj_uri):
+            self.log.debug(F"_retrieve {obj_uri} cache hit")
             obj_json = self._cache_get_object(obj_uri)
             if obj_json is not None:
                 return self.pavlova.from_mapping(obj_json, obj_type)
             else:
                 return None
         else:
+            self.log.debug(F"_retrieve {obj_uri} cache miss")
             obj_json = self._datatracker_get_single(obj_uri)
             if obj_json is not None:
-                self.log.debug(F"_retrieve {obj_uri}")
                 self._cache_put_object(obj_json)
                 self._cache_record_query(obj_uri, _parent_uri(obj_uri))
                 return self.pavlova.from_mapping(obj_json, obj_type)
