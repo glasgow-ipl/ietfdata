@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2020 University of Glasgow
+# Copyright (C) 2017-2021 University of Glasgow
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -42,15 +42,69 @@ from ietfdata.datatracker import *
 class TestDatatracker(unittest.TestCase):
     dt : DataTracker
 
-    # -----------------------------------------------------------------------------------------------------------------------------
-    # Tests relating to email addresses:
-
     @classmethod
     def setUpClass(self) -> None:
         self.dt = DataTracker()
 
+    # -----------------------------------------------------------------------------------------------------------------------------
+    # Tests relating to the datatracker access layer:
+
+    def test__datatracker_get_single(self) -> None:
+        json = self.dt._datatracker_get_single(URI("/api/v1/person/email/csp@csperkins.org/"))
+        if json is not None:
+            self.assertEqual(json["resource_uri"], "/api/v1/person/email/csp@csperkins.org/")
+            self.assertEqual(json["address"],      "csp@csperkins.org")
+            self.assertEqual(json["person"],       "/api/v1/person/person/20209/")
+            self.assertEqual(json["time"],         "1970-01-01T23:59:59")
+            self.assertEqual(json["primary"],      True)
+            self.assertEqual(json["active"],       True)
+        else:
+            self.fail("Cannot retrieve single JSON item")
+
+
+    def test__datatracker_get_multi_small(self) -> None:
+        url = URI("/api/v1/doc/document/")
+        url.params["group"] = 1963
+        url.params["type"]  = "draft"
+        json = list(self.dt._datatracker_get_multi(url, "id"))
+        self.assertEqual(len(json), 2)
+        self.assertEqual(json[0][  "id"], 63980)
+        self.assertEqual(json[0]["name"], "draft-ietf-netvc-requirements")
+        self.assertEqual(json[1][  "id"], 64020)
+        self.assertEqual(json[1]["name"], "draft-ietf-netvc-testing")
+
+
+    def test__datatracker_get_multi_large(self) -> None:
+        url = URI("/api/v1/meeting/meeting/")
+        url.params["type"]  = "ietf"
+        json = list(self.dt._datatracker_get_multi(url, "id"))
+        self.assertGreaterEqual(len(json), 111)
+
+
+    def test__datatracker_get_multi_count(self) -> None:
+        count = self.dt._datatracker_get_multi_count(URI("/api/v1/name/stdlevelname/"))
+        self.assertEqual(count, 8)
+
+
+    # -----------------------------------------------------------------------------------------------------------------------------
+    # Tests relating to email addresses:
+
     def test_email(self) -> None:
         e  = self.dt.email(EmailURI("/api/v1/person/email/csp@csperkins.org/"))
+        if e is not None:
+            self.assertEqual(e.resource_uri, EmailURI("/api/v1/person/email/csp@csperkins.org/"))
+            self.assertEqual(e.address,      "csp@csperkins.org")
+            self.assertEqual(e.person,       PersonURI("/api/v1/person/person/20209/"))
+            self.assertEqual(e.time,         datetime.fromisoformat("1970-01-01T23:59:59"))
+            # self.assertEqual(e.origin,     "author: draft-ietf-mmusic-rfc4566bis")
+            self.assertEqual(e.primary,      True)
+            self.assertEqual(e.active,       True)
+        else:
+            self.fail("Cannot find email address")
+
+
+    def test_email_for_address(self) -> None:
+        e  = self.dt.email_for_address("csp@csperkins.org")
         if e is not None:
             self.assertEqual(e.resource_uri, EmailURI("/api/v1/person/email/csp@csperkins.org/"))
             self.assertEqual(e.address,      "csp@csperkins.org")
@@ -112,9 +166,9 @@ class TestDatatracker(unittest.TestCase):
         if p is not None:
             h = list(self.dt.email_history_for_person(p))
             self.assertEqual(len(h), 4)
-            self.assertEqual(h[0].address, "casner@packetdesign.com")
-            self.assertEqual(h[1].address, "casner@acm.org")
-            self.assertEqual(h[2].address, "casner@cisco.com")
+            self.assertEqual(h[0].address, "casner@acm.org")
+            self.assertEqual(h[1].address, "casner@cisco.com")
+            self.assertEqual(h[2].address, "casner@packetdesign.com")
             self.assertEqual(h[3].address, "casner@precept.com")
         else:
             self.fail("Cannot find person")
@@ -232,7 +286,7 @@ class TestDatatracker(unittest.TestCase):
     def test_person_aliases(self) -> None:
         p  = self.dt.person(PersonURI("/api/v1/person/person/20209/"))
         if p is not None:
-            aliases  = list(self.dt.person_aliases(p))
+            aliases  = list(self.dt.person_aliases(person = p))
             self.assertEqual(len(aliases), 2)
             self.assertEqual(aliases[0].id,           62)
             self.assertEqual(aliases[0].resource_uri, PersonAliasURI("/api/v1/person/alias/62/"))
@@ -894,25 +948,26 @@ class TestDatatracker(unittest.TestCase):
         d  = self.dt.document_from_draft("draft-ietf-avtcore-rtp-circuit-breakers")
         de = list(self.dt.document_events(doc=d, by=p, event_type="new_revision"))
         self.assertEqual(len(de), 19)
-        self.assertEqual(de[ 0].id, 478637)
-        self.assertEqual(de[ 1].id, 475709)
-        self.assertEqual(de[ 2].id, 470372)
-        self.assertEqual(de[ 3].id, 466353)
-        self.assertEqual(de[ 4].id, 460235)
-        self.assertEqual(de[ 5].id, 456912)
-        self.assertEqual(de[ 6].id, 456736)
-        self.assertEqual(de[ 7].id, 444539)
-        self.assertEqual(de[ 8].id, 415925)
+        self.assertEqual(de[ 0].id, 306017)
+        self.assertEqual(de[ 1].id, 307226)
+        self.assertEqual(de[ 2].id, 326064)
+        self.assertEqual(de[ 3].id, 340119)
+        self.assertEqual(de[ 4].id, 364835)
+        self.assertEqual(de[ 5].id, 369306)
+        self.assertEqual(de[ 6].id, 384673)
+        self.assertEqual(de[ 7].id, 397776)
+        self.assertEqual(de[ 8].id, 402942)
         self.assertEqual(de[ 9].id, 413197)
-        self.assertEqual(de[10].id, 402942)
-        self.assertEqual(de[11].id, 397776)
-        self.assertEqual(de[12].id, 384673)
-        self.assertEqual(de[13].id, 369306)
-        self.assertEqual(de[14].id, 364835)
-        self.assertEqual(de[15].id, 340119)
-        self.assertEqual(de[16].id, 326064)
-        self.assertEqual(de[17].id, 307226)
-        self.assertEqual(de[18].id, 306017)
+        self.assertEqual(de[10].id, 415925)
+        self.assertEqual(de[11].id, 444539)
+        self.assertEqual(de[12].id, 456736)
+        self.assertEqual(de[13].id, 456912)
+        self.assertEqual(de[14].id, 460235)
+        self.assertEqual(de[15].id, 466353)
+        self.assertEqual(de[16].id, 470372)
+        self.assertEqual(de[17].id, 475709)
+        self.assertEqual(de[18].id, 478637)
+
 
 
     def test_ballot_position_name(self) -> None:
@@ -940,15 +995,15 @@ class TestDatatracker(unittest.TestCase):
     def test_ballot_position_names(self) -> None:
         bps = list(self.dt.ballot_position_names())
         self.assertEqual(len(bps), 9)
-        self.assertEqual(bps[0].slug, "moretime")
-        self.assertEqual(bps[1].slug, "notready")
-        self.assertEqual(bps[2].slug, "yes")
-        self.assertEqual(bps[3].slug, "noobj")
-        self.assertEqual(bps[4].slug, "block")
-        self.assertEqual(bps[5].slug, "discuss")
-        self.assertEqual(bps[6].slug, "abstain")
+        self.assertEqual(bps[0].slug, "abstain")
+        self.assertEqual(bps[1].slug, "block")
+        self.assertEqual(bps[2].slug, "discuss")
+        self.assertEqual(bps[3].slug, "moretime")
+        self.assertEqual(bps[4].slug, "noobj")
+        self.assertEqual(bps[5].slug, "norecord")
+        self.assertEqual(bps[6].slug, "notready")
         self.assertEqual(bps[7].slug, "recuse")
-        self.assertEqual(bps[8].slug, "norecord")
+        self.assertEqual(bps[8].slug, "yes")
 
 
     def test_ballot_type(self) -> None:
@@ -976,8 +1031,8 @@ class TestDatatracker(unittest.TestCase):
     def test_ballot_types_doctype(self) -> None:
         bts = list(self.dt.ballot_types(self.dt.document_type(DocumentTypeURI("/api/v1/name/doctypename/draft/"))))
         self.assertEqual(len(bts), 2)
-        self.assertEqual(bts[0].slug, "irsg-approve")
-        self.assertEqual(bts[1].slug, "approve")
+        self.assertEqual(bts[0].slug, "approve")
+        self.assertEqual(bts[1].slug, "irsg-approve")
 
 
     def test_ballot_document_event(self) -> None:
@@ -1019,11 +1074,11 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(len(a), 7)
             self.assertEqual(a[0].document, DocumentURI(uri='/api/v1/doc/document/draft-gharai-ac3/'))
             self.assertEqual(a[1].document, DocumentURI(uri='/api/v1/doc/document/draft-gharai-hdtv-video/'))
-            self.assertEqual(a[2].document, DocumentURI(uri='/api/v1/doc/document/draft-gharai-avt-uncomp-video/'))
-            self.assertEqual(a[3].document, DocumentURI(uri='/api/v1/doc/document/draft-ietf-avt-uncomp-video/'))
-            self.assertEqual(a[4].document, DocumentURI(uri='/api/v1/doc/document/draft-gharai-avt-tfrc-profile/'))
-            self.assertEqual(a[5].document, DocumentURI(uri='/api/v1/doc/document/draft-ietf-avt-tfrc-profile/'))
-            self.assertEqual(a[6].document, DocumentURI(uri='/api/v1/doc/document/draft-ietf-avt-smpte292-video/'))
+            self.assertEqual(a[2].document, DocumentURI(uri='/api/v1/doc/document/draft-ietf-avt-smpte292-video/'))
+            self.assertEqual(a[3].document, DocumentURI(uri='/api/v1/doc/document/draft-gharai-avt-uncomp-video/'))
+            self.assertEqual(a[4].document, DocumentURI(uri='/api/v1/doc/document/draft-ietf-avt-uncomp-video/'))
+            self.assertEqual(a[5].document, DocumentURI(uri='/api/v1/doc/document/draft-gharai-avt-tfrc-profile/'))
+            self.assertEqual(a[6].document, DocumentURI(uri='/api/v1/doc/document/draft-ietf-avt-tfrc-profile/'))
         else:
             self.fail("Cannot find person");
 
@@ -1035,11 +1090,11 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(len(a), 7)
             self.assertEqual(a[0].document, DocumentURI(uri='/api/v1/doc/document/draft-gharai-ac3/'))
             self.assertEqual(a[1].document, DocumentURI(uri='/api/v1/doc/document/draft-gharai-hdtv-video/'))
-            self.assertEqual(a[2].document, DocumentURI(uri='/api/v1/doc/document/draft-gharai-avt-uncomp-video/'))
-            self.assertEqual(a[3].document, DocumentURI(uri='/api/v1/doc/document/draft-ietf-avt-uncomp-video/'))
-            self.assertEqual(a[4].document, DocumentURI(uri='/api/v1/doc/document/draft-gharai-avt-tfrc-profile/'))
-            self.assertEqual(a[5].document, DocumentURI(uri='/api/v1/doc/document/draft-ietf-avt-tfrc-profile/'))
-            self.assertEqual(a[6].document, DocumentURI(uri='/api/v1/doc/document/draft-ietf-avt-smpte292-video/'))
+            self.assertEqual(a[2].document, DocumentURI(uri='/api/v1/doc/document/draft-ietf-avt-smpte292-video/'))
+            self.assertEqual(a[3].document, DocumentURI(uri='/api/v1/doc/document/draft-gharai-avt-uncomp-video/'))
+            self.assertEqual(a[4].document, DocumentURI(uri='/api/v1/doc/document/draft-ietf-avt-uncomp-video/'))
+            self.assertEqual(a[5].document, DocumentURI(uri='/api/v1/doc/document/draft-gharai-avt-tfrc-profile/'))
+            self.assertEqual(a[6].document, DocumentURI(uri='/api/v1/doc/document/draft-ietf-avt-tfrc-profile/'))
         else:
             self.fail("Cannot find person");
 
@@ -1142,7 +1197,7 @@ class TestDatatracker(unittest.TestCase):
     def test_stream(self) -> None:
         stream = self.dt.stream(StreamURI("/api/v1/name/streamname/irtf/"))
         if stream is not None:
-            self.assertEqual(stream.desc,         "IRTF Stream")
+            self.assertEqual(stream.desc,         "Internet Research Task Force (IRTF)")
             self.assertEqual(stream.name,         "IRTF")
             self.assertEqual(stream.order,        3)
             self.assertEqual(stream.resource_uri, StreamURI("/api/v1/name/streamname/irtf/"))
@@ -1155,7 +1210,7 @@ class TestDatatracker(unittest.TestCase):
     def test_stream_from_slug(self) -> None:
         stream = self.dt.stream_from_slug("irtf")
         if stream is not None:
-            self.assertEqual(stream.desc,         "IRTF Stream")
+            self.assertEqual(stream.desc,         "Internet Research Task Force (IRTF)")
             self.assertEqual(stream.name,         "IRTF")
             self.assertEqual(stream.order,        3)
             self.assertEqual(stream.resource_uri, StreamURI("/api/v1/name/streamname/irtf/"))
@@ -1290,10 +1345,10 @@ class TestDatatracker(unittest.TestCase):
     def test_group_events_group(self) -> None:
         group_events_group = list(self.dt.group_events(group=self.dt.group(GroupURI("/api/v1/group/group/1997/"))))
         self.assertEqual(len(group_events_group),  4)
-        self.assertEqual(group_events_group[0].id, 9652)
-        self.assertEqual(group_events_group[1].id, 9585)
-        self.assertEqual(group_events_group[2].id, 9151)
-        self.assertEqual(group_events_group[3].id, 8975)
+        self.assertEqual(group_events_group[0].id, 8975)
+        self.assertEqual(group_events_group[1].id, 9151)
+        self.assertEqual(group_events_group[2].id, 9585)
+        self.assertEqual(group_events_group[3].id, 9652)
 
 
     def test_group_events_type(self) -> None:
@@ -1401,7 +1456,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_role_names(self) -> None:
         role_names = list(self.dt.role_names())
-        self.assertEqual(len(role_names), 28)
+        self.assertEqual(len(role_names), 30)
         self.assertEqual(role_names[ 0].slug, "ad")
         self.assertEqual(role_names[ 1].slug, "admdir")
         self.assertEqual(role_names[ 2].slug, "advisor")
@@ -1418,18 +1473,20 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(role_names[13].slug, "lead")
         self.assertEqual(role_names[14].slug, "liaiman")
         self.assertEqual(role_names[15].slug, "liaison")
-        self.assertEqual(role_names[16].slug, "matman")
-        self.assertEqual(role_names[17].slug, "member")
-        self.assertEqual(role_names[18].slug, "pre-ad")
-        self.assertEqual(role_names[19].slug, "recman")
-        self.assertEqual(role_names[20].slug, "reviewer")
-        self.assertEqual(role_names[21].slug, "robot")
-        self.assertEqual(role_names[22].slug, "secr")
-        self.assertEqual(role_names[23].slug, "techadv")
-        self.assertEqual(role_names[24].slug, "trac-admin")
-        self.assertEqual(role_names[25].slug, "trac-editor")
-        self.assertEqual(role_names[26].slug, "yc_admin")
-        self.assertEqual(role_names[27].slug, "yc_operator")
+        self.assertEqual(role_names[16].slug, "liaison_cc_contact")
+        self.assertEqual(role_names[17].slug, "liaison_contact")
+        self.assertEqual(role_names[18].slug, "matman")
+        self.assertEqual(role_names[19].slug, "member")
+        self.assertEqual(role_names[20].slug, "pre-ad")
+        self.assertEqual(role_names[21].slug, "recman")
+        self.assertEqual(role_names[22].slug, "reviewer")
+        self.assertEqual(role_names[23].slug, "robot")
+        self.assertEqual(role_names[24].slug, "secr")
+        self.assertEqual(role_names[25].slug, "techadv")
+        self.assertEqual(role_names[26].slug, "trac-admin")
+        self.assertEqual(role_names[27].slug, "trac-editor")
+        self.assertEqual(role_names[28].slug, "yc_admin")
+        self.assertEqual(role_names[29].slug, "yc_operator")
 
 
 
@@ -1460,8 +1517,8 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(group_roles[4].id, 8466)   # IRTF chair
         self.assertEqual(group_roles[5].id, 9355)   # RMCAT chair
         self.assertEqual(group_roles[6].id, 10200)  # IAB EDM programme member
-        self.assertEqual(group_roles[7].id, 10204)  # TSV ART reviewer
-        self.assertEqual(group_roles[8].id, 10644)  # IRTF ANRW chair
+        self.assertEqual(group_roles[7].id, 11103)  # TSV ART reviewer
+        self.assertEqual(group_roles[8].id, 11680)  # IRTF ANRW chair
 
 
     def test_group_roles_group(self) -> None:
@@ -1470,6 +1527,15 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(group_roles[0].id, 3036)   # AD is Spencer Dawkins
         self.assertEqual(group_roles[1].id, 3037)   # Chair is Eliot Lear
         self.assertEqual(group_roles[2].id, 3038)   # Chair is Mirja Kühlewind
+
+
+    def test_group_roles_group_name(self) -> None:
+        iab   = self.dt.group_from_acronym("iab")
+        chair = self.dt.role_name_from_slug("chair")
+        group_roles = list(self.dt.group_roles(group = iab, name = chair))
+        self.assertEqual(len(group_roles), 1)
+        self.assertEqual(group_roles[0].id, 9605)   # IAB chair is Mirja Kühlewind
+
 
 
     def test_group_roles_name(self) -> None:
@@ -1487,8 +1553,8 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(group_roles[4].id, 8466)   # IRTF chair
         self.assertEqual(group_roles[5].id, 9355)   # RMCAT chair
         self.assertEqual(group_roles[6].id, 10200)  # IAB EDM programme member
-        self.assertEqual(group_roles[7].id, 10204)  # TSV ART reviewer
-        self.assertEqual(group_roles[8].id, 10644)  # IRTF ANRW chair
+        self.assertEqual(group_roles[7].id, 11103)  # TSV ART reviewer
+        self.assertEqual(group_roles[8].id, 11680)  # IRTF ANRW chair
 
 
     def test_group_milestone_history(self) -> None:
@@ -1564,9 +1630,9 @@ class TestDatatracker(unittest.TestCase):
     def test_group_milestone_events_milestone(self) -> None:
         group_milestone_events = list(self.dt.group_milestone_events(milestone=self.dt.group_milestone(GroupMilestoneURI("/api/v1/group/groupmilestone/6489/"))))
         self.assertEqual(len(group_milestone_events),  3)
-        self.assertEqual(group_milestone_events[0].id, 16331)
+        self.assertEqual(group_milestone_events[0].id, 7224)
         self.assertEqual(group_milestone_events[1].id, 11947)
-        self.assertEqual(group_milestone_events[2].id, 7224)
+        self.assertEqual(group_milestone_events[2].id, 16331)
 
 
     def test_group_milestone_events_type(self) -> None:
@@ -1594,7 +1660,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_email(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(email="csp@csperkins.org"))
-        self.assertEqual(len(group_role_histories), 34)
+        self.assertEqual(len(group_role_histories), 42)
 
 
     def test_group_role_histories_group(self) -> None:
@@ -1613,7 +1679,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_person(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(person=self.dt.person(PersonURI("/api/v1/person/person/20209/"))))
-        self.assertEqual(len(group_role_histories), 34)
+        self.assertEqual(len(group_role_histories), 42)
 
 
     def test_group_state_change_event(self) -> None:
@@ -1664,9 +1730,10 @@ class TestDatatracker(unittest.TestCase):
 
     def test_groups_parent(self) -> None:
         groups = list(self.dt.groups(parent=self.dt.group(GroupURI("/api/v1/group/group/1/"))))
-        self.assertEqual(len(groups), 2)
-        self.assertEqual(groups[0].id, 2)
-        self.assertEqual(groups[1].id, 2225)
+        self.assertEqual(len(groups), 3)
+        self.assertEqual(groups[0].id, 2)       # IESG
+        self.assertEqual(groups[1].id, 7)       # IAB
+        self.assertEqual(groups[2].id, 2225)    # Hot RFC lightning talks
 
 
     def test_group_state(self) -> None:

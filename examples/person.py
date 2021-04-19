@@ -56,7 +56,7 @@ def person_chair_roles(dt: DataTracker, person: Person):
         group = dt.group_from_acronym(acronym)
         print(F"  {acronym} state {dt.group_state(group.state).name}")
 
-        if group.comments is not "":
+        if group.comments != "":
             # This is natural language, and it's a mess
             pass
 
@@ -83,7 +83,7 @@ def person_chair_roles(dt: DataTracker, person: Person):
 # =============================================================================
 # Example: print information about a person
 
-dt = DataTracker(cache_dir=Path("cache"))
+dt = DataTracker()
 
 p = dt.person_from_email("rachel.huang@huawei.com")
 print("Name: {}".format(p.name))

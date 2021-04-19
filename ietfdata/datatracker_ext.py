@@ -1,4 +1,4 @@
-# Copyright (C) 2020 University of Glasgow
+# Copyright (C) 2020-2021 University of Glasgow
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -28,6 +28,54 @@ from ietfdata.datatracker import *
 from ietfdata.rfcindex    import *
 
 # =================================================================================================================================
+# Private helper functions
+
+def names_to_try(name: str, email: str) -> List[str]:
+    names = []
+
+    # Derive alternative names to try:
+    if name != "":
+        names.append(name)
+        split = name.split()
+
+        # If given, e.g., "Colin S. Perkins" also try "Colin Perkins":
+        if len(split) == 3 and len(split[1]) == 2 and split[1][0].isalpha() and split[1][1] == ".":
+            alias = split[0] + " " + split[2]
+            names.append(alias)
+
+        # If given, e.g., "Perkins, Colin" also try "Colin Perkins::
+        if len(split) == 2 and len(split[0]) >= 2 and split[0][-1] == ",":
+            alias = split[1] + " " + split[0][:-1]
+            names.append(alias)
+
+        # If given, e.g. "Colin Perkins (csperkins)" also try "Colin Perkins":
+        if len(split) == 3 and len(split[2]) >= 2 and split[2][0] == "(" and split[2][-1] == ")":
+            alias = split[0] + " " + split[1]
+            names.append(alias)
+
+    # Derive names from the email address:
+    if "@" in email:
+        local, remote = email.split("@")
+        split = local.split(".")
+
+        if split[-1].lower() == "ietf":
+            split = split[:-1]
+
+        # If given, e.g., "colin.perkins@glasgow.ac.uk" also try "Colin Perkins":
+        if len(split) == 2 and len(split[0]) > 1 and len(split[1]) > 1:
+            alias = split[0][0].upper() + split[0][1:] + " " + split[1][0].upper() + split[1][1:]
+            names.append(alias)
+
+        # If given, e.g., "mary.h.barnes@gmail.com" also try "Mary H. Barnes" and "Mary Barnes":
+        if len(split) == 3 and len(split[0]) > 1 and len(split[1]) == 1 and len(split[2]) > 1:
+            alias = split[0][0].upper() + split[0][1:] + " " + split[1].upper() + ". " + split[2][0].upper() + split[2][1:]
+            names.append(alias)
+            alias = split[0][0].upper() + split[0][1:] + " " + split[2][0].upper() + split[2][1:]
+            names.append(alias)
+
+    return names
+
+# =================================================================================================================================
 
 @dataclass
 class DraftHistory:
@@ -42,6 +90,16 @@ class DataTrackerExt(DataTracker):
     The `DataTrackerExt` class extends the `DataTracker` with methods that
     perform complex queries across multiple API endpoints.
     """
+
+    def __init__(self,
+            use_cache: bool = False,
+            mongodb_hostname: str = "localhost",
+            mongodb_port: int = 27017,
+            mongodb_username: Optional[str] = None,
+            mongodb_password: Optional[str] = None):
+        super().__init__(use_cache, mongodb_hostname, mongodb_port, mongodb_username, mongodb_password)
+
+
 
     def draft_history(self, draft: Document) -> List[DraftHistory]:
         """
@@ -66,7 +124,7 @@ class DataTrackerExt(DataTracker):
             submission = self.submission(submission_uri)
             if submission is not None:
                 submissions.append(submission)
-                if submission.replaces is not "":
+                if submission.replaces != "":
                     for replaces_draft in submission.replaces.split(","):
                         replaces_doc = self.document_from_draft(replaces_draft)
                         if replaces_doc is not None:
@@ -239,6 +297,60 @@ class DataTrackerExt(DataTracker):
                 if person.id not in chairs:   # people can chair more than one group
                     chairs.add(person.id)
                     yield person
+
+
+    def next_ietf_meeting(self) -> Optional[Meeting]:
+        """
+        Return the next upcoming, or currently ongoing, IETF meeting.
+        """
+        next_meeting = None
+        for meeting in self.meetings(meeting_type = self.meeting_type_from_slug("ietf")):
+            if meeting.status() == MeetingStatus.ONGOING:
+                next_meeting = meeting
+                break
+            elif meeting.status() == MeetingStatus.FUTURE:
+                if next_meeting is None or meeting.date < next_meeting.date:
+                    next_meeting = meeting
+            elif meeting.status() == MeetingStatus.COMPLETED:
+                pass
+        return next_meeting
+
+
+    def person_from_name_email(self, name: str, email_addr: str) -> Optional[Person]:
+        """
+        Given a name and an email address, for example as might be extracted from an
+        email "From:" header, try to find a person in the datatracker. This uses a
+        number of heuristics if there is no exact match.
+        """
+        # Try to match on the email address:
+        email = self.email_for_address(email_addr)
+        if email is not None and email.person is not None:
+            self.log.debug(f"person_from_name_email: {name} <{email_addr}> -> {email.person} (email match)")
+            return self.person(email.person)
+
+        # Try to match on the name:
+        for suffix in [" via Datatracker", " via RT"]:
+            if name.endswith(suffix):
+                name = name[:-len(suffix)]
+
+        for n in names_to_try(name, email_addr):
+            people = list(self.people(name = n))
+            if len(people) == 1:
+                self.log.info(f"person_from_name_email: {name} <{email_addr}> -> {people[0].resource_uri} (name match)")
+                return people[0]
+
+            people = list(self.people(name_ascii = n))
+            if len(people) == 1:
+                self.log.info(f"person_from_name_email: {name} <{email_addr}> -> {people[0].resource_uri} (name_ascii match)")
+                return people[0]
+
+            aliases = list(self.person_aliases(name = n))
+            if len(aliases) == 1:
+                self.log.info(f"person_from_name_email: {name} <{email_addr}> -> {aliases[0].person} (alias match)")
+                return self.person(aliases[0].person)
+
+        self.log.info(f"person_from_name_email: {name} <{email_addr}> failed to match")
+        return None
 
 
 # =================================================================================================================================

@@ -33,7 +33,7 @@ from ietfdata.datatracker     import *
 from ietfdata.datatracker_ext import *
 
 
-dt = DataTrackerExt(cache_dir=Path("cache"))
+dt = DataTrackerExt()
 
 # Find the mailing lists:
 lists = {}

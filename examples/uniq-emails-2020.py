@@ -33,17 +33,22 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from dataclasses import dataclass, field
-from pathlib              import Path
-from ietfdata.datatracker import *
-from ietfdata.mailarchive import *
+from dataclasses                     import dataclass, field
+from pathlib                         import Path
+from ietfdata.datatracker            import *
+from ietfdata.datatracker_ext        import *
+from ietfdata.mailarchive            import *
 from ietfdata.mailhelper_headerdata  import *
 from ietfdata.mailhelper_datatracker import *
 
-dt      = DataTracker()
+dt      = DataTrackerExt()
 archive = MailArchive(cache_dir=Path("cache"))
 lists   = list(archive.mailing_list_names())
 addrs   = {}
+people  = {}
+addr_no_person = {}
+total_spam = 0
+total  = 0
 
 archive.download_all_messages()
 
@@ -51,28 +56,43 @@ index = 1
 for ml_name in lists:
     print(F"{index:5d} /{len(lists):5d} {ml_name:40}", end="")
     index += 1
-    failed = 0
-    total  = 0
     for msg_id, msg in archive.mailing_list(ml_name).messages():
-        total += 1
+        date_str = msg.message["Date"]
         try:
-            date_str = msg.message["Date"]
             date = email.utils.parsedate_to_datetime(date_str)
             year = date.timetuple().tm_year
-            if year == 2019:
-                n, e = email.utils.parseaddr(msg.message["from"])
-                if e != "" and e not in addrs:
-                    addrs[e] = e
         except:
-            failed += 1
-    print(F"   {len(addrs):6}", end="")
-    if failed > 0: 
-        print(F"   (failed: {failed} of {total})")
-    else:
-        print("")
+            print(f"[{msg_id:06}] can't parse date {date_str}")
+            year = 0
+        if year == 2020:
+            total += 1
+            spam = msg.message["X-Spam-Flag"]
+            if spam is not None and spam == "YES":
+                total_spam += 1
+            else:
+                try:
+                    name, addr = email.utils.parseaddr(msg.message["from"])
+                    if addr != "" and addr not in addrs:
+                        addrs[addr] = addr
+                        p = dt.person_from_name_email(name, addr)
+                        if p is not None:
+                            people[p.id] = p
+                        else:
+                            addr_no_person[addr] = addr
+                except:
+                    print(f"[{msg_id:06}] can't parse From: {msg.message['From']}")
+    print(F"   {len(addrs):6} unique emails; {len(addr_no_person)} unmapped; {total} messages; {total_spam} spam")
 
-with open(Path("emails-2019.txt"), "w") as outf:
+with open(Path("emails-2020.txt"), "w") as outf:
     for e in addrs.values():
         print(e, file=outf)
+
+with open(Path("emails-2020-no-person.txt"), "w") as outf:
+    for e in addr_no_person.values():
+        print(e, file=outf)
+
+with open(Path("people-2020.txt"), "w") as outf:
+    for p in people.values():
+        print(F"{p.id:8}   {p.name}", file=outf)
 
 # =============================================================================

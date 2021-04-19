@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2020 University of Glasgow
+# Copyright (C) 2017-2021 University of Glasgow
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -47,15 +47,16 @@
 from datetime    import datetime, timedelta, timezone
 from enum        import Enum
 from inspect     import signature
-from typing      import List, Optional, Tuple, Dict, Iterator, Type, TypeVar, Any, Union, Generic
+from typing      import List, Optional, Tuple, Dict, Iterator, Type, TypeVar, Any, Union, Generic, get_origin
 from dataclasses import dataclass, field
 from pathlib     import Path
 from pavlova     import Pavlova
 from pavlova.parsers import GenericParser
-from pymongo         import MongoClient, ASCENDING, TEXT
+from pymongo         import MongoClient, ASCENDING, TEXT, ReplaceOne
 from pymongo.database import Database
 
 import ast
+import copy
 import dateutil.tz
 import glob
 import json
@@ -570,258 +571,6 @@ class DocumentAuthor(Resource):
     person       : PersonURI
     email        : Optional[EmailURI]
 
-
-    def normalise_country(self) -> str:
-        """
-        The country field of a DocumentAuthor is supposed to contain a country.
-        Often it contains other things. This method tries to normalise it to a
-        consistent country name.
-        """
-        # Does it contain a US state abbreviation and zip code?
-        for state in ["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
-                      "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
-                      "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
-                      "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
-                      "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
-                      "DC"]:
-            p = re.compile(state + ",? +[0-9][0-9][0-9][0-9][0-9]")
-            if p.search(self.country):
-                return "USA"
-        # Does it contain a country name?
-        for name in [
-                "Algeria", "Argentina", "Austria", "Australia", "Belgium", "Brazil",
-                 "Canada", "Chile", "China", "Colombia", "Croatia", "Czech Republic",
-                 "Denmark", "Egypt", "Finland", "France", "Germany", "Greece", "Hungary",
-                 "Ireland", "India", "Israel", "Italy", "Japan", "Lebanon", "Luxembourg",
-                 "Mauritius", "Mexico", "Morocco", "New Zealand", "Norway", "Philippines",
-                 "Poland", "Portugal", "Romania", "Russia", "Saudi Arabia", "Singapore",
-                 "Slovakia", "Slovenia", "Spain", "South Africa", "Switzerland", "Sweden",
-                 "Syria", "Taiwan", "Thailand", "The Netherlands", "Turkey", "Ukraine",
-                 "UK", "Uruguay", "USA", "United Arab Emirates"
-            ]:
-            if name.lower() in self.country.lower():
-                return name
-        # Does it contain a country synonym?
-        for (synonym, name) in [
-                ("Hellas",                    "Greece"),
-                ("Italia",                    "Italy"),
-                ("Korea",                     "South Korea"),
-                ("Netherlands",               "The Netherlands"),
-                ("P.R.C",                     "China"),
-                ("PRC",                       "China"),
-                ("REPUBLIC OF KOREA",         "South Korea"),
-                ("Russian Federation",        "Russia"),
-                ("Great Britain",             "UK"),
-                ("U.K.",                      "UK"),
-                ("United Kingdom",            "UK"),
-                ("U.S.A",                     "USA"),
-                ("United States",             "USA"),
-            ]:
-            if synonym.lower() in self.country.lower():
-                return name
-        # Does it contain a state, region, city, or street name?
-        for (region, name) in [
-                ("Auckland",                  "New Zealand"),
-                ("Bangalore",                 "India"),
-                ("Barcelona",                 "Spain"),
-                ("Beijing",                   "China"),
-                ("Bruxelles",                 "Belgium"),
-                ("Frankfurt",                 "Germany"),
-                ("Leuven",                    "Belgium"),
-                ("Linkoping",                 "Sweden"),
-                ("Madrid",                    "Spain"),
-                ("Riga",                      "Latvia"),
-                ("Solna",                     "Sweden"),
-                ("Taipei",                    "Taiwan"),
-                ("Tel Aviv",                  "Israel"),
-                ("Tokyo",                     "Japan"),
-                ("Toranomon 17 Mori Bldg.5F", "Japan"),
-                ("750D Chai Chee",            "Singapore"),
-                # Canadian cities:
-                ("Mississauga, ON",           "Canada"),
-                ("Ottawa",                    "Canada"),
-                ("Toronto",                   "Canada"),
-                ("100 Wynford Drive",         "Canada"),  # Bell Canada
-                # US states:
-                ("Arizona",                   "USA"),
-                ("California",                "USA"),
-                ("Colorado",                  "USA"),
-                ("Florida",                   "USA"),
-                ("Illinois",                  "USA"),
-                ("Kansas",                    "USA"),
-                ("Maryland",                  "USA"),
-                ("Massachusetts",             "USA"),
-                ("Michigan",                  "USA"),
-                ("New Hampshire",             "USA"),
-                ("New Jersey",                "USA"),
-                ("Ohio",                      "USA"),
-                ("Oregon",                    "USA"),
-                ("Texas",                     "USA"),
-                ("Vermont",                   "USA"),
-                ("Virginia",                  "USA"),
-                # US cities:
-                ("Atlanta",                   "USA"),
-                ("Bainbridge Island, WA",     "USA"),
-                ("Bellevue, WA",              "USA"),
-                ("Boulder CO" ,               "USA"),
-                ("Boulder, CO",               "USA"),
-                ("Boxborough, MA",            "USA"),
-                ("Burlington, MA",            "USA"),
-                ("Cambridge, MA",             "USA"),
-                ("Campbell, CA",              "USA"),
-                ("Chelmsford, MA",            "USA"),
-                ("Dallas TX",                 "USA"),
-                ("Dallas, TX",                "USA"),
-                ("Denver, CO",                "USA"),
-                ("Edison, NJ",                "USA"),
-                ("Florham Park NJ",           "USA"),
-                ("Ft. Meade, MD",             "USA"),
-                ("Ft. Monmouth, N.J.",        "USA"),
-                ("Littleton MA",              "USA"),
-                ("Lowell, MA",                "USA"),
-                ("Menlo Park, CA",            "USA"),
-                ("Milpitas, CA",              "USA"),
-                ("Mountain View, CA",         "USA"),
-                ("Naperville, IL",            "USA"),
-                ("New York",                  "USA"),
-                ("Evanston, IL",              "USA"),
-                ("Philadelphia",              "USA"),
-                ("Princeton, NJ",             "USA"),
-                ("Raleigh, NC",               "USA"),
-                ("Redmond, WA",               "USA"),
-                ("Richardson, TX",            "USA"),
-                ("Salt Lake City",            "USA"),
-                ("San Jose, CA",              "USA"),
-                ("Santa Barbara, CA",         "USA"),
-                ("Schaumburg, IL",            "USA"),
-                ("Seattle, WA",               "USA"),
-                ("St. Louis, MO",             "USA"),
-                ("Stanford, CA",              "USA"),
-                ("Sunnyvale, CA",             "USA"),
-                ("Tewksbury, MA",             "USA"),
-                ("Wall Township, NJ",         "USA"),
-                ("Waltham, MA",               "USA"),
-                # US streets:
-                ("West Tasman Dr",            "USA"), # San Jose, CA, USA
-                ("1700 Alma Drive",           "USA"), # Plano, TX, USA
-                ("1201 Campbell",             "USA"), # Richardson, TX, USA
-                ("3 Federal Street",          "USA"), # Billerica, MA, USA
-                ("501 East Middlefield Road", "USA"), # Mountain View, CA, USA
-                # UK countries:
-                ("England",                   "UK"),
-                ("Scotland",                  "UK"),
-                ("Wales",                     "UK"),
-                # UK counties:
-                ("Berks",                     "UK"),
-                ("Cambs",                     "UK"),
-                ("Essex",                     "UK"),
-                ("Gwent",                     "UK"),
-                ("Hampshire",                 "UK"),
-                ("Surrey",                    "UK"),
-                ("Middlesex",                 "UK"),
-                # UK cities:
-                ("Aberdeen AB24",             "UK"),
-                ("Cambridge",                 "UK"),
-                ("Edinburgh",                 "UK"),
-                ("Ipswich",                   "UK"),
-                ("Maidenhead",                "UK"),
-                ("Nottingham",                "UK"),
-                ("Reading",                   "UK"),
-                ("London",                    "UK"),
-                ("Oxford",                    "UK"),
-                ("Winchester",                "UK"),
-            ]:
-            if region.lower() in self.country.lower():
-                return name
-        # Does it contain an organisation name?
-        for (org, name) in [
-                ("Aoyama Gakuin University",          "Japan"),
-                ("University of Cambridge",           "UK"),
-                ("Columbia University",               "USA"),
-                ("University of Illinois",            "USA"),
-                ("University of Washington",          "USA"),
-                ("National Security Agency",          "USA"),
-                ("ICSI Center for Internet Research", "USA"),
-                ("Schrage Consulting",                "Germany"),
-                ("Samsung Electronics",               "South Korea"),
-                ("Nishinippori Start up Office 214",  "Japan"),
-            ]:
-            if org.lower() in self.country.lower():
-                return name
-        # Does it contain a postcode?
-        for (postcode, name) in [
-                ("H3B 2S2",    "Canada"),        # Montréal, QC, Canada
-                ("H4P 2N2",    "Canada"),        # Montréal, QC, Canada
-                ("K1Y 4H7",    "Canada"),        # Ottawa, ON, Canada
-                ("K1Y-4H7",    "Canada"),        # Ottawa, ON, Canada
-                ("K2K 3N1",    "Canada"),        # Ottawa, ON, Canada
-                ("V5H 4M2",    "Canada"),        # Burnaby, BC, Canada
-                ("V7X 1M3 ",   "Canada"),        # Vancouver, BC, Canada
-                ("F-22307",    "France"),        # INRIA Rennes-Bretagne Altlantique, France
-                ("FIN-00076",  "Finland"),       # Aalto University
-                ("CH-6942",    "Switzerland"),   # Savosa, Switzerland
-                ("CB3 0FD",    "UK"),            # University of Cambridge, UK
-                ("WR14 3PS",   "UK"),            # Malvern, Worcestershire, UK
-                ("02144",      "USA"),           # Somerville, MA, USA
-                ("02138",      "USA"),           # Cambridge, MA, USA
-                ("20166",      "USA"),           # Dulles, VA, USA
-                ("94704-1198", "USA"),           # Berkeley, CA, USA
-                ("95110",      "USA"),           # San Jose, CA, USA
-                ("Post Office Box 5005", "USA"), # Rochester, NH, USA
-                ("7010",       "Belgium")        # NATO C&I Agency, SHAPE, Belgium
-            ]:
-            if postcode.lower() in self.country.lower():
-                return name
-        # Does it contain a person's name?
-        for (person, name) in [
-                ("Robert Schuettler", "Germany"),
-                ("Mike St. Johns",    "USA"),
-            ]:
-            if person.lower() in self.country.lower():
-                return name
-        # Does it contain a country abbreviation?
-        for (abbrv, name) in [
-                ("AU", "Australia"),
-                ("BE", "Belgium"),
-                ("BR", "Brazil"),
-                ("CA", "Canada"),
-                ("CH", "Switzerland"),
-                ("CN", "China"),
-                ("CZ", "Czech Republic"),
-                ("DE", "Germany"),
-                ("ES", "Spain"),
-                ("FI", "Finland"),
-                ("FR", "France"),
-                ("GE", "Germany"),
-                ("GB", "UK"),
-                ("GI", "UK"),           # Gibralter
-                ("IE", "Ireland"),
-                ("IL", "Israel"),
-                ("IT", "Italy"),
-                ("JA", "Japan"),
-                ("JP", "Japan"),
-                ("MU", "Mauritius"),
-                ("NL", "The Netherlands"),
-                ("NO", "Norway"),
-                ("SE", "Sweden"),
-                ("SG", "Singapore"),
-                ("US", "USA"),
-            ]:
-            if abbrv.lower() in self.country.lower():
-                return name
-        # Does it contain something random?
-        for (text, name) in [
-                ("January 2002", "USA"),  # RFC3271
-            ]:
-            if text.lower() in self.country.lower():
-                return name
-        # Otherwise, just return the country unchanged:
-        return self.country.strip()
-
-
-    def normalise_affiliation(self) -> str:
-        # FIXME: implement this
-        return self.affiliation
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------
@@ -1849,15 +1598,16 @@ def _parent_uri(uri: URI) -> URI:
     return type(uri)(uri.uri[:sep2])
 
 
-def _cache_uri_format(uri: URI) -> str:
+def _db_collection(uri: URI) -> str:
     assert uri.uri is not None
     return uri.uri.strip('/').replace("/", "_")
 
 
-def _translate_query(uri: URI, param_objs: Dict[str, Optional[Resource]], obj_type: Type[T]) -> Dict[Any, Any]:
+def _translate_query(uri: URI, obj_type: Type[T]) -> Dict[Any, Any]:
     translated_params : Dict[Any, Any] = {}
 
     for (param, value) in uri.params.items():
+        #print(F"_translate_query: param={param} value={value}")
         if "__gte" in param:
             param = param[:-5]
             translated_params[param] = {**translated_params.get(param, {}), "$gte": value}
@@ -1875,18 +1625,18 @@ def _translate_query(uri: URI, param_objs: Dict[str, Optional[Resource]], obj_ty
             translated_params[param] = {**translated_params.get(param, {}), "$regex": value}
         else:
             param_type = obj_type.__dict__["__dataclass_fields__"][param].type
-            if "__origin__" in param_type.__dict__ and param_type.__origin__ is Union:
+            if get_origin(param_type) is Union:
                 param_type = param_type.__args__[0]
-            if not isinstance(param_type, type) and param in param_objs:
-                param_type = type(param_objs[param])
+            if get_origin(param_type) is list:
+                param_type = param_type.__args__[0]
             if issubclass(param_type, URI):
-                translated_params[param] = f"{param_type.root}{value}/"
-                if param in param_objs:
-                    param_obj = param_objs[param]
-                    if param_obj is not None:
-                        translated_params[param] = param_obj.resource_uri.uri
+                if isinstance(value, str) and value.startswith(param_type.root):
+                    translated_params[param] = value
+                else:
+                    translated_params[param] = f"{param_type.root}{value}/"
             else:
                 translated_params[param] = value
+        #print(F"translated = {translated_params[param]}")
     return translated_params
 
 
@@ -1905,23 +1655,22 @@ class CacheMetadata:
 
 
 @dataclass
-class CacheIndex(Generic[T]):
-    resource_type : T
-    fields        : List[str]
-    unique_fields : List[str]
-    order_by      : List[str]
-    reverse       : bool
+class Hints(Generic[T]):
+    sort_by : str
+    update_strategy : str
+    deref   : Dict[str, str]
 
 
 class DataTracker:
     """
     A class for interacting with the IETF DataTracker.
     """
-    def __init__(self, use_cache: bool = False, mongodb_hostname: str = "localhost", mongodb_port: int = 27017, mongodb_username: Optional[str] = None, mongodb_password: Optional[str] = None):
-        """
-        Parameters:
-            cache_dir      -- If set, use this directory as a cache for Datatracker objects
-        """
+    def __init__(self,
+            use_cache: bool = False,
+            mongodb_hostname: str = "localhost",
+            mongodb_port: int = 27017,
+            mongodb_username: Optional[str] = None,
+            mongodb_password: Optional[str] = None):
         if os.environ.get('IETFDATA_CACHE_HOST') is not None:
             use_cache = True
             cache_host = os.environ.get('IETFDATA_CACHE_HOST')
@@ -1945,12 +1694,13 @@ class DataTracker:
         else:
             self.db    = None
         self.session   = requests.Session()
-        self.ua        = "glasgow-ietfdata/0.4.0"          # Update when making a new relaase
+        self.ua        = "glasgow-ietfdata/0.4.1"          # Update when making a new relaase
         self.base_url  = "https://datatracker.ietf.org"
         self.http_req  = 0
         self.cache_req = 0
         self.cache_hit = 0
-        self.cache_ver = "0.1.0" # Update when changing cache architecture
+        self.cache_ver = "1" # Increment when changing cache architecture
+        self.cache_update : Dict[str, datetime] = {}
         self.get_count = 0
         self.db_calls  = 0
 
@@ -1960,7 +1710,7 @@ class DataTracker:
         if self.db is not None:
             self.log.info(f"{self.ua} (cache enabled)")
         else:
-            self.log.info(self.ua)
+            self.log.info(f"{self.ua} (cache disabled)")
 
         # Register generic parsers for each URI type:
         self.pavlova = Pavlova()
@@ -1969,78 +1719,78 @@ class DataTracker:
         self.pavlova.register_parser(CacheMetadata, GenericParser(self.pavlova, CacheMetadata))
 
         # Register cache hints:
-        self._cache_indexes = {} # type: Dict[Any, CacheIndex]
-        self._cache_indexes[BallotDocumentEventURI]         = CacheIndex(BallotDocumentEvent, ["time", "ballot_type", "event_type", "by", "doc"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[BallotTypeURI]                  = CacheIndex(BallotType, ["doc_type"], ["id", "resource_uri"], ["order", "id"], False)
-        self._cache_indexes[DocumentAliasURI]               = CacheIndex(DocumentAlias, ["name"], ["id", "name", "resource_uri"], ["id"], False)
-        self._cache_indexes[DocumentEventURI]               = CacheIndex(DocumentEvent, ["time", "doc", "by", "event_type"], ["id", "resource_uri"], ["id"], True)
-        self._cache_indexes[DocumentURI]                    = CacheIndex(Document, ["time", "type", "stream", "group"], ["id", "name", "resource_uri"], ["id"], False)
-        self._cache_indexes[DocumentAuthorURI]              = CacheIndex(DocumentAuthor, ["document", "person", "email"], ["id", "resource_uri"], ["order", "id"], False)
-        self._cache_indexes[RelatedDocumentURI]             = CacheIndex(RelatedDocument, ["source", "target", "relationship"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[DocumentStateURI]               = CacheIndex(DocumentState, ["type", "slug"], ["id", "resource_uri"], ["order", "id", "slug"], False)
-        self._cache_indexes[DocumentStateTypeURI]           = CacheIndex(DocumentStateType, [], ["slug", "resource_uri"], ["slug"], False)
-        self._cache_indexes[GroupStateChangeEventURI]       = CacheIndex(GroupStateChangeEvent, ["time", "by", "group", "state"], ["id", "resource_uri"], ["order", "id"], False)
-        self._cache_indexes[GroupURI]                       = CacheIndex(Group, ["time", "name", "state", "parent"], ["acronym", "id", "resource_uri"], ["id"], False)
-        self._cache_indexes[GroupEventURI]                  = CacheIndex(GroupEvent, ["time", "by", "group", "type"], ["id", "resource_uri"], ["id"], True)
-        self._cache_indexes[GroupHistoryURI]                = CacheIndex(GroupHistory, ["acronym", "time", "group", "state", "parent"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[GroupMilestoneURI]              = CacheIndex(GroupMilestone, ["time", "group", "state"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[GroupMilestoneHistoryURI]       = CacheIndex(GroupMilestoneHistory, ["time", "group", "milestone", "state"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[GroupUrlURI]                    = CacheIndex(GroupUrl, ["group"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[GroupMilestoneEventURI]         = CacheIndex(GroupMilestoneEvent, ["time", "by", "group", "milestone", "type"], ["id", "resource_uri"], ["id"], True)
-        self._cache_indexes[GroupRoleURI]                   = CacheIndex(GroupRole, ["email", "group", "name", "person"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[GroupRoleHistoryURI]            = CacheIndex(GroupRoleHistory, ["email", "group", "name", "person"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[GenericIPRDisclosureURI]        = CacheIndex(GenericIPRDisclosure, ["time", "by", "holder_legal_name", "holder_contact_name", "state", "submitter_email", "submitter_name"], ["id", "resource_uri"], ["order", "id"], False)
-        self._cache_indexes[HolderIPRDisclosureURI]         = CacheIndex(HolderIPRDisclosure, ["time", "by", "holder_legal_name", "holder_contact_name", "ietfer_contact_email", "ietfer_name", "licensing", "state", "submitter_email", "submitter_name"], ["id", "resource_uri"], ["order", "id"], False)
-        self._cache_indexes[IPRDisclosureBaseURI]           = CacheIndex(IPRDisclosureBase, ["time", "by", "holder_legal_name", "state", "submitter_email", "submitter_name"], ["id", "resource_uri"], ["order", "id"], False)
-        self._cache_indexes[ThirdPartyIPRDisclosureURI]     = CacheIndex(ThirdPartyIPRDisclosure, ["time", "by", "holder_legal_name", "ietfer_contact_email", "ietfer_name", "state", "submitter_email", "submitter_name"], ["id", "resource_uri"], ["order", "id"], False)
-        self._cache_indexes[MailingListURI]                 = CacheIndex(MailingList, ["name"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[MailingListSubscriptionsURI]    = CacheIndex(MailingListSubscriptions, ["email", "lists"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[MeetingURI]                     = CacheIndex(Meeting, ["date", "type"], ["id", "number", "resource_uri"], ["id"], False)
-        self._cache_indexes[SessionAssignmentURI]           = CacheIndex(SessionAssignment, ["schedule"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[ScheduleURI]                    = CacheIndex(ScheduleURI, [], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[SchedulingEventURI]             = CacheIndex(SchedulingEventURI, ["session", "by"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[SessionURI]                     = CacheIndex(Session, ["meeting", "group"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[TimeslotURI]                    = CacheIndex(Timeslot, [], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[AnnouncementFromURI]            = CacheIndex(AnnouncementFrom, ["address", "group", "name"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[MessageURI]                     = CacheIndex(Message, ["time", "by", "frm", "related_docs", "subject", "body"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[SendQueueURI]                   = CacheIndex(SendQueueEntry, ["time", "by", "message"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[BallotPositionNameURI]          = CacheIndex(BallotPositionName, [], ["slug", "resource_uri"], ["order", "slug"], False)
-        self._cache_indexes[RelationshipTypeURI]            = CacheIndex(RelationshipType, [], ["slug", "resource_uri"], ["slug"], False)
-        self._cache_indexes[DocumentTypeURI]                = CacheIndex(DocumentType, [], ["slug", "resource_uri"], ["order", "slug"], False)
-        self._cache_indexes[GroupMilestoneStateNameURI]     = CacheIndex(GroupMilestoneStateName, [], ["slug", "resource_uri"], ["slug"], False)
-        self._cache_indexes[GroupStateURI]                  = CacheIndex(GroupState, [], ["slug", "resource_uri"], ["slug"], False)
-        self._cache_indexes[GroupTypeNameURI]               = CacheIndex(GroupTypeName, [], ["slug", "resource_uri"], ["slug"], False)
-        self._cache_indexes[MeetingTypeURI]                 = CacheIndex(MeetingType, [], ["slug", "resource_uri"], ["slug"], False)
-        self._cache_indexes[IPRDisclosureStateURI]          = CacheIndex(IPRDisclosureBase, [], ["slug", "resource_uri"], ["slug"], False)
-        self._cache_indexes[IPRLicenseTypeURI]              = CacheIndex(IPRLicenseType, [], ["slug", "resource_uri"], ["slug"], False)
-        self._cache_indexes[ReviewAssignmentStateURI]       = CacheIndex(ReviewAssignmentState, [], ["slug", "resource_uri"], ["slug"], False)
-        self._cache_indexes[ReviewResultTypeURI]            = CacheIndex(ReviewResultType, [], ["slug", "resource_uri"], ["slug"], False)
-        self._cache_indexes[ReviewTypeURI]                  = CacheIndex(ReviewType, [], ["slug", "resource_uri"], ["slug"], False)
-        self._cache_indexes[ReviewRequestStateURI]          = CacheIndex(ReviewRequestState, [], ["slug", "resource_uri"], ["slug"], False)
-        self._cache_indexes[RoleNameURI]                    = CacheIndex(RoleName, [], ["slug", "resource_uri"], ["slug"], False)
-        self._cache_indexes[SessionStatusNameURI]           = CacheIndex(SessionStatusName, [], ["slug", "resource_uri"], ["slug"], False)
-        self._cache_indexes[StreamURI]                      = CacheIndex(Stream, [], ["slug", "resource_uri"], ["slug"], False)
-        self._cache_indexes[PersonAliasURI]                 = CacheIndex(PersonAlias, ["person"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[EmailURI]                       = CacheIndex(Email, ["person", "time"], ["address", "resource_uri"], ["address"], False)
-        self._cache_indexes[HistoricalEmailURI]             = CacheIndex(HistoricalEmail, ["address", "person"], ["history_id", "resource_uri"], ["history_id"], True)
-        self._cache_indexes[HistoricalPersonURI]            = CacheIndex(HistoricalPerson, ["id"], ["history_id", "resource_uri"], ["history_id"], True)
-        self._cache_indexes[PersonURI]                      = CacheIndex(PersonURI, ["time", "name", "ascii"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[PersonEventURI]                 = CacheIndex(PersonEvent, ["person"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[HistoricalReviewAssignmentURI]  = CacheIndex(HistoricalReviewAssignment, ["assigned_on", "completed_on", "id", "result", "review_request", "reviewer", "state"], ["history_id", "resource_uri"], ["id"], False)
-        self._cache_indexes[HistoricalReviewerSettingsURI]  = CacheIndex(HistoricalReviewerSettingsURI, ["history_date", "id", "person", "team"], ["history_id", "resource_uri"], ["order", "id"], False)
-        self._cache_indexes[HistoricalReviewRequestURI]     = CacheIndex(HistoricalReviewRequest, ["time", "history_date", "doc", "requested_by", "state", "team", "type"], ["history_id", "resource_uri"], ["order", "id"], False)
-        self._cache_indexes[HistoricalUnavailablePeriodURI] = CacheIndex(HistoricalUnavailablePeriod, ["history_type", "id", "person", "team"], ["history_id", "resource_uri"], ["id"], False)
-        self._cache_indexes[NextReviewerInTeamURI]          = CacheIndex(NextReviewerInTeam, ["team"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[ReviewAssignmentURI]            = CacheIndex(ReviewAssignment, ["assigned_on", "completed_on", "result", "review_request", "reviewer", "state"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[ReviewerSettingsURI]            = CacheIndex(ReviewerSettings, ["person", "team"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[ReviewRequestURI]               = CacheIndex(ReviewRequest, ["time", "doc", "requested_by", "state", "team", "type"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[ReviewSecretarySettingsURI]     = CacheIndex(ReviewSecretarySettings, ["person", "team"], ["id", "resource_uri"], ["order", "id"], False)
-        self._cache_indexes[ReviewTeamSettingsURI]          = CacheIndex(ReviewTeamSettings, ["group"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[ReviewWishURI]                  = CacheIndex(ReviewWish, ["time", "doc", "person", "team"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[UnavailablePeriodURI]           = CacheIndex(UnavailablePeriod, ["person", "team"], ["id", "resource_uri"], ["order", "id"], False)
-        self._cache_indexes[MeetingRegistrationURI]         = CacheIndex(MeetingRegistration, ["affiliation", "attended", "country_code", "email", "first_name", "last_name", "meeting", "person", "reg_type", "ticket_type"], ["id", "resource_uri"], ["id"], False)
-        self._cache_indexes[SubmissionURI]                  = CacheIndex(Submission, ["time"], ["id", "resource_uri"], ["order", "id"], False)
-        self._cache_indexes[SubmissionEventURI]             = CacheIndex(SubmissionEvent, ["time", "by", "submission"], ["id", "resource_uri"], ["order", "id"], False)
+        self._hints = {} # type: Dict[str, Hints]
+        self._hints["/api/v1/doc/ballotdocevent/"]                 = Hints("id", "T", {"doc": "id"})
+        self._hints["/api/v1/doc/ballottype/"]                     = Hints("slug", "V", {})
+        self._hints["/api/v1/doc/docalias/"]                       = Hints("id", "-", {})  # FIXME: no modification time
+        self._hints["/api/v1/doc/docevent/"]                       = Hints("id", "T", {"doc": "id"})
+        self._hints["/api/v1/doc/document/"]                       = Hints("id", "T", {})
+        self._hints["/api/v1/doc/documentauthor/"]                 = Hints("id", "-", {"document": "id"}) # FIXME: no modification time, but will be updated when the corresponding `document` is updated
+        self._hints["/api/v1/doc/relateddocument/"]                = Hints("id", "-", {"source": "id", "target": "id", "relationship": "slug"}) # FIXME: no modification time, but will be updated when the corresponding `source` is updated
+        self._hints["/api/v1/doc/state/"]                          = Hints("id", "V", {})
+        self._hints["/api/v1/doc/statetype/"]                      = Hints("slug", "V", {})
+        self._hints["/api/v1/group/changestategroupevent/"]        = Hints("id", "T", {})
+        self._hints["/api/v1/group/group/"]                        = Hints("id", "T", {})
+        self._hints["/api/v1/group/groupevent/"]                   = Hints("id", "T", {})
+        self._hints["/api/v1/group/grouphistory/"]                 = Hints("id", "T", {})
+        self._hints["/api/v1/group/groupmilestone/"]               = Hints("id", "T", {})
+        self._hints["/api/v1/group/groupmilestonehistory/"]        = Hints("id", "T", {})
+        self._hints["/api/v1/group/groupurl/"]                     = Hints("id", "-", {})  # FIXME: no modification time, but will be updated with the corresponding `group` is updated
+        self._hints["/api/v1/group/milestonegroupevent/"]          = Hints("id", "T", {})
+        self._hints["/api/v1/group/role/"]                         = Hints("id", "-", {})  # FIXME: no modification time, but will be updated with the corresponding `group` is updated
+        self._hints["/api/v1/group/rolehistory/"]                  = Hints("id", "-", {})  # FIXME: ???
+        self._hints["/api/v1/ipr/genericiprdisclosure/"]           = Hints("id", "T", {})
+        self._hints["/api/v1/ipr/holderiprdisclosure/"]            = Hints("id", "T", {})
+        self._hints["/api/v1/ipr/iprdisclosurebase/"]              = Hints("id", "T", {})
+        self._hints["/api/v1/ipr/thirdpartyiprdisclosure/"]        = Hints("id", "T", {})
+        self._hints["/api/v1/mailinglists/list/"]                  = Hints("id", "-", {})  # FIXME: no modification time
+        self._hints["/api/v1/mailinglists/subscribed/"]            = Hints("id", "-", {})  # FIXME: these have a time field, but not clear updated
+        self._hints["/api/v1/meeting/meeting/"]                    = Hints("id", "-", {})  # FIXME: has an `updated` field that doesn't allow filtering?
+        self._hints["/api/v1/meeting/schedtimesessassignment/"]    = Hints("id", "M", {})
+        self._hints["/api/v1/meeting/schedule/"]                   = Hints("id", "-", {})  # FIXME: immutable once created?
+        self._hints["/api/v1/meeting/schedulingevent/"]            = Hints("id", "T", {})
+        self._hints["/api/v1/meeting/session/"]                    = Hints("id", "M", {})
+        self._hints["/api/v1/meeting/timeslot/"]                   = Hints("id", "M", {})
+        self._hints["/api/v1/message/announcementfrom/"]           = Hints("id", "V", {})
+        self._hints["/api/v1/message/message/"]                    = Hints("id", "-", {"related_doc": "id"}) # No longer accessible
+        self._hints["/api/v1/message/sendqueue/"]                  = Hints("id", "T", {})
+        self._hints["/api/v1/name/ballotpositionname/"]            = Hints("slug", "V", {})
+        self._hints["/api/v1/name/docrelationshipname/"]           = Hints("slug", "V", {})
+        self._hints["/api/v1/name/doctypename/"]                   = Hints("slug", "V", {})
+        self._hints["/api/v1/name/groupmilestonestatename/"]       = Hints("slug", "V", {})
+        self._hints["/api/v1/name/groupstatename/"]                = Hints("slug", "V", {})
+        self._hints["/api/v1/name/grouptypename/"]                 = Hints("slug", "V", {})
+        self._hints["/api/v1/name/meetingtypename/"]               = Hints("slug", "V", {})
+        self._hints["/api/v1/name/iprdisclosurestatename/"]        = Hints("slug", "V", {})
+        self._hints["/api/v1/name/iprlicensetypename/"]            = Hints("slug", "V", {})
+        self._hints["/api/v1/name/reviewassignmentstatename/"]     = Hints("slug", "V", {})
+        self._hints["/api/v1/name/reviewresultname/"]              = Hints("slug", "V", {})
+        self._hints["/api/v1/name/reviewtypename/"]                = Hints("slug", "V", {})
+        self._hints["/api/v1/name/reviewrequeststatename/"]        = Hints("slug", "V", {})
+        self._hints["/api/v1/name/rolename/"]                      = Hints("slug", "V", {})
+        self._hints["/api/v1/name/sessionstatusname/"]             = Hints("slug", "V", {})
+        self._hints["/api/v1/name/streamname/"]                    = Hints("slug", "V", {})
+        self._hints["/api/v1/person/alias/"]                       = Hints("id", "-", {})    # FIXME: no modification time, but updated with the `person` is updated
+        self._hints["/api/v1/person/email/"]                       = Hints("address", "T", {})
+        self._hints["/api/v1/person/historicalemail/"]             = Hints("address", "H", {})
+        self._hints["/api/v1/person/historicalperson/"]            = Hints("id", "H", {})
+        self._hints["/api/v1/person/person/"]                      = Hints("id", "T", {})
+        self._hints["/api/v1/person/personevent/"]                 = Hints("id", "T", {})
+        self._hints["/api/v1/review/historicalreviewassignment/"]  = Hints("id", "C", {})
+        self._hints["/api/v1/review/historicalreviewersettings/"]  = Hints("id", "H", {})
+        self._hints["/api/v1/review/historicalreviewrequest/"]     = Hints("id", "T", {"doc": "id"})
+        self._hints["/api/v1/review/historicalunavailableperiod/"] = Hints("id", "-", {})
+        self._hints["/api/v1/review/nextreviewerinteam/"]          = Hints("id", "-", {})
+        self._hints["/api/v1/review/reviewassignment/"]            = Hints("id", "-", {})
+        self._hints["/api/v1/review/reviewersettings/"]            = Hints("id", "-", {})
+        self._hints["/api/v1/review/reviewrequest/"]               = Hints("id", "-", {"doc": "id"})
+        self._hints["/api/v1/review/reviewsecretarysettings/"]     = Hints("id", "-", {})
+        self._hints["/api/v1/review/reviewteamsettings/"]          = Hints("id", "-", {})
+        self._hints["/api/v1/review/reviewwish/"]                  = Hints("id", "-", {"doc": "id"})
+        self._hints["/api/v1/review/unavailableperiod/"]           = Hints("id", "-", {})
+        self._hints["/api/v1/stats/meetingregistration/"]          = Hints("id", "-", {})
+        self._hints["/api/v1/submit/submission/"]                  = Hints("id", "-", {})
+        self._hints["/api/v1/submit/submissionevent/"]             = Hints("id", "T", {})
 
         # check Datatracker and cache versions
         self._cache_check_versions()
@@ -2058,54 +1808,262 @@ class DataTracker:
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
-    # Private methods to manage the local cache:
+    # Private methods to access the datatracker.
+    #
+    # The _datatracker_get_single() and _datatracker_get_multi() functions
+    # retrieve data from the IETF datatracker without using the cache. They are
+    # used by the cache layer to access the datatracker when updating the cache,
+    # and by the retrieval layer to retrieve objects from the datatracker if the
+    # cache is disabled.
 
-    def _cache_update(self, obj_type_uri: URI, obj_type: Type[T]) -> None:
+    def _datatracker_get_single(self, obj_uri: URI) -> Optional[Dict[str, Any]]:
+        assert obj_uri.uri is not None
+        retry_time  = 1.875
+        while True:
+            try:
+                req_url     = self.base_url + obj_uri.uri
+                req_headers = {'User-Agent': self.ua}
+                req_params  = obj_uri.params
+                self._rate_limit()
+                self.get_count += 1
+                r = self.session.get(req_url, params = req_params, headers = req_headers, verify = True, stream = False)
+                if r.status_code == 200:
+                    self.log.debug(F"_datatracker_get_single: ({r.status_code}) {obj_uri}")
+                    url_obj = r.json() # type: Dict[str, Any]
+                    return url_obj
+                elif r.status_code == 404:
+                    self.log.debug(F"_datatracker_get_single: ({r.status_code}) {obj_uri}")
+                    return None
+                else:
+                    self.log.warning(F"_datatracker_get_single: error {r.status_code} {obj_uri} - retry in {retry_time}")
+                    if retry_time > 60:
+                        self.log.error(F"_datatracker_get_single: error - retry limit exceeded")
+                        sys.exit(1)
+                    self.session.close()
+                    time.sleep(retry_time)
+                    retry_time *= 2
+            except requests.exceptions.ConnectionError:
+                self.log.warning(F"_datatracker_get_single: connection error - retry in {retry_time}")
+                if retry_time > 60:
+                    self.log.error(F"_datatracker_get_single: error - retry limit exceeded")
+                    sys.exit(1)
+                self.session.close()
+                time.sleep(retry_time)
+                retry_time *= 2
+
+
+    def _datatracker_get_multi(self, get_uri: URI, order_by: Optional[str] = None) -> Iterator[Dict[Any, Any]]:
+        obj_uri = copy.deepcopy(get_uri)
+
+        assert "order_by" not in obj_uri.params
+        assert "limit"    not in obj_uri.params
+
+        if order_by != None:
+            obj_uri.params["order_by"] = order_by
+        obj_uri.params[   "limit"] = 100
+
+        total_count  = -1
+        fetched_objs = {} # type: Dict[str, Dict[Any, Any]]
+        while obj_uri.uri is not None:
+            self._rate_limit()
+            retry = True
+            retry_time = 1.875
+            while retry:
+                retry = False
+                req_url     = self.base_url + obj_uri.uri
+                req_params  = obj_uri.params
+                req_headers = {'User-Agent': self.ua}
+                try:
+                    self.get_count += 1
+                    r = self.session.get(url = req_url, params = req_params, headers = req_headers, verify = True, stream = False)
+                    if r.status_code == 200:
+                        self.log.debug(F"_datatracker_get_multi ({r.status_code}) {obj_uri}")
+                        meta = r.json()['meta']
+                        objs = r.json()['objects']
+                        obj_uri  = URI(meta['next'])
+                        for obj in objs:
+                            # API requests returning lists should never return duplicate
+                            # objects, but due to datatracker bugs this sometimes happens.
+                            # Check for and log such problems, but pass the duplicates up
+                            # to the higher layers for reconcilition.
+                            if obj["resource_uri"] in fetched_objs:
+                                self.log.warning(F"_datatracker_get_multi duplicate object {obj['resource_uri']}")
+                            else:
+                                fetched_objs[obj["resource_uri"]] = obj
+                            yield obj
+                        total_count = meta["total_count"]
+                    elif r.status_code == 500:
+                        self.log.warning(F"_datatracker_get_multi ({r.status_code}) {obj_uri}")
+                        if retry_time > 60:
+                            self.log.info(F"_datatracker_get_multi retry time exceeded")
+                            sys.exit(1)
+                        self.session.close()
+                        time.sleep(retry_time)
+                        retry_time *= 2
+                        retry = True
+                    else:
+                        self.log.error(F"_datatracker_get_multi ({r.status_code}) {obj_uri}")
+                        sys.exit(1)
+                except requests.exceptions.ConnectionError:
+                    self.log.warning(F"_datatracker_get_multi: connection error - will retry in {retry_time}")
+                    self.session.close()
+                    time.sleep(retry_time)
+                    retry_time *= 2
+                    retry = True
+        if total_count != len(fetched_objs):
+            self.log.warning(F"_datatracker_get_multi: expected {total_count} objects but got {len(fetched_objs)}")
+
+
+    def _datatracker_get_multi_count(self, obj_type_uri: URI) -> int:
+        assert obj_type_uri.uri is not None
+        assert obj_type_uri.params == {}
+
+        retry_time  = 1.875
+        while True:
+            try:
+                req_url     = self.base_url + obj_type_uri.uri
+                req_params  = {"limit": 1}
+                req_headers = {'User-Agent': self.ua}
+                self.get_count += 1
+                r = self.session.get(url = req_url, params = req_params, headers = req_headers, verify = True, stream = False)
+                if r.status_code == 200:
+                    meta = r.json()['meta']
+                    total_count = meta['total_count'] # type: int
+                    self.log.debug(F"_datatracker_get_multi_count: {r.status_code} {obj_type_uri} count={total_count}")
+                    return total_count
+                else:
+                    self.log.warning(F"_datatracker_get_multi_count: error {r.status_code} {obj_type_uri} - retry in {retry_time}")
+                    if retry_time > 60:
+                        self.log.error(F"_datatracker_get_multi_count: error - retry limit exceeded")
+                        sys.exit(1)
+                    self.session.close()
+                    time.sleep(retry_time)
+                    retry_time *= 2
+            except requests.exceptions.ConnectionError:
+                self.log.warning(F"_datatracker_get_multi_count: connection error - retry in {retry_time}")
+                if retry_time > 60:
+                    self.log.error(F"_datatracker_get_multi_count: error - retry limit exceeded")
+                    sys.exit(1)
+                self.session.close()
+                time.sleep(retry_time)
+                retry_time *= 2
+
+
+    # ----------------------------------------------------------------------------------------------------------------------------
+    # Private methods to manage the local cache.
+    #
+    # With the exception of _cache_update(), these should only access the local cache.
+    #
+    # The cache stores objects in the `ietfdata` database of the specified MongoDB instance.
+    #
+    # Objects are stored in collections named after the Datatracker URI with slashes replaced
+    # by underscores (e.g., objects with URIs starting "/api/v1/person/person/" are stored in
+    # the collection "api_v1_person_person"). The _db_collection() function can be used to
+    # convert a URI to a collection name.
+    #
+    # Documents within those collections hold the JSON as retrieved from the datatracker.
+    #
+    # There is also a "cache_info" collection, containing metadata about the cache.
+
+    def _cache_update_timed(self, obj_type_uri: URI, now: datetime, meta: CacheMetadata, field: str) -> None:
+        start_time = meta.updated.strftime("%Y-%m-%dT%H:%M:%S.%f")  # Avoid isoformat(), since don't want TZ offset
+        until_time  = now.strftime("%Y-%m-%dT%H:%M:%S.%f")
+        update_uri = URI(obj_type_uri.uri)
+        update_uri.params[F"{field}__gte"] = start_time
+        update_uri.params[F"{field}__lt"]  = until_time
+        self.log.info(F"_cache_update: {obj_type_uri} {start_time} -> {until_time}")
+        for obj_json in self._datatracker_get_multi(update_uri):
+            self._cache_put_object(obj_json)
+        meta = self._cache_load_metadata(obj_type_uri)
+        meta.updated = now
+        obj_count = self._datatracker_get_multi_count(obj_type_uri)
+        if obj_count is not None and obj_count != meta.total_count:
+            self.log.info(f"_cache_update: updated total_count {obj_type_uri} {meta.total_count} -> {obj_count}")
+            meta.total_count = obj_count
+        self._cache_save_metadata(obj_type_uri, meta)
+
+
+    def _cache_update(self, obj_type_uri: URI, dt_version_changed:bool) -> None:
         if self.db is None:
-            return None
+            return
+        assert(obj_type_uri.uri) is not None
         self._cache_create(obj_type_uri)
         now  = datetime.now(tz = dateutil.tz.gettz("America/Los_Angeles"))
+
+        # Only check for cache updates for each object type at most once per minute.
+        # This significantly reduces the load on the database.
+        if obj_type_uri.uri not in self.cache_update:
+            self.cache_update[obj_type_uri.uri] = now
+        elif now - self.cache_update[obj_type_uri.uri] < timedelta(minutes=1):
+            return
+
         meta = self._cache_load_metadata(obj_type_uri)
+
+        # URIs under /api/v1/name/ are internal names used by the datatracker. 
+        # Delete and recreate these caches if the datatracker version changed.
+        if self._hints[obj_type_uri.uri].update_strategy == "V" and dt_version_changed:
+            self.log.info(f"_cache_update: drop {obj_type_uri} due to datatracker version change")
+            self._cache_delete(obj_type_uri)
+            self._cache_create(obj_type_uri)
+            meta = self._cache_load_metadata(obj_type_uri) # Reload metadata since cache entry recreated
+
         # Should we switch from a partial cache to full cache for this object type?
-        if meta.partial and (len(meta.queries)/(meta.total_count/100)) > 0.5:
-            # Switch to caching all objects of this type
-            self.log.info(F"switch to full cache {obj_type_uri.uri} ({meta.total_count} objects)")
-            self._retrieve_jsons(obj_type_uri, obj_type_uri, {}, obj_type_uri, obj_type)
-            meta = self._cache_load_metadata(obj_type_uri)
+        cached_size = self.db[_db_collection(obj_type_uri)].count_documents({})
+        if meta.partial and meta.total_count > 0 and cached_size / meta.total_count > 0.10:
+            self.log.info(F"switch to full cache {obj_type_uri.uri}: cached {cached_size} of {meta.total_count} objects")
+            for obj_json in self._datatracker_get_multi(obj_type_uri):
+                self._cache_put_object(obj_json)
             meta.partial = False
             meta.queries = []
             meta.updated = now
-            self._cache_save_metadata(obj_type_uri, meta)
-        # Do we need to update the cache?
-        if now - meta.updated > timedelta(hours=1) and "time__gte" in obj_type_uri.params:
-            update_uri = URI(obj_type_uri.uri)
-            update_uri.params["time__gte"] = meta.updated.strftime("%Y-%m-%dT%H:%M:%S.%f")  # Avoid isoformat(), since don't want TZ offset
-            update_uri.params["time__lt"]  = now.strftime("%Y-%m-%dT%H:%M:%S.%f")
-            self.log.info(F"cache outdated {str(update_uri)}")
-            self._retrieve_jsons(update_uri, update_uri, {}, obj_type_uri, obj_type)
-            meta = self._cache_load_metadata(obj_type_uri)
-            meta.updated = now
-            obj_count = self._cache_fetch_object_count(obj_type_uri)
-            if obj_count is not None:
+            obj_count = self._datatracker_get_multi_count(obj_type_uri)
+            if obj_count is not None and obj_count != meta.total_count:
+                self.log.info(f"_cache_update: updated total_count {obj_type_uri} {meta.total_count}->{obj_count}")
                 meta.total_count = obj_count
             self._cache_save_metadata(obj_type_uri, meta)
-        elif now - meta.updated > timedelta(hours=24):
-            update_uri = URI(obj_type_uri.uri)
-            self.log.info(F"cache outdated {str(obj_type_uri)}")
-            self._cache_delete(obj_type_uri)
-            self._cache_create(obj_type_uri)
+
+        # Update object types that have a "time" field giving last modified time:
+        if self._hints[obj_type_uri.uri].update_strategy == "T" and now - meta.updated > timedelta(hours=1):
+            self._cache_update_timed(obj_type_uri, now, meta, "time")
+
+        # Update object types that have a "modified" field giving last modified time:
+        if self._hints[obj_type_uri.uri].update_strategy == "M" and now - meta.updated > timedelta(hours=1):
+            self._cache_update_timed(obj_type_uri, now, meta, "modified")
+
+        # Update object types that have a "history_date" field giving last modified time:
+        if self._hints[obj_type_uri.uri].update_strategy == "H" and now - meta.updated > timedelta(hours=1):
+            self._cache_update_timed(obj_type_uri, now, meta, "history_date")
+
+        # Update object types that have a "completed_on" field giving last modified time:
+        if self._hints[obj_type_uri.uri].update_strategy == "C" and now - meta.updated > timedelta(hours=1):
+            self._cache_update_timed(obj_type_uri, now, meta, "completed_on")
+
+        # Warn if there are object types we don't know how to update
+        if self._hints[obj_type_uri.uri].update_strategy == "-":
+            self.log.warning(f"_cache_update: {obj_type_uri} - don't know how to update cache")
+
+        # Is the cache metadata consistent?
+        cached_size = self.db[_db_collection(obj_type_uri)].count_documents({})
+        if not meta.partial and meta.total_count != cached_size:
+            self.log.info(F"cache inconsistent {str(obj_type_uri)}: have {cached_size} objects, expected {meta.total_count}")
+
+        # Record that the cache was updated
+        self.cache_update[obj_type_uri.uri] = now
 
 
     def _cache_delete(self, obj_type_uri: URI) -> None:
         assert self.db is not None
-        self.db.cache_info.delete_one({"meta_key": _cache_uri_format(obj_type_uri)})
-        self.db[_cache_uri_format(obj_type_uri)].drop()
-        self.log.info(f"deleted {str(obj_type_uri)} cache")
+        collection = _db_collection(obj_type_uri)
+        self.log.info(f"_cache_delete: {collection}")
+        self.db.cache_info.delete_one({"collection": collection})
+        self.db[collection].drop()
+        self.db_calls += 1
 
 
     def _cache_load_metadata(self, obj_type_uri: URI) -> CacheMetadata:
         assert self.db is not None
-        meta_json = self.db.cache_info.find_one({"meta_key" : _cache_uri_format(obj_type_uri)})
+        collection  = _db_collection(obj_type_uri)
+        meta_json = self.db.cache_info.find_one({"collection" : collection})
         self.db_calls += 1
         assert isinstance(meta_json, dict)
         return self.pavlova.from_mapping(meta_json, CacheMetadata)
@@ -2114,39 +2072,38 @@ class DataTracker:
     def _cache_save_metadata(self, obj_type_uri: URI, meta: CacheMetadata) -> None:
         assert self.db is not None
         meta_dict : Dict[str, Any] = {}
-        meta_dict["meta_key"]    = _cache_uri_format(obj_type_uri)
+        meta_dict["collection"]  = _db_collection(obj_type_uri)
         meta_dict["created"]     = meta.created.isoformat()
         meta_dict["updated"]     = meta.updated.isoformat()
         meta_dict["partial"]     = meta.partial
         meta_dict["queries"]     = meta.queries
         meta_dict["total_count"] = meta.total_count
-        self.db.cache_info.replace_one({"meta_key" : meta_dict["meta_key"]}, meta_dict, upsert=True)
-        self.db.cache_info.create_index([('meta_key', ASCENDING)], unique=True)
+        self.db.cache_info.replace_one({"collection" : meta_dict["collection"]}, meta_dict, upsert=True)
+        self.db.cache_info.create_index([('collection', ASCENDING)], unique=True)
         self.db_calls += 1
 
 
     def _cache_create(self, obj_type_uri: URI) -> None:
-        if self.db is None:
-            return
-        meta_key  = _cache_uri_format(obj_type_uri)
+        assert self.db is not None
+        collection  = _db_collection(obj_type_uri)
         self.db_calls += 1
-        if not self.db.cache_info.find_one({"meta_key": meta_key}):
-            created = datetime.now(tz = dateutil.tz.gettz("America/Los_Angeles"))
-            updated = created
-            total_count = self._cache_fetch_object_count(obj_type_uri)
-            if total_count is None:
-                total_count = 0
-            meta = CacheMetadata(created, updated, True, total_count, [])
-            self._cache_save_metadata(obj_type_uri, meta)
-            self.log.info(F"_cache_create {meta_key}")
-            # create indexes
-            try:
-                for field in self._cache_indexes[type(obj_type_uri)].fields:
-                    self.db[_cache_uri_format(obj_type_uri)].create_index([(field, ASCENDING)], background=True)
-                for unique_field in self._cache_indexes[type(obj_type_uri)].unique_fields:
-                    self.db[_cache_uri_format(obj_type_uri)].create_index([(unique_field, ASCENDING)], unique=True, background=True)
-            except:
-                pass
+        if self.db.cache_info.find_one({"collection": collection}):
+            self.log.debug(F"_cache_create: {collection} already exists")
+        else:
+            self.log.info(F"_cache_create: {collection}")
+            created     = datetime.now(tz = dateutil.tz.gettz("America/Los_Angeles"))
+            updated     = created
+            total_count = self._datatracker_get_multi_count(obj_type_uri)
+            self._cache_save_metadata(obj_type_uri, CacheMetadata(created, updated, True, total_count, []))
+            # # create indexes
+            # try:
+            #     for field in self._hints[type(obj_type_uri)].fields:
+            #         self.db[_db_collection(obj_type_uri)].create_index([(field, ASCENDING)], background=True)
+            #     for unique_field in self._hints[type(obj_type_uri)].unique_fields:
+            #         self.db[_db_collection(obj_type_uri)].create_index([(unique_field, ASCENDING)], unique=True, background=True)
+            # except:
+            #     pass
+
 
     def _cache_record_query(self, obj_uri: URI, obj_type_uri: URI) -> None:
         if self.db is None:
@@ -2171,11 +2128,15 @@ class DataTracker:
     def _cache_has_object(self, obj_uri: URI) -> bool:
         if self.db is None:
             return False
-        self.db_calls += 1
-        if self.db[_cache_uri_format(_parent_uri(obj_uri))].find_one({"resource_uri": obj_uri.uri}):
+        self._cache_update(_parent_uri(obj_uri), False)
+        self.cache_req += 1
+        self.db_calls  += 1
+        if self.db[_db_collection(_parent_uri(obj_uri))].find_one({"resource_uri": obj_uri.uri}):
+            self.cache_hit += 1
             return True       # Object is in the local cache
         else:
             if self._cache_has_all_objects(_parent_uri(obj_uri)):
+                self.cache_hit += 1
                 return True   # Object is known not to exist
             else:
                 return False  # Object is not in the cache
@@ -2184,17 +2145,16 @@ class DataTracker:
     def _cache_get_object(self, obj_uri: URI) -> Optional[Dict[str, Any]]:
         assert self.db is not None
         self.db_calls += 1
-        return self.db[_cache_uri_format(_parent_uri(obj_uri))].find_one({"resource_uri": obj_uri.uri})
+        self.log.debug(F"_cache_get_object: {obj_uri}")
+        return self.db[_db_collection(_parent_uri(obj_uri))].find_one({"resource_uri": obj_uri.uri})
 
 
-    def _cache_put_object(self, obj_uri: URI, obj_json: Dict[str, Any]) -> None:
+    def _cache_put_object(self, obj_json: Dict[str, Any]) -> None:
         if self.db is None:
             return
-        assert obj_uri.uri is not None
-        assert obj_uri.uri.startswith("/")
-        assert obj_uri.uri.endswith("/")
-        self._cache_create(_parent_uri(obj_uri))
-        self.db[_cache_uri_format(_parent_uri(obj_uri))].replace_one({"resource_uri" : obj_json["resource_uri"]}, obj_json, upsert=True)
+        self.log.info(F"_cache_put_object: {obj_json['resource_uri']}")
+        self._cache_create(_parent_uri(URI(obj_json['resource_uri'])))
+        self.db[_db_collection(_parent_uri(URI(obj_json['resource_uri'])))].replace_one({"resource_uri" : obj_json['resource_uri']}, obj_json, upsert=True)
         self.db_calls += 1
 
 
@@ -2212,71 +2172,112 @@ class DataTracker:
         return str(obj_uri) in meta.queries
 
 
-    def _cache_get_objects(self, obj_uri: URI, param_objs: Dict[str, Optional[Resource]], obj_type_uri: URI, obj_type: Type[T]) -> List[Dict[Any, Any]]:
-        if self.db is None:
-            return []
-        self.db_calls += 1
-        if len(obj_uri.params) > 1:
-            self.db[_cache_uri_format(obj_type_uri)].create_index([(field, ASCENDING) for field in list(_translate_query(obj_uri, param_objs, obj_type).keys())])
-        obj_jsons = self.db[_cache_uri_format(obj_type_uri)].find(_translate_query(obj_uri, param_objs, obj_type))
-        return list(obj_jsons)
-
-
-    def _cache_fetch_object_count(self, obj_type_uri: URI) -> Optional[int]:
+    def _cache_get_objects(self, obj_uri: URI, obj_type_uri: URI, obj_type: Type[T]) -> Iterator[Dict[Any, Any]]:
+        assert self.db          is not None
+        assert obj_uri.uri      is not None
         assert obj_type_uri.uri is not None
-        limited_uri = URI(F"{obj_type_uri.uri}?limit=1")
-        assert limited_uri.uri is not None
-        req_url     = self.base_url + limited_uri.uri
-        req_headers = {'User-Agent': self.ua}
-        r = self.session.get(req_url, headers = req_headers, verify = True, stream = False)
-        if r.status_code == 200:
-            meta = r.json()['meta']
-            total_count = meta['total_count'] # type: int
-            return total_count
-        return None
+        self.log.debug(F"_cache_get_objects: obj_uri={obj_uri}")
+        #if len(obj_uri.params) > 1:
+        #    for field in _translate_query(obj_uri, param_objs, obj_type).keys():
+        #        self.log.debug(F"_cache_get_objects: create index '{field}'")
+        #        self.db[_db_collection(obj_type_uri)].create_index([(field, ASCENDING)])
+        deref = self._hints[obj_type_uri.uri].deref
+        for s, d in deref.items():
+            if s in obj_uri.params:
+                deref_uri = obj_type.__dict__["__dataclass_fields__"][s].type.root
+                deref_key = _db_collection(URI(deref_uri))
+                self.log.debug(F"_cache_get_objects: deref {deref_uri}")
+                self.db_calls += 1
+                deref_json = self.db[deref_key].find_one({d: obj_uri.params[s]})
+                assert deref_json is not None
+                obj_uri.params[s] = deref_json["resource_uri"]
+        query = _translate_query(obj_uri, obj_type)
+        dbkey = _db_collection(obj_type_uri)
+        self.log.debug(F"_cache_get_objects: query {query}")
+        self.log.debug(F"_cache_get_objects: dbkey {dbkey}")
+        self.db_calls += 1
+        for obj_json in self.db[dbkey].find(query):
+            self.log.debug(F"_cache_get_objects: get {obj_json['resource_uri']}")
+            yield obj_json
 
 
     def _cache_check_versions(self) -> None:
         if self.db is None:
             return
+
+        # Check for and upgrade v0.1.0 cache format to v1 cache format:
         cache_version_metadata = self.db.cache_info.find_one({"meta_key": "_cache_versions"})
-        if not cache_version_metadata:
-            dt_version = None
+        if cache_version_metadata is not None:
+            if cache_version_metadata["cache_version"] == "0.1.0":
+                # This is an instance of the original MongoDB cache. The cached data is useful,
+                # but the format of the indexes and cache_info collections has changed. Remove
+                # the old indexes, and update the cache_info collection to match the new format:
+                self.log.info(f"_cache_check_versions: cache version changed 0.1.0 -> {self.cache_ver}")
+                self.log.info(f"_cache_check_versions: drop index on cache_info")
+                self.db.cache_info.drop_indexes()
+                new_items : List[Dict[str, Any]] = []
+                for item in self.db.cache_info.find():
+                    collection = item["meta_key"]
+                    if collection == "_cache_versions":
+                        new_item = {
+                            "collection"    : item["meta_key"],
+                            "dt_version"    : item["dt_version"],
+                            "cache_version" : self.cache_ver
+                        }
+                    else:
+                        self.log.info(f"_cache_check_versions: drop index on {collection}")
+                        self.db[collection].drop_indexes()
+                        new_item = {
+                            "collection"  : item["meta_key"],
+                            "created"     : item["created"],
+                            "updated"     : item["updated"],
+                            "partial"     : item["partial"],
+                            "queries"     : item["queries"],
+                            "total_count" : item["total_count"]
+                        }
+                    new_items.append(new_item)
+                for item in new_items:
+                    self.log.info(f"_cache_check_versions: remove old cache_info {item['collection']}")
+                    self.db.cache_info.delete_one({"meta_key": item['collection']})
+                    self.log.info(f"_cache_check_versions: insert new cache_info {item['collection']}")
+                    self.db.cache_info.insert_one(item)
+
+        # Find cache and datatracker versions:
+        cache_version_metadata = self.db.cache_info.find_one({"collection": "_cache_versions"})
+        if cache_version_metadata is None:
+            dt_version    = None
             cache_version = self.cache_ver
         else:
-            dt_version = cache_version_metadata["dt_version"]
+            dt_version    = cache_version_metadata["dt_version"]
             cache_version = cache_version_metadata["cache_version"]
 
-        # check Datatracker version
-        dt_version_url = "https://datatracker.ietf.org/api/version"
-        req_headers = {'User-Agent': self.ua}
-        self._rate_limit()
-        r = self.session.get(dt_version_url, headers = req_headers, verify = True, stream = False)
-        if r.status_code == 200:
-            url_obj = r.json()
-            self.log.info(f"Datatracker version: {url_obj['version']}")
-            if dt_version != url_obj["version"]:
-                self.log.info(f"Datatracker version does not match cache ({dt_version})")
-                for cache_index_uri in self._cache_indexes:
-                    cache_obj_uri = URI(uri=cache_index_uri(uri=None).root)
-                    if "time" not in self._cache_indexes[cache_index_uri].fields:
-                        if self.db.cache_info.find_one({"meta_key": _cache_uri_format(cache_obj_uri)}):
-                            self._cache_delete(cache_obj_uri)
-                dt_version = url_obj["version"]
-        else:
-            self.log.info(f"could not fetch Datatracker version: {r.status_code} {dt_version_url}")
-            return
-
-        # check cache version
+        # Check cache version
         if cache_version != self.cache_ver:
-            self.log.info(f"Library cache version ({self.cache_ver}) does not match cache ({cache_version})")
-            for cache_index_uri in self._cache_indexes:
-                cache_obj_uri = URI(uri=cache_index_uri(uri=None).root)
-                self._cache_delete(cache_obj_uri)
-            cache_version = self.cache_ver
+            # Exit if the cache version doesn't match that we're expecting. Need to add code above
+            # to update the cache if the format changes, as was done with the v0.1.1 to v1 change.
+            self.log.error(f"_cache_check_versions: cache version changed {cache_version} -> {self.cache_ver}")
+            sys.exit()
+        else:
+            self.log.info(f"_cache_check_versions: cache version {self.cache_ver}")
 
-        self.db.cache_info.replace_one({"meta_key" : "_cache_versions"}, {"meta_key": "_cache_versions", "dt_version": dt_version, "cache_version": cache_version}, upsert=True)
+        # check Datatracker version
+        version_info = self._datatracker_get_single(URI("/api/version/"))
+        if version_info is not None:
+            if dt_version != version_info["version"]:
+                self.log.info(f"_cache_check_versions: datatracker version updated {dt_version} -> {version_info['version']}")
+                for cache_uri in self._hints:
+                    self.log.info(f"_cache_check_versions: update cache {cache_uri}")
+                    self._cache_update(URI(cache_uri), True)
+                dt_version = version_info["version"]
+            else:
+                self.log.info(f"_cache_check_versions: datatracker version {dt_version}")
+        else:
+            self.log.warning("_cache_check_versions: could not check datatracker version")
 
+        self.db.cache_info.replace_one(
+                {"collection": "_cache_versions"},
+                {"collection": "_cache_versions", "dt_version": dt_version, "cache_version": cache_version},
+                upsert=True)
 
     # ----------------------------------------------------------------------------------------------------------------------------
     # Private methods to retrieve objects from the datatracker:
@@ -2290,158 +2291,66 @@ class DataTracker:
             self.session.close()
 
 
-    def _retrieve_json(self, obj_uri: URI) -> Optional[Dict[str, Any]]:
-        self.cache_req += 1
-        if not self._cache_has_object(obj_uri):
-            self._rate_limit()
-            self.get_count += 1
-            assert obj_uri.uri is not None
-            req_url     = self.base_url + obj_uri.uri
-            req_headers = {'User-Agent': self.ua}
-            req_params  = obj_uri.params
-            r = self.session.get(req_url, params = req_params, headers = req_headers, verify = True, stream = False)
-            if r.status_code == 200:
-                url_obj = r.json() # type: Dict[str, Any]
-                self._cache_put_object(obj_uri, url_obj)
-                self._cache_record_query(obj_uri, _parent_uri(obj_uri))
-                return url_obj
-            elif r.status_code == 404:
-                return None
-            else:
-                print("_retrieve_json failed: {} {}".format(r.status_code, self.base_url + obj_uri.uri))
-                sys.exit(1)
-        else:
-            self.cache_hit += 1
-            return self._cache_get_object(obj_uri)
-
-
-    def _retrieve_jsons(self, obj_uri: URI, cache_uri: URI, param_objs: Dict[str, Optional[Resource]], obj_type_uri: URI, obj_type: Type[T]) -> List[Dict[Any, Any]]:
-        if self._cache_has_objects(cache_uri, obj_type_uri) or self._cache_has_all_objects(obj_uri):
-            self.cache_hit += 1
-            return self._cache_get_objects(obj_uri, param_objs, obj_type_uri, obj_type)
-
-        if len(obj_uri.params) > 0:
-            obj_uri = type(obj_type_uri)(F"{obj_uri.uri}?limit=100&{urllib.parse.urlencode(obj_uri.params)}")
-        else:
-            obj_uri = type(obj_type_uri)(F"{obj_uri.uri}?limit=100")
-
-        total = None
-        fetched_objs = [] # type: List[Dict[Any, Any]]
-        while obj_uri.uri is not None:
-            self._rate_limit()
-            retry = True
-            retry_time = 1.875
-            while retry:
-                retry = False
-                self.get_count += 1
-                req_url     = self.base_url + obj_uri.uri
-                req_headers = {'User-Agent': self.ua}
-                try:
-                    r = self.session.get(req_url, headers = req_headers, verify = True, stream = False)
-                    if r.status_code == 200:
-                        meta = r.json()['meta']
-                        objs = r.json()['objects']
-                        obj_uri  = URI(meta['next'])
-                        fetched_objs = objs + fetched_objs
-                        total = meta["total_count"]
-                    elif r.status_code == 500:
-                        if retry_time > 60:
-                            print("_retrieve_jsons failed: retry_time exceeded")
-                            sys.exit(1)
-                        self.session.close()
-                        time.sleep(retry_time)
-                        retry_time *= 2
-                        retry = True
-                    elif r.status_code == 400 and total is not None:
-                        # Error 400 = Bad Request
-                        # This should never happen in a range query such as this,
-                        # but occasionally does because of inconsistencies in the
-                        # database underlying the datatracker. Try to fetch each
-                        # object in the range in turn to isolate the problematic
-                        # object.
-                        self.log.info(F"_retrieve_jsons failed: isolating bad request {req_url}")
-                        # Parse the URL to extract the query range:
-                        split = urllib.parse.urlsplit(req_url)
-                        query = urllib.parse.parse_qs(split.query)
-                        offset = int(query["offset"][0])
-                        finish = offset + 100 if offset < total else total
-                        failed = True
-                        # Fetch each object in the range in turn:
-                        for i in range(offset, finish):
-                            obj_uri = URI(self.base_url + split.path)
-                            for k, v in query.items():
-                                obj_uri.params[k] = v
-                            obj_uri.params["offset"] = i
-                            obj_uri.params["limit"]  = 1
-                            self.get_count += 1
-                            self._rate_limit()
-                            r = self.session.get(str(obj_uri), headers = {"User-Agent": self.ua}, verify = True, stream = False)
-                            if r.status_code == 200:
-                                new_json = r.json() # type: Dict[str, Any]
-                                fetched_objs = objs + fetched_objs
-                                failed = False
-                            elif r.status_code == 400:
-                                self.log.info(F"  {r.status_code} {obj_uri}")
-                            else:
-                                print(F"_retrieve_jsons failed: error {r.status_code} after {self.http_req} requests {req_url}")
-                                sys.exit(1)
-                        if failed:
-                            print(F"_retrieve_jsons failed: no request in range could be retrieved")
-                            sys.exit(1)
-                        # Construct the next range URL, and continue:
-                        obj_uri = type(obj_type_uri)(split.path)
-                        for k, v in query.items():
-                            obj_uri.params[k] = v
-                        obj_uri.params["offset"] = finish
-                        obj_uri.params["limit"]  = 100
-                        obj_uri = type(obj_type_uri)(F"{obj_uri.uri}?{urllib.parse.urlencode(obj_uri.params)}")
-                    else:
-                        print(F"_retrieve_jsons failed: error {r.status_code} after {self.http_req} requests {req_url}")
-                        sys.exit(1)
-                except requests.exceptions.ConnectionError:
-                    self.log.warn(F"_retrieve_jsons failed: connection error - will retry in {retry_time}")
-                    self.session.close()
-                    time.sleep(retry_time)
-                    retry_time *= 2
-                    retry = True
-        if self.db is not None:
-            for obj_json in fetched_objs:
-                self._cache_put_object(type(obj_type_uri)(obj_json["resource_uri"]), obj_json)
-        return fetched_objs
-
     def _retrieve(self, obj_uri: URI, obj_type: Type[T]) -> Optional[T]:
-        self._cache_update(_parent_uri(obj_uri), obj_type)
-        obj_json = self._retrieve_json(obj_uri)
-        if obj_json is not None:
-            return self.pavlova.from_mapping(obj_json, obj_type)
+        self.log.debug(F"_retrieve {obj_uri}")
+        self._cache_update(_parent_uri(obj_uri), False)
+        if self._cache_has_object(obj_uri):
+            self.log.debug(F"_retrieve {obj_uri} cache hit")
+            obj_json = self._cache_get_object(obj_uri)
+            if obj_json is not None:
+                return self.pavlova.from_mapping(obj_json, obj_type)
+            else:
+                return None
         else:
-            return None
+            self.log.debug(F"_retrieve {obj_uri} cache miss")
+            obj_json = self._datatracker_get_single(obj_uri)
+            if obj_json is not None:
+                self._cache_put_object(obj_json)
+                self._cache_record_query(obj_uri, _parent_uri(obj_uri))
+                return self.pavlova.from_mapping(obj_json, obj_type)
+            else:
+                return None
 
 
-    def _retrieve_multi(self, obj_uri: URI, param_objs: Dict[str, Optional[Resource]], obj_type: Type[T]) -> Iterator[T]:
+    def _retrieve_multi(self, obj_uri: URI, obj_type: Type[T]) -> Iterator[T]:
+        self.log.debug(F"_retrieve_multi: obj_uri {obj_uri}")
         obj_type_uri = type(obj_uri)(obj_uri.uri)
         cache_uri = type(obj_uri)(obj_uri.uri)
+        assert obj_uri.uri      is not None
+        assert obj_type_uri.uri is not None
+        assert cache_uri.uri    is not None
         for n, v in obj_uri.params.items():
             assert n is not None
             assert v is not None
             if n != "time__gte" and n != "time__lt":
                 cache_uri.params[n] = v
-
-        self._cache_update(_parent_uri(obj_uri), obj_type)
-        self.cache_req += 1
-
-        obj_jsons = self._retrieve_jsons(obj_uri, cache_uri, param_objs, obj_type_uri, obj_type)
+        self._cache_update(obj_type_uri, False)
+        obj_jsons = [] # type: List[Dict[str, Any]]
+        if self._cache_has_objects(cache_uri, obj_type_uri) or self._cache_has_all_objects(obj_uri):
+            self.log.debug(F"_retrieve_multi: cache hit {cache_uri} {obj_uri}")
+            for obj_json in self._cache_get_objects(obj_uri, obj_type_uri, obj_type):
+                obj_jsons.append(obj_json)
+        else:
+            self.log.debug(F"_retrieve_multi: cache miss {cache_uri} {obj_uri}")
+            for obj_json in self._datatracker_get_multi(obj_uri):
+                obj_jsons.append(obj_json)
+                self._cache_put_object(obj_json)
+                # If this object has a deref field, we need to fetch and cache the referenced object too
+                if self.db is not None:
+                    for s, d in self._hints[obj_type_uri.uri].deref.items():
+                        deref_uri  = URI(obj_json[s])
+                        if self._cache_has_object(deref_uri):
+                            self.log.info(F"_retrieve_multri deref {deref_uri} already cached")
+                        else:
+                            deref_json = self._datatracker_get_single(deref_uri)
+                            if deref_json is not None:
+                                self.log.info(F"_retrieve_multri deref {deref_uri}")
+                                self._cache_put_object(deref_json)
         self._cache_record_query(cache_uri, obj_type_uri)
-        results = []
-        for fetched_obj in obj_jsons:
-            sort_key = ""
-            for sb in self._cache_indexes[type(obj_type_uri)].order_by:
-                sort_key += F" {fetched_obj[sb]:40}"
-            results.append((sort_key, fetched_obj))
-        results.sort(key=_sort_objs, reverse=self._cache_indexes[type(obj_type_uri)].reverse)
-        for key, obj_json in results:
-            obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
-            yield obj
+        sort_by = self._hints[obj_type_uri.uri].sort_by
+        for obj_json in sorted(obj_jsons, key=lambda k: k[sort_by]):  # type: ignore
+            fetch_obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
+            yield fetch_obj
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -2463,29 +2372,39 @@ class DataTracker:
             return None
 
 
-    def person_aliases(self, person: Person) -> Iterator[PersonAlias]:
+    def person_aliases(self,
+            person        : Optional[Person] = None,
+            name          : Optional[str] = None,
+            name_contains : Optional[str] = None) -> Iterator[PersonAlias]:
         url = PersonAliasURI("/api/v1/person/alias/")
-        url.params["person"] = person.id
-        return self._retrieve_multi(url, {"person": person}, PersonAlias)
+        if person is not None:
+            url.params["person"] = person.id
+        if name is not None:
+            url.params["name"] = name
+        if name_contains is not None:
+            url.params["name__contains"] = name_contains
+        return self._retrieve_multi(url, PersonAlias)
 
 
     def person_history(self, person: Person) -> Iterator[HistoricalPerson]:
         url = HistoricalPersonURI("/api/v1/person/historicalperson/")
         url.params["id"] = person.id
-        return self._retrieve_multi(url, {"person": person}, HistoricalPerson)
+        return self._retrieve_multi(url, HistoricalPerson)
 
 
     def person_events(self, person: Person) -> Iterator[PersonEvent]:
         url = PersonEventURI("/api/v1/person/personevent/")
         url.params["person"] = person.id
-        return self._retrieve_multi(url, {"person": person}, PersonEvent)
+        return self._retrieve_multi(url, PersonEvent)
 
 
     def people(self,
             since : str ="1970-01-01T00:00:00",
             until : str ="2038-01-19T03:14:07",
-            name_contains : Optional[str] = None,
-            ascii_contains : Optional[str] = None) -> Iterator[Person]:
+            name                : Optional[str] = None,
+            name_contains       : Optional[str] = None,
+            name_ascii          : Optional[str] = None,
+            name_ascii_contains : Optional[str] = None) -> Iterator[Person]:
         """
         A generator that returns people recorded in the datatracker. As of April
         2018, there are approximately 21500 people recorded.
@@ -2501,11 +2420,15 @@ class DataTracker:
         url = PersonURI("/api/v1/person/person/")
         url.params["time__gte"] = since
         url.params["time__lt"]  = until
+        if name is not None:
+            url.params["name"] = name
         if name_contains is not None:
             url.params["name__contains"] = name_contains
-        if ascii_contains is not None:
-            url.params["ascii__contains"] = ascii_contains
-        return self._retrieve_multi(url, {}, Person)
+        if name_ascii is not None:
+            url.params["ascii"] = name_ascii
+        if name_ascii_contains is not None:
+            url.params["ascii__contains"] = name_ascii_contains
+        return self._retrieve_multi(url, Person)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -2517,22 +2440,27 @@ class DataTracker:
         return self._retrieve(email_uri, Email)
 
 
+    def email_for_address(self, email_addr: str) -> Optional[Email]:
+        uri = EmailURI(F"/api/v1/person/email/{email_addr}/")
+        return self.email(uri)
+
+
     def email_for_person(self, person: Person) -> Iterator[Email]:
         uri = EmailURI("/api/v1/person/email/")
         uri.params["person"] = person.id
-        return self._retrieve_multi(uri, {"person": person}, Email)
+        return self._retrieve_multi(uri, Email)
 
 
     def email_history_for_address(self, email_addr: str) -> Iterator[HistoricalEmail]:
         uri = HistoricalEmailURI("/api/v1/person/historicalemail/")
         uri.params["address"] = email_addr
-        return self._retrieve_multi(uri, {}, HistoricalEmail)
+        return self._retrieve_multi(uri, HistoricalEmail)
 
 
     def email_history_for_person(self, person: Person) -> Iterator[HistoricalEmail]:
         uri = HistoricalEmailURI("/api/v1/person/historicalemail/")
         uri.params["person"] = person.id
-        return self._retrieve_multi(uri, {"person": person}, HistoricalEmail)
+        return self._retrieve_multi(uri, HistoricalEmail)
 
 
     def emails(self,
@@ -2555,7 +2483,7 @@ class DataTracker:
         url.params["time__lt"]   = until
         if addr_contains is not None:
             url.params["address__contains"] = addr_contains
-        return self._retrieve_multi(url, {}, Email)
+        return self._retrieve_multi(url, Email)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -2582,7 +2510,7 @@ class DataTracker:
             url.params["stream"] = stream.slug
         if group is not None:
             url.params["group"] = group.id
-        return self._retrieve_multi(url, {"type": doctype, "stream": stream, "group": group}, Document)
+        return self._retrieve_multi(url, Document)
 
 
     # Datatracker API endpoints returning information about document aliases:
@@ -2605,7 +2533,7 @@ class DataTracker:
         url = DocumentAliasURI("/api/v1/doc/docalias/")
         if name is not None:
             url.params["name"] = name
-        return self._retrieve_multi(url, {}, DocumentAlias)
+        return self._retrieve_multi(url, DocumentAlias)
 
 
     def document_from_draft(self, draft: str) -> Optional[Document]:
@@ -2687,7 +2615,7 @@ class DataTracker:
 
 
     def document_types(self) -> Iterator[DocumentType]:
-        return self._retrieve_multi(DocumentTypeURI("/api/v1/name/doctypename/"), {}, DocumentType)
+        return self._retrieve_multi(DocumentTypeURI("/api/v1/name/doctypename/"), DocumentType)
 
 
     # Datatracker API endpoints returning information about document states:
@@ -2706,7 +2634,7 @@ class DataTracker:
             url.params["type"] = state_type.slug
         if slug is not None:
             url.params["slug"] = slug
-        return self._retrieve_multi(url, {"type": state_type}, DocumentState)
+        return self._retrieve_multi(url, DocumentState)
 
 
     def document_state_type(self, state_type_uri : DocumentStateTypeURI) -> Optional[DocumentStateType]:
@@ -2719,7 +2647,7 @@ class DataTracker:
 
     def document_state_types(self) -> Iterator[DocumentStateType]:
         url = DocumentStateTypeURI("/api/v1/doc/statetype/")
-        return self._retrieve_multi(url, {}, DocumentStateType)
+        return self._retrieve_multi(url, DocumentStateType)
 
 
     # Datatracker API endpoints returning information about document events:
@@ -2769,7 +2697,7 @@ class DataTracker:
         if by is not None:
             url.params["by"]   = by.id
         url.params["type"]     = event_type
-        return self._retrieve_multi(url, {"doc": doc, "by": by}, DocumentEvent)
+        return self._retrieve_multi(url, DocumentEvent)
 
 
     # Datatracker API endpoints returning information about document authorship:
@@ -2780,19 +2708,19 @@ class DataTracker:
     def document_authors(self, document : Document) -> Iterator[DocumentAuthor]:
         url = DocumentAuthorURI("/api/v1/doc/documentauthor/")
         url.params["document"] = document.id
-        return self._retrieve_multi(url, {"document": document}, DocumentAuthor)
+        return self._retrieve_multi(url, DocumentAuthor)
 
 
     def documents_authored_by_person(self, person : Person) -> Iterator[DocumentAuthor]:
         url = DocumentAuthorURI("/api/v1/doc/documentauthor/")
         url.params["person"] = person.id
-        return self._retrieve_multi(url, {"person": person}, DocumentAuthor)
+        return self._retrieve_multi(url, DocumentAuthor)
 
 
     def documents_authored_by_email(self, email : Email) -> Iterator[DocumentAuthor]:
         url = DocumentAuthorURI("/api/v1/doc/documentauthor/")
         url.params["email"] = email.address
-        return self._retrieve_multi(url, {"email": email}, DocumentAuthor)
+        return self._retrieve_multi(url, DocumentAuthor)
 
 
     # Datatracker API endpoints returning information about related documents:
@@ -2812,7 +2740,7 @@ class DataTracker:
             url.params["target"] = target.id
         if relationship_type is not None:
             url.params["relationship"] = relationship_type.slug
-        return self._retrieve_multi(url, {"source": source, "target": target, "relationship": relationship_type}, RelatedDocument)
+        return self._retrieve_multi(url, RelatedDocument)
 
 
     def relationship_type(self, relationship_type_uri: RelationshipTypeURI) -> Optional[RelationshipType]:
@@ -2844,7 +2772,7 @@ class DataTracker:
             An iterator of RelationshipType objects
         """
         url = RelationshipTypeURI("/api/v1/name/docrelationshipname/")
-        return self._retrieve_multi(url, {}, RelationshipType)
+        return self._retrieve_multi(url, RelationshipType)
 
 
     # Datatracker API endpoints returning information about document history:
@@ -2879,7 +2807,7 @@ class DataTracker:
            A sequence of BallotPositionName objects
         """
         url = BallotPositionNameURI("/api/v1/name/ballotpositionname/")
-        return self._retrieve_multi(url, {}, BallotPositionName)
+        return self._retrieve_multi(url, BallotPositionName)
 
 
     def ballot_type(self, ballot_type_uri : BallotTypeURI) -> Optional[BallotType]:
@@ -2899,7 +2827,7 @@ class DataTracker:
         url = BallotTypeURI("/api/v1/doc/ballottype/")
         if doc_type is not None:
             url.params["doc_type"] = doc_type.slug
-        return self._retrieve_multi(url, {"doc_type": doc_type}, BallotType)
+        return self._retrieve_multi(url, BallotType)
 
 
 
@@ -2939,7 +2867,7 @@ class DataTracker:
             url.params["doc"] = doc.id
         if event_type is not None:
             url.params["type"] = event_type
-        return self._retrieve_multi(url, {"ballot_type": ballot_type, "by": by, "doc": doc}, BallotDocumentEvent)
+        return self._retrieve_multi(url, BallotDocumentEvent)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -2959,7 +2887,7 @@ class DataTracker:
         url = SubmissionURI("/api/v1/submit/submission/")
         url.params["submission_date__gte"] = date_since
         url.params["submission_date__lt"] = date_until
-        return self._retrieve_multi(url, {}, Submission)
+        return self._retrieve_multi(url, Submission)
 
 
     def submission_event(self, event_uri: SubmissionEventURI) -> Optional[SubmissionEvent]:
@@ -2990,7 +2918,7 @@ class DataTracker:
             url.params["by"] = by.id
         if submission is not None:
             url.params["submission"] = submission.id
-        return self._retrieve_multi(url, {"by": by, "submission": submission}, SubmissionEvent)
+        return self._retrieve_multi(url, SubmissionEvent)
 
     # ----------------------------------------------------------------------------------------------------------------------------
     # Datatracker API endpoints returning miscellaneous information about documents:
@@ -3014,7 +2942,7 @@ class DataTracker:
 
 
     def streams(self) -> Iterator[Stream]:
-        return self._retrieve_multi(StreamURI("/api/v1/name/streamname/"), {}, Stream)
+        return self._retrieve_multi(StreamURI("/api/v1/name/streamname/"), Stream)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -3045,13 +2973,13 @@ class DataTracker:
     def group_from_acronym(self, acronym: str) -> Optional[Group]:
         url = GroupURI("/api/v1/group/group/")
         url.params["acronym"] = acronym
-        groups = list(self._retrieve_multi(url, {}, Group))
+        groups = list(self._retrieve_multi(url, Group))
         if len(groups) == 0:
             return None
         elif len(groups) == 1:
             return groups[0]
         else:
-            raise RuntimeError
+            raise RuntimeError("group_from_acronym: multiple groups returned, expected 0 or 1")
 
 
     def groups(self,
@@ -3069,7 +2997,7 @@ class DataTracker:
             url.params["state"] = state.slug
         if parent is not None:
             url.params["parent"] = parent.id
-        return self._retrieve_multi(url, {"state": state, "parent": parent}, Group)
+        return self._retrieve_multi(url, Group)
 
 
     def group_history(self, group_history_uri: GroupHistoryURI) -> Optional[GroupHistory]:
@@ -3079,7 +3007,7 @@ class DataTracker:
     def group_histories_from_acronym(self, acronym: str) -> Iterator[GroupHistory]:
         url = GroupHistoryURI("/api/v1/group/grouphistory/")
         url.params["acronym"] = acronym
-        return self._retrieve_multi(url, {}, GroupHistory)
+        return self._retrieve_multi(url, GroupHistory)
 
 
     def group_histories(self,
@@ -3097,7 +3025,7 @@ class DataTracker:
             url.params["state"] = state.slug
         if parent is not None:
             url.params["parent"] = parent.id
-        return self._retrieve_multi(url, {"group": group, "state": state, "parent": parent}, GroupHistory)
+        return self._retrieve_multi(url, GroupHistory)
 
 
     def group_event(self, group_event_uri : GroupEventURI) -> Optional[GroupEvent]:
@@ -3119,7 +3047,7 @@ class DataTracker:
             url.params["group"] = group.id
         if type is not None:
             url.params["type"]  = type
-        return self._retrieve_multi(url, {"by": by, "group": group}, GroupEvent)
+        return self._retrieve_multi(url, GroupEvent)
 
     def group_url(self, group_url_uri: GroupUrlURI) -> Optional[GroupUrl]:
         return self._retrieve(group_url_uri, GroupUrl)
@@ -3129,7 +3057,7 @@ class DataTracker:
         url = GroupUrlURI("/api/v1/group/groupurl/")
         if group is not None:
             url.params["group"] = group.id
-        return self._retrieve_multi(url, {"group": group}, GroupUrl)
+        return self._retrieve_multi(url, GroupUrl)
 
 
     def group_milestone_statename(self, group_milestone_statename_uri: GroupMilestoneStateNameURI) -> Optional[GroupMilestoneStateName]:
@@ -3137,7 +3065,7 @@ class DataTracker:
 
 
     def group_milestone_statenames(self) -> Iterator[GroupMilestoneStateName]:
-        return self._retrieve_multi(GroupMilestoneStateNameURI("/api/v1/name/groupmilestonestatename/"), {}, GroupMilestoneStateName)
+        return self._retrieve_multi(GroupMilestoneStateNameURI("/api/v1/name/groupmilestonestatename/"), GroupMilestoneStateName)
 
 
     def group_milestone(self, group_milestone_uri : GroupMilestoneURI) -> Optional[GroupMilestone]:
@@ -3156,7 +3084,7 @@ class DataTracker:
             url.params["group"] = group.id
         if state is not None:
             url.params["state"] = state.slug
-        return self._retrieve_multi(url, {"group": group, "state": state}, GroupMilestone)
+        return self._retrieve_multi(url, GroupMilestone)
 
 
     def role_name(self, role_name_uri: RoleNameURI) -> Optional[RoleName]:
@@ -3168,7 +3096,7 @@ class DataTracker:
 
 
     def role_names(self) -> Iterator[RoleName]:
-        return self._retrieve_multi(RoleNameURI("/api/v1/name/rolename/"), {}, RoleName)
+        return self._retrieve_multi(RoleNameURI("/api/v1/name/rolename/"), RoleName)
 
 
     def group_role(self, group_role_uri : GroupRoleURI) -> Optional[GroupRole]:
@@ -3189,7 +3117,7 @@ class DataTracker:
             url.params["name"] = name.slug
         if person is not None:
             url.params["person"] = person.id
-        return self._retrieve_multi(url, {"group": group, "name": name, "person": person}, GroupRole)
+        return self._retrieve_multi(url, GroupRole)
 
 
     def group_role_history(self, group_role_history_uri : GroupRoleHistoryURI) -> Optional[GroupRoleHistory]:
@@ -3210,7 +3138,7 @@ class DataTracker:
             url.params["name"] = name.slug
         if person is not None:
             url.params["person"] = person.id
-        return self._retrieve_multi(url, {"name": name, "person": person}, GroupRoleHistory)
+        return self._retrieve_multi(url, GroupRoleHistory)
 
 
     def group_milestone_history(self, group_milestone_history_uri : GroupMilestoneHistoryURI) -> Optional[GroupMilestoneHistory]:
@@ -3232,7 +3160,7 @@ class DataTracker:
             url.params["milestone"] = milestone.id
         if state is not None:
             url.params["state"] = state.slug
-        return self._retrieve_multi(url, {"group": group, "milestone": milestone, "state": state}, GroupMilestoneHistory)
+        return self._retrieve_multi(url, GroupMilestoneHistory)
 
 
     def group_milestone_event(self, group_milestone_event_uri : GroupMilestoneEventURI) -> Optional[GroupMilestoneEvent]:
@@ -3257,7 +3185,7 @@ class DataTracker:
             url.params["milestone"] = milestone.id
         if type is not None:
             url.params["type"] = type
-        return self._retrieve_multi(url, {"by": by, "group": group, "milestone": milestone}, GroupMilestoneEvent)
+        return self._retrieve_multi(url, GroupMilestoneEvent)
 
 
     def group_state_change_event(self, group_state_change_event_uri : GroupStateChangeEventURI) -> Optional[GroupStateChangeEvent]:
@@ -3279,7 +3207,7 @@ class DataTracker:
             url.params["group"] = group.id
         if state is not None:
             url.params["state"] = state.slug
-        return self._retrieve_multi(url, {"by": by, "group": group, "state": state}, GroupStateChangeEvent)
+        return self._retrieve_multi(url, GroupStateChangeEvent)
 
 
     def group_state(self, group_state_uri : GroupStateURI) -> Optional[GroupState]:
@@ -3292,7 +3220,7 @@ class DataTracker:
 
     def group_states(self) -> Iterator[GroupState]:
         url = GroupStateURI("/api/v1/name/groupstatename/")
-        return self._retrieve_multi(url, {}, GroupState)
+        return self._retrieve_multi(url, GroupState)
 
 
     def group_type_name(self, group_type_name_uri : GroupTypeNameURI) -> Optional[GroupTypeName]:
@@ -3304,7 +3232,7 @@ class DataTracker:
 
 
     def group_type_names(self) -> Iterator[GroupTypeName]:
-        return self._retrieve_multi(GroupTypeNameURI("/api/v1/name/grouptypename/"), {}, GroupTypeName)
+        return self._retrieve_multi(GroupTypeNameURI("/api/v1/name/grouptypename/"), GroupTypeName)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -3345,7 +3273,7 @@ class DataTracker:
         """
         url = SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/")
         url.params["schedule"] = schedule.id
-        return self._retrieve_multi(url, {"schedule": schedule}, SessionAssignment)
+        return self._retrieve_multi(url, SessionAssignment)
 
 
     def meeting_session_status(self, session: Session) -> SessionStatusName:
@@ -3364,7 +3292,7 @@ class DataTracker:
 
 
     def meeting_session_status_names(self) -> Iterator[SessionStatusName]:
-        return self._retrieve_multi(SessionStatusNameURI("/api/v1/name/sessionstatusname/"), {}, SessionStatusName)
+        return self._retrieve_multi(SessionStatusNameURI("/api/v1/name/sessionstatusname/"), SessionStatusName)
 
 
     def meeting_session(self, session_uri : SessionURI) -> Optional[Session]:
@@ -3378,7 +3306,7 @@ class DataTracker:
         url.params["meeting"]  = meeting.id
         if group is not None:
             url.params["group"] = group.id
-        return self._retrieve_multi(url, {"meeting": meeting, "group": group}, Session)
+        return self._retrieve_multi(url, Session)
 
 
     def meeting_timeslot(self, timeslot_uri: TimeslotURI) -> Optional[Timeslot]:
@@ -3397,7 +3325,7 @@ class DataTracker:
             url.params["session"] = session.id
         if by is not None:
             url.params["by"] = by.id
-        return self._retrieve_multi(url, {"session": session, "by": by}, SchedulingEvent)
+        return self._retrieve_multi(url, SchedulingEvent)
 
 
     def meeting_schedule(self, schedule_uri : ScheduleURI) -> Optional[Schedule]:
@@ -3434,7 +3362,7 @@ class DataTracker:
         url.params["date__lte"] = end_date
         if meeting_type is not None:
             url.params["type"] = meeting_type.slug
-        return self._retrieve_multi(url, {"type": meeting_type}, Meeting)
+        return self._retrieve_multi(url, Meeting)
 
 
 
@@ -3456,7 +3384,7 @@ class DataTracker:
         Returns:
             An iterator of MeetingType objects
         """
-        return self._retrieve_multi(MeetingTypeURI("/api/v1/name/meetingtypename/"), {}, MeetingType)
+        return self._retrieve_multi(MeetingTypeURI("/api/v1/name/meetingtypename/"), MeetingType)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -3484,7 +3412,7 @@ class DataTracker:
 
 
     def ipr_disclosure_states(self) -> Iterator[IPRDisclosureState]:
-        return self._retrieve_multi(IPRDisclosureStateURI("/api/v1/name/iprdisclosurestatename/"), {}, IPRDisclosureState)
+        return self._retrieve_multi(IPRDisclosureStateURI("/api/v1/name/iprdisclosurestatename/"), IPRDisclosureState)
 
 
     def ipr_disclosure_base(self, ipr_disclosure_base_uri: IPRDisclosureBaseURI) -> Optional[IPRDisclosureBase]:
@@ -3512,7 +3440,7 @@ class DataTracker:
             url.params["submitter_email"] = submitter_email
         if submitter_name is not None:
             url.params["submitter_name"] = submitter_name
-        return self._retrieve_multi(url, {"state": state}, IPRDisclosureBase)
+        return self._retrieve_multi(url, IPRDisclosureBase)
 
 
     def generic_ipr_disclosure(self, generic_ipr_disclosure_uri: GenericIPRDisclosureURI) -> Optional[GenericIPRDisclosure]:
@@ -3543,7 +3471,7 @@ class DataTracker:
             url.params["submitter_email"] = submitter_email
         if submitter_name is not None:
             url.params["submitter_name"] = submitter_name
-        return self._retrieve_multi(url, {"by": by, "state": state}, GenericIPRDisclosure)
+        return self._retrieve_multi(url, GenericIPRDisclosure)
 
 
     def ipr_license_type(self, ipr_license_type_uri: IPRLicenseTypeURI) -> Optional[IPRLicenseType]:
@@ -3551,7 +3479,7 @@ class DataTracker:
 
 
     def ipr_license_types(self) -> Iterator[IPRLicenseType]:
-        return self._retrieve_multi(IPRLicenseTypeURI("/api/v1/name/iprlicensetypename/"), {}, IPRLicenseType)
+        return self._retrieve_multi(IPRLicenseTypeURI("/api/v1/name/iprlicensetypename/"), IPRLicenseType)
 
 
     def holder_ipr_disclosure(self, holder_ipr_disclosure_uri: HolderIPRDisclosureURI) -> Optional[HolderIPRDisclosure]:
@@ -3591,7 +3519,7 @@ class DataTracker:
             url.params["submitter_email"] = submitter_email
         if submitter_name is not None:
             url.params["submitter_name"] = submitter_name
-        return self._retrieve_multi(url, {"by": by, "licensing": licensing, "state": state}, HolderIPRDisclosure)
+        return self._retrieve_multi(url, HolderIPRDisclosure)
 
 
     def thirdparty_ipr_disclosure(self, thirdparty_ipr_disclosure_uri: ThirdPartyIPRDisclosureURI) -> Optional[ThirdPartyIPRDisclosure]:
@@ -3625,7 +3553,7 @@ class DataTracker:
             url.params["submitter_email"] = submitter_email
         if submitter_name is not None:
             url.params["submitter_name"] = submitter_name
-        return self._retrieve_multi(url, {"by": by, "state": state}, HolderIPRDisclosure)
+        return self._retrieve_multi(url, HolderIPRDisclosure)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -3675,7 +3603,7 @@ class DataTracker:
 
 
     def review_assignment_states(self) -> Iterator[ReviewAssignmentState]:
-        return self._retrieve_multi(ReviewAssignmentStateURI("/api/v1/name/reviewassignmentstatename/"), {}, ReviewAssignmentState)
+        return self._retrieve_multi(ReviewAssignmentStateURI("/api/v1/name/reviewassignmentstatename/"), ReviewAssignmentState)
 
 
     def review_result_type(self, review_result_uri: ReviewResultTypeURI) -> Optional[ReviewResultType]:
@@ -3687,7 +3615,7 @@ class DataTracker:
 
 
     def review_result_types(self) -> Iterator[ReviewResultType]:
-        return self._retrieve_multi(ReviewResultTypeURI("/api/v1/name/reviewresultname/"), {}, ReviewResultType)
+        return self._retrieve_multi(ReviewResultTypeURI("/api/v1/name/reviewresultname/"), ReviewResultType)
 
 
     def review_type(self, review_type_uri: ReviewTypeURI) -> Optional[ReviewType]:
@@ -3699,7 +3627,7 @@ class DataTracker:
 
 
     def review_types(self) -> Iterator[ReviewType]:
-        return self._retrieve_multi(ReviewTypeURI("/api/v1/name/reviewtypename/"), {}, ReviewType)
+        return self._retrieve_multi(ReviewTypeURI("/api/v1/name/reviewtypename/"), ReviewType)
 
 
     def review_request_state(self, review_request_state_uri: ReviewRequestStateURI) -> Optional[ReviewRequestState]:
@@ -3711,7 +3639,7 @@ class DataTracker:
 
 
     def review_request_states(self) -> Iterator[ReviewRequestState]:
-        return self._retrieve_multi(ReviewRequestStateURI("/api/v1/name/reviewrequeststatename/"), {}, ReviewRequestState)
+        return self._retrieve_multi(ReviewRequestStateURI("/api/v1/name/reviewrequeststatename/"), ReviewRequestState)
 
 
     def review_request(self, review_request_uri: ReviewRequestURI) -> Optional[ReviewRequest]:
@@ -3739,7 +3667,7 @@ class DataTracker:
             url.params["team"] = team.id
         if type is not None:
             url.params["type"] = type.slug
-        return self._retrieve_multi(url, {"doc": doc, "requested_by": requested_by, "state": state, "team": team, "type": type}, ReviewRequest)
+        return self._retrieve_multi(url, ReviewRequest)
 
 
     def review_assignment(self, review_assignment_uri: ReviewAssignmentURI) -> Optional[ReviewAssignment]:
@@ -3768,7 +3696,7 @@ class DataTracker:
             url.params["reviewer"] = reviewer.address
         if state is not None:
             url.params["state"] = state.slug
-        return self._retrieve_multi(url, {"result": result, "review_request": review_request, "reviewer": reviewer, "state": state}, ReviewAssignment)
+        return self._retrieve_multi(url, ReviewAssignment)
 
 
     def review_wish(self, review_wish_uri: ReviewWishURI) -> Optional[ReviewWish]:
@@ -3790,7 +3718,7 @@ class DataTracker:
             url.params["person"] = person.id
         if team is not None:
             url.params["team"] = team.id
-        return self._retrieve_multi(url, {"doc": doc, "person": person, "team": team}, ReviewWish)
+        return self._retrieve_multi(url, ReviewWish)
 
 
     def historical_unavailable_period(self, historical_unavailable_period_uri: HistoricalUnavailablePeriodURI) -> Optional[HistoricalUnavailablePeriod]:
@@ -3811,7 +3739,7 @@ class DataTracker:
             url.params["person"] = person.id
         if team is not None:
             url.params["team"] = team.id
-        return self._retrieve_multi(url, {"person": person, "team": team}, HistoricalUnavailablePeriod)
+        return self._retrieve_multi(url, HistoricalUnavailablePeriod)
 
 
     def historical_review_request(self, historical_review_request_uri: HistoricalReviewRequestURI) -> Optional[HistoricalReviewRequest]:
@@ -3845,7 +3773,7 @@ class DataTracker:
             url.params["team"] = team.id
         if type is not None:
             url.params["type"] = type.slug
-        return self._retrieve_multi(url, {"doc": doc, "requested_by": requested_by, "state": state, "team": team, "type": type}, HistoricalReviewRequest)
+        return self._retrieve_multi(url, HistoricalReviewRequest)
 
 
     def next_reviewer_in_team(self, next_reviewer_in_team_uri: NextReviewerInTeamURI) -> Optional[NextReviewerInTeam]:
@@ -3857,7 +3785,7 @@ class DataTracker:
         url = NextReviewerInTeamURI("/api/v1/review/nextreviewerinteam/")
         if team is not None:
             url.params["team"] = team.id
-        return self._retrieve_multi(url, {"team": team}, NextReviewerInTeam)
+        return self._retrieve_multi(url, NextReviewerInTeam)
 
 
     def review_team_settings(self, review_team_settings_uri: ReviewTeamSettingsURI) -> Optional[ReviewTeamSettings]:
@@ -3869,7 +3797,7 @@ class DataTracker:
         url = ReviewTeamSettingsURI("/api/v1/review/reviewteamsettings/")
         if group is not None:
             url.params["group"] = group.id
-        return self._retrieve_multi(url, {"group": group}, ReviewTeamSettings)
+        return self._retrieve_multi(url, ReviewTeamSettings)
 
 
     def reviewer_settings(self, reviewer_settings_uri: ReviewerSettingsURI) -> Optional[ReviewerSettings]:
@@ -3884,7 +3812,7 @@ class DataTracker:
             url.params["person"] = person.id
         if team is not None:
             url.params["team"] = team.id
-        return self._retrieve_multi(url, {"person": person, "team": team}, ReviewerSettings)
+        return self._retrieve_multi(url, ReviewerSettings)
 
 
     def unavailable_period(self, unavailable_period_uri: UnavailablePeriodURI) -> Optional[UnavailablePeriod]:
@@ -3899,7 +3827,7 @@ class DataTracker:
             url.params["person"] = person.id
         if team is not None:
             url.params["team"] = team.id
-        return self._retrieve_multi(url, {"person": person, "team": team}, UnavailablePeriod)
+        return self._retrieve_multi(url, UnavailablePeriod)
 
 
     def historical_reviewer_settings(self, historical_reviewer_settings_uri: HistoricalReviewerSettingsURI) -> Optional[HistoricalReviewerSettings]:
@@ -3921,7 +3849,7 @@ class DataTracker:
             url.params["person"] = person.id
         if team is not None:
             url.params["team"] = team.id
-        return self._retrieve_multi(url, {"person": person, "team": team}, HistoricalReviewerSettings)
+        return self._retrieve_multi(url, HistoricalReviewerSettings)
 
 
     def historical_review_assignment(self, historical_review_assignment_uri: HistoricalReviewAssignmentURI) -> Optional[HistoricalReviewAssignment]:
@@ -3953,7 +3881,7 @@ class DataTracker:
             url.params["reviewer"] = reviewer.address
         if state is not None:
             url.params["state"] = state.slug
-        return self._retrieve_multi(url, {"result": result, "review_request": review_request, "reviewer": reviewer, "state": state}, HistoricalReviewAssignment)
+        return self._retrieve_multi(url, HistoricalReviewAssignment)
 
 
     def review_secretary_settings(self, review_secretary_settings_uri: ReviewSecretarySettingsURI) -> Optional[ReviewSecretarySettings]:
@@ -3968,7 +3896,7 @@ class DataTracker:
             url.params["person"] = person.id
         if team is not None:
             url.params["team"] = team.id
-        return self._retrieve_multi(url, {"person": person, "team": team}, ReviewSecretarySettings)
+        return self._retrieve_multi(url, ReviewSecretarySettings)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -3985,7 +3913,7 @@ class DataTracker:
         url = MailingListURI("/api/v1/mailinglists/list/")
         if name is not None:
             url.params["name"] = name
-        return self._retrieve_multi(url, {}, MailingList)
+        return self._retrieve_multi(url, MailingList)
 
 
     def mailing_list_subscriptions(self,
@@ -3996,7 +3924,7 @@ class DataTracker:
             url.params["email"] = email_addr
         if mailing_list is not None:
             url.params["lists"] = mailing_list.id
-        return self._retrieve_multi(url, {"lists": mailing_list}, MailingListSubscriptions)
+        return self._retrieve_multi(url, MailingListSubscriptions)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -4064,7 +3992,7 @@ class DataTracker:
             url.params["reg_type"] = reg_type
         if ticket_type is not None:
             url.params["ticket_type"] = ticket_type
-        return self._retrieve_multi(url, {"meeting": meeting, "person": person}, MeetingRegistration)
+        return self._retrieve_multi(url, MeetingRegistration)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -4090,7 +4018,7 @@ class DataTracker:
             url.params["group"] = group.id
         if name is not None:
             url.params["name"] = name.slug
-        return self._retrieve_multi(url, {"group": group, "name": name}, AnnouncementFrom)
+        return self._retrieve_multi(url, AnnouncementFrom)
 
 
     #def message(self, message_uri: MessageURI) -> Optional[Message]:
@@ -4137,7 +4065,7 @@ class DataTracker:
             url.params["by"] = by.id
         if message is not None:
             url.params["message"] = message.id
-        return self._retrieve_multi(url, {"by": by, "message": message}, SendQueueEntry)
+        return self._retrieve_multi(url, SendQueueEntry)
 
 
 # =================================================================================================================================

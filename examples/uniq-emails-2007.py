@@ -23,29 +23,56 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+import csv
+import email.header
+import email.utils
 import os
+import re
+import string
 import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+from dataclasses import dataclass, field
 from pathlib              import Path
 from ietfdata.datatracker import *
+from ietfdata.mailarchive import *
+from ietfdata.mailhelper_headerdata  import *
+from ietfdata.mailhelper_datatracker import *
 
-# =============================================================================
-# Example: print information about document authors
+dt      = DataTracker(cache_dir=Path("cache"))
+archive = MailArchive(cache_dir=Path("cache"))
+lists   = list(archive.mailing_list_names())
+addrs   = {}
 
-dt = DataTracker()
+archive.download_all_messages()
 
-doc = dt.document(DocumentURI('/api/v1/doc/document/draft-ietf-mmusic-rfc4566bis/'))
-print("Title: {}".format(doc.title))
-for doc_author in dt.document_authors(doc):
-    p = dt.person(doc_author.person)
-    print("Author: {}".format(p.name))
+index = 1
+for ml_name in lists:
+    print(F"{index:5d} /{len(lists):5d} {ml_name:40}", end="")
+    index += 1
+    failed = 0
+    total  = 0
+    for msg_id, msg in archive.mailing_list(ml_name).messages():
+        total += 1
+        try:
+            date_str = msg.message["Date"]
+            date = email.utils.parsedate_to_datetime(date_str)
+            year = date.timetuple().tm_year
+            if year == 2007:
+                n, e = email.utils.parseaddr(msg.message["from"])
+                if e is not "" and e not in addrs:
+                    addrs[e] = e
+        except:
+            failed += 1
+    print(F"   {len(addrs):6}", end="")
+    if failed > 0: 
+        print(F"   (failed: {failed} of {total})")
+    else:
+        print("")
 
-for submission_uri in doc.submissions:
-    submission = dt.submission(submission_uri)
-    print("Revision: {}".format(submission.rev))
-    for author in submission.parse_authors():
-        print("  author: {}".format(author["name"]))
+with open(Path("emails-2007.txt"), "w") as outf:
+    for e in addrs.values():
+        print(e, file=outf)
 
 # =============================================================================

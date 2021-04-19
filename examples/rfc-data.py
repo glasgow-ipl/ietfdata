@@ -34,13 +34,13 @@ from ietfdata.rfcindex    import *
 
 # =============================================================================
 
-dt = DataTracker(cache_dir=Path("cache"))
+dt = DataTracker()
 ri = RFCIndex()
 
 def print_submission(draft):
     for submission_uri in draft.submissions:
         submission = dt.submission(submission_uri)
-        if submission.replaces is not "":
+        if submission.replaces != "":
             for replaces_draft in submission.replaces.split(","):
                 replaces = dt.document_from_draft(replaces_draft)
                 if (replaces is not None) and (replaces.name != draft.name):

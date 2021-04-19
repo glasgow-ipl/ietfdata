@@ -1,39 +1,47 @@
 Change Log -- ietfdata
 ======================
 
-## v0.4.0 -- ???
+## Version 0.4.1 -- ??
 
- - Add support for caching Datatracker requests using MongoDB
+ - Update cache support
+ - Expand parameters for `person_aliases()`
+ - Expand parameters for `people()`
+ - Add `person_from_name_email()` to DatatrackerExt
+
+
+## Version 0.4.0 -- 2021-03-02
+
+ - Add support for caching `Datatracker` requests using MongoDB
  - Add support for accessing the IETF mail archive
- - Add support for meeting scheduling events
- - Add support for Datatracker messages
+ - Expand Datatracker API coverage
 
-## v0.3.3 -- 2020-06-28
+
+## Version 0.3.3 -- 2020-06-28
 
  - Update `group_histories()` to take a `group` parameter
  - Update `Meeting` to note that the `schedule` is optional
  - Update tests
 
 
-## v0.3.2 -- 2020-06-21
+## Version 0.3.2 -- 2020-06-21
 
  - Expand API coverage for meeting registrations
  - Update tests
 
 
-## v0.3.1 -- 2020-06-13
+## Version 0.3.1 -- 2020-06-13
 
  - Expand API coverage for Meetings and IPR disclosures
- - Include the PEP 561 py.typed marker in the generated package
+ - Include the PEP 561 `py.typed` marker in the generated package
 
-## v0.3.0 -- 2020-06-07
+## Version 0.3.0 -- 2020-06-07
 
- - Add DataTrackerExt` helper class
+ - Add `DataTrackerExt` helper class
  - Add API coverage for reviews and IPR disclosures
- - Update Submission class to use datetime objects where appropriate
+ - Update Submission class to use `datetime` objects where appropriate
 
 
-## v0.2.0 -- 2020-05-17
+## Version 0.2.0 -- 2020-05-17
 
  - Greatly expand Datatracker API coverage
  - Updated methods to use URI subtypes rather than strings
@@ -41,17 +49,17 @@ Change Log -- ietfdata
  - Add experimental support for caching requests
 
 
-## v0.1.5 -- 2019-12-24
+## Version 0.1.5 -- 2019-12-24
 
  - Add Meeting::status() method
 
 
-## v0.1.4 -- 2019-10-07
+## Version 0.1.4 -- 2019-10-07
 
  - Update tests
 
 
-## v0.1.3 -- 2019-09-16
+## Version 0.1.3 -- 2019-09-16
 
  - Work around problems with Datatracker dropping connections when
    HTTP connection reuse is active
@@ -59,17 +67,17 @@ Change Log -- ietfdata
  - Catch-up with changes to RFC index format
 
 
-## v0.1.2 -- 2019-09-09
+## Version 0.1.2 -- 2019-09-09
 
- - Catch-up with Datatracker v6.101.0. This added IANA expert review
+ - Catch-up with Datatracker Version 6.101.0. This added IANA expert review
    tracking, with additional states.
 
 
-## v0.1.1 -- 2019-08-30
+## Version 0.1.1 -- 2019-08-30
 
  - Fix license metadata
 
 
-## v0.1.0 -- 2019-08-30
+## Version 0.1.0 -- 2019-08-30
 
  - Initial release
