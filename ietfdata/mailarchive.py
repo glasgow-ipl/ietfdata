@@ -36,6 +36,8 @@ import os
 import logging
 import gridfs
 
+import itertools
+
 from datetime      import datetime, timedelta
 from typing        import List, Optional, Tuple, Dict, Iterator, Type, TypeVar, Any
 from pathlib       import Path
@@ -44,13 +46,15 @@ from email         import policy
 from email.message import Message
 from imapclient    import IMAPClient
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import time
 
 from email_reply_parser import EmailReplyParser
 
 from bs4 import BeautifulSoup
+
+import pandas as pd
 
 # =================================================================================================
 # Private helper functions:
@@ -66,6 +70,7 @@ def _parse_archive_url(archive_url:str) -> Tuple[str, str]:
 
 
 def _clean_email_text(email : Message) -> str:
+    clean_text_reply = ""
     try:
         raw_body = email.get_body()
         clean_text_bytes = raw_body.get_payload(decode=True)
@@ -79,18 +84,82 @@ def _clean_email_text(email : Message) -> str:
         clean_text_reply = ""
     return clean_text_reply
 
+
+def _ml_message_from_db_message(db_message: Dict[str, Optional[str]]) -> MailingListMessage:
+    return MailingListMessage(db_message["list"],
+                              int(db_message["imap_uid"]),
+                              db_message["headers"].get("Message-ID", db_message["headers"].get("Message-Id", None)),
+                              db_message["headers"].get("From", db_message["headers"].get("from", None)),
+                              db_message["headers"].get("Subject", db_message["headers"].get("subject", None)),
+                              db_message["timestamp"],
+                              db_message["headers"].get("In-Reply-To", None),
+                              db_message["headers"].get("References", None),
+                              db_message["headers"].get("Archived-At", None),
+                              db_message["body"])
+
+
 # =================================================================================================
 
-@dataclass(frozen=True)
+@dataclass
 class MailingListMessage:
-    list_name     : str
-    message_id    : str
-    from_addr     : str
-    subject       : str
+    list_name     : Optional[str]
+    _imap_uid     : Optional[int]
+    message_id    : Optional[str]
+    from_addr     : Optional[str]
+    subject       : Optional[str]
     date          : datetime
-    in_reply_to   : str
-    references    : str
+    in_reply_to   : Optional[str]
+    references    : Optional[str]
+    archived_at   : Optional[str]
     body          : str
+    parent        : Optional["MailingListMessage"] = None
+    children      : List["MailingListMessage"] = field(default_factory=list)
+
+    def add_child_message(self, child: "MailingListMessage"):
+        self.children.append(child)
+
+
+    def get_child_count(self) -> int:
+        return len(self.children) + sum([child.get_child_count() for child in self.children])
+
+
+    def get_child_from_addrs(self, child_from_addrs: List[str]) -> List[str]:
+        child_from_addrs.append(self.from_addr)
+        for child in self.children:
+            child.get_child_from_addrs(child_from_addrs)
+        return child_from_addrs
+
+
+    def get_child_dates(self, child_dates: List[datetime]):
+        child_dates.append(self.date)
+        for child in self.children:
+            child.get_child_dates(child_dates)
+        return child_dates
+
+
+# =================================================================================================
+
+class MailingListThread:
+    root : MailingListMessage
+
+    def __init__(self, root: MailingListMessage):
+        self.root = root
+
+
+    def get_message_count(self):
+        return 1 + self.root.get_child_count()
+
+
+    def get_unique_from_count(self):
+        from_addrs = self.root.get_child_from_addrs([])
+        return len(list(set(from_addrs)))
+
+
+    def get_duration(self):
+        earliest_date = self.root.date
+        latest_date = sorted(self.root.get_child_dates([]), reverse=True)[0]
+        return latest_date - earliest_date
+
 
 # =================================================================================================
 
@@ -110,7 +179,6 @@ class MailingList:
         self._fs           = fs
         self._num_messages = self._db.messages.find({"list": self._list_name}).count()
         self._archive_urls = {}
-        self._threads      = []
 
         # Rebuild the archived-at cache:
         aa_cache = self._db.aa_cache.find_one({"list": self._list_name})
@@ -118,11 +186,11 @@ class MailingList:
             self._archive_urls = aa_cache["archive_urls"]
         else:
             self.log.info(F"no archived-at cache for mailing list {self._list_name}")
-            for index, msg in self.messages():
-                if msg.message["Archived-At"] is not None:
-                    self.log.info(F"scan message {self._list_name}/{index:06} for archived-at")
-                    list_name, msg_hash = _parse_archive_url(msg.message["Archived-At"])
-                    self._archive_urls[msg_hash] = index
+            for msg in self.messages():
+                if msg.archived_at is not None:
+                    self.log.info(F"scan message {self._list_name}/{msg._imap_uid} for archived-at")
+                    list_name, msg_hash = _parse_archive_url(msg.archived_at)
+                    self._archive_urls[msg_hash] = msg._imap_uid
             self._db.aa_cache.replace_one({"list" : self._list_name}, {"list" : self._list_name, "archive_urls": self._archive_urls}, upsert=True)
 
 
@@ -160,16 +228,12 @@ class MailingList:
     def messages(self,
                  since : str = "1970-01-01T00:00:00",
                  until : str = "2038-01-19T03:14:07") -> Iterator[MailingListMessage]:
-        messages = self._db.messages.find({"list": self._list_name, "timestamp": {"$gt": datetime.strptime(since, "%Y-%m-%dT%H:%M:%S"), "$lt":datetime.strptime(until, "%Y-%m-%dT%H:%M:%S")}})
+        messages = self._db.messages.find({"list"     : self._list_name,
+                                           "timestamp": {"$gt": datetime.strptime(since, "%Y-%m-%dT%H:%M:%S"),
+                                                         "$lt": datetime.strptime(until, "%Y-%m-%dT%H:%M:%S")}
+                                          })
         for message in messages:
-            yield MailingListMessage(self._list_name,
-                                     message["headers"].get("Message-ID", message["headers"].get("Message-Id", None)),
-                                     message["headers"]["From"],
-                                     message["headers"].get("Subject", message["headers".get("subject", None)]),
-                                     message["timestamp"],
-                                     message["headers"].get("In-Reply-To", None),
-                                     message["headers"].get("References", None),
-                                     message["body"])
+            yield _ml_message_from_db_message(message)
 
 
     def update(self, reuse_imap=None) -> List[int]:
@@ -208,6 +272,7 @@ class MailingList:
                     list_name, msg_hash = _parse_archive_url(e["Archived-At"])
                     self._archive_urls[msg_hash] = msg_id
                 self._num_messages += 1
+                timestamp = None # type: Optional[datetime]
                 try:
                     msg_date = email.utils.parsedate(e["Date"]) # type: Optional[Tuple[int, int, int, int, int, int, int, int, int]]
                     if msg_date is not None:
@@ -258,16 +323,50 @@ class MailingList:
         return self._last_updated
 
 
+    def messages_dataframe(self,
+                 since : str = "1970-01-01T00:00:00",
+                 until : str = "2038-01-19T03:14:07") -> Iterator[MailingListMessage]:
+        messages = self.messages(since = since, until = until)
+        messages_as_dict = []
+        for message in messages:
+            messages_as_dict.append({"Message-ID": message.message_id,
+                                     "From" : message.from_addr,
+                                     "Subject": message.subject,
+                                     "Date": message.date,
+                                     "In-Reply-To": message.in_reply_to,
+                                     "References": message.references,
+                                     "Body": message.body})
+        df = pd.DataFrame(data=messages_as_dict)
+        df.set_index("Message-ID", inplace=True)
+        return df
+
+
+    def threads(self) -> Iterator[MailingListThread]:
+        threads = []
+        message_by_message_id = {message.message_id : message for message in self.messages()}
+
+        for message_id in message_by_message_id:
+            message = message_by_message_id[message_id]
+            if message.in_reply_to is None:
+                threads.append(message)
+            if message.in_reply_to is not None and message.in_reply_to in message_by_message_id:
+                message.parent = message_by_message_id[message.in_reply_to]
+                message_by_message_id[message.in_reply_to].add_child_message(message)
+
+        return [MailingListThread(message) for message in threads]
+
+
 # =================================================================================================
 
 class MailArchive:
-    _mailing_lists : Dict[str,MailingList]
+    _mailing_lists : Dict[str, MailingList]
 
 
     def __init__(self, mongodb_hostname: str = "localhost", mongodb_port: int = 27017, mongodb_username: Optional[str] = None, mongodb_password: Optional[str] = None):
         logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
         self.log            = logging.getLogger("ietfdata")
         self._mailing_lists = {}
+        self._last_full_update = None
 
         cache_host = os.environ.get('IETFDATA_CACHE_HOST')
         cache_port = os.environ.get('IETFDATA_CACHE_PORT', 27017)
@@ -293,7 +392,6 @@ class MailArchive:
         self._db.messages.create_index([('timestamp', ASCENDING)], unique=False)
         self._db.aa_cache.create_index([('list', ASCENDING)], unique=True)
         self._db.metadata_cache.create_index([('list', ASCENDING)], unique=True)
-
 
     def mailing_list_names(self) -> Iterator[str]:
         imap = IMAPClient(host='imap.ietf.org', ssl=False, use_uid=True)
@@ -351,16 +449,11 @@ class MailArchive:
     def messages(self,
                  since : str = "1970-01-01T00:00:00",
                  until : str = "2038-01-19T03:14:07") -> Iterator[MailingListMessage]:
-        messages = self._db.messages.find({"timestamp": {"$gt": datetime.strptime(since, "%Y-%m-%dT%H:%M:%S"), "$lt":datetime.strptime(until, "%Y-%m-%dT%H:%M:%S")}})
+        messages = self._db.messages.find({"timestamp": {"$gt": datetime.strptime(since, "%Y-%m-%dT%H:%M:%S"),
+                                                         "$lt": datetime.strptime(until, "%Y-%m-%dT%H:%M:%S")}
+                                          })
         for message in messages:
-            yield MailingListMessage(message["list"],
-                                     message["headers"].get("Message-ID", message["headers"].get("Message-Id", None)),
-                                     message["headers"].get("From", message["headers"].get("from", None)),
-                                     message["headers"].get("Subject", message["headers"].get("subject", None)),
-                                     message["timestamp"],
-                                     message["headers"].get("In-Reply-To", None),
-                                     message["headers"].get("References", None),
-                                     message["body"])
+            yield _ml_message_from_db_message(message)
 
 
 # =================================================================================================
