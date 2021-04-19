@@ -1700,6 +1700,7 @@ class DataTracker:
         self.cache_req = 0
         self.cache_hit = 0
         self.cache_ver = "1" # Increment when changing cache architecture
+        self.cache_update : Dict[str, datetime] = {}
         self.get_count = 0
         self.db_calls  = 0
 
@@ -1984,10 +1985,18 @@ class DataTracker:
 
     def _cache_update(self, obj_type_uri: URI, dt_version_changed:bool) -> None:
         if self.db is None:
-            return None
+            return
         assert(obj_type_uri.uri) is not None
         self._cache_create(obj_type_uri)
         now  = datetime.now(tz = dateutil.tz.gettz("America/Los_Angeles"))
+
+        # Only check for cache updates for each object type at most once per minute.
+        # This significantly reduces the load on the database.
+        if obj_type_uri.uri not in self.cache_update:
+            self.cache_update[obj_type_uri.uri] = now
+        elif now - self.cache_update[obj_type_uri.uri] < timedelta(minutes=1):
+            return
+
         meta = self._cache_load_metadata(obj_type_uri)
 
         # URIs under /api/v1/name/ are internal names used by the datatracker. 
@@ -2037,6 +2046,9 @@ class DataTracker:
         cached_size = self.db[_db_collection(obj_type_uri)].count_documents({})
         if not meta.partial and meta.total_count != cached_size:
             self.log.info(F"cache inconsistent {str(obj_type_uri)}: have {cached_size} objects, expected {meta.total_count}")
+
+        # Record that the cache was updated
+        self.cache_update[obj_type_uri.uri] = now
 
 
     def _cache_delete(self, obj_type_uri: URI) -> None:
