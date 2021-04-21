@@ -328,6 +328,17 @@ class DataTrackerExt(DataTracker):
             self.log.debug(f"person_from_name_email: {name} <{email_addr}> -> {email.person} (email match)")
             return self.person(email.person)
 
+        # Try to match on the base email address:
+        if "@" in email_addr:
+            local, remote = email_addr.split("@")
+            if local.count("+") == 1:
+                base, suffix = local.split("+")
+                email_base = F"{base}@{remote}"
+                email = self.email_for_address(email_base)
+                if email is not None and email.person is not None:
+                    self.log.info(f"person_from_name_email: {name} <{email_addr}> -> {email.person} (email match as {email_base})")
+                    return self.person(email.person)
+
         # Try to match on the name:
         for suffix in [" via Datatracker", " via RT"]:
             if name.endswith(suffix):
