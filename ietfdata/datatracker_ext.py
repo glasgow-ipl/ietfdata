@@ -56,10 +56,10 @@ def names_to_try(name: str, email: str) -> List[str]:
     # Derive names from the email address:
     if "@" in email:
         local, remote = email.split("@")
-        split = local.split(".")
 
-        if split[-1].lower() == "ietf":
-            split = split[:-1]
+        if local.endswith(".ietf") or local.endswith("-ietf") or local.endswith("+ietf"):
+            local = local[:-5]
+        split = local.split(".")
 
         # If given, e.g., "colin.perkins@glasgow.ac.uk" also try "Colin Perkins":
         if len(split) == 2 and len(split[0]) > 1 and len(split[1]) > 1:
