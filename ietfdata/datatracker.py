@@ -2740,13 +2740,21 @@ class DataTracker:
     def documents_authored_by_person(self, person : Person) -> Iterator[DocumentAuthor]:
         url = DocumentAuthorURI("/api/v1/doc/documentauthor/")
         url.params["person"] = person.id
-        return self._retrieve_multi(url, DocumentAuthor)
+        for author in self._retrieve_multi(url, DocumentAuthor):
+            # When fetching DocumentAuthor records, retrieve the corresponding Document so the cache updates correctly
+            if self.db is not None:
+                self.document(author.document)
+            yield author
 
 
     def documents_authored_by_email(self, email : Email) -> Iterator[DocumentAuthor]:
         url = DocumentAuthorURI("/api/v1/doc/documentauthor/")
         url.params["email"] = email.address
-        return self._retrieve_multi(url, DocumentAuthor)
+        for author in self._retrieve_multi(url, DocumentAuthor):
+            # When fetching DocumentAuthor records, retrieve the corresponding Document so the cache updates correctly
+            if self.db is not None:
+                self.document(author.document)
+            yield author
 
 
     # Datatracker API endpoints returning information about related documents:
