@@ -2152,9 +2152,11 @@ class DataTracker:
     def _cache_put_object(self, obj_json: Dict[str, Any]) -> None:
         if self.db is None:
             return
-        self.log.info(F"_cache_put_object: {obj_json['resource_uri']}")
-        self._cache_create(_parent_uri(URI(obj_json['resource_uri'])))
-        self.db[_db_collection(_parent_uri(URI(obj_json['resource_uri'])))].replace_one({"resource_uri" : obj_json['resource_uri']}, obj_json, upsert=True)
+        obj_uri      = URI(obj_json['resource_uri'])
+        obj_type_uri = _parent_uri(obj_uri)
+        self.log.info(F"_cache_put_object: {obj_uri}")
+        self._cache_create(obj_type_uri)
+        self.db[_db_collection(obj_type_uri)].replace_one({"resource_uri" : obj_uri.uri}, obj_json, upsert=True)
         self.db_calls += 1
 
 
