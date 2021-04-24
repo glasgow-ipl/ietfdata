@@ -1725,7 +1725,7 @@ class DataTracker:
         self._hints["/api/v1/doc/docalias/"]                       = Hints("id", "-", {})  # FIXME: no modification time
         self._hints["/api/v1/doc/docevent/"]                       = Hints("id", "T", {"doc": "id"})
         self._hints["/api/v1/doc/document/"]                       = Hints("id", "T", {})
-        self._hints["/api/v1/doc/documentauthor/"]                 = Hints("id", "-", {"document": "id"}) # FIXME: no modification time, but will be updated when the corresponding `document` is updated
+        self._hints["/api/v1/doc/documentauthor/"]                 = Hints("id", "R", {"document": "id"})
         self._hints["/api/v1/doc/relateddocument/"]                = Hints("id", "-", {"source": "id", "target": "id", "relationship": "slug"}) # FIXME: no modification time, but will be updated when the corresponding `source` is updated
         self._hints["/api/v1/doc/state/"]                          = Hints("id", "V", {})
         self._hints["/api/v1/doc/statetype/"]                      = Hints("slug", "V", {})
@@ -1990,6 +1990,20 @@ class DataTracker:
         self._cache_create(obj_type_uri)
         now  = datetime.now(tz = dateutil.tz.gettz("America/Los_Angeles"))
 
+        # Rewrite dependent object types to update the cache for objects on which
+        # they depend. For example, if asked to update document authors, instead
+        # update documents. The _cache_put_object() method updates the dependent
+        # objects.
+        if self._hints[obj_type_uri.uri].update_strategy == "R":
+            if obj_type_uri.uri == "/api/v1/doc/documentauthor/":
+                new_uri = URI("/api/v1/doc/document/")
+            else:
+                raise NotImplementedError(f"Cannot rewrite {obj_type_uri} in _cache_update")
+            self.log.info(f"_cache_update: {obj_type_uri} -> {new_uri}")
+            obj_type_uri = new_uri
+
+        assert(obj_type_uri.uri) is not None
+
         # Only check for cache updates for each object type at most once per minute.
         # This significantly reduces the load on the database.
         if obj_type_uri.uri not in self.cache_update:
@@ -2108,6 +2122,7 @@ class DataTracker:
     def _cache_record_query(self, obj_uri: URI, obj_type_uri: URI) -> None:
         if self.db is None:
             return
+        self.log.debug(f"_cache_record_query: {obj_uri} {obj_type_uri}")
         assert obj_uri.uri is not None and "?" not in obj_uri.uri
         meta  = self._cache_load_metadata(obj_type_uri)
         if meta.partial:
@@ -2158,6 +2173,15 @@ class DataTracker:
         self._cache_create(obj_type_uri)
         self.db[_db_collection(obj_type_uri)].replace_one({"resource_uri" : obj_uri.uri}, obj_json, upsert=True)
         self.db_calls += 1
+        if obj_type_uri.uri == "/api/v1/doc/document/":
+            # When updating a document, update the corresponding /api/v1/doc/documentauthor/ object
+            uri = URI("/api/v1/doc/documentauthor/")
+            uri.params["document"] = obj_json["id"]
+            for author in self._datatracker_get_multi(uri):
+                author_uri = URI(author['resource_uri'])
+                self.log.info(F"_cache_put_object: {obj_uri} -> {author_uri}")
+                self._cache_put_object(author)
+                self._cache_record_query(author_uri, _parent_uri(author_uri))
 
 
     def _cache_has_all_objects(self, obj_type_uri: URI):
