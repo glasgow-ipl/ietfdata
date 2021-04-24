@@ -1976,8 +1976,12 @@ class DataTracker:
             self._cache_put_object(obj_json)
             # When updating a Document, update the corresponding DocumentAuthor objects
             if obj_type_uri.uri == "/api/v1/doc/document/":
-                for author in self.document_authors(self.pavlova.from_mapping(obj_json, Document)):
-                    self.log.info(f"_cache_update_timed: {obj_json['resource_uri']} -> {author.resource_uri}")
+                uri = URI("/api/v1/doc/documentauthor/")
+                uri.params["document"] = obj_json["id"]
+                for item in self._datatracker_get_multi(uri):
+                    self.log.info(f"_cache_update_timed: {obj_json['resource_uri']} -> {item['resource_uri']}")
+                    self._cache_put_object(item)
+                self._cache_record_query(uri, _parent_uri(uri))
         meta = self._cache_load_metadata(obj_type_uri)
         meta.updated = now
         obj_count = self._datatracker_get_multi_count(obj_type_uri)
