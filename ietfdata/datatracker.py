@@ -1982,7 +1982,7 @@ class DataTracker:
         meta.updated = now
         obj_count = self._datatracker_get_multi_count(obj_type_uri)
         if obj_count is not None and obj_count != meta.total_count:
-            self.log.info(f"_cache_update: updated total_count {obj_type_uri} {meta.total_count} -> {obj_count}")
+            self.log.info(f"_cache_update_timed: updated total_count {obj_type_uri} {meta.total_count} -> {obj_count}")
             meta.total_count = obj_count
         self._cache_save_metadata(obj_type_uri, meta)
 
@@ -2125,7 +2125,6 @@ class DataTracker:
     def _cache_record_query(self, obj_uri: URI, obj_type_uri: URI) -> None:
         if self.db is None:
             return
-        self.log.debug(f"_cache_record_query: {obj_uri} {obj_type_uri}")
         assert obj_uri.uri is not None and "?" not in obj_uri.uri
         meta  = self._cache_load_metadata(obj_type_uri)
         if meta.partial:
@@ -2136,6 +2135,7 @@ class DataTracker:
                 if n != "time__gte" and n != "time__lt":
                     cache_uri.params[n] = v
             if str(cache_uri) not in meta.queries:
+                self.log.debug(f"_cache_record_query: {str(cache_uri)}")
                 meta.queries.append(str(cache_uri))
                 self._cache_save_metadata(obj_type_uri, meta)
         else:
