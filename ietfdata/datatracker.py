@@ -1974,6 +1974,10 @@ class DataTracker:
         self.log.info(F"_cache_update: {obj_type_uri} {start_time} -> {until_time}")
         for obj_json in self._datatracker_get_multi(update_uri):
             self._cache_put_object(obj_json)
+            # When updating a Document, update the corresponding DocumentAuthor objects
+            if obj_type_uri.uri == "/api/v1/doc/document/":
+                for author in self.document_authors(self.pavlova.from_mapping(obj_json, Document)):
+                    self.log.info(f"_cache_update_timed: {obj_json['resource_uri']} -> {author.resource_uri}")
         meta = self._cache_load_metadata(obj_type_uri)
         meta.updated = now
         obj_count = self._datatracker_get_multi_count(obj_type_uri)
@@ -1992,8 +1996,7 @@ class DataTracker:
 
         # Rewrite dependent object types to update the cache for objects on which
         # they depend. For example, if asked to update document authors, instead
-        # update documents. The _cache_put_object() method updates the dependent
-        # objects.
+        # ask to update documents since that will update the document authors too.
         if self._hints[obj_type_uri.uri].update_strategy == "R":
             if obj_type_uri.uri == "/api/v1/doc/documentauthor/":
                 new_uri = URI("/api/v1/doc/document/")
@@ -2173,15 +2176,6 @@ class DataTracker:
         self._cache_create(obj_type_uri)
         self.db[_db_collection(obj_type_uri)].replace_one({"resource_uri" : obj_uri.uri}, obj_json, upsert=True)
         self.db_calls += 1
-        if obj_type_uri.uri == "/api/v1/doc/document/":
-            # When updating a document, update the corresponding /api/v1/doc/documentauthor/ object
-            uri = URI("/api/v1/doc/documentauthor/")
-            uri.params["document"] = obj_json["id"]
-            for author in self._datatracker_get_multi(uri):
-                author_uri = URI(author['resource_uri'])
-                self.log.info(F"_cache_put_object: {obj_uri} -> {author_uri}")
-                self._cache_put_object(author)
-                self._cache_record_query(author_uri, _parent_uri(author_uri))
 
 
     def _cache_has_all_objects(self, obj_type_uri: URI):
