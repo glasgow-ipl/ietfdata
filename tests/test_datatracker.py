@@ -300,19 +300,19 @@ class TestDatatracker(unittest.TestCase):
             self.fail("Cannot find person")
 
 
-    def test_person_events(self) -> None:
-        p = self.dt.person(PersonURI("/api/v1/person/person/3/"))
-        if p is not None:
-            events = list(self.dt.person_events(p))
-            self.assertEqual(len(events), 1)
-            self.assertEqual(events[0].desc,         "Sent GDPR notice email to [u'vint@google.com', u'vcerf@mci.net', u'vcerf@nri.reston.va.us', u'vinton.g.cerf@wcom.com'] with confirmation deadline 2018-10-22")
-            self.assertEqual(events[0].id,           478)
-            self.assertEqual(events[0].person,       PersonURI("/api/v1/person/person/3/"))
-            self.assertEqual(events[0].resource_uri, PersonEventURI("/api/v1/person/personevent/478/"))
-            self.assertEqual(events[0].time,         datetime.fromisoformat("2018-09-24T09:28:32.502465"))
-            self.assertEqual(events[0].type,         "gdpr_notice_email")
-        else:
-            self.fail("Cannot find person")
+    #def test_person_events(self) -> None:
+    #    p = self.dt.person(PersonURI("/api/v1/person/person/3/"))
+    #    if p is not None:
+    #        events = list(self.dt.person_events(p))
+    #        self.assertEqual(len(events), 1)
+    #        self.assertEqual(events[0].desc,         "Sent GDPR notice email to [u'vint@google.com', u'vcerf@mci.net', u'vcerf@nri.reston.va.us', u'vinton.g.cerf@wcom.com'] with confirmation deadline 2018-10-22")
+    #        self.assertEqual(events[0].id,           478)
+    #        self.assertEqual(events[0].person,       PersonURI("/api/v1/person/person/3/"))
+    #        self.assertEqual(events[0].resource_uri, PersonEventURI("/api/v1/person/personevent/478/"))
+    #        self.assertEqual(events[0].time,         datetime.fromisoformat("2018-09-24T09:28:32.502465"))
+    #        self.assertEqual(events[0].type,         "gdpr_notice_email")
+    #    else:
+    #        self.fail("Cannot find person")
 
 
     def test_people(self) -> None:
