@@ -54,7 +54,7 @@ from email_reply_parser import EmailReplyParser
 
 from bs4 import BeautifulSoup
 
-import pandas as pd
+#import pandas as pd
 
 # =================================================================================================
 # Private helper functions:
@@ -95,6 +95,7 @@ def _ml_message_from_db_message(db_message: Dict[str, Optional[str]]) -> Mailing
                               db_message["headers"].get("In-Reply-To", None),
                               db_message["headers"].get("References", None),
                               db_message["headers"].get("Archived-At", None),
+                              db_message["headers"],
                               db_message["body"])
 
 
@@ -111,6 +112,7 @@ class MailingListMessage:
     in_reply_to   : Optional[str]
     references    : Optional[str]
     archived_at   : Optional[str]
+    headers       : Dict[str, str]
     body          : str
     parent        : Optional["MailingListMessage"] = None
     children      : List["MailingListMessage"] = field(default_factory=list)
@@ -164,24 +166,22 @@ class MailingListThread:
 # =================================================================================================
 
 class MailingList:
+    _mail_archive      : MailArchive
     _list_name         : str
     _num_messages      : int
     _last_updated      : datetime
     _archive_urls      : Dict[str, int]
-    _msg_metadata      : Dict[int, Dict[str, Any]]
-    _cached_metadata   : Dict[str, Dict[str, Any]]
 
-    def __init__(self, db, fs, list_name: str):
+    def __init__(self, mail_archive: MailArchive, list_name: str):
         logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
         self.log           = logging.getLogger("ietfdata")
+        self._mail_archive = mail_archive
         self._list_name    = list_name
-        self._db           = db
-        self._fs           = fs
-        self._num_messages = self._db.messages.find({"list": self._list_name}).count()
+        self._num_messages = self._mail_archive._db.messages.find({"list": self._list_name}).count()
         self._archive_urls = {}
 
         # Rebuild the archived-at cache:
-        aa_cache = self._db.aa_cache.find_one({"list": self._list_name})
+        aa_cache = self._mail_archive._db.aa_cache.find_one({"list": self._list_name})
         if aa_cache:
             self._archive_urls = aa_cache["archive_urls"]
         else:
@@ -191,7 +191,7 @@ class MailingList:
                     self.log.info(F"scan message {self._list_name}/{msg._imap_uid} for archived-at")
                     list_name, msg_hash = _parse_archive_url(msg.archived_at)
                     self._archive_urls[msg_hash] = msg._imap_uid
-            self._db.aa_cache.replace_one({"list" : self._list_name}, {"list" : self._list_name, "archive_urls": self._archive_urls}, upsert=True)
+            self._mail_archive._db.aa_cache.replace_one({"list" : self._list_name}, {"list" : self._list_name, "archive_urls": self._archive_urls}, upsert=True)
 
 
     def name(self) -> str:
@@ -203,14 +203,14 @@ class MailingList:
 
 
     def raw_message(self, msg_id: int) -> Message:
-        cache_metadata = self._db.messages.find_one({"list" : self._list_name, "imap_uid": msg_id})
+        cache_metadata = self._mail_archive._db.messages.find_one({"list" : self._list_name, "imap_uid": msg_id})
         if cache_metadata:
-            message = email.message_from_bytes(self._fs.get(cache_metadata["gridfs_id"]).read(), policy=policy.default)
+            message = email.message_from_bytes(self._mail_archive._fs.get(cache_metadata["gridfs_id"]).read(), policy=policy.default)
         return message
 
 
     def message_indices(self) -> List[int]:
-        cache_metadata = self._db.messages.find({"list" : self._list_name})
+        cache_metadata = self._mail_archive._db.messages.find({"list" : self._list_name})
         indices = [message_metadata["imap_uid"] for message_metadata in cache_metadata]
         return sorted(indices)
 
@@ -228,12 +228,14 @@ class MailingList:
     def messages(self,
                  since : str = "1970-01-01T00:00:00",
                  until : str = "2038-01-19T03:14:07") -> Iterator[MailingListMessage]:
-        messages = self._db.messages.find({"list"     : self._list_name,
+        messages = self._mail_archive._db.messages.find({"list"     : self._list_name,
                                            "timestamp": {"$gt": datetime.strptime(since, "%Y-%m-%dT%H:%M:%S"),
                                                          "$lt": datetime.strptime(until, "%Y-%m-%dT%H:%M:%S")}
-                                          })
+                                          },
+                                          no_cursor_timeout=True)
         for message in messages:
             yield _ml_message_from_db_message(message)
+        messages.close()
 
 
     def update(self, reuse_imap=None) -> List[int]:
@@ -261,16 +263,16 @@ class MailingList:
                 self.log.warn(F"message size mismatch: {self._list_name}/{msg_id:06d}.msg ({cached_messages[msg_id]['size']} != {msg[b'RFC822.SIZE']})")
                 cache_file = self._fs.get(cached_messages[msg_id]["gridfs_id"])
                 cache_file.delete()
-                self._db.messages.delete_one({"list" : self._list_name, "imap_uid" : msg_id})
+                self._mail_archive._db.messages.delete_one({"list" : self._list_name, "imap_uid" : msg_id})
                 msg_fetch.append(msg_id)
 
         if len(msg_fetch) > 0:
             for msg_id, msg in imap.fetch(msg_fetch, "RFC822").items():
-                cache_file_id = self._fs.put(msg[b"RFC822"])
+                cache_file_id = self._mail_archive._fs.put(msg[b"RFC822"])
                 e = email.message_from_bytes(msg[b"RFC822"], policy=policy.default)
                 if e["Archived-At"] is not None:
                     list_name, msg_hash = _parse_archive_url(e["Archived-At"])
-                    self._archive_urls[msg_hash] = msg_id
+                    self._mail_archive._archive_urls[msg_hash] = msg_id
                 self._num_messages += 1
                 timestamp = None # type: Optional[datetime]
                 try:
@@ -296,7 +298,7 @@ class MailingList:
                                                  upsert=True))
 
                 if len(cache_replaces) > 1000:
-                    self._db.messages.bulk_write(cache_replaces)
+                    self._mail_archive._db.messages.bulk_write(cache_replaces)
                     cache_replaces = []
 
                 curr_keepalive = datetime.now()
@@ -307,10 +309,10 @@ class MailingList:
 
                 new_msgs.append(msg_id)
 
-            self._db.aa_cache.replace_one({"list" : self._list_name}, {"list" : self._list_name, "archive_urls": self._archive_urls}, upsert=True)
+            self._mail_archive._db.aa_cache.replace_one({"list" : self._list_name}, {"list" : self._list_name, "archive_urls": self._archive_urls}, upsert=True)
 
         if len(cache_replaces) > 0:
-            result = self._db.messages.bulk_write(cache_replaces)
+            result = self._mail_archive._db.messages.bulk_write(cache_replaces)
 
         imap.unselect_folder()
         if reuse_imap is None:
@@ -367,6 +369,7 @@ class MailArchive:
         self.log            = logging.getLogger("ietfdata")
         self._mailing_lists = {}
         self._last_full_update = None
+        self._cache_version = "1.0"
 
         cache_host = os.environ.get('IETFDATA_CACHE_HOST')
         cache_port = os.environ.get('IETFDATA_CACHE_PORT', 27017)
@@ -386,12 +389,9 @@ class MailArchive:
         else:
             self._db = MongoClient(host=mongodb_hostname, port=mongodb_port).ietfdata_mailarchive
 
-        self._fs            = gridfs.GridFS(self._db)
-        self._db.messages.create_index([('list', ASCENDING), ('imap_uid', ASCENDING)], unique=True)
-        self._db.messages.create_index([('list', ASCENDING)], unique=False)
-        self._db.messages.create_index([('timestamp', ASCENDING)], unique=False)
-        self._db.aa_cache.create_index([('list', ASCENDING)], unique=True)
-        self._db.metadata_cache.create_index([('list', ASCENDING)], unique=True)
+        self._fs = gridfs.GridFS(self._db)
+
+        self._check_cache_version()
 
     def mailing_list_names(self) -> Iterator[str]:
         imap = IMAPClient(host='imap.ietf.org', ssl=True, use_uid=True)
@@ -403,9 +403,21 @@ class MailArchive:
         imap.logout()
 
 
+    def _check_cache_version(self):
+        # check if cache pre-dates versioning; if so, set to 1.0
+        if "cache_info" not in self._db.list_collection_names():
+            self.log.info("Setting cache version to 1.0")
+            self._db.cache_info.insert_one({"list": "__cache_version__", "version" : "1.0", "last_imap_update": None})
+            self._db.messages.create_index([('list', ASCENDING), ('imap_uid', ASCENDING)], unique=True)
+            self._db.messages.create_index([('list', ASCENDING)], unique=False)
+            self._db.messages.create_index([('timestamp', ASCENDING)], unique=False)
+            self._db.aa_cache.create_index([('list', ASCENDING)], unique=True)
+            self._db.metadata_cache.drop()
+
+
     def mailing_list(self, mailing_list_name: str) -> MailingList:
         if not mailing_list_name in self._mailing_lists:
-            self._mailing_lists[mailing_list_name] = MailingList(self._db, self._fs, mailing_list_name)
+            self._mailing_lists[mailing_list_name] = MailingList(self, mailing_list_name)
         return self._mailing_lists[mailing_list_name]
 
 
