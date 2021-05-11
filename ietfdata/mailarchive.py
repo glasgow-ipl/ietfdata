@@ -25,22 +25,15 @@
 
 from __future__    import annotations
 
-import hashlib
-import json
-import re
 import requests
 import email
-import ietfdata.datatracker as dt
-import abc
 import os
 import logging
 import gridfs
 
-import itertools
 
 from datetime      import datetime, timedelta
-from typing        import List, Optional, Tuple, Dict, Iterator, Type, TypeVar, Any
-from pathlib       import Path
+from typing        import Dict, Iterator, List, Optional, Tuple
 from pymongo       import MongoClient, ASCENDING, ReplaceOne
 from email         import policy
 from email.message import Message
