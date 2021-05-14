@@ -144,7 +144,7 @@ class DataTrackerExt(DataTracker):
                     found = True
                     break
             if not found:
-                drafts.append(DraftHistory(draft, submission.rev, submission.document_date, submission))
+                drafts.append(DraftHistory(draft, submission.rev, submission.submission_date, submission))
 
         # Step 3: Use related_documents() to find additional drafts this replaces:
         for related in self.related_documents(source=draft, relationship_type=self.relationship_type_from_slug("replaces")):
