@@ -167,7 +167,7 @@ class DataTrackerExt(DataTracker):
 
         # Step 4: Process the drafts this replaces, to find earlier versions:
         for r in replaces:
-            if r.name != draft.name and draft not in drafts:
+            if r.name != draft.name:
                 drafts.extend(self.draft_history(r, drafts_seen=drafts_seen))
 
         return list(reversed(sorted(drafts, key=lambda d: d.date)))
