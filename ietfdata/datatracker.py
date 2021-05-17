@@ -1732,13 +1732,17 @@ class DataTracker:
         self._hints["/api/v1/group/changestategroupevent/"]        = Hints("id", "T", {})
         self._hints["/api/v1/group/group/"]                        = Hints("id", "T", {})
         self._hints["/api/v1/group/groupevent/"]                   = Hints("id", "T", {})
+        # FIXME: when a group, /api/v1/group/group/1861/, is updated, /api/v1/group/grouphistory/?group=1861 
+        # will be updated with an object with "time" equal to the previous modification time of the group.
+        # For example, when the IRSG membership was changed on 2021-04-26, a grouphistory object with time
+        # 2020-07-25 was added, representing the previous state of the group.
         self._hints["/api/v1/group/grouphistory/"]                 = Hints("id", "T", {})
         self._hints["/api/v1/group/groupmilestone/"]               = Hints("id", "T", {})
         self._hints["/api/v1/group/groupmilestonehistory/"]        = Hints("id", "T", {})
         self._hints["/api/v1/group/groupurl/"]                     = Hints("id", "-", {})  # FIXME: no modification time, but will be updated with the corresponding `group` is updated
         self._hints["/api/v1/group/milestonegroupevent/"]          = Hints("id", "T", {})
         self._hints["/api/v1/group/role/"]                         = Hints("id", "-", {})  # FIXME: no modification time, but will be updated with the corresponding `group` is updated
-        self._hints["/api/v1/group/rolehistory/"]                  = Hints("id", "-", {})  # FIXME: ???
+        self._hints["/api/v1/group/rolehistory/"]                  = Hints("id", "-", {})  # FIXME: No modification time, but will be updated when the corresponding `grouphistory` is updated
         self._hints["/api/v1/ipr/genericiprdisclosure/"]           = Hints("id", "T", {})
         self._hints["/api/v1/ipr/holderiprdisclosure/"]            = Hints("id", "T", {})
         self._hints["/api/v1/ipr/iprdisclosurebase/"]              = Hints("id", "T", {})
