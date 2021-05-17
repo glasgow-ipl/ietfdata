@@ -300,19 +300,19 @@ class TestDatatracker(unittest.TestCase):
             self.fail("Cannot find person")
 
 
-    def test_person_events(self) -> None:
-        p = self.dt.person(PersonURI("/api/v1/person/person/3/"))
-        if p is not None:
-            events = list(self.dt.person_events(p))
-            self.assertEqual(len(events), 1)
-            self.assertEqual(events[0].desc,         "Sent GDPR notice email to [u'vint@google.com', u'vcerf@mci.net', u'vcerf@nri.reston.va.us', u'vinton.g.cerf@wcom.com'] with confirmation deadline 2018-10-22")
-            self.assertEqual(events[0].id,           478)
-            self.assertEqual(events[0].person,       PersonURI("/api/v1/person/person/3/"))
-            self.assertEqual(events[0].resource_uri, PersonEventURI("/api/v1/person/personevent/478/"))
-            self.assertEqual(events[0].time,         datetime.fromisoformat("2018-09-24T09:28:32.502465"))
-            self.assertEqual(events[0].type,         "gdpr_notice_email")
-        else:
-            self.fail("Cannot find person")
+    #def test_person_events(self) -> None:
+    #    p = self.dt.person(PersonURI("/api/v1/person/person/3/"))
+    #    if p is not None:
+    #        events = list(self.dt.person_events(p))
+    #        self.assertEqual(len(events), 1)
+    #        self.assertEqual(events[0].desc,         "Sent GDPR notice email to [u'vint@google.com', u'vcerf@mci.net', u'vcerf@nri.reston.va.us', u'vinton.g.cerf@wcom.com'] with confirmation deadline 2018-10-22")
+    #        self.assertEqual(events[0].id,           478)
+    #        self.assertEqual(events[0].person,       PersonURI("/api/v1/person/person/3/"))
+    #        self.assertEqual(events[0].resource_uri, PersonEventURI("/api/v1/person/personevent/478/"))
+    #        self.assertEqual(events[0].time,         datetime.fromisoformat("2018-09-24T09:28:32.502465"))
+    #        self.assertEqual(events[0].type,         "gdpr_notice_email")
+    #    else:
+    #        self.fail("Cannot find person")
 
 
     def test_people(self) -> None:
@@ -1660,7 +1660,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_email(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(email="csp@csperkins.org"))
-        self.assertEqual(len(group_role_histories), 42)
+        self.assertEqual(len(group_role_histories), 44)
 
 
     def test_group_role_histories_group(self) -> None:
@@ -1679,7 +1679,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_person(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(person=self.dt.person(PersonURI("/api/v1/person/person/20209/"))))
-        self.assertEqual(len(group_role_histories), 42)
+        self.assertEqual(len(group_role_histories), 44)
 
 
     def test_group_state_change_event(self) -> None:
@@ -2862,15 +2862,17 @@ class TestDatatracker(unittest.TestCase):
 
     def test_review_wishes_person(self) -> None:
         review_wishes = list(self.dt.review_wishes(person=self.dt.person(PersonURI("/api/v1/person/person/5376/"))))
-        self.assertEqual(len(review_wishes),  1)
+        self.assertEqual(len(review_wishes),  2)
         self.assertEqual(review_wishes[0].id, 7)
+        self.assertEqual(review_wishes[1].id, 43)
 
 
     def test_review_wishes_team(self) -> None:
         review_wishes = list(self.dt.review_wishes(team=self.dt.group(GroupURI("/api/v1/group/group/1972/"))))
-        self.assertEqual(len(review_wishes),  2)
+        self.assertEqual(len(review_wishes),  3)
         self.assertEqual(review_wishes[0].id, 7)
         self.assertEqual(review_wishes[1].id, 24)
+        self.assertEqual(review_wishes[2].id, 43)
 
 
     def test_reviewer_settings(self) -> None:

@@ -56,10 +56,10 @@ def names_to_try(name: str, email: str) -> List[str]:
     # Derive names from the email address:
     if "@" in email:
         local, remote = email.split("@")
-        split = local.split(".")
 
-        if split[-1].lower() == "ietf":
-            split = split[:-1]
+        if local.endswith(".ietf") or local.endswith("-ietf") or local.endswith("+ietf"):
+            local = local[:-5]
+        split = local.split(".")
 
         # If given, e.g., "colin.perkins@glasgow.ac.uk" also try "Colin Perkins":
         if len(split) == 2 and len(split[0]) > 1 and len(split[1]) > 1:
@@ -101,13 +101,18 @@ class DataTrackerExt(DataTracker):
 
 
 
-    def draft_history(self, draft: Document) -> List[DraftHistory]:
+    def draft_history(self, draft: Document, drafts_seen: List[Document] = []) -> List[DraftHistory]:
         """
         Find the previous versions of an Internet-Draft
         """
         assert draft.type == DocumentTypeURI("/api/v1/name/doctypename/draft/")
 
         drafts : List[DraftHistory] = []
+
+        if draft in drafts_seen:
+            return []
+        else:
+            drafts_seen.append(draft)
 
         # Step 1: Use document_events() to find previous versions of the draft.
         for event in self.document_events(doc=draft, event_type="new_revision"):
@@ -144,7 +149,7 @@ class DataTrackerExt(DataTracker):
                     found = True
                     break
             if not found:
-                drafts.append(DraftHistory(draft, submission.rev, submission.document_date, submission))
+                drafts.append(DraftHistory(draft, submission.rev, submission.submission_date, submission))
 
         # Step 3: Use related_documents() to find additional drafts this replaces:
         for related in self.related_documents(source=draft, relationship_type=self.relationship_type_from_slug("replaces")):
@@ -163,7 +168,7 @@ class DataTrackerExt(DataTracker):
         # Step 4: Process the drafts this replaces, to find earlier versions:
         for r in replaces:
             if r.name != draft.name:
-                drafts.extend(self.draft_history(r))
+                drafts.extend(self.draft_history(r, drafts_seen=drafts_seen))
 
         return list(reversed(sorted(drafts, key=lambda d: d.date)))
 
@@ -327,6 +332,17 @@ class DataTrackerExt(DataTracker):
         if email is not None and email.person is not None:
             self.log.debug(f"person_from_name_email: {name} <{email_addr}> -> {email.person} (email match)")
             return self.person(email.person)
+
+        # Try to match on the base email address:
+        if "@" in email_addr:
+            local, remote = email_addr.split("@")
+            if local.count("+") == 1:
+                base, suffix = local.split("+")
+                email_base = F"{base}@{remote}"
+                email = self.email_for_address(email_base)
+                if email is not None and email.person is not None:
+                    self.log.info(f"person_from_name_email: {name} <{email_addr}> -> {email.person} (email match as {email_base})")
+                    return self.person(email.person)
 
         # Try to match on the name:
         for suffix in [" via Datatracker", " via RT"]:

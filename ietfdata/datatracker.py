@@ -310,7 +310,7 @@ class Submission(Resource):
     auth_key        : str
     authors         : str   # See the parse_authors() method
     checks          : List[SubmissionCheckURI]
-    document_date   : datetime
+    document_date   : Optional[datetime]
     draft           : DocumentURI
     file_size       : Optional[int]
     file_types      : str   # e.g., ".txt,.xml"
@@ -1725,7 +1725,7 @@ class DataTracker:
         self._hints["/api/v1/doc/docalias/"]                       = Hints("id", "-", {})  # FIXME: no modification time
         self._hints["/api/v1/doc/docevent/"]                       = Hints("id", "T", {"doc": "id"})
         self._hints["/api/v1/doc/document/"]                       = Hints("id", "T", {})
-        self._hints["/api/v1/doc/documentauthor/"]                 = Hints("id", "-", {"document": "id"}) # FIXME: no modification time, but will be updated when the corresponding `document` is updated
+        self._hints["/api/v1/doc/documentauthor/"]                 = Hints("id", "R", {"document": "id"})
         self._hints["/api/v1/doc/relateddocument/"]                = Hints("id", "-", {"source": "id", "target": "id", "relationship": "slug"}) # FIXME: no modification time, but will be updated when the corresponding `source` is updated
         self._hints["/api/v1/doc/state/"]                          = Hints("id", "V", {})
         self._hints["/api/v1/doc/statetype/"]                      = Hints("slug", "V", {})
@@ -1783,10 +1783,10 @@ class DataTracker:
         self._hints["/api/v1/review/nextreviewerinteam/"]          = Hints("id", "-", {})
         self._hints["/api/v1/review/reviewassignment/"]            = Hints("id", "-", {})
         self._hints["/api/v1/review/reviewersettings/"]            = Hints("id", "-", {})
-        self._hints["/api/v1/review/reviewrequest/"]               = Hints("id", "-", {"doc": "id"})
+        self._hints["/api/v1/review/reviewrequest/"]               = Hints("id", "T", {"doc": "id"})
         self._hints["/api/v1/review/reviewsecretarysettings/"]     = Hints("id", "-", {})
         self._hints["/api/v1/review/reviewteamsettings/"]          = Hints("id", "-", {})
-        self._hints["/api/v1/review/reviewwish/"]                  = Hints("id", "-", {"doc": "id"})
+        self._hints["/api/v1/review/reviewwish/"]                  = Hints("id", "T", {"doc": "id"})
         self._hints["/api/v1/review/unavailableperiod/"]           = Hints("id", "-", {})
         self._hints["/api/v1/stats/meetingregistration/"]          = Hints("id", "-", {})
         self._hints["/api/v1/submit/submission/"]                  = Hints("id", "-", {})
@@ -1974,11 +1974,19 @@ class DataTracker:
         self.log.info(F"_cache_update: {obj_type_uri} {start_time} -> {until_time}")
         for obj_json in self._datatracker_get_multi(update_uri):
             self._cache_put_object(obj_json)
+            # When updating a Document, update the corresponding DocumentAuthor objects
+            if obj_type_uri.uri == "/api/v1/doc/document/":
+                uri = URI("/api/v1/doc/documentauthor/")
+                uri.params["document"] = obj_json["id"]
+                for item in self._datatracker_get_multi(uri):
+                    self.log.info(f"_cache_update_timed: {obj_json['resource_uri']} -> {item['resource_uri']}")
+                    self._cache_put_object(item)
+                self._cache_record_query(uri, _parent_uri(uri))
         meta = self._cache_load_metadata(obj_type_uri)
         meta.updated = now
         obj_count = self._datatracker_get_multi_count(obj_type_uri)
         if obj_count is not None and obj_count != meta.total_count:
-            self.log.info(f"_cache_update: updated total_count {obj_type_uri} {meta.total_count} -> {obj_count}")
+            self.log.info(f"_cache_update_timed: updated total_count {obj_type_uri} {meta.total_count} -> {obj_count}")
             meta.total_count = obj_count
         self._cache_save_metadata(obj_type_uri, meta)
 
@@ -1990,6 +1998,19 @@ class DataTracker:
         self._cache_create(obj_type_uri)
         now  = datetime.now(tz = dateutil.tz.gettz("America/Los_Angeles"))
 
+        # Rewrite dependent object types to update the cache for objects on which
+        # they depend. For example, if asked to update document authors, instead
+        # ask to update documents since that will update the document authors too.
+        if self._hints[obj_type_uri.uri].update_strategy == "R":
+            if obj_type_uri.uri == "/api/v1/doc/documentauthor/":
+                new_uri = URI("/api/v1/doc/document/")
+            else:
+                raise NotImplementedError(f"Cannot rewrite {obj_type_uri} in _cache_update")
+            self.log.info(f"_cache_update: {obj_type_uri} -> {new_uri}")
+            obj_type_uri = new_uri
+
+        assert(obj_type_uri.uri) is not None
+
         # Only check for cache updates for each object type at most once per minute.
         # This significantly reduces the load on the database.
         if obj_type_uri.uri not in self.cache_update:
@@ -1999,7 +2020,7 @@ class DataTracker:
 
         meta = self._cache_load_metadata(obj_type_uri)
 
-        # URIs under /api/v1/name/ are internal names used by the datatracker. 
+        # URIs under /api/v1/name/ are internal names used by the datatracker.
         # Delete and recreate these caches if the datatracker version changed.
         if self._hints[obj_type_uri.uri].update_strategy == "V" and dt_version_changed:
             self.log.info(f"_cache_update: drop {obj_type_uri} due to datatracker version change")
@@ -2118,6 +2139,7 @@ class DataTracker:
                 if n != "time__gte" and n != "time__lt":
                     cache_uri.params[n] = v
             if str(cache_uri) not in meta.queries:
+                self.log.debug(f"_cache_record_query: {str(cache_uri)}")
                 meta.queries.append(str(cache_uri))
                 self._cache_save_metadata(obj_type_uri, meta)
         else:
@@ -2152,9 +2174,11 @@ class DataTracker:
     def _cache_put_object(self, obj_json: Dict[str, Any]) -> None:
         if self.db is None:
             return
-        self.log.info(F"_cache_put_object: {obj_json['resource_uri']}")
-        self._cache_create(_parent_uri(URI(obj_json['resource_uri'])))
-        self.db[_db_collection(_parent_uri(URI(obj_json['resource_uri'])))].replace_one({"resource_uri" : obj_json['resource_uri']}, obj_json, upsert=True)
+        obj_uri      = URI(obj_json['resource_uri'])
+        obj_type_uri = _parent_uri(obj_uri)
+        self.log.info(F"_cache_put_object: {obj_uri}")
+        self._cache_create(obj_type_uri)
+        self.db[_db_collection(obj_type_uri)].replace_one({"resource_uri" : obj_uri.uri}, obj_json, upsert=True)
         self.db_calls += 1
 
 
@@ -2714,13 +2738,21 @@ class DataTracker:
     def documents_authored_by_person(self, person : Person) -> Iterator[DocumentAuthor]:
         url = DocumentAuthorURI("/api/v1/doc/documentauthor/")
         url.params["person"] = person.id
-        return self._retrieve_multi(url, DocumentAuthor)
+        for author in self._retrieve_multi(url, DocumentAuthor):
+            # When fetching DocumentAuthor records, retrieve the corresponding Document so the cache updates correctly
+            if self.db is not None:
+                self.document(author.document)
+            yield author
 
 
     def documents_authored_by_email(self, email : Email) -> Iterator[DocumentAuthor]:
         url = DocumentAuthorURI("/api/v1/doc/documentauthor/")
         url.params["email"] = email.address
-        return self._retrieve_multi(url, DocumentAuthor)
+        for author in self._retrieve_multi(url, DocumentAuthor):
+            # When fetching DocumentAuthor records, retrieve the corresponding Document so the cache updates correctly
+            if self.db is not None:
+                self.document(author.document)
+            yield author
 
 
     # Datatracker API endpoints returning information about related documents:
