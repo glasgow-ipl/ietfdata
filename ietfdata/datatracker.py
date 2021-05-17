@@ -310,7 +310,7 @@ class Submission(Resource):
     auth_key        : str
     authors         : str   # See the parse_authors() method
     checks          : List[SubmissionCheckURI]
-    document_date   : datetime
+    document_date   : Optional[datetime]
     draft           : DocumentURI
     file_size       : Optional[int]
     file_types      : str   # e.g., ".txt,.xml"
@@ -2024,7 +2024,7 @@ class DataTracker:
 
         meta = self._cache_load_metadata(obj_type_uri)
 
-        # URIs under /api/v1/name/ are internal names used by the datatracker. 
+        # URIs under /api/v1/name/ are internal names used by the datatracker.
         # Delete and recreate these caches if the datatracker version changed.
         if self._hints[obj_type_uri.uri].update_strategy == "V" and dt_version_changed:
             self.log.info(f"_cache_update: drop {obj_type_uri} due to datatracker version change")
