@@ -336,7 +336,7 @@ class DataTrackerExt(DataTracker):
                 email_base = F"{base}@{remote}"
                 email = self.email_for_address(email_base)
                 if email is not None and email.person is not None:
-                    self.log.info(f"person_from_name_email: {name} <{email_addr}> -> {email.person} (email match as {email_base})")
+                    self.log.debug(f"person_from_name_email: {name} <{email_addr}> -> {email.person} (email match as {email_base})")
                     return self.person(email.person)
 
         # Try to match on the name:
@@ -347,20 +347,20 @@ class DataTrackerExt(DataTracker):
         for n in names_to_try(name, email_addr):
             people = list(self.people(name = n))
             if len(people) == 1:
-                self.log.info(f"person_from_name_email: {name} <{email_addr}> -> {people[0].resource_uri} (name match)")
+                self.log.debug(f"person_from_name_email: {name} <{email_addr}> -> {people[0].resource_uri} (name match)")
                 return people[0]
 
             people = list(self.people(name_ascii = n))
             if len(people) == 1:
-                self.log.info(f"person_from_name_email: {name} <{email_addr}> -> {people[0].resource_uri} (name_ascii match)")
+                self.log.debug(f"person_from_name_email: {name} <{email_addr}> -> {people[0].resource_uri} (name_ascii match)")
                 return people[0]
 
             aliases = list(self.person_aliases(name = n))
             if len(aliases) == 1:
-                self.log.info(f"person_from_name_email: {name} <{email_addr}> -> {aliases[0].person} (alias match)")
+                self.log.debug(f"person_from_name_email: {name} <{email_addr}> -> {aliases[0].person} (alias match)")
                 return self.person(aliases[0].person)
 
-        self.log.info(f"person_from_name_email: {name} <{email_addr}> failed to match")
+        self.log.debug(f"person_from_name_email: {name} <{email_addr}> failed to match")
         return None
 
 
