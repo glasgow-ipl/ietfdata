@@ -18,6 +18,7 @@ pavlova = "*"
 imapclient = "*"
 python-dateutil = "*"
 pymongo = "*"
+pandas-stubs = "*"
 
 [requires]
 python_version = "3.9"
