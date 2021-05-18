@@ -128,9 +128,11 @@ class HistoricalPersonURI(URI):
 class Person(Resource):
     resource_uri    : PersonURI
     id              : int
-    name            : str
+    name            : str            # Full name in Unicode
     name_from_draft : str
-    ascii           : str
+    ascii           : str            # Name as rendered in ASCII
+    # ascii_short: Fill in this with initials and surname only if taking the initials
+    # and surname of the ASCII name above produces an incorrect initials-only form.
     ascii_short     : Optional[str]
     user            : str
     time            : datetime
@@ -138,6 +140,9 @@ class Person(Resource):
     photo_thumb     : str
     biography       : str
     consent         : bool
+    # Plain name correction: Use this if you have a Spanish double surname.
+    # Don't use this for nicknames, and don't use it unless you've actually
+    # observed that the datatracker shows your name incorrectly."
     plain           : str
 
 
