@@ -1656,6 +1656,7 @@ class CacheMetadata:
 
 @dataclass
 class Hints(Generic[T]):
+    obj_type :  Type[T]
     sort_by : str
     update_strategy : str
     deref   : Dict[str, str]
@@ -1720,81 +1721,81 @@ class DataTracker:
 
         # Register cache hints:
         self._hints = {} # type: Dict[str, Hints]
-        self._hints["/api/v1/doc/ballotdocevent/"]                 = Hints("id", "T", {"doc": "id"})
-        self._hints["/api/v1/doc/ballottype/"]                     = Hints("slug", "V", {})
-        self._hints["/api/v1/doc/docalias/"]                       = Hints("id", "-", {})  # FIXME: no modification time
-        self._hints["/api/v1/doc/docevent/"]                       = Hints("id", "T", {"doc": "id"})
-        self._hints["/api/v1/doc/document/"]                       = Hints("id", "T", {})
-        self._hints["/api/v1/doc/documentauthor/"]                 = Hints("id", "R", {"document": "id"})
-        self._hints["/api/v1/doc/relateddocument/"]                = Hints("id", "-", {"source": "id", "target": "id", "relationship": "slug"}) # FIXME: no modification time, but will be updated when the corresponding `source` is updated
-        self._hints["/api/v1/doc/state/"]                          = Hints("id", "V", {})
-        self._hints["/api/v1/doc/statetype/"]                      = Hints("slug", "V", {})
-        self._hints["/api/v1/group/changestategroupevent/"]        = Hints("id", "T", {})
-        self._hints["/api/v1/group/group/"]                        = Hints("id", "T", {})
-        self._hints["/api/v1/group/groupevent/"]                   = Hints("id", "T", {})
-        # FIXME: when a group, /api/v1/group/group/1861/, is updated, /api/v1/group/grouphistory/?group=1861 
+        self._hints["/api/v1/doc/ballotdocevent/"]                 = Hints(BallotDocumentEvent, "id", "T", {"doc": "id"})
+        self._hints["/api/v1/doc/ballottype/"]                     = Hints(BallotType, "slug", "V", {})
+        self._hints["/api/v1/doc/docalias/"]                       = Hints(DocumentAlias, "id", "-", {})  # FIXME: no modification time
+        self._hints["/api/v1/doc/docevent/"]                       = Hints(DocumentEvent, "id", "T", {"doc": "id"})
+        self._hints["/api/v1/doc/document/"]                       = Hints(Document, "id", "T", {})
+        self._hints["/api/v1/doc/documentauthor/"]                 = Hints(DocumentAuthor, "id", "R", {"document": "id"})
+        self._hints["/api/v1/doc/relateddocument/"]                = Hints(RelatedDocument, "id", "-", {"source": "id", "target": "id", "relationship": "slug"}) # FIXME: no modification time, but will be updated when the corresponding `source` is updated
+        self._hints["/api/v1/doc/state/"]                          = Hints(DocumentState, "id", "V", {})
+        self._hints["/api/v1/doc/statetype/"]                      = Hints(DocumentStateType, "slug", "V", {})
+        self._hints["/api/v1/group/changestategroupevent/"]        = Hints(GroupStateChangeEvent, "id", "T", {})
+        self._hints["/api/v1/group/group/"]                        = Hints(Group, "id", "T", {})
+        self._hints["/api/v1/group/groupevent/"]                   = Hints(GroupEvent, "id", "T", {})
+        # FIXME: when a group, /api/v1/group/group/1861/, is updated, /api/v1/group/grouphistory/?group=1861 Resource
         # will be updated with an object with "time" equal to the previous modification time of the group.
         # For example, when the IRSG membership was changed on 2021-04-26, a grouphistory object with time
         # 2020-07-25 was added, representing the previous state of the group.
-        self._hints["/api/v1/group/grouphistory/"]                 = Hints("id", "T", {})
-        self._hints["/api/v1/group/groupmilestone/"]               = Hints("id", "T", {})
-        self._hints["/api/v1/group/groupmilestonehistory/"]        = Hints("id", "T", {})
-        self._hints["/api/v1/group/groupurl/"]                     = Hints("id", "-", {})  # FIXME: no modification time, but will be updated with the corresponding `group` is updated
-        self._hints["/api/v1/group/milestonegroupevent/"]          = Hints("id", "T", {})
-        self._hints["/api/v1/group/role/"]                         = Hints("id", "-", {})  # FIXME: no modification time, but will be updated with the corresponding `group` is updated
-        self._hints["/api/v1/group/rolehistory/"]                  = Hints("id", "-", {})  # FIXME: No modification time, but will be updated when the corresponding `grouphistory` is updated
-        self._hints["/api/v1/ipr/genericiprdisclosure/"]           = Hints("id", "T", {})
-        self._hints["/api/v1/ipr/holderiprdisclosure/"]            = Hints("id", "T", {})
-        self._hints["/api/v1/ipr/iprdisclosurebase/"]              = Hints("id", "T", {})
-        self._hints["/api/v1/ipr/thirdpartyiprdisclosure/"]        = Hints("id", "T", {})
-        self._hints["/api/v1/mailinglists/list/"]                  = Hints("id", "-", {})  # FIXME: no modification time
-        self._hints["/api/v1/mailinglists/subscribed/"]            = Hints("id", "-", {})  # FIXME: these have a time field, but not clear updated
-        self._hints["/api/v1/meeting/meeting/"]                    = Hints("id", "-", {})  # FIXME: has an `updated` field that doesn't allow filtering?
-        self._hints["/api/v1/meeting/schedtimesessassignment/"]    = Hints("id", "M", {})
-        self._hints["/api/v1/meeting/schedule/"]                   = Hints("id", "-", {})  # FIXME: immutable once created?
-        self._hints["/api/v1/meeting/schedulingevent/"]            = Hints("id", "T", {})
-        self._hints["/api/v1/meeting/session/"]                    = Hints("id", "M", {})
-        self._hints["/api/v1/meeting/timeslot/"]                   = Hints("id", "M", {})
-        self._hints["/api/v1/message/announcementfrom/"]           = Hints("id", "V", {})
-        self._hints["/api/v1/message/message/"]                    = Hints("id", "-", {"related_doc": "id"}) # No longer accessible
-        self._hints["/api/v1/message/sendqueue/"]                  = Hints("id", "T", {})
-        self._hints["/api/v1/name/ballotpositionname/"]            = Hints("slug", "V", {})
-        self._hints["/api/v1/name/docrelationshipname/"]           = Hints("slug", "V", {})
-        self._hints["/api/v1/name/doctypename/"]                   = Hints("slug", "V", {})
-        self._hints["/api/v1/name/groupmilestonestatename/"]       = Hints("slug", "V", {})
-        self._hints["/api/v1/name/groupstatename/"]                = Hints("slug", "V", {})
-        self._hints["/api/v1/name/grouptypename/"]                 = Hints("slug", "V", {})
-        self._hints["/api/v1/name/meetingtypename/"]               = Hints("slug", "V", {})
-        self._hints["/api/v1/name/iprdisclosurestatename/"]        = Hints("slug", "V", {})
-        self._hints["/api/v1/name/iprlicensetypename/"]            = Hints("slug", "V", {})
-        self._hints["/api/v1/name/reviewassignmentstatename/"]     = Hints("slug", "V", {})
-        self._hints["/api/v1/name/reviewresultname/"]              = Hints("slug", "V", {})
-        self._hints["/api/v1/name/reviewtypename/"]                = Hints("slug", "V", {})
-        self._hints["/api/v1/name/reviewrequeststatename/"]        = Hints("slug", "V", {})
-        self._hints["/api/v1/name/rolename/"]                      = Hints("slug", "V", {})
-        self._hints["/api/v1/name/sessionstatusname/"]             = Hints("slug", "V", {})
-        self._hints["/api/v1/name/streamname/"]                    = Hints("slug", "V", {})
-        self._hints["/api/v1/person/alias/"]                       = Hints("id", "-", {})    # FIXME: no modification time, but updated with the `person` is updated
-        self._hints["/api/v1/person/email/"]                       = Hints("address", "T", {})
-        self._hints["/api/v1/person/historicalemail/"]             = Hints("address", "H", {})
-        self._hints["/api/v1/person/historicalperson/"]            = Hints("id", "H", {})
-        self._hints["/api/v1/person/person/"]                      = Hints("id", "T", {})
-        self._hints["/api/v1/person/personevent/"]                 = Hints("id", "T", {})
-        self._hints["/api/v1/review/historicalreviewassignment/"]  = Hints("id", "C", {})
-        self._hints["/api/v1/review/historicalreviewersettings/"]  = Hints("id", "H", {})
-        self._hints["/api/v1/review/historicalreviewrequest/"]     = Hints("id", "T", {"doc": "id"})
-        self._hints["/api/v1/review/historicalunavailableperiod/"] = Hints("id", "-", {})
-        self._hints["/api/v1/review/nextreviewerinteam/"]          = Hints("id", "-", {})
-        self._hints["/api/v1/review/reviewassignment/"]            = Hints("id", "-", {})
-        self._hints["/api/v1/review/reviewersettings/"]            = Hints("id", "-", {})
-        self._hints["/api/v1/review/reviewrequest/"]               = Hints("id", "T", {"doc": "id"})
-        self._hints["/api/v1/review/reviewsecretarysettings/"]     = Hints("id", "-", {})
-        self._hints["/api/v1/review/reviewteamsettings/"]          = Hints("id", "-", {})
-        self._hints["/api/v1/review/reviewwish/"]                  = Hints("id", "T", {"doc": "id"})
-        self._hints["/api/v1/review/unavailableperiod/"]           = Hints("id", "-", {})
-        self._hints["/api/v1/stats/meetingregistration/"]          = Hints("id", "-", {})
-        self._hints["/api/v1/submit/submission/"]                  = Hints("id", "-", {})
-        self._hints["/api/v1/submit/submissionevent/"]             = Hints("id", "T", {})
+        self._hints["/api/v1/group/grouphistory/"]                 = Hints(GroupHistory, "id", "T", {})
+        self._hints["/api/v1/group/groupmilestone/"]               = Hints(GroupMilestone, "id", "T", {})
+        self._hints["/api/v1/group/groupmilestonehistory/"]        = Hints(GroupMilestoneHistory, "id", "T", {})
+        self._hints["/api/v1/group/groupurl/"]                     = Hints(GroupUrl, "id", "-", {})  # FIXME: no modification time, but will be updated with the corresponding `group` is updated
+        self._hints["/api/v1/group/milestonegroupevent/"]          = Hints(GroupMilestoneEvent, "id", "T", {})
+        self._hints["/api/v1/group/role/"]                         = Hints(GroupRole, "id", "-", {})  # FIXME: no modification time, but will be updated with the corresponding `group` is updated
+        self._hints["/api/v1/group/rolehistory/"]                  = Hints(GroupRoleHistory, "id", "-", {})  # FIXME: No modification time, but will be updated when the corresponding `grouphistory` is updated
+        self._hints["/api/v1/ipr/genericiprdisclosure/"]           = Hints(GenericIPRDisclosure, "id", "T", {})
+        self._hints["/api/v1/ipr/holderiprdisclosure/"]            = Hints(HolderIPRDisclosure, "id", "T", {})
+        self._hints["/api/v1/ipr/iprdisclosurebase/"]              = Hints(IPRDisclosureBase, "id", "T", {})
+        self._hints["/api/v1/ipr/thirdpartyiprdisclosure/"]        = Hints(ThirdPartyIPRDisclosure, "id", "T", {})
+        self._hints["/api/v1/mailinglists/list/"]                  = Hints(MailingList, "id", "-", {})  # FIXME: no modification time
+        self._hints["/api/v1/mailinglists/subscribed/"]            = Hints(MailingListSubscriptions, "id", "-", {})  # FIXME: these have a time field, but not clear updated
+        self._hints["/api/v1/meeting/meeting/"]                    = Hints(Meeting, "id", "-", {})  # FIXME: has an `updated` field that doesn't allow filtering?
+        self._hints["/api/v1/meeting/schedtimesessassignment/"]    = Hints(SessionAssignment, "id", "M", {})
+        self._hints["/api/v1/meeting/schedule/"]                   = Hints(Schedule, "id", "-", {})  # FIXME: immutable once created?
+        self._hints["/api/v1/meeting/schedulingevent/"]            = Hints(SchedulingEvent, "id", "T", {})
+        self._hints["/api/v1/meeting/session/"]                    = Hints(Session, "id", "M", {})
+        self._hints["/api/v1/meeting/timeslot/"]                   = Hints(Timeslot, "id", "M", {})
+        self._hints["/api/v1/message/announcementfrom/"]           = Hints(AnnouncementFrom, "id", "V", {})
+        self._hints["/api/v1/message/message/"]                    = Hints(Message, "id", "-", {"related_doc": "id"}) # No longer accessible
+        self._hints["/api/v1/message/sendqueue/"]                  = Hints(SendQueueEntry, "id", "T", {})
+        self._hints["/api/v1/name/ballotpositionname/"]            = Hints(BallotPositionName, "slug", "V", {})
+        self._hints["/api/v1/name/docrelationshipname/"]           = Hints(RelationshipType, "slug", "V", {})
+        self._hints["/api/v1/name/doctypename/"]                   = Hints(DocumentType, "slug", "V", {})
+        self._hints["/api/v1/name/groupmilestonestatename/"]       = Hints(GroupMilestoneStateName, "slug", "V", {})
+        self._hints["/api/v1/name/groupstatename/"]                = Hints(GroupState, "slug", "V", {})
+        self._hints["/api/v1/name/grouptypename/"]                 = Hints(GroupTypeName, "slug", "V", {})
+        self._hints["/api/v1/name/meetingtypename/"]               = Hints(MeetingType, "slug", "V", {})
+        self._hints["/api/v1/name/iprdisclosurestatename/"]        = Hints(IPRDisclosureState, "slug", "V", {})
+        self._hints["/api/v1/name/iprlicensetypename/"]            = Hints(IPRLicenseType, "slug", "V", {})
+        self._hints["/api/v1/name/reviewassignmentstatename/"]     = Hints(ReviewAssignmentState, "slug", "V", {})
+        self._hints["/api/v1/name/reviewresultname/"]              = Hints(ReviewResultType, "slug", "V", {})
+        self._hints["/api/v1/name/reviewtypename/"]                = Hints(ReviewType, "slug", "V", {})
+        self._hints["/api/v1/name/reviewrequeststatename/"]        = Hints(ReviewRequestState, "slug", "V", {})
+        self._hints["/api/v1/name/rolename/"]                      = Hints(RoleName, "slug", "V", {})
+        self._hints["/api/v1/name/sessionstatusname/"]             = Hints(SessionStatusName, "slug", "V", {})
+        self._hints["/api/v1/name/streamname/"]                    = Hints(Stream, "slug", "V", {})
+        self._hints["/api/v1/person/alias/"]                       = Hints(PersonAlias, "id", "-", {})    # FIXME: no modification time, but updated with the `person` is updated
+        self._hints["/api/v1/person/email/"]                       = Hints(Email, "address", "T", {})
+        self._hints["/api/v1/person/historicalemail/"]             = Hints(HistoricalEmail, "address", "H", {})
+        self._hints["/api/v1/person/historicalperson/"]            = Hints(HistoricalPerson, "id", "H", {})
+        self._hints["/api/v1/person/person/"]                      = Hints(Person, "id", "T", {})
+        self._hints["/api/v1/person/personevent/"]                 = Hints(PersonEvent, "id", "T", {})
+        self._hints["/api/v1/review/historicalreviewassignment/"]  = Hints(HistoricalReviewAssignment, "id", "C", {})
+        self._hints["/api/v1/review/historicalreviewersettings/"]  = Hints(HistoricalReviewerSettings, "id", "H", {})
+        self._hints["/api/v1/review/historicalreviewrequest/"]     = Hints(HistoricalReviewRequest, "id", "T", {"doc": "id"})
+        self._hints["/api/v1/review/historicalunavailableperiod/"] = Hints(HistoricalUnavailablePeriod, "id", "-", {})
+        self._hints["/api/v1/review/nextreviewerinteam/"]          = Hints(NextReviewerInTeam, "id", "-", {})
+        self._hints["/api/v1/review/reviewassignment/"]            = Hints(ReviewAssignment, "id", "-", {})
+        self._hints["/api/v1/review/reviewersettings/"]            = Hints(ReviewerSettings, "id", "-", {})
+        self._hints["/api/v1/review/reviewrequest/"]               = Hints(ReviewRequest, "id", "T", {"doc": "id"})
+        self._hints["/api/v1/review/reviewsecretarysettings/"]     = Hints(ReviewSecretarySettings, "id", "-", {})
+        self._hints["/api/v1/review/reviewteamsettings/"]          = Hints(ReviewTeamSettings, "id", "-", {})
+        self._hints["/api/v1/review/reviewwish/"]                  = Hints(ReviewWish, "id", "T", {"doc": "id"})
+        self._hints["/api/v1/review/unavailableperiod/"]           = Hints(UnavailablePeriod, "id", "-", {})
+        self._hints["/api/v1/stats/meetingregistration/"]          = Hints(MeetingRegistration, "id", "-", {})
+        self._hints["/api/v1/submit/submission/"]                  = Hints(Submission, "id", "-", {})
+        self._hints["/api/v1/submit/submissionevent/"]             = Hints(SubmissionEvent, "id", "T", {})
 
         # check Datatracker and cache versions
         self._cache_check_versions()

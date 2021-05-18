@@ -68,7 +68,12 @@ class TestDatatrackerCoverage(unittest.TestCase):
 
     def test_endpoint_coverage(self) -> None:
         # These endpoints are intentionally not implemented by the ietfdata library:
-        ignore_endpoints = [
+        ignored_endpoints = [
+                    "/api/v1/community/communitylist/",
+                    "/api/v1/community/emailsubscription/",
+                    "/api/v1/community/searchrule/",
+                    "/api/v1/dbtemplate/dbtemplate/",
+                    "/api/v1/message/messageattachment/",
                     "/api/v1/name/nomineepositionstatename/",
                     "/api/v1/nomcom/feedback/",
                     "/api/v1/nomcom/feedbacklastseen/",
@@ -82,29 +87,35 @@ class TestDatatrackerCoverage(unittest.TestCase):
                     "/api/v1/nomcom/topicfeedbacklastseen/",
                     "/api/v1/person/personalapikey/",
                     "/api/v1/person/personapikeyevent/",
+                    "/api/v1/redirects/command/",
+                    "/api/v1/redirects/redirect/",
+                    "/api/v1/redirects/suffix/",
                     "/api/v1/submit/preapproval/",
                     "/api/v1/submit/submissioncheck/",
                     "/api/v1/submit/submissionemailevent/",
                     "/api/v1/submit/submissionextresource/",
                     "/api/v1/submit/submissionextresource/",
+                    "/api/v1/utils/dumpinfo/",
+                    "/api/v1/utils/versioninfo/"
                 ]
 
         covered_uris = []
         for covered_uri in self.dt._hints:
-            self.assertNotIn(covered_uri, ignore_endpoints)
+            self.assertNotIn(covered_uri, ignored_endpoints)
             covered_uris.append(covered_uri)
         for endpoint_uri in self.endpoint_uris:
-            if endpoint_uri not in ignore_endpoints:
+            if endpoint_uri not in ignored_endpoints:
                 with self.subTest(msg=endpoint_uri):
                     if endpoint_uri not in covered_uris:
                         self.fail(f"No API methods for datatracker endpoint {endpoint_uri}")
 
 
-    # FIXME: with the new structure of self.dt._hints, checking the fields is not easy 
+    def test_endpoint_fields(self) -> None:
+        for uri in self.dt._hints:
+            if uri in self.endpoint_uris:
+                print(f"{uri} -> {self.endpoint_uris[uri]}")
+                with self.subTest(msg=f"{uri}, {self.dt._hints[uri].obj_type.__name__}"):
+                    fields_in_object = list(self.dt._hints[uri].obj_type.__dict__["__dataclass_fields__"].keys())
+                    fields_in_schema = self.endpoint_uris[uri]
+                    self.assertCountEqual(fields_in_object, fields_in_schema)
 
-    #def test_endpoint_fields(self) -> None:
-    #    for uri in self.dt._hints:
-    #        if uri in self.endpoint_uris:
-    #            print(f"{uri} -> {self.endpoint_uris[uri]}")
-    #            with self.subTest(msg=f"{uri}, {self.dt._hints[uri].resource_type.__name__}"):
-    #                self.assertCountEqual(list(self.dt._hints[uri].resource_type.__dict__["__dataclass_fields__"].keys()), self.endpoint_uris[uri])
