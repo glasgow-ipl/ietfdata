@@ -360,6 +360,11 @@ class DataTrackerExt(DataTracker):
                 self.log.debug(f"person_from_name_email: {name} <{email_addr}> -> {people[0].resource_uri} (name_ascii match)")
                 return people[0]
 
+            people = list(self.people(name_plain = n))
+            if len(people) == 1:
+                self.log.debug(f"person_from_name_email: {name} <{email_addr}> -> {people[0].resource_uri} (name_plain match)")
+                return people[0]
+
             aliases = list(self.person_aliases(name = n))
             if len(aliases) == 1:
                 self.log.debug(f"person_from_name_email: {name} <{email_addr}> -> {aliases[0].person} (alias match)")

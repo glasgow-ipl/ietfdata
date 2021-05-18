@@ -138,6 +138,7 @@ class Person(Resource):
     photo_thumb     : str
     biography       : str
     consent         : bool
+    plain           : str
 
 
 @dataclass(frozen=True)
@@ -159,6 +160,7 @@ class HistoricalPerson(Resource):
     history_id            : int
     history_type          : str
     history_date          : datetime
+    plain                 : str
 
 
 @dataclass(frozen=True)
@@ -2434,7 +2436,9 @@ class DataTracker:
             name                : Optional[str] = None,
             name_contains       : Optional[str] = None,
             name_ascii          : Optional[str] = None,
-            name_ascii_contains : Optional[str] = None) -> Iterator[Person]:
+            name_ascii_contains : Optional[str] = None,
+            name_plain          : Optional[str] = None,
+            name_plain_contains : Optional[str] = None) -> Iterator[Person]:
         """
         A generator that returns people recorded in the datatracker. As of April
         2018, there are approximately 21500 people recorded.
@@ -2458,6 +2462,10 @@ class DataTracker:
             url.params["ascii"] = name_ascii
         if name_ascii_contains is not None:
             url.params["ascii__contains"] = name_ascii_contains
+        if name_plain is not None:
+            url.params["plain"] = name_plain
+        if name_plain_contains is not None:
+            url.params["plain__contains"] = name_plain_contains
         return self._retrieve_multi(url, Person)
 
 
