@@ -113,7 +113,6 @@ class TestDatatrackerCoverage(unittest.TestCase):
     def test_endpoint_fields(self) -> None:
         for uri in self.dt._hints:
             if uri in self.endpoint_uris:
-                print(f"{uri} -> {self.endpoint_uris[uri]}")
                 with self.subTest(msg=f"{uri}, {self.dt._hints[uri].obj_type.__name__}"):
                     fields_in_object = list(self.dt._hints[uri].obj_type.__dict__["__dataclass_fields__"].keys())
                     fields_in_schema = self.endpoint_uris[uri]
