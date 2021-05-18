@@ -1129,6 +1129,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(s.submitter,       "Dave Crocker")
             self.assertEqual(s.title,           "Augmented BNF for Syntax Specifications: ABNF")
             self.assertEqual(s.words,           None)
+            self.assertEqual(s.xml_version,     None)
         else:
             self.fail("Cannot find submission")
 

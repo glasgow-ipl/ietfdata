@@ -330,6 +330,7 @@ class Submission(Resource):
     submitter       : str
     title           : str
     words           : Optional[int]
+    xml_version     : Optional[str]
 
     """
     URLs from which this submission can be downloaded.
