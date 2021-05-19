@@ -36,7 +36,7 @@ from datetime      import datetime, timedelta
 from typing        import Dict, Iterator, List, Optional, Tuple, Union
 from pymongo       import MongoClient, ASCENDING, ReplaceOne
 from email         import policy, utils
-from email.message import Message
+from email.message import Message as EmailMessage
 from imapclient    import IMAPClient
 
 from dataclasses import dataclass, field
@@ -62,7 +62,7 @@ def _parse_archive_url(archive_url:str) -> Tuple[str, str]:
     return (mailing_list, message_hash)
 
 
-def _clean_email_text(email : Message) -> str:
+def _clean_email_text(email : EmailMessage) -> str:
     clean_text_reply = ""
     try:
         clean_text_bytes = email.get_payload(decode=True)
@@ -195,7 +195,7 @@ class MailingList:
         return self._num_messages
 
 
-    def raw_message(self, msg_id: int) -> Message:
+    def raw_message(self, msg_id: int) -> EmailMessage:
         cache_metadata = self._mail_archive._db.messages.find_one({"list" : self._list_name, "imap_uid": msg_id})
         if cache_metadata:
             message = email.message_from_bytes(self._mail_archive._fs.get(cache_metadata["gridfs_id"]).read(), policy=policy.default)
