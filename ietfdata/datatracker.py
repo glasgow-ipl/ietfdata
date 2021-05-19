@@ -1517,8 +1517,55 @@ class EmailListSubscriptions(Resource):
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------
-# Types relating to statistics:
+# Types relating to places:
 
+@dataclass(frozen=True)
+class ContinentURI(URI):
+    root : str = "/api/v1/name/continentname/"
+
+
+@dataclass(frozen=True)
+class Continent(Resource):
+    resource_uri : ContinentURI
+    desc         : str
+    order        : int
+    name         : str
+    used         : bool
+    slug         : str
+
+
+@dataclass(frozen=True)
+class CountryURI(URI):
+    root : str = "/api/v1/name/countryname/"
+
+
+@dataclass(frozen=True)
+class Country(Resource):
+    resource_uri : CountryURI
+    desc         : str
+    slug         : str
+    in_eu        : bool
+    order        : int
+    used         : bool
+    name         : str
+    continent    : ContinentURI
+
+
+@dataclass(frozen=True)
+class CountryAliasURI(URI):
+    root : str = "/api/v1/stats/countryalias/"
+
+
+@dataclass(frozen=True)
+class CountryAlias(Resource):
+    id           : int
+    resource_uri : CountryAliasURI
+    country      : CountryURI
+    alias        : str
+
+
+# ---------------------------------------------------------------------------------------------------------------------------------
+# Types relating to statistics:
 
 @dataclass(frozen=True)
 class MeetingRegistrationURI(URI):
@@ -1807,6 +1854,9 @@ class DataTracker:
         self._hints["/api/v1/review/reviewteamsettings/"]          = Hints(ReviewTeamSettings, "id", "-", {})
         self._hints["/api/v1/review/reviewwish/"]                  = Hints(ReviewWish, "id", "T", {"doc": "id"})
         self._hints["/api/v1/review/unavailableperiod/"]           = Hints(UnavailablePeriod, "id", "-", {})
+        self._hints["/api/v1/name/continentname/"]                 = Hints(Continent, "slug", "V", {})
+        self._hints["/api/v1/name/countryname/"]                   = Hints(Country, "slug", "V", {})
+        self._hints["/api/v1/stats/countryalias/"]                 = Hints(CountryAlias, "id", "V", {})
         self._hints["/api/v1/stats/meetingregistration/"]          = Hints(MeetingRegistration, "id", "-", {})
         self._hints["/api/v1/submit/submission/"]                  = Hints(Submission, "id", "-", {})
         self._hints["/api/v1/submit/submissionevent/"]             = Hints(SubmissionEvent, "id", "T", {})
@@ -3315,8 +3365,6 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/name/agendatypename/
     #   https://datatracker.ietf.org/api/v1/name/timeslottypename/
     #   https://datatracker.ietf.org/api/v1/name/roomresourcename/
-    #   https://datatracker.ietf.org/api/v1/name/countryname/
-    #   https://datatracker.ietf.org/api/v1/name/continentname/
     # * https://datatracker.ietf.org/api/v1/name/meetingtypename/
     #   https://datatracker.ietf.org/api/v1/name/importantdatename/
 
@@ -4006,11 +4054,64 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/name/rolename/
 
     # ----------------------------------------------------------------------------------------------------------------------------
+    # Datatracker API endpoints returning information about countries:
+    # * https://datatracker.ietf.org/api/v1/stats/countryalias/
+    # * https://datatracker.ietf.org/api/v1/name/countryname/
+    # * https://datatracker.ietf.org/api/v1/name/continentname/
+
+    def continent(self, continent_uri : ContinentURI) -> Optional[Continent]:
+        return self._retrieve(continent_uri, Continent)
+
+
+    def continent_from_slug(self, slug : str) -> Optional[Continent]:
+        return self._retrieve(ContinentURI(F"/api/v1/name/continentname/{slug}/"), Continent)
+
+
+    def continents(self) -> Iterator[Continent]:
+        url = ContinentURI("/api/v1/name/continentname/")
+        return self._retrieve_multi(url, Continent)
+
+
+    def country(self, country_uri: CountryURI) -> Optional[Country]:
+        return self._retrieve(country_uri, Country)
+
+
+    def country_from_slug(self, slug : str) -> Optional[Country]:
+        return self._retrieve(CountryURI(F"/api/v1/name/countryname/{slug}/"), Country)
+
+
+    def countries(self,
+                  continent_slug : Optional[str]  = None,
+                  in_eu          : Optional[bool] = None,
+                  slug           : Optional[str]  = None,
+                  name           : Optional[str]  = None) -> Iterator[Country]:
+        url = CountryURI("/api/v1/name/countryname/")
+        if continent_slug is not None:
+            url.params["continent"] = continent_slug
+        if in_eu is not None:
+            url.params["in_eu"] = in_eu
+        if slug is not None:
+            url.params["slug"] = slug
+        if name is not None:
+            url.params["name"] = name
+        return self._retrieve_multi(url, Country)
+
+
+    def country_alias(self, country_alias_uri : CountryAliasURI) -> Optional[CountryAlias]:
+        return self._retrieve(country_alias_uri, CountryAlias)
+
+
+    def country_aliases(self, alias : str) -> Iterator[CountryAlias]:
+        url = CountryAliasURI("/api/v1/stats/countryalias/")
+        url.params["alias"] = alias
+        return self._retrieve_multi(url, CountryAlias)
+
+
+    # ----------------------------------------------------------------------------------------------------------------------------
     # Datatracker API endpoints returning information about statistics:
     #
     #   https://datatracker.ietf.org/api/v1/stats/affiliationalias/
     #   https://datatracker.ietf.org/api/v1/stats/affiliationignoredending/
-    #   https://datatracker.ietf.org/api/v1/stats/countryalias/
     #   https://datatracker.ietf.org/api/v1/stats/meetingregistration/
 
     def meeting_registration(self, meeting_registration_uri: MeetingRegistrationURI) -> Optional[MeetingRegistration]:

@@ -3281,8 +3281,111 @@ class TestDatatracker(unittest.TestCase):
         self.assertIsNot(subs, None)
 
     # -----------------------------------------------------------------------------------------------------------------------------
-    # Tests relating to statistics:
+    # Tests relating to countries and continents:
 
+    def test_continent(self) -> None:
+        continent = self.dt.continent(ContinentURI("/api/v1/name/continentname/europe/"))
+        if continent is not None:
+            self.assertEqual(continent.used, True)
+            self.assertEqual(continent.order, 0)
+            self.assertEqual(continent.desc, "")
+            self.assertEqual(continent.name, "Europe")
+            self.assertEqual(continent.resource_uri, ContinentURI("/api/v1/name/continentname/europe/"))
+            self.assertEqual(continent.slug, "europe")
+        else:
+            self.fail("Cannot find continent")
+
+
+    def test_continent_from_slug(self) -> None:
+        continent = self.dt.continent_from_slug("europe")
+        if continent is not None:
+            self.assertEqual(continent.used, True)
+            self.assertEqual(continent.order, 0)
+            self.assertEqual(continent.desc, "")
+            self.assertEqual(continent.name, "Europe")
+            self.assertEqual(continent.resource_uri, ContinentURI("/api/v1/name/continentname/europe/"))
+            self.assertEqual(continent.slug, "europe")
+        else:
+            self.fail("Cannot find continent")
+
+
+    def test_continents(self) -> None:
+        continents = list(self.dt.continents())
+        self.assertEqual(len(continents), 7)
+
+
+    def test_country(self) -> None:
+        country = self.dt.country(CountryURI("/api/v1/name/countryname/DE/"))
+        if country is not None:
+            self.assertEqual(country.order,        0)
+            self.assertEqual(country.continent,    ContinentURI("/api/v1/name/continentname/europe/"))
+            self.assertEqual(country.resource_uri, CountryURI("/api/v1/name/countryname/DE/"))
+            self.assertEqual(country.used,         True)
+            self.assertEqual(country.desc,         "")
+            self.assertEqual(country.name,         "Germany")
+            self.assertEqual(country.in_eu,        True)
+            self.assertEqual(country.slug,         "DE")
+        else:
+            self.fail("Cannot find country")
+
+
+    def test_country_from_slug(self) -> None:
+        country = self.dt.country_from_slug("DE")
+        if country is not None:
+            self.assertEqual(country.order,        0)
+            self.assertEqual(country.continent,    ContinentURI("/api/v1/name/continentname/europe/"))
+            self.assertEqual(country.resource_uri, CountryURI("/api/v1/name/countryname/DE/"))
+            self.assertEqual(country.used,         True)
+            self.assertEqual(country.desc,         "")
+            self.assertEqual(country.name,         "Germany")
+            self.assertEqual(country.in_eu,        True)
+            self.assertEqual(country.slug,         "DE")
+        else:
+            self.fail("Cannot find country")
+
+
+    def test_countries_continent(self) -> None:
+        countries = list(self.dt.countries(continent_slug = "north-america"))
+        self.assertEqual(len(countries), 41)
+
+
+    def test_countries_in_eu(self) -> None:
+        countries = list(self.dt.countries(in_eu = True))
+        self.assertEqual(len(countries), 28)  # Bollocks to Brexit
+
+
+    def test_countries_slug(self) -> None:
+        countries = list(self.dt.countries(slug = "DE"))
+        self.assertEqual(len(countries), 1)
+
+
+    def test_countries_name(self) -> None:
+        countries = list(self.dt.countries(name = "Germany"))
+        self.assertEqual(len(countries), 1)
+
+
+    def test_country_alias(self) -> None:
+        country = self.dt.country_alias(CountryAliasURI("/api/v1/stats/countryalias/292/"))
+        if country is not None:
+            self.assertEqual(country.country,      CountryURI("/api/v1/name/countryname/BE/"))
+            self.assertEqual(country.resource_uri, CountryAliasURI("/api/v1/stats/countryalias/292/"))
+            self.assertEqual(country.alias,        "belgique")
+            self.assertEqual(country.id,           292)
+        else:
+            self.fail("Cannot find country alias")
+
+
+    def test_country_aliases(self) -> None:
+        aliases = list(self.dt.country_aliases("belgique"))
+        self.assertEqual(len(aliases), 1)
+        self.assertEqual(aliases[0].resource_uri, CountryAliasURI("/api/v1/stats/countryalias/292/"))
+        self.assertEqual(aliases[0].country,      CountryURI("/api/v1/name/countryname/BE/"))
+        self.assertEqual(aliases[0].alias,        "belgique")
+        self.assertEqual(aliases[0].id,           292)
+
+
+    # -----------------------------------------------------------------------------------------------------------------------------
+    # Tests relating to statistics:
 
     def test_meeting_registration(self) -> None:
         reg = self.dt.meeting_registration(MeetingRegistrationURI("/api/v1/stats/meetingregistration/42206/"))

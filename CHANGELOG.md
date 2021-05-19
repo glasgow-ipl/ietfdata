@@ -10,6 +10,7 @@ Change Log -- ietfdata
  - Rename `MailingList`-related types and methods in Datatracker to
    `EmailList` to make it easier to use DataTracker and MailArchive
    classes together
+ - Add methods and types relating to countries and continents
 
 
 ## Version 0.4.0 -- 2021-03-02
