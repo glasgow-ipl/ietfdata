@@ -58,6 +58,8 @@ def _parse_archive_url(archive_url:str) -> Tuple[str, str]:
 
     mailing_list = aa_uri[:aa_uri.find("/")]
     message_hash = aa_uri[aa_uri.find("/")+1:]
+    if message_hash.endswith(">"):
+        message_hash = message_hash[:-1]
 
     return (mailing_list, message_hash)
 
@@ -177,13 +179,13 @@ class MailingList:
         aa_cache = self._mail_archive._db.aa_cache.find_one({"list": self._list_name})
         if aa_cache:
             self._archive_urls = aa_cache["archive_urls"]
+            self.log.debug(f"_archive_urls: loaded {len(self._archive_urls)} URLs for list {list_name}")
         else:
-            self.log.info(F"no archived-at cache for mailing list {self._list_name}")
             for msg in self.messages():
                 if msg.archived_at is not None:
-                    self.log.info(F"scan message {self._list_name}/{msg._imap_uid} for archived-at")
                     list_name, msg_hash = _parse_archive_url(msg.archived_at)
                     self._archive_urls[msg_hash] = msg._imap_uid
+                    self.log.debug(F"_archive_urls: {self._list_name}/{msg._imap_uid} -> {msg_hash}")
             self._mail_archive._db.aa_cache.replace_one({"list" : self._list_name}, {"list" : self._list_name, "archive_urls": self._archive_urls}, upsert=True)
 
 
@@ -210,6 +212,7 @@ class MailingList:
 
     def message_from_archive_url(self, archive_url:str) -> Optional[MailingListMessage]:
         list_name, msg_hash = _parse_archive_url(archive_url)
+        self.log.info(f"message_from_archive_url: {archive_url} -> {list_name} {msg_hash}")
         assert list_name == self._list_name
         return self.message(self._archive_urls[msg_hash])
 
@@ -270,6 +273,7 @@ class MailingList:
                 if e["Archived-At"] is not None:
                     list_name, msg_hash = _parse_archive_url(e["Archived-At"])
                     self._archive_urls[msg_hash] = msg_id
+                    self.log.info(F"_archive_urls: {self._list_name}/{msg_id} -> {msg_hash}")
                 self._num_messages += 1
                 timestamp = None # type: Optional[datetime]
                 try:
@@ -424,13 +428,14 @@ class MailArchive:
             # server should redirect us to the current archive location.
             # Unfortunately this will then fail, because messages in the
             # legacy archive are missing the "Archived-At:" header.
-            print(archive_url)
+            self.log.debug(f"message_from_archive_url (old): {archive_url}")
             response = requests.get(archive_url)
             assert "//mailarchive.ietf.org/arch/msg" in response.url
             return self.message_from_archive_url(response.url)
         elif "//mailarchive.ietf.org/arch/msg" in archive_url:
             list_name, _ = _parse_archive_url(archive_url)
             mailing_list = self.mailing_list(list_name)
+            self.log.debug(f"message_from_archive_url (new): {archive_url} -> {mailing_list.name()}")
             return mailing_list.message_from_archive_url(archive_url)
         else:
             raise RuntimeError("Cannot resolve mail archive URL")
