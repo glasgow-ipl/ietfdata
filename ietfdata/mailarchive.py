@@ -212,7 +212,7 @@ class MailingList:
 
     def message_from_archive_url(self, archive_url:str) -> Optional[MailingListMessage]:
         list_name, msg_hash = _parse_archive_url(archive_url)
-        self.log.info(f"message_from_archive_url: {archive_url} -> {list_name} {msg_hash}")
+        self.log.debug(f"message_from_archive_url: {archive_url} -> {list_name} {msg_hash}")
         assert list_name == self._list_name
         return self.message(self._archive_urls[msg_hash])
 
@@ -273,7 +273,7 @@ class MailingList:
                 if e["Archived-At"] is not None:
                     list_name, msg_hash = _parse_archive_url(e["Archived-At"])
                     self._archive_urls[msg_hash] = msg_id
-                    self.log.info(F"_archive_urls: {self._list_name}/{msg_id} -> {msg_hash}")
+                    self.log.debug(F"_archive_urls: {self._list_name}/{msg_id} -> {msg_hash}")
                 self._num_messages += 1
                 timestamp = None # type: Optional[datetime]
                 try:
