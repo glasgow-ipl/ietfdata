@@ -881,6 +881,7 @@ class Schedule(Resource):
     visible      : bool
     public       : bool
     badness      : Optional[str]
+    notes        : str
 
 
 @dataclass(frozen=True)

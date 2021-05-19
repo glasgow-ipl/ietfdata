@@ -2036,6 +2036,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(schedule.visible,      True)
             self.assertEqual(schedule.public,       True)
             self.assertEqual(schedule.badness,      None)
+            self.assertEqual(schedule.notes,        "")
         else:
             self.fail("cannot find meeting schedule")
 
