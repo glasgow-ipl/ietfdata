@@ -636,8 +636,11 @@ class Group(Resource):
     state          : GroupStateURI
     time           : datetime
     type           : GroupTypeNameURI
-    unused_states  : List[str]
+    unused_states  : List[DocumentStateURI]
     unused_tags    : List[str]
+    meeting_seen_as_area : bool
+    used_roles           : str
+    uses_milestone_dates : bool
 
 
 @dataclass(frozen=True)
@@ -662,9 +665,11 @@ class GroupHistory(Resource):
     state                : GroupStateURI
     time                 : datetime
     type                 : GroupTypeNameURI
-    unused_states        : List[str]
+    unused_states        : List[DocumentStateURI]
     unused_tags          : List[str]
     uses_milestone_dates : bool
+    meeting_seen_as_area : bool
+    used_roles           : str
 
 
 @dataclass(frozen=True)

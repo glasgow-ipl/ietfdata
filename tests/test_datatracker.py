@@ -1259,6 +1259,9 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(group.type,           GroupTypeNameURI("/api/v1/name/grouptypename/wg/"))
             self.assertEqual(group.unused_states,  [])
             self.assertEqual(group.unused_tags,    [])
+            self.assertEqual(group.meeting_seen_as_area, False)
+            self.assertEqual(group.used_roles,           "[]")
+            self.assertEqual(group.uses_milestone_dates, True)
         else:
             self.fail("Cannot find group")
 
@@ -1309,6 +1312,8 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(group_history.type,                 GroupTypeNameURI("/api/v1/name/grouptypename/wg/"))
             self.assertEqual(group_history.unused_states,        [])
             self.assertEqual(group_history.unused_tags,          [])
+            self.assertEqual(group_history.meeting_seen_as_area, False)
+            self.assertEqual(group_history.used_roles,           "[]")
             self.assertEqual(group_history.uses_milestone_dates, True)
         else:
             self.fail("Cannot find group history")
