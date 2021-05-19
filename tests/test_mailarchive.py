@@ -64,6 +64,15 @@ class TestMailArchive(unittest.TestCase):
         self.assertEqual(mlist.num_messages(), 434)
 
 
+    def test_mailarchive_message_from_archive_url(self) -> None:
+        msg = self.ma.message_from_archive_url("https://mailarchive.ietf.org/arch/msg/100attendees/6MokiOHt8HrmEYt5-64Nt3pTZKc")
+        if msg is not None:
+            self.assertEqual(msg.list_name,  "100attendees")
+            self.assertEqual(msg.message_id, "<CA+k3eCRKtJAOEFi5r_D1=UcxiDocTX8S9qWZg24e_wuf7xk-Yw@mail.gmail.com>")
+            self.assertEqual(msg._imap_uid,  413)
+        else:
+            self.fail("Cannot find message: https://mailarchive.ietf.org/arch/msg/100attendees/6MokiOHt8HrmEYt5-64Nt3pTZKc")
+
 
 if __name__ == '__main__':
     unittest.main()
