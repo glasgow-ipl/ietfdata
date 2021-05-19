@@ -14,7 +14,7 @@ Getting started
 
 The project uses Pipenv for dependency management. To begin, run:
 ```~~~~~~~~
-pipenv install --dev
+pipenv install --dev -e .
 ```
 to create a Python virtual environment with appropriate packages install.
 Then, run:
