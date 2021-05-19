@@ -7,6 +7,9 @@ Change Log -- ietfdata
  - Expand parameters for `person_aliases()`
  - Expand parameters for `people()`
  - Add `person_from_name_email()` to DatatrackerExt
+ - Rename `MailingList`-related types and methods in Datatracker to
+   `EmailList` to make it easier to use DataTracker and MailArchive
+   classes together
 
 
 ## Version 0.4.0 -- 2021-03-02

@@ -3237,41 +3237,41 @@ class TestDatatracker(unittest.TestCase):
     # Tests relating to mailing lists:
 
 
-    def test_mailing_list(self) -> None:
-        ml = self.dt.mailing_list(MailingListURI("/api/v1/mailinglists/list/461/"))
+    def test_email_list(self) -> None:
+        ml = self.dt.email_list(EmailListURI("/api/v1/mailinglists/list/461/"))
         if ml is not None:
             self.assertEqual(ml.id,           461)
-            self.assertEqual(ml.resource_uri, MailingListURI("/api/v1/mailinglists/list/461/"))
+            self.assertEqual(ml.resource_uri, EmailListURI("/api/v1/mailinglists/list/461/"))
             self.assertEqual(ml.name,         "hackathon")
             self.assertEqual(ml.description,  "Discussion regarding past, present, and future IETF hackathons.")
             self.assertEqual(ml.advertised,   True)
         else:
-            self.fail("Cannot find mailing list")
+            self.fail("Cannot find email list")
 
 
-    def test_mailing_lists(self) -> None:
-        ml = list(self.dt.mailing_lists(name="ietf"))
+    def test_email_lists(self) -> None:
+        ml = list(self.dt.email_lists(name="ietf"))
         if ml is not None:
             self.assertEqual(len(ml), 1)
             self.assertEqual(ml[0].id,            262)
             self.assertEqual(ml[0].description,  "IETF-Discussion")
-            self.assertEqual(ml[0].resource_uri, MailingListURI("/api/v1/mailinglists/list/262/"))
+            self.assertEqual(ml[0].resource_uri, EmailListURI("/api/v1/mailinglists/list/262/"))
             self.assertEqual(ml[0].advertised,   True)
             self.assertEqual(ml[0].name,         "ietf")
         else:
-            self.fail("Cannot find mailing list")
+            self.fail("Cannot find email list")
 
 
-    def test_mailing_list_subscriptions(self) -> None:
-        subs = list(self.dt.mailing_list_subscriptions(email_addr="colin.perkins@glasgow.ac.uk"))
+    def test_email_list_subscriptions(self) -> None:
+        subs = list(self.dt.email_list_subscriptions(email_addr="colin.perkins@glasgow.ac.uk"))
         self.assertEqual(len(subs), 1)
         self.assertEqual(subs[0].id,           66700)
-        self.assertEqual(subs[0].resource_uri, MailingListSubscriptionsURI(uri="/api/v1/mailinglists/subscribed/66700/"))
+        self.assertEqual(subs[0].resource_uri, EmailListSubscriptionsURI(uri="/api/v1/mailinglists/subscribed/66700/"))
         self.assertEqual(subs[0].email,        "colin.perkins@glasgow.ac.uk")
-        self.assertEqual(subs[0].lists[0],     MailingListURI("/api/v1/mailinglists/list/461/"))
+        self.assertEqual(subs[0].lists[0],     EmailListURI("/api/v1/mailinglists/list/461/"))
 
-    def test_mailing_list_subscriptions_by_list(self) -> None:
-        subs = list(self.dt.mailing_list_subscriptions(mailing_list=self.dt.mailing_list(MailingListURI("/api/v1/mailinglists/list/1/"))))
+    def test_email_list_subscriptions_by_list(self) -> None:
+        subs = list(self.dt.email_list_subscriptions(email_list=self.dt.email_list(EmailListURI("/api/v1/mailinglists/list/1/"))))
         self.assertIsNot(subs, None)
 
     # -----------------------------------------------------------------------------------------------------------------------------

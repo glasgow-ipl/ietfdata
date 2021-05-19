@@ -1483,30 +1483,30 @@ class ReviewSecretarySettings(Resource):
 # Types relating to mailing lists:
 
 @dataclass(frozen=True)
-class MailingListURI(URI):
+class EmailListURI(URI):
     root : str = "/api/v1/mailinglists/list/"
 
 
 @dataclass(frozen=True)
-class MailingList(Resource):
+class EmailList(Resource):
     id           : int
-    resource_uri : MailingListURI
+    resource_uri : EmailListURI
     name         : str
     description  : str
     advertised   : bool
 
 
 @dataclass(frozen=True)
-class MailingListSubscriptionsURI(URI):
+class EmailListSubscriptionsURI(URI):
     root : str = "/api/v1/mailinglists/subscribed/"
 
 
 @dataclass(frozen=True)
-class MailingListSubscriptions(Resource):
+class EmailListSubscriptions(Resource):
     id           : int
-    resource_uri : MailingListSubscriptionsURI
+    resource_uri : EmailListSubscriptionsURI
     email        : str
-    lists        : List[MailingListURI]
+    lists        : List[EmailListURI]
     time         : datetime
 
 
@@ -1756,8 +1756,8 @@ class DataTracker:
         self._hints["/api/v1/ipr/holderiprdisclosure/"]            = Hints(HolderIPRDisclosure, "id", "T", {})
         self._hints["/api/v1/ipr/iprdisclosurebase/"]              = Hints(IPRDisclosureBase, "id", "T", {})
         self._hints["/api/v1/ipr/thirdpartyiprdisclosure/"]        = Hints(ThirdPartyIPRDisclosure, "id", "T", {})
-        self._hints["/api/v1/mailinglists/list/"]                  = Hints(MailingList, "id", "-", {})  # FIXME: no modification time
-        self._hints["/api/v1/mailinglists/subscribed/"]            = Hints(MailingListSubscriptions, "id", "-", {})  # FIXME: these have a time field, but not clear updated
+        self._hints["/api/v1/mailinglists/list/"]                  = Hints(EmailList, "id", "-", {})  # FIXME: no modification time
+        self._hints["/api/v1/mailinglists/subscribed/"]            = Hints(EmailListSubscriptions, "id", "-", {})  # FIXME: these have a time field, but not clear updated
         self._hints["/api/v1/meeting/meeting/"]                    = Hints(Meeting, "id", "-", {})  # FIXME: has an `updated` field that doesn't allow filtering?
         self._hints["/api/v1/meeting/schedtimesessassignment/"]    = Hints(SessionAssignment, "id", "M", {})
         self._hints["/api/v1/meeting/schedule/"]                   = Hints(Schedule, "id", "-", {})  # FIXME: immutable once created?
@@ -3956,26 +3956,26 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/mailinglists/list/
     #   https://datatracker.ietf.org/api/v1/mailinglists/subscribed/
 
-    def mailing_list(self, mailing_list_uri: MailingListURI) -> Optional[MailingList]:
-        return self._retrieve(mailing_list_uri, MailingList)
+    def email_list(self, email_list_uri: EmailListURI) -> Optional[EmailList]:
+        return self._retrieve(email_list_uri, EmailList)
 
 
-    def mailing_lists(self, name : Optional[str] = None) -> Iterator[MailingList]:
-        url = MailingListURI("/api/v1/mailinglists/list/")
+    def email_lists(self, name : Optional[str] = None) -> Iterator[EmailList]:
+        url = EmailListURI("/api/v1/mailinglists/list/")
         if name is not None:
             url.params["name"] = name
-        return self._retrieve_multi(url, MailingList)
+        return self._retrieve_multi(url, EmailList)
 
 
-    def mailing_list_subscriptions(self,
-            email_addr   : Optional[str] = None,
-            mailing_list : Optional[MailingList] = None) -> Iterator[MailingListSubscriptions]:
-        url = MailingListSubscriptionsURI("/api/v1/mailinglists/subscribed/")
+    def email_list_subscriptions(self,
+            email_addr : Optional[str] = None,
+            email_list : Optional[EmailList] = None) -> Iterator[EmailListSubscriptions]:
+        url = EmailListSubscriptionsURI("/api/v1/mailinglists/subscribed/")
         if email_addr is not None:
             url.params["email"] = email_addr
-        if mailing_list is not None:
-            url.params["lists"] = mailing_list.id
-        return self._retrieve_multi(url, MailingListSubscriptions)
+        if email_list is not None:
+            url.params["lists"] = email_list.id
+        return self._retrieve_multi(url, EmailListSubscriptions)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
