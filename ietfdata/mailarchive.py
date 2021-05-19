@@ -285,6 +285,7 @@ class MailingList:
                 except:
                     timestamp = None
                 try:
+                    # FIXME: doesn't correctly handle headers that can appear multiple times in a message, such as "Received:"
                     headers = {name : value for name, value in e.items()}
                 except:
                     headers = {}
