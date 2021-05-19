@@ -11,6 +11,7 @@ twine = "*"
 keyring = "*"
 coverage = "*"
 pymongo-stubs = "*"
+ietfdata = {editable = true, path = "."}
 
 [packages]
 requests = "*"
