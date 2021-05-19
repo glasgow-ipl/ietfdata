@@ -14,12 +14,15 @@ pymongo-stubs = "*"
 ietfdata = {editable = true, path = "."}
 
 [packages]
-requests = "*"
-pavlova = "*"
+bs4 = "*"
+email_reply_parser = "*"
 imapclient = "*"
+pandas = "*"
+pandas-stubs = "*"
+pavlova = "*"
 python-dateutil = "*"
 pymongo = "*"
-pandas-stubs = "*"
+requests = "*"
 
 [requires]
 python_version = "3.9"
