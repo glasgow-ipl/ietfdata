@@ -133,7 +133,8 @@ class TestDatatracker(unittest.TestCase):
 
     def test_email_history_for_address(self) -> None:
         h  = list(self.dt.email_history_for_address("csp@isi.edu"))
-        self.assertEqual(len(h), 2)
+        self.assertEqual(len(h), 4)
+
         self.assertEqual(h[0].resource_uri, HistoricalEmailURI("/api/v1/person/historicalemail/71987/"))
         self.assertEqual(h[0].address,      "csp@isi.edu")
         self.assertEqual(h[0].person,       PersonURI("/api/v1/person/person/20209/"))
@@ -159,6 +160,33 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(h[1].history_type, "~")
         self.assertEqual(h[1].history_user, "")
         self.assertEqual(h[1].history_change_reason, None)
+
+        self.assertEqual(h[2].history_id, 128355)
+        self.assertEqual(h[2].history_type, "~")
+        self.assertEqual(h[2].history_change_reason, None)
+        self.assertEqual(h[2].origin, "author: draft-ietf-avt-rtptest")
+        self.assertEqual(h[2].address, "csp@isi.edu")
+        self.assertEqual(h[2].active, False)
+        self.assertEqual(h[2].person, PersonURI("/api/v1/person/person/20209/"))
+        self.assertEqual(h[2].time, datetime.fromisoformat("2012-02-26T00:46:44"))
+        self.assertEqual(h[2].resource_uri, HistoricalEmailURI("/api/v1/person/historicalemail/128355/"))
+        self.assertEqual(h[2].primary, False)
+        self.assertEqual(h[2].history_date, datetime.fromisoformat("2021-05-18T16:32:20.125465"))
+        self.assertEqual(h[2].history_user, "")
+
+        self.assertEqual(h[3].history_id, 128350)
+        self.assertEqual(h[3].history_change_reason, None)
+        self.assertEqual(h[3].history_type, "~")
+        self.assertEqual(h[3].origin, "author: draft-ietf-avt-rtptest")
+        self.assertEqual(h[3].address, "csp@isi.edu")
+        self.assertEqual(h[3].active, False)
+        self.assertEqual(h[3].person, PersonURI("/api/v1/person/person/20209/"))
+        self.assertEqual(h[3].time, datetime.fromisoformat("2012-02-26T00:46:44"))
+        self.assertEqual(h[3].resource_uri, HistoricalEmailURI("/api/v1/person/historicalemail/128350/"))
+        self.assertEqual(h[3].primary, False)
+        self.assertEqual(h[3].history_user, "")
+        self.assertEqual(h[3].history_date, datetime.fromisoformat("2021-05-18T16:30:53.338812"))
+
 
 
     def test_email_history_for_person(self) -> None:
@@ -226,7 +254,7 @@ class TestDatatracker(unittest.TestCase):
         p  = self.dt.person(PersonURI("/api/v1/person/person/20209/"))
         if p is not None:
             h  = list(self.dt.person_history(p))
-            self.assertEqual(len(h), 3)
+            self.assertEqual(len(h), 5)
 
             self.assertEqual(h[0].id,              20209)
             self.assertEqual(h[0].resource_uri,    HistoricalPersonURI("/api/v1/person/historicalperson/11731/"))
@@ -239,7 +267,6 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(h[0].time,            datetime.fromisoformat("2012-02-26T00:03:54"))
             self.assertEqual(h[0].photo,           "photo/Colin-Perkins-sm.jpg")
             self.assertEqual(h[0].photo_thumb,     "photo/Colin-Perkins-sm_PMIAhXi.jpg")
-            # self.assertEqual(h[0].biography,     "Colin Perkins is a ...")
             self.assertEqual(h[0].consent,         True)
             self.assertEqual(h[0].history_change_reason, None)
             self.assertEqual(h[0].history_user,    "")
@@ -258,7 +285,6 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(h[1].time,            datetime.fromisoformat("2012-02-26T00:03:54"))
             self.assertEqual(h[1].photo,           "photo/Colin-Perkins-sm.jpg")
             self.assertEqual(h[1].photo_thumb,     "photo/Colin-Perkins-sm_PMIAhXi.jpg")
-            # self.assertEqual(h[1].biography,     "Colin Perkins is a ...")
             self.assertEqual(h[1].consent,         True)
             self.assertEqual(h[1].history_change_reason, None)
             self.assertEqual(h[1].history_user,    "")
@@ -284,6 +310,43 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(h[2].history_id,      127)
             self.assertEqual(h[2].history_type,    "~")
             self.assertEqual(h[2].history_date,    datetime.fromisoformat("2018-06-19T15:39:39.929158"))
+
+            self.assertEqual(h[3].id,              20209)
+            self.assertEqual(h[3].resource_uri,    HistoricalPersonURI("/api/v1/person/historicalperson/17735/"))
+            self.assertEqual(h[3].name,            "Colin Perkins")
+            self.assertEqual(h[3].name_from_draft, "Colin Perkins")
+            self.assertEqual(h[3].ascii,           "Colin Perkins")
+            self.assertEqual(h[3].ascii_short,     "")
+            self.assertEqual(h[3].plain,           "")
+            self.assertEqual(h[3].user,            "")
+            self.assertEqual(h[3].time,            datetime.fromisoformat("2012-02-26T00:03:54"))
+            self.assertEqual(h[3].photo,           "photo/Colin-Perkins-sm.jpg")
+            self.assertEqual(h[3].photo_thumb,     "photo/Colin-Perkins-sm_PMIAhXi.jpg")
+            self.assertEqual(h[3].consent,         True)
+            self.assertEqual(h[3].history_change_reason, None)
+            self.assertEqual(h[3].history_user,    "")
+            self.assertEqual(h[3].history_id,      17735)
+            self.assertEqual(h[3].history_type,    "~")
+            self.assertEqual(h[3].history_date,    datetime.fromisoformat("2021-05-18T16:32:20.105418"))
+
+            self.assertEqual(h[4].id,              20209)
+            self.assertEqual(h[4].resource_uri,    HistoricalPersonURI("/api/v1/person/historicalperson/17734/"))
+            self.assertEqual(h[4].name,            "Colin Perkins")
+            self.assertEqual(h[4].name_from_draft, "Colin Perkins")
+            self.assertEqual(h[4].ascii,           "Colin Perkins")
+            self.assertEqual(h[4].ascii_short,     "")
+            self.assertEqual(h[4].plain,           "")
+            self.assertEqual(h[4].user,            "")
+            self.assertEqual(h[4].time,            datetime.fromisoformat("2012-02-26T00:03:54"))
+            self.assertEqual(h[4].photo,           "photo/Colin-Perkins-sm.jpg")
+            self.assertEqual(h[4].photo_thumb,     "photo/Colin-Perkins-sm_PMIAhXi.jpg")
+            self.assertEqual(h[4].consent,         True)
+            self.assertEqual(h[4].history_change_reason, None)
+            self.assertEqual(h[4].history_user,    "")
+            self.assertEqual(h[4].history_id,      17734)
+            self.assertEqual(h[4].history_type,    "~")
+            self.assertEqual(h[4].history_date,    datetime.fromisoformat("2021-05-18T16:30:53.271813"))
+
         else:
             self.fail("Cannot find person")
 
