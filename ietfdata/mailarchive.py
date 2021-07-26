@@ -79,9 +79,10 @@ def _clean_email_text(email : EmailMessage) -> str:
     return clean_text_reply
 
 
-def _ml_message_from_db_message(list_name: str, imap_uid: int, headers: Dict[str, str], timestamp: datetime) -> MailingListMessage:
-    return MailingListMessage(list_name,
-                              imap_uid,
+def _ml_message_from_db_message(mailing_list: "MailingList", gridfs_id: Any, imap_uid: int, headers: Dict[str, str], timestamp: datetime) -> MailingListMessage:
+    return MailingListMessage(mailing_list,
+                              gridfs_id,
+                              gridfs_id,
                               headers.get("Message-ID", headers.get("Message-Id", None)),
                               headers.get("From", headers.get("from", None)),
                               headers.get("Subject", headers.get("subject", None)),
@@ -96,7 +97,8 @@ def _ml_message_from_db_message(list_name: str, imap_uid: int, headers: Dict[str
 
 @dataclass
 class MailingListMessage:
-    list_name     : Optional[str]
+    _mailing_list : "MailingList"
+    _gridfs_id    : Any
     _imap_uid     : int
     message_id    : Optional[str]
     from_addr     : Optional[str]
@@ -108,6 +110,11 @@ class MailingListMessage:
     headers       : Dict[str, str]
     parent        : Optional["MailingListMessage"] = None
     children      : List["MailingListMessage"] = field(default_factory=list)
+
+
+    def __post_init__(self):
+        self.list_name = self._mailing_list._list_name
+
 
     def add_child_message(self, child: "MailingListMessage"):
         self.children.append(child)
@@ -130,6 +137,14 @@ class MailingListMessage:
         for child in self.children:
             child.get_child_dates(child_dates)
         return child_dates
+        
+
+    def rfc822_message(self) -> EmailMessage:
+        email_file = self._mailing_list._mail_archive._fs.get(self._gridfs_id)
+        email_obj = email.message_from_bytes(self._mailing_list._mail_archive._fs.get(self._gridfs_id).read(), policy=policy.default)
+        return email_obj
+
+        
 
 
 # =================================================================================================
@@ -195,13 +210,6 @@ class MailingList:
         return self._num_messages
 
 
-    def raw_message(self, msg_id: int) -> EmailMessage:
-        cache_metadata = self._mail_archive._db.messages.find_one({"list" : self._list_name, "imap_uid": msg_id})
-        if cache_metadata:
-            message = email.message_from_bytes(self._mail_archive._fs.get(cache_metadata["gridfs_id"]).read(), policy=policy.default)
-        return message
-
-
     def message_indices(self) -> List[int]:
         cache_metadata = self._mail_archive._db.messages.find({"list" : self._list_name})
         indices = [message_metadata["imap_uid"] for message_metadata in cache_metadata]
@@ -218,7 +226,7 @@ class MailingList:
     def message(self, msg_id: int) -> Optional[MailingListMessage]:
         message = self._mail_archive._db.messages.find_one({"list" : self._list_name, "imap_uid": msg_id})
         if message is not None:
-            return _ml_message_from_db_message(message["list"], message["imap_uid"], message["headers"], message["timestamp"])
+            return _ml_message_from_db_message(self, message["gridfs_id"], message["imap_uid"], message["headers"], message["timestamp"])
         else:
             return None
 
@@ -232,7 +240,7 @@ class MailingList:
                                           },
                                           no_cursor_timeout=True)
         for message in messages:
-            yield _ml_message_from_db_message(message["list"], message["imap_uid"], message["headers"], message["timestamp"])
+            yield _ml_message_from_db_message(self, message["gridfs_id"], message["imap_uid"], message["headers"], message["timestamp"])
         messages.close()
 
 
