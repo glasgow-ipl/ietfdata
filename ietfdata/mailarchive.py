@@ -79,7 +79,7 @@ def _clean_email_text(email : EmailMessage) -> str:
     return clean_text_reply
 
 
-def _ml_message_from_db_message(list_name: str, imap_uid: int, headers: Dict[str, str], body: str, timestamp: datetime) -> MailingListMessage:
+def _ml_message_from_db_message(list_name: str, imap_uid: int, headers: Dict[str, str], timestamp: datetime) -> MailingListMessage:
     return MailingListMessage(list_name,
                               imap_uid,
                               headers.get("Message-ID", headers.get("Message-Id", None)),
@@ -89,8 +89,7 @@ def _ml_message_from_db_message(list_name: str, imap_uid: int, headers: Dict[str
                               headers.get("In-Reply-To", None),
                               headers.get("References", None),
                               headers.get("Archived-At", None),
-                              headers,
-                              body)
+                              headers)
 
 
 # =================================================================================================
@@ -107,7 +106,6 @@ class MailingListMessage:
     references    : Optional[str]
     archived_at   : Optional[str]
     headers       : Dict[str, str]
-    body          : str
     parent        : Optional["MailingListMessage"] = None
     children      : List["MailingListMessage"] = field(default_factory=list)
 
@@ -220,7 +218,7 @@ class MailingList:
     def message(self, msg_id: int) -> Optional[MailingListMessage]:
         message = self._mail_archive._db.messages.find_one({"list" : self._list_name, "imap_uid": msg_id})
         if message is not None:
-            return _ml_message_from_db_message(message["list"], message["imap_uid"], message["headers"], message["body"], message["timestamp"])
+            return _ml_message_from_db_message(message["list"], message["imap_uid"], message["headers"], message["timestamp"])
         else:
             return None
 
@@ -234,7 +232,7 @@ class MailingList:
                                           },
                                           no_cursor_timeout=True)
         for message in messages:
-            yield _ml_message_from_db_message(message["list"], message["imap_uid"], message["headers"], message["body"], message["timestamp"])
+            yield _ml_message_from_db_message(message["list"], message["imap_uid"], message["headers"], message["timestamp"])
         messages.close()
 
 
@@ -295,8 +293,7 @@ class MailingList:
                                                   "gridfs_id"  : cache_file_id,
                                                   "size"       : len(msg[b"RFC822"]),
                                                   "timestamp"  : timestamp,
-                                                  "headers"    : headers,
-                                                  "body"       : _clean_email_text(e)},
+                                                  "headers"    : headers},
                                                  upsert=True))
 
                 if len(cache_replaces) > 1000:
@@ -338,8 +335,7 @@ class MailingList:
                                      "Subject": message.subject,
                                      "Date": message.date,
                                      "In-Reply-To": message.in_reply_to,
-                                     "References": message.references,
-                                     "Body": message.body})
+                                     "References": message.references})
         df = pd.DataFrame(data=messages_as_dict)
         df.set_index("Message-ID", inplace=True)
         return df
@@ -371,7 +367,7 @@ class MailArchive:
         self.log            = logging.getLogger("ietfdata")
         self._mailing_lists = {}
         self._last_full_update = None
-        self._cache_version = "1.0"
+        self._cache_version = "1.1"
 
         cache_host = os.environ.get('IETFDATA_CACHE_HOST')
         cache_port = os.environ.get('IETFDATA_CACHE_PORT', 27017)
@@ -408,13 +404,20 @@ class MailArchive:
     def _check_cache_version(self):
         # check if cache pre-dates versioning; if so, set to 1.0
         if "cache_info" not in self._db.list_collection_names():
-            self.log.info("Setting cache version to 1.0")
+            self.log.info("_check_cache_version: setting cache version to 1.0")
             self._db.cache_info.insert_one({"list": "__cache_version__", "version" : "1.0", "last_imap_update": None})
             self._db.messages.create_index([('list', ASCENDING), ('imap_uid', ASCENDING)], unique=True)
             self._db.messages.create_index([('list', ASCENDING)], unique=False)
             self._db.messages.create_index([('timestamp', ASCENDING)], unique=False)
             self._db.aa_cache.create_index([('list', ASCENDING)], unique=True)
             self._db.metadata_cache.drop()
+        else:
+            cache_version = self._db.cache_info.find_one({"list": "__cache_version__"})["version"]
+            if cache_version == "1.0" and self._cache_version == "1.1":
+                self.log.info("_check_cache_version: cache version changed (1.0 -> 1.1)")
+                self.log.info("_check_cache_version: dropping `body` field on ietfdata_mailarchive.messages collection")
+                self._db.messages.update({}, {"$unset": {"body":1}}, multi=True)
+                # FIXME: change version number
 
 
     def mailing_list(self, mailing_list_name: str) -> MailingList:
@@ -468,7 +471,7 @@ class MailArchive:
                                                          "$lt": datetime.strptime(until, "%Y-%m-%dT%H:%M:%S")}
                                           })
         for message in messages:
-            yield _ml_message_from_db_message(message["list"], message["imap_uid"], message["headers"], message["body"], message["timestamp"])
+            yield _ml_message_from_db_message(message["list"], message["imap_uid"], message["headers"], message["timestamp"])
 
 
 # =================================================================================================
