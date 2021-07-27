@@ -32,7 +32,7 @@ jobs:
       - run:
           environment:
             MYPYPATH: stubs
-            IETFDATA_CACHE: true
+            IETFDATA_CACHE_HOST: localhost
           command: |
             pipenv install --dev
             pipenv run make test
