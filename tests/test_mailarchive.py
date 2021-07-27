@@ -27,6 +27,8 @@ import unittest
 import os
 import sys
 
+import pymongo 
+
 from pathlib       import Path
 from unittest.mock import patch, Mock
 
@@ -46,8 +48,12 @@ class TestMailArchive(unittest.TestCase):
     @classmethod
     def setUpClass(self) -> None:
         self.dt = DataTracker()
-        self.ma = MailArchive()
+        try:
+            self.ma = MailArchive()
+        except pymongo.errors.ServerSelectionTimeoutError:
+            raise unittest.SkipTest("Couldn't connect to MongoDB instance -- skipping MailArchive tests")
 
+            
 
     def test_mailarchive_mailing_list_names(self) -> None:
         ml_names = list(self.ma.mailing_list_names())
