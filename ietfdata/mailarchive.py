@@ -1,4 +1,4 @@
-# Copyright (C) 2020 University of Glasgow
+# Copyright (C) 2020-2021 University of Glasgow
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -34,7 +34,7 @@ import gridfs
 
 from datetime      import datetime, timedelta
 from typing        import Dict, Iterator, List, Optional, Tuple, Union
-from pymongo       import MongoClient, ASCENDING, ReplaceOne
+from pymongo       import MongoClient, ASCENDING, ReplaceOne, UpdateOne
 from email         import policy, utils
 from email.message import Message as EmailMessage
 from imapclient    import IMAPClient
@@ -44,8 +44,6 @@ from dataclasses import dataclass, field
 import time
 
 from email_reply_parser import EmailReplyParser
-
-from bs4 import BeautifulSoup # type: ignore
 
 import pandas as pd
 
@@ -58,29 +56,16 @@ def _parse_archive_url(archive_url:str) -> Tuple[str, str]:
 
     mailing_list = aa_uri[:aa_uri.find("/")]
     message_hash = aa_uri[aa_uri.find("/")+1:]
+    
     if message_hash.endswith(">"):
         message_hash = message_hash[:-1]
 
     return (mailing_list, message_hash)
 
 
-def _clean_email_text(email : EmailMessage) -> str:
-    clean_text_reply = ""
-    try:
-        clean_text_bytes = email.get_payload(decode=True)
-        if email.get_content_charset() is not None:
-            clean_text = clean_text_bytes.decode(email.get_content_charset())
-        else:
-            clean_text = clean_text_bytes.decode("utf-8")
-        clean_text = BeautifulSoup(clean_text, "lxml").text # this fixes some issues even in text/plain mails
-        clean_text_reply = EmailReplyParser.parse_reply(clean_text)
-    except:
-        clean_text_reply = ""
-    return clean_text_reply
-
-
-def _ml_message_from_db_message(list_name: str, imap_uid: int, headers: Dict[str, str], body: str, timestamp: datetime) -> MailingListMessage:
-    return MailingListMessage(list_name,
+def _ml_message_from_db_message(mailing_list: "MailingList", gridfs_id: int, imap_uid: int, headers: Dict[str, str], timestamp: datetime) -> MailingListMessage:
+    return MailingListMessage(mailing_list,
+                              gridfs_id,
                               imap_uid,
                               headers.get("Message-ID", headers.get("Message-Id", None)),
                               headers.get("From", headers.get("from", None)),
@@ -89,15 +74,15 @@ def _ml_message_from_db_message(list_name: str, imap_uid: int, headers: Dict[str
                               headers.get("In-Reply-To", None),
                               headers.get("References", None),
                               headers.get("Archived-At", None),
-                              headers,
-                              body)
+                              headers)
 
 
 # =================================================================================================
 
 @dataclass
 class MailingListMessage:
-    list_name     : Optional[str]
+    _mailing_list : "MailingList"
+    _gridfs_id    : int
     _imap_uid     : int
     message_id    : Optional[str]
     from_addr     : Optional[str]
@@ -107,9 +92,13 @@ class MailingListMessage:
     references    : Optional[str]
     archived_at   : Optional[str]
     headers       : Dict[str, str]
-    body          : str
     parent        : Optional["MailingListMessage"] = None
     children      : List["MailingListMessage"] = field(default_factory=list)
+
+
+    def __post_init__(self):
+        self.list_name = self._mailing_list._list_name
+
 
     def add_child_message(self, child: "MailingListMessage"):
         self.children.append(child)
@@ -132,6 +121,14 @@ class MailingListMessage:
         for child in self.children:
             child.get_child_dates(child_dates)
         return child_dates
+        
+
+    def rfc822_message(self) -> EmailMessage:
+        email_file = self._mailing_list._mail_archive._fs.get(self._gridfs_id)
+        email_obj = email.message_from_bytes(self._mailing_list._mail_archive._fs.get(self._gridfs_id).read(), policy=policy.default)
+        return email_obj
+
+        
 
 
 # =================================================================================================
@@ -172,7 +169,7 @@ class MailingList:
         self.log           = logging.getLogger("ietfdata")
         self._mail_archive = mail_archive
         self._list_name    = list_name
-        self._num_messages = self._mail_archive._db.messages.find({"list": self._list_name}).count()
+        self._num_messages = self._mail_archive._db.messages.count_documents({"list": self._list_name})
         self._archive_urls = {}
 
         # Rebuild the archived-at cache:
@@ -197,13 +194,6 @@ class MailingList:
         return self._num_messages
 
 
-    def raw_message(self, msg_id: int) -> EmailMessage:
-        cache_metadata = self._mail_archive._db.messages.find_one({"list" : self._list_name, "imap_uid": msg_id})
-        if cache_metadata:
-            message = email.message_from_bytes(self._mail_archive._fs.get(cache_metadata["gridfs_id"]).read(), policy=policy.default)
-        return message
-
-
     def message_indices(self) -> List[int]:
         cache_metadata = self._mail_archive._db.messages.find({"list" : self._list_name})
         indices = [message_metadata["imap_uid"] for message_metadata in cache_metadata]
@@ -220,7 +210,7 @@ class MailingList:
     def message(self, msg_id: int) -> Optional[MailingListMessage]:
         message = self._mail_archive._db.messages.find_one({"list" : self._list_name, "imap_uid": msg_id})
         if message is not None:
-            return _ml_message_from_db_message(message["list"], message["imap_uid"], message["headers"], message["body"], message["timestamp"])
+            return _ml_message_from_db_message(self, message["gridfs_id"], message["imap_uid"], message["headers"], message["timestamp"])
         else:
             return None
 
@@ -234,7 +224,7 @@ class MailingList:
                                           },
                                           no_cursor_timeout=True)
         for message in messages:
-            yield _ml_message_from_db_message(message["list"], message["imap_uid"], message["headers"], message["body"], message["timestamp"])
+            yield _ml_message_from_db_message(self, message["gridfs_id"], message["imap_uid"], message["headers"], message["timestamp"])
         messages.close()
 
 
@@ -285,8 +275,14 @@ class MailingList:
                 except:
                     timestamp = None
                 try:
-                    # FIXME: doesn't correctly handle headers that can appear multiple times in a message, such as "Received:"
-                    headers = {name : value for name, value in e.items()}
+                    headers = {}
+                    for name, value in e.items():
+                        if name not in headers:
+                            headers[name] = value
+                        elif isinstance(headers[name], list):
+                            headers[name].append(value)
+                        else:
+                            headers[name] = [headers[name], value]
                 except:
                     headers = {}
                 cache_replaces.append(ReplaceOne({"list" : self._list_name, "id": msg_id},
@@ -295,8 +291,7 @@ class MailingList:
                                                   "gridfs_id"  : cache_file_id,
                                                   "size"       : len(msg[b"RFC822"]),
                                                   "timestamp"  : timestamp,
-                                                  "headers"    : headers,
-                                                  "body"       : _clean_email_text(e)},
+                                                  "headers"    : headers},
                                                  upsert=True))
 
                 if len(cache_replaces) > 1000:
@@ -338,8 +333,7 @@ class MailingList:
                                      "Subject": message.subject,
                                      "Date": message.date,
                                      "In-Reply-To": message.in_reply_to,
-                                     "References": message.references,
-                                     "Body": message.body})
+                                     "References": message.references})
         df = pd.DataFrame(data=messages_as_dict)
         df.set_index("Message-ID", inplace=True)
         return df
@@ -371,7 +365,7 @@ class MailArchive:
         self.log            = logging.getLogger("ietfdata")
         self._mailing_lists = {}
         self._last_full_update = None
-        self._cache_version = "1.0"
+        self._cache_version = "1.1"
 
         cache_host = os.environ.get('IETFDATA_CACHE_HOST')
         cache_port = os.environ.get('IETFDATA_CACHE_PORT', 27017)
@@ -408,13 +402,44 @@ class MailArchive:
     def _check_cache_version(self):
         # check if cache pre-dates versioning; if so, set to 1.0
         if "cache_info" not in self._db.list_collection_names():
-            self.log.info("Setting cache version to 1.0")
+            self.log.info("_check_cache_version: setting cache version to 1.0")
             self._db.cache_info.insert_one({"list": "__cache_version__", "version" : "1.0", "last_imap_update": None})
             self._db.messages.create_index([('list', ASCENDING), ('imap_uid', ASCENDING)], unique=True)
             self._db.messages.create_index([('list', ASCENDING)], unique=False)
             self._db.messages.create_index([('timestamp', ASCENDING)], unique=False)
             self._db.aa_cache.create_index([('list', ASCENDING)], unique=True)
             self._db.metadata_cache.drop()
+        else:
+            cache_version_info = self._db.cache_info.find_one({"list": "__cache_version__"})
+            if cache_version_info is not None:
+                cache_version = cache_version_info["version"]
+            if cache_version == "1.0" and self._cache_version == "1.1":
+                self.log.info("_check_cache_version: cache version changed (1.0 -> 1.1)")
+                self.log.info("_check_cache_version: rebuilding header cache")
+                cache_updates = []
+                for message in self.messages():
+                    try: 
+                        email_message = message.rfc822_message()
+                        self.log.info(f"_check_cache_version: rebuilding {message.list_name}/{message._imap_uid:06}.msg header cache")
+                        headers = {}
+                        for name, value in email_message.items():
+                            if name not in headers:
+                                headers[name] = value
+                            elif isinstance(headers[name], list):
+                                headers[name].append(value)
+                            else:
+                                headers[name] = [headers[name], value]
+                    except:
+                        headers = {}
+                    cache_updates.append(UpdateOne({"list" : message.list_name, "imap_uid": message._imap_uid},
+                                                     {"$set": {"headers" : headers}, "$unset": {"body":1}}))
+                                                
+                    if len(cache_updates) > 1000:
+                        self._db.messages.bulk_write(list(cache_updates))
+                        cache_updates = []
+                if len(cache_updates) > 0:
+                    self._db.messages.bulk_write(list(cache_updates))
+            self._db.cache_info.update_one({"list": "__cache_version__"}, {"$set": {"version" : "1.1"}})
 
 
     def mailing_list(self, mailing_list_name: str) -> MailingList:
@@ -466,9 +491,10 @@ class MailArchive:
                  until : str = "2038-01-19T03:14:07") -> Iterator[MailingListMessage]:
         messages = self._db.messages.find({"timestamp": {"$gt": datetime.strptime(since, "%Y-%m-%dT%H:%M:%S"),
                                                          "$lt": datetime.strptime(until, "%Y-%m-%dT%H:%M:%S")}
-                                          })
+                                          }).sort([("list", ASCENDING), ("imap_uid", ASCENDING)])
+
         for message in messages:
-            yield _ml_message_from_db_message(message["list"], message["imap_uid"], message["headers"], message["body"], message["timestamp"])
+            yield _ml_message_from_db_message(self.mailing_list(message["list"]), message["gridfs_id"], message["imap_uid"], message["headers"], message["timestamp"])
 
 
 # =================================================================================================

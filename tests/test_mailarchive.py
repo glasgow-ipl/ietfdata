@@ -27,6 +27,8 @@ import unittest
 import os
 import sys
 
+import pymongo 
+
 from pathlib       import Path
 from unittest.mock import patch, Mock
 
@@ -46,8 +48,12 @@ class TestMailArchive(unittest.TestCase):
     @classmethod
     def setUpClass(self) -> None:
         self.dt = DataTracker()
-        self.ma = MailArchive()
+        try:
+            self.ma = MailArchive()
+        except pymongo.errors.ServerSelectionTimeoutError:
+            raise unittest.SkipTest("Couldn't connect to MongoDB instance -- skipping MailArchive tests")
 
+            
 
     def test_mailarchive_mailing_list_names(self) -> None:
         ml_names = list(self.ma.mailing_list_names())
@@ -70,7 +76,6 @@ class TestMailArchive(unittest.TestCase):
             self.assertEqual(msg.list_name,  "100attendees")
             self.assertEqual(msg.message_id, "<75EBC4EB-32D0-4D65-AC17-BEFDAB13AC00@gmail.com>")
             self.assertEqual(msg._imap_uid,  333)
-            self.assertRegex(msg.body, r"^Reminder: The PechaKucha will be tonight 9:30 - 11pm in the Olivia Room.*")
         else:
             self.fail("Cannot find message: https://mailarchive.ietf.org/arch/msg/100attendees/w-zDVgSif2qjO4zhl3TUokb-ZNM")
 
