@@ -1811,7 +1811,7 @@ class DataTracker:
         self._hints["/api/v1/ipr/thirdpartyiprdisclosure/"]        = Hints(ThirdPartyIPRDisclosure, "id", "T", {})
         self._hints["/api/v1/mailinglists/list/"]                  = Hints(EmailList, "id", "-", {})  # FIXME: no modification time
         self._hints["/api/v1/mailinglists/subscribed/"]            = Hints(EmailListSubscriptions, "id", "-", {})  # FIXME: these have a time field, but not clear updated
-        self._hints["/api/v1/meeting/meeting/"]                    = Hints(Meeting, "id", "-", {})  # FIXME: has an `updated` field that doesn't allow filtering?
+        self._hints["/api/v1/meeting/meeting/"]                    = Hints(Meeting, "id", "U", {})  # FIXME: has an `updated` field that doesn't allow filtering?
         self._hints["/api/v1/meeting/schedtimesessassignment/"]    = Hints(SessionAssignment, "id", "M", {})
         self._hints["/api/v1/meeting/schedule/"]                   = Hints(Schedule, "id", "-", {})  # FIXME: immutable once created?
         self._hints["/api/v1/meeting/schedulingevent/"]            = Hints(SchedulingEvent, "id", "T", {})
@@ -2127,6 +2127,18 @@ class DataTracker:
         # Update object types that have a "completed_on" field giving last modified time:
         if self._hints[obj_type_uri.uri].update_strategy == "C" and now - meta.updated > timedelta(hours=1):
             self._cache_update_timed(obj_type_uri, now, meta, "completed_on")
+
+        # Update object types that have a "updated" field giving last modified time:
+        if self._hints[obj_type_uri.uri].update_strategy == "U" and now - meta.updated > timedelta(hours=24):
+            # FIXME: This should be as simple as saying:
+            #   self._cache_update_timed(obj_type_uri, now, meta, "updated")
+            # but the only objects with "updated" as /api/v1/meeting/meeting/ and the datatracker doesn't
+            # allow filtering on the updated tag for meetings. As a work around, delete and refetch the
+            # cache.
+            self.log.warning(f"_cache_update: {obj_type_uri} can't update - will drop and refetch")
+            self._cache_delete(obj_type_uri)
+            self._cache_create(obj_type_uri)
+            meta = self._cache_load_metadata(obj_type_uri) # Reload metadata since cache entry recreated
 
         # Warn if there are object types we don't know how to update
         if self._hints[obj_type_uri.uri].update_strategy == "-":
