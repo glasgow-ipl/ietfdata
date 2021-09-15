@@ -190,7 +190,7 @@ class MailingList:
 
         # Rebuild the archived-at cache:
         aa_cache = self._mail_archive._db.aa_cache.find_one({"list": self._list_name})
-        if aa_cache:
+        if aa_cache is not None and len(aa_cache["archive_urls"]) > 0:
             self._archive_urls = aa_cache["archive_urls"]
             self.log.debug(f"_archive_urls: loaded {len(self._archive_urls)} URLs for list {list_name}")
         else:
@@ -199,7 +199,9 @@ class MailingList:
                     list_name, msg_hash = _parse_archive_url(msg.archived_at)
                     self._archive_urls[msg_hash] = msg._imap_uid
                     self.log.debug(F"_archive_urls: {self._list_name}/{msg._imap_uid} -> {msg_hash}")
-            self._mail_archive._db.aa_cache.replace_one({"list" : self._list_name}, {"list" : self._list_name, "archive_urls": self._archive_urls}, upsert=True)
+            self._mail_archive._db.aa_cache.replace_one({"list" : self._list_name},
+                                                        {"list" : self._list_name, "archive_urls": self._archive_urls}, upsert=True)
+            self.log.debug(f"_archive_urls: rebuilt aa_cache for list {list_name} ({len(self._archive_urls)} entries)")
 
 
     def name(self) -> str:
@@ -246,7 +248,6 @@ class MailingList:
 
     def update(self, reuse_imap=None) -> List[int]:
         new_msgs = []
-        last_keepalive = datetime.now()
         if reuse_imap is None:
             imap = IMAPClient(host='imap.ietf.org', ssl=False, use_uid=True)
             imap.login("anonymous", "anonymous")
@@ -276,30 +277,35 @@ class MailingList:
 
         imap.select_folder("Shared Folders/" + self._list_name, readonly=True)
         msg_list  = imap.search()
-        msg_fetch = []
 
         cached_messages = {msg["imap_uid"] : msg for msg in self._mail_archive._db.messages.find({"list": self._list_name})}
+        msg_fetch = []
+        msg_check = []
+        for msg_id in msg_list:
+            if msg_id in cached_messages:
+                msg_check.append(msg_id)   # Message is in the cache, add to the list of messages to check size matches
+            else:
+                msg_fetch.append(msg_id)   # Messgae is not in the cache, add to the list of messages to fetch
 
-        cache_replaces : List[Union[ReplaceOne]] = []
+        # For messages that we have cached, check their sizes match those on the server,
+        # to detect silent updates to messages on the server
+        for i in range(0, len(msg_check), 512):
+            msg_slice = msg_check[slice(i, i+512, 1)]
+            for msg_id, msg in imap.fetch(msg_slice, "RFC822.SIZE").items():
+                if cached_messages[msg_id]["size"] != msg[b"RFC822.SIZE"]:
+                    self.log.warn(F"message size mismatch: {self._list_name}/{msg_id:06d}.msg ({cached_messages[msg_id]['size']} != {msg[b'RFC822.SIZE']})")
+                    self._mail_archive._fs.delete(cached_messages[msg_id]["gridfs_id"])
+                    self._mail_archive._db.messages.delete_one({"list" : self._list_name, "imap_uid" : msg_id})
+                    msg_fetch.append(msg_id)
 
-        for msg_id, msg in imap.fetch(msg_list, "RFC822.SIZE").items():
-            curr_keepalive = datetime.now()
-            if msg_id not in cached_messages:
-                msg_fetch.append(msg_id)
-            elif cached_messages[msg_id]["size"] != msg[b"RFC822.SIZE"]:
-                self.log.warn(F"message size mismatch: {self._list_name}/{msg_id:06d}.msg ({cached_messages[msg_id]['size']} != {msg[b'RFC822.SIZE']})")
-                self._mail_archive._fs.delete(cached_messages[msg_id]["gridfs_id"])
-                self._mail_archive._db.messages.delete_one({"list" : self._list_name, "imap_uid" : msg_id})
-                msg_fetch.append(msg_id)
-
-        if len(msg_fetch) > 0:
-            for msg_id, msg in imap.fetch(msg_fetch, "RFC822").items():
-                cache_file_id = self._mail_archive._fs.put(msg[b"RFC822"])
+        # Fetch the messages
+        for i in range(0, len(msg_fetch), 512):
+            msg_slice = msg_fetch[slice(i, i+512, 1)]
+            for msg_id, msg in imap.fetch(msg_slice, "RFC822").items():
                 e = email.message_from_bytes(msg[b"RFC822"], policy=policy.default)
                 if e["Archived-At"] is not None:
                     list_name, msg_hash = _parse_archive_url(e["Archived-At"])
                     self._archive_urls[msg_hash] = msg_id
-                    self.log.debug(F"_archive_urls: {self._list_name}/{msg_id} -> {msg_hash}")
                 self._num_messages += 1
                 timestamp = None # type: Optional[datetime]
                 try:
@@ -321,31 +327,21 @@ class MailingList:
                             headers[name] = [headers[name], value]
                 except:
                     headers = {}
-                cache_replaces.append(ReplaceOne({"list" : self._list_name, "id": msg_id}, # FIXME: id -> imap_uid ?
-                                                 {"list"       : self._list_name,
-                                                  "imap_uid"   : msg_id,
-                                                  "gridfs_id"  : cache_file_id,
-                                                  "size"       : len(msg[b"RFC822"]),
-                                                  "timestamp"  : timestamp,
-                                                  "headers"    : headers},
-                                                 upsert=True))
-
-                if len(cache_replaces) > 1000:
-                    self._mail_archive._db.messages.bulk_write(list(cache_replaces))
-                    cache_replaces = []
-
-                curr_keepalive = datetime.now()
-                if (curr_keepalive - last_keepalive) > timedelta(seconds=10):
-                    self.log.debug("imap keepalive")
-                    imap.noop()
-                    last_keepalive = curr_keepalive
-
+                cache_file_id = self._mail_archive._fs.put(msg[b"RFC822"])
+                self._mail_archive._db.messages.replace_one({"list" : self._list_name, "imap_uid": msg_id},
+                                                            {"list"       : self._list_name,
+                                                             "imap_uid"   : msg_id,
+                                                             "gridfs_id"  : cache_file_id,
+                                                             "size"       : len(msg[b"RFC822"]),
+                                                             "timestamp"  : timestamp,
+                                                             "headers"    : headers}, upsert=True)
+                self.log.debug(f"saved message {self._list_name}/{msg_id}")
                 new_msgs.append(msg_id)
 
-            self._mail_archive._db.aa_cache.replace_one({"list" : self._list_name}, {"list" : self._list_name, "archive_urls": self._archive_urls}, upsert=True)
-
-        if len(cache_replaces) > 0:
-            result = self._mail_archive._db.messages.bulk_write(list(cache_replaces))
+        # Update the aa_cache after downloading messages
+        self._mail_archive._db.aa_cache.replace_one({"list" : self._list_name},
+                                                    {"list" : self._list_name, "archive_urls": self._archive_urls}, upsert=True)
+        self.log.debug(f"_archive_urls: saved aa_cache for list {self._list_name} ({len(self._archive_urls)} entries)")
 
         # Update the list cache based on the folder status we retrieved earlier.
         status_json = {
@@ -444,9 +440,10 @@ class MailArchive:
 
 
     def _check_cache_version(self):
-        # check if cache pre-dates versioning; if so, set to 1.0
-        if "cache_info" not in self._db.list_collection_names():
-            self.log.info("_check_cache_version: setting cache version to 1.0")
+        cn = self._db.list_collection_names()
+        if len(cn) > 0 and "cache_info" not in cn:
+            # check if cache pre-dates versioning; if so, set to 1.0
+            self.log.info("_check_cache_version: setting mail archive cache version to 1.0")
             self._db.cache_info.insert_one({"list": "__cache_version__", "version" : "1.0", "last_imap_update": None})
             self._db.messages.create_index([('list', ASCENDING), ('imap_uid', ASCENDING)], unique=True)
             self._db.messages.create_index([('list', ASCENDING)], unique=False)
@@ -457,33 +454,30 @@ class MailArchive:
             cache_version_info = self._db.cache_info.find_one({"list": "__cache_version__"})
             if cache_version_info is not None:
                 cache_version = cache_version_info["version"]
-            if cache_version == "1.0" and self._cache_version == "1.1":
-                self.log.info("_check_cache_version: cache version changed (1.0 -> 1.1)")
-                self.log.info("_check_cache_version: rebuilding header cache")
-                cache_updates = []
-                for message in self.messages():
-                    try: 
-                        email_message = message.rfc822_message()
-                        self.log.info(f"_check_cache_version: rebuilding {message.list_name}/{message._imap_uid:06}.msg header cache")
-                        headers = {}
-                        for name, value in email_message.items():
-                            if name not in headers:
-                                headers[name] = value
-                            elif isinstance(headers[name], list):
-                                headers[name].append(value)
-                            else:
-                                headers[name] = [headers[name], value]
-                    except:
-                        headers = {}
-                    cache_updates.append(UpdateOne({"list" : message.list_name, "imap_uid": message._imap_uid},
-                                                     {"$set": {"headers" : headers}, "$unset": {"body":1}}))
-                                                
-                    if len(cache_updates) > 1000:
-                        self._db.messages.bulk_write(list(cache_updates))
-                        cache_updates = []
-                if len(cache_updates) > 0:
-                    self._db.messages.bulk_write(list(cache_updates))
-            self._db.cache_info.update_one({"list": "__cache_version__"}, {"$set": {"version" : "1.1"}})
+                if cache_version == "1.0" and self._cache_version == "1.1":
+                    self.log.info("_check_cache_version: mail archive cache version changed (1.0 -> 1.1)")
+                    self.log.info("_check_cache_version: rebuilding header cache")
+                    cache_updates = []
+                    for message in self.messages():
+                        try:
+                            email_message = message.rfc822_message()
+                            self.log.info(f"_check_cache_version: rebuilding {message.list_name}/{message._imap_uid:06}.msg header cache")
+                            headers = {}
+                            for name, value in email_message.items():
+                                if name not in headers:
+                                    headers[name] = value
+                                elif isinstance(headers[name], list):
+                                    headers[name].append(value)
+                                else:
+                                    headers[name] = [headers[name], value]
+                        except:
+                            headers = {}
+                        self._db.cache_info.update_one({"list" : message.list_name, "imap_uid": message._imap_uid},
+                                                       {"$set": {"headers" : headers}, "$unset": {"body":1}}, upsert=True)
+            else:
+                self.log.info("_check_cache_version: setting mail archive cache version to 1.1")
+                cache_version = "1.1"
+            self._db.cache_info.update_one({"list": "__cache_version__"}, {"$set": {"version" : cache_version}}, upsert=True)
 
 
     def mailing_list(self, mailing_list_name: str, reuse_imap=None) -> MailingList:
