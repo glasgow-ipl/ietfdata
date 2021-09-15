@@ -299,7 +299,7 @@ class MailingList:
 
                 curr_keepalive = datetime.now()
                 if (curr_keepalive - last_keepalive) > timedelta(seconds=10):
-                    self.log.info("imap keepalive")
+                    self.log.debug("imap keepalive")
                     imap.noop()
                     last_keepalive = curr_keepalive
 
