@@ -251,8 +251,7 @@ class MailingList:
                 msg_fetch.append(msg_id)
             elif cached_messages[msg_id]["size"] != msg[b"RFC822.SIZE"]:
                 self.log.warn(F"message size mismatch: {self._list_name}/{msg_id:06d}.msg ({cached_messages[msg_id]['size']} != {msg[b'RFC822.SIZE']})")
-                cache_file = self._mail_archive._fs.get(cached_messages[msg_id]["gridfs_id"])
-                cache_file.delete()
+                self._mail_archive._fs.delete(cached_messages[msg_id]["gridfs_id"])
                 self._mail_archive._db.messages.delete_one({"list" : self._list_name, "imap_uid" : msg_id})
                 msg_fetch.append(msg_id)
 
