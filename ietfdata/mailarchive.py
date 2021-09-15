@@ -261,6 +261,7 @@ class MailingList:
         # once we've successfully fetched the new messages.
         status_imap = imap.folder_status("Shared Folders/" + self._list_name)
         status_json = self._mail_archive._db.lists.find_one({"list": self._list_name})
+        assert status_json is not None
         if (status_imap[b'UIDVALIDITY'] == status_json['uidvalidity']) and (status_imap[b'MESSAGES'] == status_json['messages']):
             # Cache is up-to-date for this list, return since nothing to do
             return []
