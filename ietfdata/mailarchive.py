@@ -164,13 +164,29 @@ class MailingList:
     _last_updated      : datetime
     _archive_urls      : Dict[str, int]
 
-    def __init__(self, mail_archive: MailArchive, list_name: str):
+    def __init__(self, mail_archive: MailArchive, list_name: str, reuse_imap=None):
         logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
         self.log           = logging.getLogger("ietfdata")
         self._mail_archive = mail_archive
         self._list_name    = list_name
         self._num_messages = self._mail_archive._db.messages.count_documents({"list": self._list_name})
         self._archive_urls = {}
+
+        if reuse_imap is None:
+            imap = IMAPClient(host='imap.ietf.org', ssl=False, use_uid=True)
+            imap.login("anonymous", "anonymous")
+        else:
+            imap = reuse_imap
+
+        ml = self._mail_archive._db.lists.find_one({"list": self._list_name})
+        if ml is None:
+            status_imap = imap.folder_status("Shared Folders/" + self._list_name)
+            status_json = {
+                "list"        : self._list_name,
+                "uidvalidity" : status_imap[b'UIDVALIDITY'],
+                "messages"    : 0   # Force check for new messages when cache created
+            }
+            self._mail_archive._db.lists.insert_one(status_json)
 
         # Rebuild the archived-at cache:
         aa_cache = self._mail_archive._db.aa_cache.find_one({"list": self._list_name})
@@ -236,8 +252,29 @@ class MailingList:
             imap.login("anonymous", "anonymous")
         else:
             imap = reuse_imap
-        imap.select_folder("Shared Folders/" + self._list_name, readonly=True)
 
+        # Check the UIDVALIDITY and number of messages, and compare to the cached values.
+        # If they're unchanged, then we know the cache is up-to-date and there's nothing
+        # to fetch. If the values have changed, then we fetch new messages. The cache for
+        # the UIDVALIDITY and number of messages is updated at the end of this function,
+        # once we've successfully fetched the new messages.
+        status_imap = imap.folder_status("Shared Folders/" + self._list_name)
+        status_json = self._mail_archive._db.lists.find_one({"list": self._list_name})
+        if (status_imap[b'UIDVALIDITY'] == status_json['uidvalidity']) and (status_imap[b'MESSAGES'] == status_json['messages']):
+            # Cache is up-to-date for this list, return since nothing to do
+            return []
+
+        # if UIDVALIDITY has changed, the cache will be invalid. Drop and re-download
+        # the entire folder. IMAP servers are supposed to ensure the UIDVALIDITY doesn't
+        # change, but sometimes a re-index occurs on the server so we have to handle it.
+        if status_imap[b'UIDVALIDITY'] != status_json['uidvalidity']:
+            for msg in self._mail_archive._db.messages.find({"list": self._list_name}):
+                self._mail_archive._fs.delete(msg["gridfs_id"])
+                self._mail_archive._db.messages.delete_one({"list" : self._list_name, "imap_uid" : msg['imap_uid']})
+                self.log.info(f"UIDVALIDITY changed: removed message {msg['imap_uid']}")
+            self._num_messages = 0
+
+        imap.select_folder("Shared Folders/" + self._list_name, readonly=True)
         msg_list  = imap.search()
         msg_fetch = []
 
@@ -284,7 +321,7 @@ class MailingList:
                             headers[name] = [headers[name], value]
                 except:
                     headers = {}
-                cache_replaces.append(ReplaceOne({"list" : self._list_name, "id": msg_id},
+                cache_replaces.append(ReplaceOne({"list" : self._list_name, "id": msg_id}, # FIXME: id -> imap_uid ?
                                                  {"list"       : self._list_name,
                                                   "imap_uid"   : msg_id,
                                                   "gridfs_id"  : cache_file_id,
@@ -309,6 +346,14 @@ class MailingList:
 
         if len(cache_replaces) > 0:
             result = self._mail_archive._db.messages.bulk_write(list(cache_replaces))
+
+        # Update the list cache based on the folder status we retrieved earlier.
+        status_json = {
+            "list"        : self._list_name,
+            "uidvalidity" : status_imap[b'UIDVALIDITY'],
+            "messages"    : status_imap[b'MESSAGES']
+        }
+        self._mail_archive._db.lists.replace_one({"list" : self._list_name}, status_json)
 
         imap.unselect_folder()
         if reuse_imap is None:
@@ -441,9 +486,9 @@ class MailArchive:
             self._db.cache_info.update_one({"list": "__cache_version__"}, {"$set": {"version" : "1.1"}})
 
 
-    def mailing_list(self, mailing_list_name: str) -> MailingList:
+    def mailing_list(self, mailing_list_name: str, reuse_imap=None) -> MailingList:
         if not mailing_list_name in self._mailing_lists:
-            self._mailing_lists[mailing_list_name] = MailingList(self, mailing_list_name)
+            self._mailing_lists[mailing_list_name] = MailingList(self, mailing_list_name, reuse_imap)
         return self._mailing_lists[mailing_list_name]
 
 
@@ -479,7 +524,7 @@ class MailArchive:
         imap.login("anonymous", "anonymous")
         for index, ml_name in enumerate(ml_names):
             print(F"Updating list {index+1:4d}/{num_list:4d}: {ml_name} ", end="", flush=True)
-            ml = self.mailing_list(ml_name)
+            ml = self.mailing_list(ml_name, imap)
             nm = ml.update(reuse_imap=imap)
             print(F"({ml.num_messages()} messages; {len(nm)} new)")
         imap.logout()
