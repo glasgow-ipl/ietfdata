@@ -290,6 +290,7 @@ class MailingList:
 
         # For messages that we have cached, check their sizes match those on the server,
         # to detect silent updates to messages on the server
+        self.log.debug(f"{len(msg_check)} messages to check")
         for i in range(0, len(msg_check), 512):
             msg_slice = msg_check[slice(i, i+512, 1)]
             for msg_id, msg in imap.fetch(msg_slice, "RFC822.SIZE").items():
@@ -329,14 +330,13 @@ class MailingList:
                 except:
                     headers = {}
                 cache_file_id = self._mail_archive._fs.put(msg[b"RFC822"])
-                self._mail_archive._db.messages.replace_one({"list" : self._list_name, "imap_uid": msg_id},
-                                                            {"list"       : self._list_name,
-                                                             "imap_uid"   : msg_id,
-                                                             "gridfs_id"  : cache_file_id,
-                                                             "size"       : len(msg[b"RFC822"]),
-                                                             "timestamp"  : timestamp,
-                                                             "headers"    : headers}, upsert=True)
-                self.log.debug(f"saved message {self._list_name}/{msg_id}")
+                self._mail_archive._db.messages.insert_one({"list"       : self._list_name,
+                                                            "imap_uid"   : msg_id,
+                                                            "gridfs_id"  : cache_file_id,
+                                                            "size"       : len(msg[b"RFC822"]), # FIXME: should be IMAP RFC822.SIZE ?
+                                                            "timestamp"  : timestamp,
+                                                            "headers"    : headers})
+                self.log.info(f"saved message {self._list_name}/{msg_id}")
                 new_msgs.append(msg_id)
 
         # Update the aa_cache after downloading messages
