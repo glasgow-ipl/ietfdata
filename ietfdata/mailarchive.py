@@ -321,6 +321,7 @@ class MailingList:
                 try:
                     headers = {}
                     for name, value in e.items():
+                        name = name.replace(".", "-")   # No standard mail header names contain "." and it makes MongoDB unhappy
                         if name not in headers:
                             headers[name] = value
                         elif isinstance(headers[name], list):
@@ -336,7 +337,7 @@ class MailingList:
                                                             "size"       : len(msg[b"RFC822"]), # FIXME: should be IMAP RFC822.SIZE ?
                                                             "timestamp"  : timestamp,
                                                             "headers"    : headers})
-                self.log.info(f"saved message {self._list_name}/{msg_id}")
+                self.log.debug(f"saved message {self._list_name}/{msg_id}")
                 new_msgs.append(msg_id)
 
         # Update the aa_cache after downloading messages
