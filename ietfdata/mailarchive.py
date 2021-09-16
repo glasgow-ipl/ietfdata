@@ -172,14 +172,13 @@ class MailingList:
         self._num_messages = self._mail_archive._db.messages.count_documents({"list": self._list_name})
         self._archive_urls = {}
 
-        if reuse_imap is None:
-            imap = IMAPClient(host='imap.ietf.org', ssl=False, use_uid=True)
-            imap.login("anonymous", "anonymous")
-        else:
-            imap = reuse_imap
-
         ml = self._mail_archive._db.lists.find_one({"list": self._list_name})
         if ml is None:
+            if reuse_imap is None:
+                imap = IMAPClient(host='imap.ietf.org', ssl=True, use_uid=True)
+                imap.login("anonymous", "anonymous")
+            else:
+                imap = reuse_imap
             status_imap = imap.folder_status("Shared Folders/" + self._list_name)
             status_json = {
                 "list"        : self._list_name,
@@ -187,6 +186,8 @@ class MailingList:
                 "messages"    : 0   # Force check for new messages when cache created
             }
             self._mail_archive._db.lists.insert_one(status_json)
+            if reuse_imap is None:
+                imap.logout()
 
         # Rebuild the archived-at cache:
         aa_cache = self._mail_archive._db.aa_cache.find_one({"list": self._list_name})
@@ -249,7 +250,7 @@ class MailingList:
     def update(self, reuse_imap=None) -> List[int]:
         new_msgs = []
         if reuse_imap is None:
-            imap = IMAPClient(host='imap.ietf.org', ssl=False, use_uid=True)
+            imap = IMAPClient(host='imap.ietf.org', ssl=True, use_uid=True)
             imap.login("anonymous", "anonymous")
         else:
             imap = reuse_imap
@@ -264,6 +265,8 @@ class MailingList:
         assert status_json is not None
         if (status_imap[b'UIDVALIDITY'] == status_json['uidvalidity']) and (status_imap[b'MESSAGES'] == status_json['messages']):
             # Cache is up-to-date for this list, return since nothing to do
+            if reuse_imap is None:
+                imap.logout()
             return []
 
         # if UIDVALIDITY has changed, the cache will be invalid. Drop and re-download
