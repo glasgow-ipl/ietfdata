@@ -450,10 +450,6 @@ class MailArchive:
             # check if cache pre-dates versioning; if so, set to 1.0
             self.log.info("_check_cache_version: setting mail archive cache version to 1.0")
             self._db.cache_info.insert_one({"list": "__cache_version__", "version" : "1.0", "last_imap_update": None})
-            self._db.messages.create_index([('list', ASCENDING), ('imap_uid', ASCENDING)], unique=True)
-            self._db.messages.create_index([('list', ASCENDING)], unique=False)
-            self._db.messages.create_index([('timestamp', ASCENDING)], unique=False)
-            self._db.aa_cache.create_index([('list', ASCENDING)], unique=True)
             self._db.metadata_cache.drop()
         else:
             cache_version_info = self._db.cache_info.find_one({"list": "__cache_version__"})
@@ -483,6 +479,12 @@ class MailArchive:
                 self.log.info("_check_cache_version: setting mail archive cache version to 1.1")
                 cache_version = "1.1"
             self._db.cache_info.update_one({"list": "__cache_version__"}, {"$set": {"version" : cache_version}}, upsert=True)
+        # Create indexes:
+        self._db.messages.create_index([('list', ASCENDING), ('imap_uid', ASCENDING)], unique=True)
+        self._db.messages.create_index([('list', ASCENDING)], unique=False)
+        self._db.messages.create_index([('timestamp', ASCENDING)], unique=False)
+        self._db.aa_cache.create_index([('list', ASCENDING)], unique=True)
+        self._db.lists.create_index([('list', ASCENDING)], unique=True)
 
 
     def mailing_list(self, mailing_list_name: str, reuse_imap=None) -> MailingList:
