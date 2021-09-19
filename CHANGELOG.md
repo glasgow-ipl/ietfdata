@@ -1,7 +1,7 @@
 Change Log -- ietfdata
 ======================
 
-## Version 0.4.1 -- ??
+## Version 0.5.0 -- 19 September 2021
 
  - Update cache support
  - Expand parameters for `person_aliases()`
@@ -11,6 +11,7 @@ Change Log -- ietfdata
    `EmailList` to make it easier to use DataTracker and MailArchive
    classes together
  - Add methods and types relating to countries and continents
+ - Update mail archive support
 
 
 ## Version 0.4.0 -- 2021-03-02
