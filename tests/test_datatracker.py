@@ -1039,6 +1039,12 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(de[18].id, 478637)
 
 
+    def test_document_events_without_type(self) -> None:
+        p  = self.dt.person_from_email("csp@csperkins.org")
+        d  = self.dt.document_from_draft("draft-ietf-avtcore-rtp-circuit-breakers")
+        de = list(self.dt.document_events(doc=d, by=p))
+        self.assertEqual(len(de), 22)
+
 
     def test_ballot_position_name(self) -> None:
         bp = self.dt.ballot_position_name(BallotPositionNameURI("/api/v1/name/ballotpositionname/moretime/"))
