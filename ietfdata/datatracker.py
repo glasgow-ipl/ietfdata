@@ -2784,9 +2784,9 @@ class DataTracker:
     def document_events(self,
                         since      : str = "1970-01-01T00:00:00",
                         until      : str = "2038-01-19T03:14:07",
-                        doc        : Document = None,
-                        by         : Person   = None,
-                        event_type : str      = None) -> Iterator[DocumentEvent]:
+                        doc        : Optional[Document] = None,
+                        by         : Optional[Person]   = None,
+                        event_type : Optional[str]      = None) -> Iterator[DocumentEvent]:
         """
         A generator returning information about document events.
 
