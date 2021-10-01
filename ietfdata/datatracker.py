@@ -2808,7 +2808,7 @@ class DataTracker:
         if by is not None:
             url.params["by"]   = by.id
         if event_type is not None:
-            url.params["type"]     = event_type
+            url.params["type"] = event_type
         return self._retrieve_multi(url, DocumentEvent)
 
 
