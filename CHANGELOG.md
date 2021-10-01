@@ -1,6 +1,11 @@
 Change Log -- ietfdata
 ======================
 
+## Version 0.5.1 -- 1 October 2021
+
+ - Allow empty event type when fetching document events
+
+
 ## Version 0.5.0 -- 19 September 2021
 
  - Update cache support
