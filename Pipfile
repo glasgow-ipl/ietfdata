@@ -12,6 +12,9 @@ keyring = "*"
 coverage = "*"
 pymongo-stubs = "*"
 ietfdata = {editable = true, path = "."}
+types-six = "*"
+types-requests = "*"
+types-python-dateutil = "*"
 
 [packages]
 bs4 = "*"
@@ -25,4 +28,4 @@ pymongo = "*"
 requests = "*"
 
 [requires]
-python_version = "3.9"
+python_version = "3.8"

@@ -1,6 +1,11 @@
 Change Log -- ietfdata
 ======================
 
+## Version 0.5.2 -- 26 October 2021
+
+ - Drop required Python version down to 3.8
+
+
 ## Version 0.5.1 -- 1 October 2021
 
  - Allow empty event type when fetching document events

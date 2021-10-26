@@ -1756,7 +1756,7 @@ class DataTracker:
         else:
             self.db    = None
         self.session   = requests.Session()
-        self.ua        = "glasgow-ietfdata/0.5.1"          # Update when making a new relaase
+        self.ua        = "glasgow-ietfdata/0.5.2"          # Update when making a new relaase
         self.base_url  = "https://datatracker.ietf.org"
         self.http_req  = 0
         self.cache_req = 0
