@@ -1,6 +1,11 @@
 Change Log -- ietfdata
 ======================
 
+## Version 0.5.2 -- 
+
+ - Fix potential IMAP timeout
+
+
 ## Version 0.5.2 -- 26 October 2021
 
  - Drop required Python version down to 3.8

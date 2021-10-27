@@ -437,11 +437,12 @@ class MailArchive:
     def mailing_list_names(self) -> Iterator[str]:
         imap = IMAPClient(host='imap.ietf.org', ssl=True, use_uid=True)
         imap.login("anonymous", "anonymous")
-        for (flags, delimiter, name) in imap.list_folders():
+        folders = imap.list_folders()
+        imap.logout()
+        for (flags, delimiter, name) in folders:
             if name != "Shared Folders":
                 assert name.startswith("Shared Folders/")
                 yield name[15:]
-        imap.logout()
 
 
     def _check_cache_version(self):
