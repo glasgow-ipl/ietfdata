@@ -1,9 +1,10 @@
 Change Log -- ietfdata
 ======================
 
-## Version 0.5.2 -- 
+## Version 0.5.3 -- 22 November 2021
 
  - Fix potential IMAP timeout
+ - Add `on_agenda` field to `Session` class, bump cache version
 
 
 ## Version 0.5.2 -- 26 October 2021
