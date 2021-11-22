@@ -2743,6 +2743,10 @@ class DataTracker:
     def document_state(self, state_uri: DocumentStateURI) -> Optional[DocumentState]:
         return self._retrieve(state_uri, DocumentState)
 
+    def document_state_from_slug(self, state_type: DocumentStateType, slug: str) -> DocumentState:
+        states = list(self.document_states(state_type, slug))
+        assert len(states) == 1
+        return states[0]
 
     def document_states(self,
             state_type : Optional[DocumentStateType] = None,
