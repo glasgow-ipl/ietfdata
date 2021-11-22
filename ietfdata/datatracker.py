@@ -1866,13 +1866,13 @@ class DataTracker:
 
 
     def __del__(self):
-        self.log.info(F"cache requests: {self.cache_req}")
+        self.log.debug(F"cache requests: {self.cache_req}")
         if self.cache_req == 0:
-            self.log.info(F"cache hit rate: -")
+            self.log.debug(F"cache hit rate: -")
         else:
-            self.log.info(F"cache hit rate: {self.cache_hit / self.cache_req * 100.0:.1f}%")
-        self.log.info(F"HTTP GET calls: {self.get_count}")
-        self.log.info(F"db requests: {self.db_calls}")
+            self.log.debug(F"cache hit rate: {self.cache_hit / self.cache_req * 100.0:.1f}%")
+        self.log.debug(F"HTTP GET calls: {self.get_count}")
+        self.log.debug(F"db requests: {self.db_calls}")
         self.session.close()
 
 
@@ -2257,7 +2257,7 @@ class DataTracker:
             return
         obj_uri      = URI(obj_json['resource_uri'])
         obj_type_uri = _parent_uri(obj_uri)
-        self.log.info(F"_cache_put_object: {obj_uri}")
+        self.log.debug(F"_cache_put_object: {obj_uri}")
         self._cache_create(obj_type_uri)
         self.db[_db_collection(obj_type_uri)].replace_one({"resource_uri" : obj_uri.uri}, obj_json, upsert=True)
         self.db_calls += 1
