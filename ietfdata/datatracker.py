@@ -1009,6 +1009,7 @@ class Session(Resource):
     attendees           : Optional[int]
     modified            : datetime
     comments            : str
+    on_agenda           : bool
 
 
 @dataclass(frozen=True)
@@ -1761,7 +1762,7 @@ class DataTracker:
         self.http_req  = 0
         self.cache_req = 0
         self.cache_hit = 0
-        self.cache_ver = "1" # Increment when changing cache architecture
+        self.cache_ver = "2" # Increment when changing cache architecture
         self.cache_update : Dict[str, datetime] = {}
         self.get_count = 0
         self.db_calls  = 0
@@ -2313,6 +2314,7 @@ class DataTracker:
         # Check for and upgrade v0.1.0 cache format to v1 cache format:
         cache_version_metadata = self.db.cache_info.find_one({"meta_key": "_cache_versions"})
         if cache_version_metadata is not None:
+            self.log.info("_cache_check_versions: old cache detected")
             if cache_version_metadata["cache_version"] == "0.1.0":
                 # This is an instance of the original MongoDB cache. The cached data is useful,
                 # but the format of the indexes and cache_info collections has changed. Remove
@@ -2357,7 +2359,12 @@ class DataTracker:
             cache_version = cache_version_metadata["cache_version"]
 
         # Check cache version
-        if cache_version != self.cache_ver:
+        if cache_version == '1' and self.cache_ver == '2':
+            # Datatracker v7.40.0 added a "on_agenda" field to Session, invalidating cached Sessions.
+            # Drop all session objects from the cache, so they're re-fetched.
+            self.log.info(f"_cache_check_versions: cache version changed {cache_version} -> {self.cache_ver}")
+            self._cache_delete(URI("/api/v1/meeting/session"))
+        elif cache_version != self.cache_ver:
             # Exit if the cache version doesn't match that we're expecting. Need to add code above
             # to update the cache if the format changes, as was done with the v0.1.1 to v1 change.
             self.log.error(f"_cache_check_versions: cache version changed {cache_version} -> {self.cache_ver}")
@@ -2381,7 +2388,7 @@ class DataTracker:
 
         self.db.cache_info.replace_one(
                 {"collection": "_cache_versions"},
-                {"collection": "_cache_versions", "dt_version": dt_version, "cache_version": cache_version},
+                {"collection": "_cache_versions", "dt_version": dt_version, "cache_version": self.cache_ver},
                 upsert=True)
 
     # ----------------------------------------------------------------------------------------------------------------------------
