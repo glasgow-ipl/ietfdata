@@ -1,6 +1,10 @@
 Change Log -- ietfdata
 ======================
 
+## Version 0.5.4 -- 26 November 2021
+
+ - Fix bluesheet document URLs
+
 ## Version 0.5.3 -- 22 November 2021
 
  - Fix potential IMAP timeout
