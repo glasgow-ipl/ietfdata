@@ -414,8 +414,9 @@ class Document(Resource):
             url = "https://datatracker.ietf.org/meeting/" + mtg + "/materials/" + self.uploaded_filename
             url = "https://www.ietf.org/proceedings/" + mtg + "/agenda/" + self.uploaded_filename
         elif self.type == DocumentTypeURI("/api/v1/name/doctypename/bluesheets/"):
-            # FIXME: should be "https://www.ietf.org/proceedings/{meeting.number}/bluesheets/{doc.uploaded_filename}" ???
             mtg = self.name.split("-")[1]
+            if mtg == "interim":
+                mtg = "-".join(self.name.split("-")[1:-1])
             url = "https://www.ietf.org/proceedings/" + mtg + "/bluesheets/" + self.uploaded_filename
         elif self.type == DocumentTypeURI("/api/v1/name/doctypename/charter/"):
             url = "https://www.ietf.org/charter/"     + self.name + "-" + self.rev + ".txt"
