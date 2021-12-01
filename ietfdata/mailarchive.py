@@ -255,19 +255,9 @@ class MailingList:
         else:
             imap = reuse_imap
 
-        # Check the UIDVALIDITY and number of messages, and compare to the cached values.
-        # If they're unchanged, then we know the cache is up-to-date and there's nothing
-        # to fetch. If the values have changed, then we fetch new messages. The cache for
-        # the UIDVALIDITY and number of messages is updated at the end of this function,
-        # once we've successfully fetched the new messages.
         status_imap = imap.folder_status("Shared Folders/" + self._list_name)
         status_json = self._mail_archive._db.lists.find_one({"list": self._list_name})
         assert status_json is not None
-        if (status_imap[b'UIDVALIDITY'] == status_json['uidvalidity']) and (status_imap[b'MESSAGES'] == status_json['messages']):
-            # Cache is up-to-date for this list, return since nothing to do
-            if reuse_imap is None:
-                imap.logout()
-            return []
 
         # if UIDVALIDITY has changed, the cache will be invalid. Drop and re-download
         # the entire folder. IMAP servers are supposed to ensure the UIDVALIDITY doesn't
@@ -291,14 +281,15 @@ class MailingList:
             else:
                 msg_fetch.append(msg_id)   # Messgae is not in the cache, add to the list of messages to fetch
 
-        # For messages that we have cached, check their sizes match those on the server,
-        # to detect silent updates to messages on the server
+        # For cached messages, check the headers have been downloaded and that the size matches that on the server.
+        # Add any messages where there is a mismatch to the list of messages to be fetched.
         self.log.debug(f"{len(msg_check)} messages to check")
         for i in range(0, len(msg_check), 512):
             msg_slice = msg_check[slice(i, i+512, 1)]
             for msg_id, msg in imap.fetch(msg_slice, "RFC822.SIZE").items():
-                if cached_messages[msg_id]["size"] != msg[b"RFC822.SIZE"]:
-                    self.log.warn(F"message size mismatch: {self._list_name}/{msg_id:06d}.msg ({cached_messages[msg_id]['size']} != {msg[b'RFC822.SIZE']})")
+                message = self.message(msg_id)
+                if (message.headers == {}) or (cached_messages[msg_id]["size"] != msg[b"RFC822.SIZE"]):
+                    self.log.warn(F"re-download {self._list_name}/{msg_id:06d}.msg: cached item invalid")
                     self._mail_archive._fs.delete(cached_messages[msg_id]["gridfs_id"])
                     self._mail_archive._db.messages.delete_one({"list" : self._list_name, "imap_uid" : msg_id})
                     msg_fetch.append(msg_id)
@@ -307,11 +298,14 @@ class MailingList:
         for i in range(0, len(msg_fetch), 512):
             msg_slice = msg_fetch[slice(i, i+512, 1)]
             for msg_id, msg in imap.fetch(msg_slice, "RFC822").items():
+                self.log.debug(f"fetch {self._list_name}/{msg_id:06d}.msg")
                 e = email.message_from_bytes(msg[b"RFC822"], policy=policy.default)
                 if e["Archived-At"] is not None:
                     list_name, msg_hash = _parse_archive_url(e["Archived-At"])
                     self._archive_urls[msg_hash] = msg_id
                 self._num_messages += 1
+
+                # Extract the timestamp:
                 timestamp = None # type: Optional[datetime]
                 try:
                     msg_date = email.utils.parsedate(e["Date"]) # type: Optional[Tuple[int, int, int, int, int, int, int, int, int]]
@@ -321,18 +315,24 @@ class MailingList:
                         timestamp = None
                 except:
                     timestamp = None
+
+                # Extract the headers:
                 try:
                     headers = {}
-                    for name, value in e.items():
-                        name = name.replace(".", "-")   # No standard mail header names contain "." and it makes MongoDB unhappy
-                        if name not in headers:
-                            headers[name] = value
-                        elif isinstance(headers[name], list):
-                            headers[name].append(value)
-                        else:
-                            headers[name] = [headers[name], value]
+                    for key in e.keys():
+                        if key not in headers:
+                            try:
+                                value = e.get_all(key)
+                                if len(value) == 1:
+                                    headers[key.replace(".", "-")] = value[0]
+                                else:
+                                    headers[key.replace(".", "-")] = value
+                            except Exception as ex:
+                                self.log.info(f"cannot extract header: {key} -- {ex}")
                 except:
+                    self.log.info(f"cannot extract headers for {self._list_name}/{msg_id:06d}.msg")
                     headers = {}
+
                 cache_file_id = self._mail_archive._fs.put(msg[b"RFC822"])
                 self._mail_archive._db.messages.insert_one({"list"       : self._list_name,
                                                             "imap_uid"   : msg_id,
