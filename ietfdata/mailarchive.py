@@ -288,7 +288,10 @@ class MailingList:
             msg_slice = msg_check[slice(i, i+512, 1)]
             for msg_id, msg in imap.fetch(msg_slice, "RFC822.SIZE").items():
                 message = self.message(msg_id)
-                if (message.headers == {}) or (cached_messages[msg_id]["size"] != msg[b"RFC822.SIZE"]):
+                if message is None:
+                    self.log.warn(F"re-download {self._list_name}/{msg_id:06d}.msg: cached item not present")
+                    msg_fetch.append(msg_id)
+                elif (message.headers == {}) or (cached_messages[msg_id]["size"] != msg[b"RFC822.SIZE"]):
                     self.log.warn(F"re-download {self._list_name}/{msg_id:06d}.msg: cached item invalid")
                     self._mail_archive._fs.delete(cached_messages[msg_id]["gridfs_id"])
                     self._mail_archive._db.messages.delete_one({"list" : self._list_name, "imap_uid" : msg_id})
