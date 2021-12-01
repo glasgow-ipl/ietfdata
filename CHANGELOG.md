@@ -1,6 +1,11 @@
 Change Log -- ietfdata
 ======================
 
+## Version 0.5.5 -- 1 December 2021
+
+ - Be more robust downloading mail archives
+
+
 ## Version 0.5.4 -- 26 November 2021
 
  - Fix bluesheet document URLs
