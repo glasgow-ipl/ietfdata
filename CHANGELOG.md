@@ -1,6 +1,12 @@
 Change Log -- ietfdata
 ======================
 
+## Version 0.5.6 -- 21 February 2022
+
+ - Fix `RfcEntry::content_url()` for RFCs 1-999
+ - Add `purpose` field to `Session` class, bump cache version
+
+
 ## Version 0.5.5 -- 1 December 2021
 
  - Be more robust downloading mail archives
