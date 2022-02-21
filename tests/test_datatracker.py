@@ -1972,6 +1972,21 @@ class TestDatatracker(unittest.TestCase):
             self.fail("Cannot find meeting session status name")
 
 
+    def test_meeting_session_purpose(self) -> None:
+        sp = self.dt.meeting_session_purpose(SessionPurposeURI("/api/v1/name/sessionpurposename/closed_meeting/"))
+        if sp is not None:
+            self.assertEqual(sp.used, True)
+            self.assertEqual(sp.timeslot_types, "['other', 'regular']")
+            self.assertEqual(sp.order, 10)
+            self.assertEqual(sp.on_agenda, False)
+            self.assertEqual(sp.resource_uri, SessionPurposeURI("/api/v1/name/sessionpurposename/closed_meeting/"))
+            self.assertEqual(sp.name, "Closed meeting")
+            self.assertEqual(sp.desc, "Closed meeting")
+            self.assertEqual(sp.slug, "closed_meeting")
+        else:
+            self.fail("Cannot find meeting session purpose")
+
+
     def test_meeting_session_status_name_from_slug(self) -> None:
         ssn = self.dt.meeting_session_status_name_from_slug("sched")
         if ssn is not None:
