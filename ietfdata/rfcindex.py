@@ -281,18 +281,19 @@ class RfcEntry:
 
 
     def content_url(self, required_format: str) -> Optional[str]:
+        rfcnum = "rfc" + self.doc_id[3:].lstrip("0")
         for fmt in self.formats:
             if fmt == required_format:
                 if required_format in [ "ASCII", "TEXT"] :
-                    return "https://www.rfc-editor.org/rfc/" + self.doc_id.lower() + ".txt"
+                    return "https://www.rfc-editor.org/rfc/" + rfcnum + ".txt"
                 elif required_format == "PS":
-                    return "https://www.rfc-editor.org/rfc/" + self.doc_id.lower() + ".ps"
+                    return "https://www.rfc-editor.org/rfc/" + rfcnum + ".ps"
                 elif required_format == "PDF":
-                    return "https://www.rfc-editor.org/rfc/" + self.doc_id.lower() + ".pdf"
+                    return "https://www.rfc-editor.org/rfc/" + rfcnum + ".pdf"
                 elif required_format == "HTML":
-                    return "https://www.rfc-editor.org/rfc/" + self.doc_id.lower() + ".html"
+                    return "https://www.rfc-editor.org/rfc/" + rfcnum + ".html"
                 elif required_format == "XML":
-                    return "https://www.rfc-editor.org/rfc/" + self.doc_id.lower() + ".xml"
+                    return "https://www.rfc-editor.org/rfc/" + rfcnum + ".xml"
                 else:
                     return None
         return None
