@@ -1,6 +1,11 @@
 Change Log -- ietfdata
 ======================
 
+## Version 0.5.7 -- 21 February 2022
+
+ - Fix tests
+
+
 ## Version 0.5.6 -- 21 February 2022
 
  - Fix `RfcEntry::content_url()` for RFCs 1-999

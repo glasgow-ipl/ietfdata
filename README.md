@@ -56,9 +56,12 @@ Release Process
 - Edit CHANGELOG.md and ensure up-to-date
 - Edit setup.py to ensure the correct version number is present
 - Edit ietfdata/datatracker.py to fix version number in DataTracker::ua
-- Commit changes and push to GitHub
 - Run `make test` to run the test suite. If any tests fail, fix then
   restart the release process
+- Commit changes and push to GitHub
+- Check that the GitHub Continuous Integration run succeeds, and fix 
+  any problems (this runs with a fresh cache, so can sometimes catch
+  problems that aren't found by local tests).
 - Run `python3 setup.py sdist bdist_wheel` to prepare the package
 - Run `python3 -m twine upload dist/*` to upload the package
 - Commit the packages files in `dist/*` push to GitHub
