@@ -984,6 +984,23 @@ class SessionAssignment(Resource):
 
 
 @dataclass(frozen=True)
+class SessionPurposeURI(URI):
+    root : str = "/api/v1/name/sessionpurposename/"
+
+
+@dataclass(frozen=True)
+class SessionPurpose(Resource):
+    resource_uri   : SessionPurposeURI
+    used           : bool
+    timeslot_types : str
+    order          : int
+    on_agenda      : bool
+    name           : str
+    desc           : str
+    slug           : str
+
+
+@dataclass(frozen=True)
 class Session(Resource):
     """
     A session within a meeting.
@@ -1011,6 +1028,7 @@ class Session(Resource):
     modified            : datetime
     comments            : str
     on_agenda           : bool
+    purpose             : SessionPurposeURI
 
 
 @dataclass(frozen=True)
@@ -1758,12 +1776,12 @@ class DataTracker:
         else:
             self.db    = None
         self.session   = requests.Session()
-        self.ua        = "glasgow-ietfdata/0.5.5"          # Update when making a new relaase
+        self.ua        = "glasgow-ietfdata/0.5.6"          # Update when making a new relaase
         self.base_url  = "https://datatracker.ietf.org"
         self.http_req  = 0
         self.cache_req = 0
         self.cache_hit = 0
-        self.cache_ver = "2" # Increment when changing cache architecture
+        self.cache_ver = "3" # Increment when changing cache architecture
         self.cache_update : Dict[str, datetime] = {}
         self.get_count = 0
         self.db_calls  = 0
@@ -1837,6 +1855,7 @@ class DataTracker:
         self._hints["/api/v1/name/reviewrequeststatename/"]        = Hints(ReviewRequestState, "slug", "V", {})
         self._hints["/api/v1/name/rolename/"]                      = Hints(RoleName, "slug", "V", {})
         self._hints["/api/v1/name/sessionstatusname/"]             = Hints(SessionStatusName, "slug", "V", {})
+        self._hints["/api/v1/name/sessionpurposename/"]            = Hints(SessionPurpose, "slug", "V", {})
         self._hints["/api/v1/name/streamname/"]                    = Hints(Stream, "slug", "V", {})
         self._hints["/api/v1/person/alias/"]                       = Hints(PersonAlias, "id", "-", {})    # FIXME: no modification time, but updated with the `person` is updated
         self._hints["/api/v1/person/email/"]                       = Hints(Email, "address", "T", {})
@@ -2365,6 +2384,11 @@ class DataTracker:
             # Drop all session objects from the cache, so they're re-fetched.
             self.log.info(f"_cache_check_versions: cache version changed {cache_version} -> {self.cache_ver}")
             self._cache_delete(URI("/api/v1/meeting/session"))
+        elif cache_version == '2' and self.cache_ver == '3':
+            # Datatracker v7.45.0 added a "purpose" field to Session, invalidating cached Sessions.
+            # Drop all session objects from the cache, so they're re-fetched.
+            self.log.info(f"_cache_check_versions: cache version changed {cache_version} -> {self.cache_ver}")
+            self._cache_delete(URI("/api/v1/meeting/session"))
         elif cache_version != self.cache_ver:
             # Exit if the cache version doesn't match that we're expecting. Need to add code above
             # to update the cache if the format changes, as was done with the v0.1.1 to v1 change.
@@ -2614,6 +2638,9 @@ class DataTracker:
         return self._retrieve(document_uri, Document)
 
 
+    # WARNING: the `since` and `until` parameters refer to the dates when the document metadata
+    # was last modified, not the dates when the document was last updated. Use `submissions()`
+    # with `date_since` and `date_until` to find documents updated in a particular time window.
     def documents(self,
             since   : str = "1970-01-01T00:00:00",
             until   : str = "2038-01-19T03:14:07",
@@ -3423,6 +3450,14 @@ class DataTracker:
 
     def meeting_session_status_names(self) -> Iterator[SessionStatusName]:
         return self._retrieve_multi(SessionStatusNameURI("/api/v1/name/sessionstatusname/"), SessionStatusName)
+
+
+    def meeting_session_purpose(self, purpose_uri: SessionPurposeURI) -> Optional[SessionPurpose]:
+        return self._retrieve(purpose_uri, SessionPurpose)
+
+
+    def meeting_session_purposes(self) -> Iterator[SessionPurpose]:
+        return self._retrieve_multi(SessionPurposeURI("/api/v1/name/sessionpurposename/"), SessionPurpose)
 
 
     def meeting_session(self, session_uri : SessionURI) -> Optional[Session]:
