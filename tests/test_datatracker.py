@@ -1594,7 +1594,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_roles_email(self) -> None:
         group_roles = list(self.dt.group_roles(email="csp@csperkins.org"))
-        self.assertEqual(len(group_roles), 9)
+        self.assertEqual(len(group_roles), 10)
         self.assertEqual(group_roles[0].id, 1076)   # SAFE BoF chair
         self.assertEqual(group_roles[1].id, 3998)   # TSV DIR reviewer
         self.assertEqual(group_roles[2].id, 8464)   # IRSG chair
@@ -1604,6 +1604,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(group_roles[6].id, 10200)  # IAB EDM programme member
         self.assertEqual(group_roles[7].id, 11103)  # TSV ART reviewer
         self.assertEqual(group_roles[8].id, 11680)  # IRTF ANRW chair
+        self.assertEqual(group_roles[9].id, 12818)  # IETF Delegate during IETF 113 plenary
 
 
     def test_group_roles_group(self) -> None:
@@ -1630,7 +1631,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_roles_person(self) -> None:
         group_roles = list(self.dt.group_roles(person=self.dt.person(PersonURI("/api/v1/person/person/20209/"))))
-        self.assertEqual(len(group_roles), 9)
+        self.assertEqual(len(group_roles), 10)
         self.assertEqual(group_roles[0].id, 1076)   # SAFE BoF chair
         self.assertEqual(group_roles[1].id, 3998)   # TSV DIR reviewer
         self.assertEqual(group_roles[2].id, 8464)   # IRSG chair
@@ -1640,6 +1641,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(group_roles[6].id, 10200)  # IAB EDM programme member
         self.assertEqual(group_roles[7].id, 11103)  # TSV ART reviewer
         self.assertEqual(group_roles[8].id, 11680)  # IRTF ANRW chair
+        self.assertEqual(group_roles[9].id, 12818)  # IETF Delegate during IETF 113 plenary
 
 
     def test_group_milestone_history(self) -> None:
@@ -1745,7 +1747,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_email(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(email="csp@csperkins.org"))
-        self.assertEqual(len(group_role_histories), 44)
+        self.assertEqual(len(group_role_histories), 48)
 
 
     def test_group_role_histories_group(self) -> None:
@@ -1764,7 +1766,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_person(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(person=self.dt.person(PersonURI("/api/v1/person/person/20209/"))))
-        self.assertEqual(len(group_role_histories), 44)
+        self.assertEqual(len(group_role_histories), 48)
 
 
     def test_group_state_change_event(self) -> None:
