@@ -619,7 +619,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.ad,                 PersonURI("/api/v1/person/person/2515/"))
             self.assertEqual(d.note,               "")
             self.assertEqual(d.words,              34861)
-            self.assertEqual(d.tags,               ["/api/v1/name/doctagname/app-min/", "/api/v1/name/doctagname/errata/"])
+            self.assertEqual(d.tags,               [DocumentTagURI("/api/v1/name/doctagname/app-min/"), DocumentTagURI("/api/v1/name/doctagname/errata/")])
             self.assertEqual(d.time,               datetime.fromisoformat("2015-10-14T13:49:52"))
             self.assertEqual(d.pages,              104)
             self.assertEqual(d.stream,             StreamURI("/api/v1/name/streamname/ietf/"))
