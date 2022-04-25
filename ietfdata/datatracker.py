@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2021 University of Glasgow
+# Copyright (C) 2017-2022 University of Glasgow
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -366,6 +366,21 @@ class SubmissionEvent(Resource):
     time            : datetime
 
 
+@dataclass(frozen=True)
+class DocumentTagURI(URI):
+    root : str = "/api/v1/name/doctagname/"
+
+
+@dataclass(frozen=True)
+class DocumentTag(Resource):
+    resource_uri  : DocumentTagURI
+    slug          : str
+    order         : int
+    name          : str
+    used          : bool
+    desc          : str
+
+
 # DocumentURI is defined earlier, to avoid circular dependencies
 
 @dataclass(frozen=True)
@@ -394,7 +409,7 @@ class Document(Resource):
     std_level          : Optional[str]  # FIXME: should be a URI subtype?
     states             : List[DocumentStateURI]
     submissions        : List[SubmissionURI]
-    tags               : List[str]
+    tags               : List[DocumentTagURI]
     uploaded_filename  : str
     external_url       : str
 
@@ -3087,6 +3102,10 @@ class DataTracker:
 
     # FIXME: implement these
 
+    #   https://datatracker.ietf.org/api/v1/name/doctagname/
+    def document_tag(self, tag_uri: DocumentTagURI) -> Optional[DocumentTag]:
+        return self._retrieve(tag_uri, DocumentTag)
+
 
     # ----------------------------------------------------------------------------------------------------------------------------
     # Datatracker API endpoints returning information about RFC publication streams:
@@ -4099,7 +4118,6 @@ class DataTracker:
     #
     #   https://datatracker.ietf.org/api/v1/name/dbtemplatetypename/
     #   https://datatracker.ietf.org/api/v1/name/docrelationshipname/
-    #   https://datatracker.ietf.org/api/v1/name/doctagname/
     #   https://datatracker.ietf.org/api/v1/name/docurltagname/
     #   https://datatracker.ietf.org/api/v1/name/formallanguagename/
     #   https://datatracker.ietf.org/api/v1/name/stdlevelname/
