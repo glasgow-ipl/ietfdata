@@ -44,17 +44,6 @@
 #   RFC 6359 "Datatracker Extensions to Include IANA and RFC Editor Processing Information"
 #   RFC 7760 "Statement of Work for Extensions to the IETF Datatracker for Author Statistics"
 
-from datetime    import datetime, timedelta, timezone
-from enum        import Enum
-from inspect     import signature
-from typing      import List, Optional, Tuple, Dict, Iterator, Type, TypeVar, Any, Union, Generic, get_origin
-from dataclasses import dataclass, field
-from pathlib     import Path
-from pavlova     import Pavlova
-from pavlova.parsers import GenericParser
-from pymongo         import MongoClient, ASCENDING, TEXT, ReplaceOne
-from pymongo.database import Database
-
 import ast
 import copy
 import dateutil.tz
@@ -62,11 +51,23 @@ import glob
 import json
 import logging
 import os
-import requests
 import re
+import requests
 import sys
 import time
 import urllib.parse
+
+from datetime         import datetime, timedelta, timezone
+from enum             import Enum
+from inspect          import signature
+from typing           import List, Optional, Tuple, Dict, Iterator, Type, TypeVar, Any, Union, Generic, get_origin
+from dataclasses      import dataclass, field
+from pathlib          import Path
+from pavlova          import Pavlova
+from pavlova.parsers  import GenericParser
+from pymongo          import MongoClient, ASCENDING, TEXT, ReplaceOne
+from pymongo.database import Database
+from requests_cache   import CachedSession, MongoCache
 
 # =================================================================================================================================
 # Classes to represent the JSON-serialised objects returned by the Datatracker API:
@@ -1686,76 +1687,11 @@ class SendQueueEntry(Resource):
 # =================================================================================================================================
 # A class to represent the datatracker:
 
-def _parent_uri(uri: URI) -> URI:
-    assert uri.uri is not None and uri.uri.startswith("/api/v1/")
-    sep0 = 8
-    sep1 = uri.uri[sep0:].find("/") + sep0 + 1
-    sep2 = uri.uri[sep1:].find("/") + sep1 + 1
-    return type(uri)(uri.uri[:sep2])
-
-
-def _db_collection(uri: URI) -> str:
-    assert uri.uri is not None
-    return uri.uri.strip('/').replace("/", "_")
-
-
-def _translate_query(uri: URI, obj_type: Type[T]) -> Dict[Any, Any]:
-    translated_params : Dict[Any, Any] = {}
-
-    for (param, value) in uri.params.items():
-        #print(F"_translate_query: param={param} value={value}")
-        if "__gte" in param:
-            param = param[:-5]
-            translated_params[param] = {**translated_params.get(param, {}), "$gte": value}
-        elif "__gt" in param:
-            param = param[:-4]
-            translated_params[param] = {**translated_params.get(param, {}), "$gt": value}
-        elif "__lte" in param:
-            param = param[:-5]
-            translated_params[param] = {**translated_params.get(param, {}), "$lte": value}
-        elif "__lt" in param:
-            param = param[:-4]
-            translated_params[param] = {**translated_params.get(param, {}), "$lt": value}
-        elif "__contains" in param:
-            param = param[:-10]
-            translated_params[param] = {**translated_params.get(param, {}), "$regex": value}
-        else:
-            param_type = obj_type.__dict__["__dataclass_fields__"][param].type
-            if get_origin(param_type) is Union:
-                param_type = param_type.__args__[0]
-            if get_origin(param_type) is list:
-                param_type = param_type.__args__[0]
-            if issubclass(param_type, URI):
-                if isinstance(value, str) and value.startswith(param_type.root):
-                    translated_params[param] = value
-                else:
-                    translated_params[param] = f"{param_type.root}{value}/"
-            else:
-                translated_params[param] = value
-        #print(F"translated = {translated_params[param]}")
-    return translated_params
-
-
-def _sort_objs(obj: Tuple[str,Dict[Any, Any]]) -> str:
-    key, _ = obj
-    return key
-
-
-@dataclass
-class CacheMetadata:
-    created     : datetime
-    updated     : datetime
-    partial     : bool
-    total_count : int
-    queries     : List[str]
-
 
 @dataclass
 class Hints(Generic[T]):
     obj_type :  Type[T]
     sort_by : str
-    update_strategy : str
-    deref   : Dict[str, str]
 
 
 class DataTracker:
@@ -1764,162 +1700,141 @@ class DataTracker:
     """
     def __init__(self,
             use_cache: bool = False,
-            mongodb_hostname: str = "localhost",
+            mongodb_host: str = "localhost",
             mongodb_port: int = 27017,
-            mongodb_username: Optional[str] = None,
-            mongodb_password: Optional[str] = None):
+            mongodb_user: Optional[str] = None,
+            mongodb_pass: Optional[str] = None,
+            cache_timeout: Optional[timedelta] = None):
         if os.environ.get('IETFDATA_CACHE_HOST') is not None:
             use_cache = True
             cache_host = os.environ.get('IETFDATA_CACHE_HOST')
             cache_port = os.environ.get('IETFDATA_CACHE_PORT', 27017)
-            cache_username = os.environ.get('IETFDATA_CACHE_USER')
-            cache_password = os.environ.get('IETFDATA_CACHE_PASSWORD')
+            cache_user = os.environ.get('IETFDATA_CACHE_USER')
+            cache_pass = os.environ.get('IETFDATA_CACHE_PASSWORD')
             if cache_host is not None:
-                mongodb_hostname = cache_host
+                mongodb_host = cache_host
             if cache_port is not None:
                 mongodb_port = int(cache_port)
-            if cache_username is not None:
-                mongodb_username = cache_username
-            if cache_password is not None:
-                mongodb_password = cache_password
+            if cache_user is not None:
+                mongodb_user = cache_username
+            if cache_pass is not None:
+                mongodb_pass = cache_pass
+
+        logging.getLogger('requests_cache').setLevel('WARN')
+
+        logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
+        self.log = logging.getLogger("ietfdata")
+
         if use_cache:
-            self.db : Optional[Database] = None
-            if mongodb_username is not None:
-                self.db = MongoClient(host=mongodb_hostname, port=mongodb_port, username=mongodb_username, password=mongodb_password).ietfdata
+            self.log.info(f"mongodb host = {mongodb_host}")
+            self.log.info(f"mongodb port = {mongodb_port}")
+            self.log.info(f"mongodb user = {mongodb_user}")
+            self.log.info(f"mongodb pass = {mongodb_pass}")
+            database = MongoClient(host=mongodb_host, port=mongodb_port, username=mongodb_user, password=mongodb_pass)
+            backend  = MongoCache(db_name="ietfdata_requests", connection=database)
+            if cache_timeout is not None:
+                self.log.info(f"Cache enabled; timeout = {cache_timeout}")
+                self.session = CachedSession(backend=backend, expire_after=cache_timeout)
             else:
-                self.db = MongoClient(host=mongodb_hostname, port=mongodb_port).ietfdata
+                self.log.info(f"Cache enabled; timeout = (auto)")
+                self.session = CachedSession(backend=backend, cache_control=True)
         else:
-            self.db    = None
-        self.session   = requests.Session()
+            self.session = CachedSession(expire_after=0)
+
         self.ua        = "glasgow-ietfdata/0.5.7"          # Update when making a new relaase
         self.base_url  = "https://datatracker.ietf.org"
         self.http_req  = 0
-        self.cache_req = 0
-        self.cache_hit = 0
-        self.cache_ver = "3" # Increment when changing cache architecture
-        self.cache_update : Dict[str, datetime] = {}
         self.get_count = 0
-        self.db_calls  = 0
 
-        # Configure logging
-        logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
-        self.log      = logging.getLogger("ietfdata")
-        if self.db is not None:
-            self.log.info(f"{self.ua} (cache enabled)")
-        else:
-            self.log.info(f"{self.ua} (cache disabled)")
-
-        # Register generic parsers for each URI type:
         self.pavlova = Pavlova()
         for uri_type in URI.__subclasses__():
             self.pavlova.register_parser(uri_type, GenericParser(self.pavlova, uri_type))
-        self.pavlova.register_parser(CacheMetadata, GenericParser(self.pavlova, CacheMetadata))
 
-        # Register cache hints:
         self._hints = {} # type: Dict[str, Hints]
-        self._hints["/api/v1/doc/ballotdocevent/"]                 = Hints(BallotDocumentEvent, "id", "T", {"doc": "id"})
-        self._hints["/api/v1/doc/ballottype/"]                     = Hints(BallotType, "slug", "V", {})
-        self._hints["/api/v1/doc/docalias/"]                       = Hints(DocumentAlias, "id", "-", {})  # FIXME: no modification time
-        self._hints["/api/v1/doc/docevent/"]                       = Hints(DocumentEvent, "id", "T", {"doc": "id"})
-        self._hints["/api/v1/doc/document/"]                       = Hints(Document, "id", "T", {})
-        self._hints["/api/v1/doc/documentauthor/"]                 = Hints(DocumentAuthor, "id", "R", {"document": "id"})
-        self._hints["/api/v1/doc/relateddocument/"]                = Hints(RelatedDocument, "id", "-", {"source": "id", "target": "id", "relationship": "slug"}) # FIXME: no modification time, but will be updated when the corresponding `source` is updated
-        self._hints["/api/v1/doc/state/"]                          = Hints(DocumentState, "id", "V", {})
-        self._hints["/api/v1/doc/statetype/"]                      = Hints(DocumentStateType, "slug", "V", {})
-        self._hints["/api/v1/group/changestategroupevent/"]        = Hints(GroupStateChangeEvent, "id", "T", {})
-        self._hints["/api/v1/group/group/"]                        = Hints(Group, "id", "T", {})
-        self._hints["/api/v1/group/groupevent/"]                   = Hints(GroupEvent, "id", "T", {})
-        # FIXME: when a group, /api/v1/group/group/1861/, is updated, /api/v1/group/grouphistory/?group=1861 Resource
-        # will be updated with an object with "time" equal to the previous modification time of the group.
-        # For example, when the IRSG membership was changed on 2021-04-26, a grouphistory object with time
-        # 2020-07-25 was added, representing the previous state of the group.
-        self._hints["/api/v1/group/grouphistory/"]                 = Hints(GroupHistory, "id", "T", {})
-        self._hints["/api/v1/group/groupmilestone/"]               = Hints(GroupMilestone, "id", "T", {})
-        self._hints["/api/v1/group/groupmilestonehistory/"]        = Hints(GroupMilestoneHistory, "id", "T", {})
-        self._hints["/api/v1/group/groupurl/"]                     = Hints(GroupUrl, "id", "-", {})  # FIXME: no modification time, but will be updated with the corresponding `group` is updated
-        self._hints["/api/v1/group/milestonegroupevent/"]          = Hints(GroupMilestoneEvent, "id", "T", {})
-        self._hints["/api/v1/group/role/"]                         = Hints(GroupRole, "id", "-", {})  # FIXME: no modification time, but will be updated with the corresponding `group` is updated
-        self._hints["/api/v1/group/rolehistory/"]                  = Hints(GroupRoleHistory, "id", "-", {})  # FIXME: No modification time, but will be updated when the corresponding `grouphistory` is updated
-        self._hints["/api/v1/ipr/genericiprdisclosure/"]           = Hints(GenericIPRDisclosure, "id", "T", {})
-        self._hints["/api/v1/ipr/holderiprdisclosure/"]            = Hints(HolderIPRDisclosure, "id", "T", {})
-        self._hints["/api/v1/ipr/iprdisclosurebase/"]              = Hints(IPRDisclosureBase, "id", "T", {})
-        self._hints["/api/v1/ipr/thirdpartyiprdisclosure/"]        = Hints(ThirdPartyIPRDisclosure, "id", "T", {})
-        self._hints["/api/v1/mailinglists/list/"]                  = Hints(EmailList, "id", "-", {})  # FIXME: no modification time
-        self._hints["/api/v1/mailinglists/subscribed/"]            = Hints(EmailListSubscriptions, "id", "-", {})  # FIXME: these have a time field, but not clear updated
-        self._hints["/api/v1/meeting/meeting/"]                    = Hints(Meeting, "id", "U", {})  # FIXME: has an `updated` field that doesn't allow filtering?
-        self._hints["/api/v1/meeting/schedtimesessassignment/"]    = Hints(SessionAssignment, "id", "M", {})
-        self._hints["/api/v1/meeting/schedule/"]                   = Hints(Schedule, "id", "-", {})  # FIXME: immutable once created?
-        self._hints["/api/v1/meeting/schedulingevent/"]            = Hints(SchedulingEvent, "id", "T", {})
-        self._hints["/api/v1/meeting/session/"]                    = Hints(Session, "id", "M", {})
-        self._hints["/api/v1/meeting/timeslot/"]                   = Hints(Timeslot, "id", "M", {})
-        self._hints["/api/v1/message/announcementfrom/"]           = Hints(AnnouncementFrom, "id", "V", {})
-        self._hints["/api/v1/message/message/"]                    = Hints(Message, "id", "-", {"related_doc": "id"}) # No longer accessible
-        self._hints["/api/v1/message/sendqueue/"]                  = Hints(SendQueueEntry, "id", "T", {})
-        self._hints["/api/v1/name/ballotpositionname/"]            = Hints(BallotPositionName, "slug", "V", {})
-        self._hints["/api/v1/name/docrelationshipname/"]           = Hints(RelationshipType, "slug", "V", {})
-        self._hints["/api/v1/name/doctypename/"]                   = Hints(DocumentType, "slug", "V", {})
-        self._hints["/api/v1/name/groupmilestonestatename/"]       = Hints(GroupMilestoneStateName, "slug", "V", {})
-        self._hints["/api/v1/name/groupstatename/"]                = Hints(GroupState, "slug", "V", {})
-        self._hints["/api/v1/name/grouptypename/"]                 = Hints(GroupTypeName, "slug", "V", {})
-        self._hints["/api/v1/name/meetingtypename/"]               = Hints(MeetingType, "slug", "V", {})
-        self._hints["/api/v1/name/iprdisclosurestatename/"]        = Hints(IPRDisclosureState, "slug", "V", {})
-        self._hints["/api/v1/name/iprlicensetypename/"]            = Hints(IPRLicenseType, "slug", "V", {})
-        self._hints["/api/v1/name/reviewassignmentstatename/"]     = Hints(ReviewAssignmentState, "slug", "V", {})
-        self._hints["/api/v1/name/reviewresultname/"]              = Hints(ReviewResultType, "slug", "V", {})
-        self._hints["/api/v1/name/reviewtypename/"]                = Hints(ReviewType, "slug", "V", {})
-        self._hints["/api/v1/name/reviewrequeststatename/"]        = Hints(ReviewRequestState, "slug", "V", {})
-        self._hints["/api/v1/name/rolename/"]                      = Hints(RoleName, "slug", "V", {})
-        self._hints["/api/v1/name/sessionstatusname/"]             = Hints(SessionStatusName, "slug", "V", {})
-        self._hints["/api/v1/name/sessionpurposename/"]            = Hints(SessionPurpose, "slug", "V", {})
-        self._hints["/api/v1/name/streamname/"]                    = Hints(Stream, "slug", "V", {})
-        self._hints["/api/v1/person/alias/"]                       = Hints(PersonAlias, "id", "-", {})    # FIXME: no modification time, but updated with the `person` is updated
-        self._hints["/api/v1/person/email/"]                       = Hints(Email, "address", "T", {})
-        self._hints["/api/v1/person/historicalemail/"]             = Hints(HistoricalEmail, "address", "H", {})
-        self._hints["/api/v1/person/historicalperson/"]            = Hints(HistoricalPerson, "id", "H", {})
-        self._hints["/api/v1/person/person/"]                      = Hints(Person, "id", "T", {})
-        self._hints["/api/v1/person/personevent/"]                 = Hints(PersonEvent, "id", "T", {})
-        self._hints["/api/v1/review/historicalreviewassignment/"]  = Hints(HistoricalReviewAssignment, "id", "C", {})
-        self._hints["/api/v1/review/historicalreviewersettings/"]  = Hints(HistoricalReviewerSettings, "id", "H", {})
-        self._hints["/api/v1/review/historicalreviewrequest/"]     = Hints(HistoricalReviewRequest, "id", "T", {"doc": "id"})
-        self._hints["/api/v1/review/historicalunavailableperiod/"] = Hints(HistoricalUnavailablePeriod, "id", "-", {})
-        self._hints["/api/v1/review/nextreviewerinteam/"]          = Hints(NextReviewerInTeam, "id", "-", {})
-        self._hints["/api/v1/review/reviewassignment/"]            = Hints(ReviewAssignment, "id", "-", {})
-        self._hints["/api/v1/review/reviewersettings/"]            = Hints(ReviewerSettings, "id", "-", {})
-        self._hints["/api/v1/review/reviewrequest/"]               = Hints(ReviewRequest, "id", "T", {"doc": "id"})
-        self._hints["/api/v1/review/reviewsecretarysettings/"]     = Hints(ReviewSecretarySettings, "id", "-", {})
-        self._hints["/api/v1/review/reviewteamsettings/"]          = Hints(ReviewTeamSettings, "id", "-", {})
-        self._hints["/api/v1/review/reviewwish/"]                  = Hints(ReviewWish, "id", "T", {"doc": "id"})
-        self._hints["/api/v1/review/unavailableperiod/"]           = Hints(UnavailablePeriod, "id", "-", {})
-        self._hints["/api/v1/name/continentname/"]                 = Hints(Continent, "slug", "V", {})
-        self._hints["/api/v1/name/countryname/"]                   = Hints(Country, "slug", "V", {})
-        self._hints["/api/v1/stats/countryalias/"]                 = Hints(CountryAlias, "id", "V", {})
-        self._hints["/api/v1/stats/meetingregistration/"]          = Hints(MeetingRegistration, "id", "-", {})
-        self._hints["/api/v1/submit/submission/"]                  = Hints(Submission, "id", "-", {})
-        self._hints["/api/v1/submit/submissionevent/"]             = Hints(SubmissionEvent, "id", "T", {})
+        self._hints["/api/v1/doc/ballotdocevent/"]                 = Hints(BallotDocumentEvent,         "id")
+        self._hints["/api/v1/doc/ballottype/"]                     = Hints(BallotType,                  "slug")
+        self._hints["/api/v1/doc/docalias/"]                       = Hints(DocumentAlias,               "id")
+        self._hints["/api/v1/doc/docevent/"]                       = Hints(DocumentEvent,               "id")
+        self._hints["/api/v1/doc/document/"]                       = Hints(Document,                    "id")
+        self._hints["/api/v1/doc/documentauthor/"]                 = Hints(DocumentAuthor,              "id")
+        self._hints["/api/v1/doc/relateddocument/"]                = Hints(RelatedDocument,             "id")
+        self._hints["/api/v1/doc/state/"]                          = Hints(DocumentState,               "id")
+        self._hints["/api/v1/doc/statetype/"]                      = Hints(DocumentStateType,           "slug")
+        self._hints["/api/v1/group/changestategroupevent/"]        = Hints(GroupStateChangeEvent,       "id")
+        self._hints["/api/v1/group/group/"]                        = Hints(Group,                       "id")
+        self._hints["/api/v1/group/groupevent/"]                   = Hints(GroupEvent,                  "id")
+        self._hints["/api/v1/group/grouphistory/"]                 = Hints(GroupHistory,                "id")
+        self._hints["/api/v1/group/groupmilestone/"]               = Hints(GroupMilestone,              "id")
+        self._hints["/api/v1/group/groupmilestonehistory/"]        = Hints(GroupMilestoneHistory,       "id")
+        self._hints["/api/v1/group/groupurl/"]                     = Hints(GroupUrl,                    "id")
+        self._hints["/api/v1/group/milestonegroupevent/"]          = Hints(GroupMilestoneEvent,         "id")
+        self._hints["/api/v1/group/role/"]                         = Hints(GroupRole,                   "id")
+        self._hints["/api/v1/group/rolehistory/"]                  = Hints(GroupRoleHistory,            "id")
+        self._hints["/api/v1/ipr/genericiprdisclosure/"]           = Hints(GenericIPRDisclosure,        "id")
+        self._hints["/api/v1/ipr/holderiprdisclosure/"]            = Hints(HolderIPRDisclosure,         "id")
+        self._hints["/api/v1/ipr/iprdisclosurebase/"]              = Hints(IPRDisclosureBase,           "id")
+        self._hints["/api/v1/ipr/thirdpartyiprdisclosure/"]        = Hints(ThirdPartyIPRDisclosure,     "id")
+        self._hints["/api/v1/mailinglists/list/"]                  = Hints(EmailList,                   "id")
+        self._hints["/api/v1/mailinglists/subscribed/"]            = Hints(EmailListSubscriptions,      "id")
+        self._hints["/api/v1/meeting/meeting/"]                    = Hints(Meeting,                     "id")
+        self._hints["/api/v1/meeting/schedtimesessassignment/"]    = Hints(SessionAssignment,           "id")
+        self._hints["/api/v1/meeting/schedule/"]                   = Hints(Schedule,                    "id")
+        self._hints["/api/v1/meeting/schedulingevent/"]            = Hints(SchedulingEvent,             "id")
+        self._hints["/api/v1/meeting/session/"]                    = Hints(Session,                     "id")
+        self._hints["/api/v1/meeting/timeslot/"]                   = Hints(Timeslot,                    "id")
+        self._hints["/api/v1/message/announcementfrom/"]           = Hints(AnnouncementFrom,            "id")
+        self._hints["/api/v1/message/message/"]                    = Hints(Message,                     "id")
+        self._hints["/api/v1/message/sendqueue/"]                  = Hints(SendQueueEntry,              "id")
+        self._hints["/api/v1/name/ballotpositionname/"]            = Hints(BallotPositionName,          "slug")
+        self._hints["/api/v1/name/docrelationshipname/"]           = Hints(RelationshipType,            "slug")
+        self._hints["/api/v1/name/doctagname/"]                    = Hints(DocumentTag,                 "slug")
+        self._hints["/api/v1/name/doctypename/"]                   = Hints(DocumentType,                "slug")
+        self._hints["/api/v1/name/groupmilestonestatename/"]       = Hints(GroupMilestoneStateName,     "slug")
+        self._hints["/api/v1/name/groupstatename/"]                = Hints(GroupState,                  "slug")
+        self._hints["/api/v1/name/grouptypename/"]                 = Hints(GroupTypeName,               "slug")
+        self._hints["/api/v1/name/meetingtypename/"]               = Hints(MeetingType,                 "slug")
+        self._hints["/api/v1/name/iprdisclosurestatename/"]        = Hints(IPRDisclosureState,          "slug")
+        self._hints["/api/v1/name/iprlicensetypename/"]            = Hints(IPRLicenseType,              "slug")
+        self._hints["/api/v1/name/reviewassignmentstatename/"]     = Hints(ReviewAssignmentState,       "slug")
+        self._hints["/api/v1/name/reviewresultname/"]              = Hints(ReviewResultType,            "slug")
+        self._hints["/api/v1/name/reviewtypename/"]                = Hints(ReviewType,                  "slug")
+        self._hints["/api/v1/name/reviewrequeststatename/"]        = Hints(ReviewRequestState,          "slug")
+        self._hints["/api/v1/name/rolename/"]                      = Hints(RoleName,                    "slug")
+        self._hints["/api/v1/name/sessionstatusname/"]             = Hints(SessionStatusName,           "slug")
+        self._hints["/api/v1/name/sessionpurposename/"]            = Hints(SessionPurpose,              "slug")
+        self._hints["/api/v1/name/streamname/"]                    = Hints(Stream,                      "slug")
+        self._hints["/api/v1/person/alias/"]                       = Hints(PersonAlias,                 "id")
+        self._hints["/api/v1/person/email/"]                       = Hints(Email,                       "address")
+        self._hints["/api/v1/person/historicalemail/"]             = Hints(HistoricalEmail,             "address")
+        self._hints["/api/v1/person/historicalperson/"]            = Hints(HistoricalPerson,            "id")
+        self._hints["/api/v1/person/person/"]                      = Hints(Person,                      "id")
+        self._hints["/api/v1/person/personevent/"]                 = Hints(PersonEvent,                 "id")
+        self._hints["/api/v1/review/historicalreviewassignment/"]  = Hints(HistoricalReviewAssignment,  "id")
+        self._hints["/api/v1/review/historicalreviewersettings/"]  = Hints(HistoricalReviewerSettings,  "id")
+        self._hints["/api/v1/review/historicalreviewrequest/"]     = Hints(HistoricalReviewRequest,     "id")
+        self._hints["/api/v1/review/historicalunavailableperiod/"] = Hints(HistoricalUnavailablePeriod, "id")
+        self._hints["/api/v1/review/nextreviewerinteam/"]          = Hints(NextReviewerInTeam,          "id")
+        self._hints["/api/v1/review/reviewassignment/"]            = Hints(ReviewAssignment,            "id")
+        self._hints["/api/v1/review/reviewersettings/"]            = Hints(ReviewerSettings,            "id")
+        self._hints["/api/v1/review/reviewrequest/"]               = Hints(ReviewRequest,               "id")
+        self._hints["/api/v1/review/reviewsecretarysettings/"]     = Hints(ReviewSecretarySettings,     "id")
+        self._hints["/api/v1/review/reviewteamsettings/"]          = Hints(ReviewTeamSettings,          "id")
+        self._hints["/api/v1/review/reviewwish/"]                  = Hints(ReviewWish,                  "id")
+        self._hints["/api/v1/review/unavailableperiod/"]           = Hints(UnavailablePeriod,           "id")
+        self._hints["/api/v1/name/continentname/"]                 = Hints(Continent,                   "slug")
+        self._hints["/api/v1/name/countryname/"]                   = Hints(Country,                     "slug")
+        self._hints["/api/v1/stats/countryalias/"]                 = Hints(CountryAlias,                "id")
+        self._hints["/api/v1/stats/meetingregistration/"]          = Hints(MeetingRegistration,         "id")
+        self._hints["/api/v1/submit/submission/"]                  = Hints(Submission,                  "id")
+        self._hints["/api/v1/submit/submissionevent/"]             = Hints(SubmissionEvent,             "id")
 
-        # check Datatracker and cache versions
-        self._cache_check_versions()
-
-
-    def __del__(self):
-        self.log.debug(F"cache requests: {self.cache_req}")
-        if self.cache_req == 0:
-            self.log.debug(F"cache hit rate: -")
-        else:
-            self.log.debug(F"cache hit rate: {self.cache_hit / self.cache_req * 100.0:.1f}%")
-        self.log.debug(F"HTTP GET calls: {self.get_count}")
-        self.log.debug(F"db requests: {self.db_calls}")
-        self.session.close()
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
     # Private methods to access the datatracker.
     #
     # The _datatracker_get_single() and _datatracker_get_multi() functions
-    # retrieve data from the IETF datatracker without using the cache. They are
-    # used by the cache layer to access the datatracker when updating the cache,
-    # and by the retrieval layer to retrieve objects from the datatracker if the
-    # cache is disabled.
+    # retrieve data from the IETF datatracker. 
 
     def _datatracker_get_single(self, obj_uri: URI) -> Optional[Dict[str, Any]]:
         assert obj_uri.uri is not None
@@ -1932,6 +1847,7 @@ class DataTracker:
                 self._rate_limit()
                 self.get_count += 1
                 r = self.session.get(req_url, params = req_params, headers = req_headers, verify = True, stream = False)
+                self.log.debug(f"_datatracker_get_single in_cache={r.from_cache} cached={r.created_at} expires={r.expires} {req_url}") #type:ignore
                 if r.status_code == 200:
                     self.log.debug(F"_datatracker_get_single: ({r.status_code}) {obj_uri}")
                     url_obj = r.json() # type: Dict[str, Any]
@@ -1981,6 +1897,7 @@ class DataTracker:
                 try:
                     self.get_count += 1
                     r = self.session.get(url = req_url, params = req_params, headers = req_headers, verify = True, stream = False)
+                    self.log.debug(f"_datatracker_get_multi  in_cache={r.from_cache} cached={r.created_at} expires={r.expires} {obj_uri}") #type:ignore
                     if r.status_code == 200:
                         self.log.debug(F"_datatracker_get_multi ({r.status_code}) {obj_uri}")
                         meta = r.json()['meta']
@@ -2031,6 +1948,7 @@ class DataTracker:
                 req_headers = {'User-Agent': self.ua}
                 self.get_count += 1
                 r = self.session.get(url = req_url, params = req_params, headers = req_headers, verify = True, stream = False)
+                self.log.debug(f"_datatracker_get_multic in_cache={r.from_cache} cached={r.created_at} expires={r.expires} {req_url}") #type:ignore
                 if r.status_code == 200:
                     meta = r.json()['meta']
                     total_count = meta['total_count'] # type: int
@@ -2055,383 +1973,6 @@ class DataTracker:
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
-    # Private methods to manage the local cache.
-    #
-    # With the exception of _cache_update(), these should only access the local cache.
-    #
-    # The cache stores objects in the `ietfdata` database of the specified MongoDB instance.
-    #
-    # Objects are stored in collections named after the Datatracker URI with slashes replaced
-    # by underscores (e.g., objects with URIs starting "/api/v1/person/person/" are stored in
-    # the collection "api_v1_person_person"). The _db_collection() function can be used to
-    # convert a URI to a collection name.
-    #
-    # Documents within those collections hold the JSON as retrieved from the datatracker.
-    #
-    # There is also a "cache_info" collection, containing metadata about the cache.
-
-    def _cache_update_timed(self, obj_type_uri: URI, now: datetime, meta: CacheMetadata, field: str) -> None:
-        start_time = meta.updated.strftime("%Y-%m-%dT%H:%M:%S.%f")  # Avoid isoformat(), since don't want TZ offset
-        until_time  = now.strftime("%Y-%m-%dT%H:%M:%S.%f")
-        update_uri = URI(obj_type_uri.uri)
-        update_uri.params[F"{field}__gte"] = start_time
-        update_uri.params[F"{field}__lt"]  = until_time
-        self.log.info(F"_cache_update: {obj_type_uri} {start_time} -> {until_time}")
-        for obj_json in self._datatracker_get_multi(update_uri):
-            self._cache_put_object(obj_json)
-            # When updating a Document, update the corresponding DocumentAuthor objects
-            if obj_type_uri.uri == "/api/v1/doc/document/":
-                uri = URI("/api/v1/doc/documentauthor/")
-                uri.params["document"] = obj_json["id"]
-                for item in self._datatracker_get_multi(uri):
-                    self.log.info(f"_cache_update_timed: {obj_json['resource_uri']} -> {item['resource_uri']}")
-                    self._cache_put_object(item)
-                self._cache_record_query(uri, _parent_uri(uri))
-        meta = self._cache_load_metadata(obj_type_uri)
-        meta.updated = now
-        obj_count = self._datatracker_get_multi_count(obj_type_uri)
-        if obj_count is not None and obj_count != meta.total_count:
-            self.log.info(f"_cache_update_timed: updated total_count {obj_type_uri} {meta.total_count} -> {obj_count}")
-            meta.total_count = obj_count
-        self._cache_save_metadata(obj_type_uri, meta)
-
-
-    def _cache_update(self, obj_type_uri: URI, dt_version_changed:bool) -> None:
-        if self.db is None:
-            return
-        assert(obj_type_uri.uri) is not None
-        self._cache_create(obj_type_uri)
-        now  = datetime.now(tz = dateutil.tz.gettz("America/Los_Angeles"))
-
-        # Rewrite dependent object types to update the cache for objects on which
-        # they depend. For example, if asked to update document authors, instead
-        # ask to update documents since that will update the document authors too.
-        if self._hints[obj_type_uri.uri].update_strategy == "R":
-            if obj_type_uri.uri == "/api/v1/doc/documentauthor/":
-                new_uri = URI("/api/v1/doc/document/")
-            else:
-                raise NotImplementedError(f"Cannot rewrite {obj_type_uri} in _cache_update")
-            self.log.info(f"_cache_update: {obj_type_uri} -> {new_uri}")
-            obj_type_uri = new_uri
-
-        assert(obj_type_uri.uri) is not None
-
-        # Only check for cache updates for each object type at most once per minute.
-        # This significantly reduces the load on the database.
-        if obj_type_uri.uri not in self.cache_update:
-            self.cache_update[obj_type_uri.uri] = now
-        elif now - self.cache_update[obj_type_uri.uri] < timedelta(minutes=1):
-            return
-
-        meta = self._cache_load_metadata(obj_type_uri)
-
-        # URIs under /api/v1/name/ are internal names used by the datatracker.
-        # Delete and recreate these caches if the datatracker version changed.
-        if self._hints[obj_type_uri.uri].update_strategy == "V" and dt_version_changed:
-            self.log.info(f"_cache_update: drop {obj_type_uri} due to datatracker version change")
-            self._cache_delete(obj_type_uri)
-            self._cache_create(obj_type_uri)
-            meta = self._cache_load_metadata(obj_type_uri) # Reload metadata since cache entry recreated
-
-        # Should we switch from a partial cache to full cache for this object type?
-        cached_size = self.db[_db_collection(obj_type_uri)].count_documents({})
-        if meta.partial and meta.total_count > 0 and cached_size / meta.total_count > 0.10:
-            self.log.info(F"switch to full cache {obj_type_uri.uri}: cached {cached_size} of {meta.total_count} objects")
-            for obj_json in self._datatracker_get_multi(obj_type_uri):
-                self._cache_put_object(obj_json)
-            meta.partial = False
-            meta.queries = []
-            meta.updated = now
-            obj_count = self._datatracker_get_multi_count(obj_type_uri)
-            if obj_count is not None and obj_count != meta.total_count:
-                self.log.info(f"_cache_update: updated total_count {obj_type_uri} {meta.total_count}->{obj_count}")
-                meta.total_count = obj_count
-            self._cache_save_metadata(obj_type_uri, meta)
-
-        # Update object types that have a "time" field giving last modified time:
-        if self._hints[obj_type_uri.uri].update_strategy == "T" and now - meta.updated > timedelta(hours=1):
-            self._cache_update_timed(obj_type_uri, now, meta, "time")
-
-        # Update object types that have a "modified" field giving last modified time:
-        if self._hints[obj_type_uri.uri].update_strategy == "M" and now - meta.updated > timedelta(hours=1):
-            self._cache_update_timed(obj_type_uri, now, meta, "modified")
-
-        # Update object types that have a "history_date" field giving last modified time:
-        if self._hints[obj_type_uri.uri].update_strategy == "H" and now - meta.updated > timedelta(hours=1):
-            self._cache_update_timed(obj_type_uri, now, meta, "history_date")
-
-        # Update object types that have a "completed_on" field giving last modified time:
-        if self._hints[obj_type_uri.uri].update_strategy == "C" and now - meta.updated > timedelta(hours=1):
-            self._cache_update_timed(obj_type_uri, now, meta, "completed_on")
-
-        # Update object types that have a "updated" field giving last modified time:
-        if self._hints[obj_type_uri.uri].update_strategy == "U" and now - meta.updated > timedelta(hours=24):
-            # FIXME: This should be as simple as saying:
-            #   self._cache_update_timed(obj_type_uri, now, meta, "updated")
-            # but the only objects with "updated" as /api/v1/meeting/meeting/ and the datatracker doesn't
-            # allow filtering on the updated tag for meetings. As a work around, delete and refetch the
-            # cache.
-            self.log.warning(f"_cache_update: {obj_type_uri} can't update - will drop and refetch")
-            self._cache_delete(obj_type_uri)
-            self._cache_create(obj_type_uri)
-            meta = self._cache_load_metadata(obj_type_uri) # Reload metadata since cache entry recreated
-
-        # Warn if there are object types we don't know how to update
-        if self._hints[obj_type_uri.uri].update_strategy == "-":
-            self.log.warning(f"_cache_update: {obj_type_uri} - don't know how to update cache")
-
-        # Is the cache metadata consistent?
-        cached_size = self.db[_db_collection(obj_type_uri)].count_documents({})
-        if not meta.partial and meta.total_count != cached_size:
-            self.log.info(F"cache inconsistent {str(obj_type_uri)}: have {cached_size} objects, expected {meta.total_count}")
-
-        # Record that the cache was updated
-        self.cache_update[obj_type_uri.uri] = now
-
-
-    def _cache_delete(self, obj_type_uri: URI) -> None:
-        assert self.db is not None
-        collection = _db_collection(obj_type_uri)
-        self.log.info(f"_cache_delete: {collection}")
-        self.db.cache_info.delete_one({"collection": collection})
-        self.db[collection].drop()
-        self.db_calls += 1
-
-
-    def _cache_load_metadata(self, obj_type_uri: URI) -> CacheMetadata:
-        assert self.db is not None
-        collection  = _db_collection(obj_type_uri)
-        meta_json = self.db.cache_info.find_one({"collection" : collection})
-        self.db_calls += 1
-        assert isinstance(meta_json, dict)
-        return self.pavlova.from_mapping(meta_json, CacheMetadata)
-
-
-    def _cache_save_metadata(self, obj_type_uri: URI, meta: CacheMetadata) -> None:
-        assert self.db is not None
-        meta_dict : Dict[str, Any] = {}
-        meta_dict["collection"]  = _db_collection(obj_type_uri)
-        meta_dict["created"]     = meta.created.isoformat()
-        meta_dict["updated"]     = meta.updated.isoformat()
-        meta_dict["partial"]     = meta.partial
-        meta_dict["queries"]     = meta.queries
-        meta_dict["total_count"] = meta.total_count
-        self.db.cache_info.replace_one({"collection" : meta_dict["collection"]}, meta_dict, upsert=True)
-        self.db.cache_info.create_index([('collection', ASCENDING)], unique=True)
-        self.db_calls += 1
-
-
-    def _cache_create(self, obj_type_uri: URI) -> None:
-        assert self.db is not None
-        collection  = _db_collection(obj_type_uri)
-        self.db_calls += 1
-        if self.db.cache_info.find_one({"collection": collection}):
-            self.log.debug(F"_cache_create: {collection} already exists")
-        else:
-            self.log.info(F"_cache_create: {collection}")
-            created     = datetime.now(tz = dateutil.tz.gettz("America/Los_Angeles"))
-            updated     = created
-            total_count = self._datatracker_get_multi_count(obj_type_uri)
-            self._cache_save_metadata(obj_type_uri, CacheMetadata(created, updated, True, total_count, []))
-            # # create indexes
-            # try:
-            #     for field in self._hints[type(obj_type_uri)].fields:
-            #         self.db[_db_collection(obj_type_uri)].create_index([(field, ASCENDING)], background=True)
-            #     for unique_field in self._hints[type(obj_type_uri)].unique_fields:
-            #         self.db[_db_collection(obj_type_uri)].create_index([(unique_field, ASCENDING)], unique=True, background=True)
-            # except:
-            #     pass
-
-
-    def _cache_record_query(self, obj_uri: URI, obj_type_uri: URI) -> None:
-        if self.db is None:
-            return
-        assert obj_uri.uri is not None and "?" not in obj_uri.uri
-        meta  = self._cache_load_metadata(obj_type_uri)
-        if meta.partial:
-            cache_uri = URI(obj_uri.uri)
-            for n, v in obj_uri.params.items():
-                assert n is not None
-                assert v is not None
-                if n != "time__gte" and n != "time__lt":
-                    cache_uri.params[n] = v
-            if str(cache_uri) not in meta.queries:
-                self.log.debug(f"_cache_record_query: {str(cache_uri)}")
-                meta.queries.append(str(cache_uri))
-                self._cache_save_metadata(obj_type_uri, meta)
-        else:
-            # Queries are not recorded if we have a complete cache for this object type
-            pass
-
-
-    def _cache_has_object(self, obj_uri: URI) -> bool:
-        if self.db is None:
-            return False
-        self._cache_update(_parent_uri(obj_uri), False)
-        self.cache_req += 1
-        self.db_calls  += 1
-        if self.db[_db_collection(_parent_uri(obj_uri))].find_one({"resource_uri": obj_uri.uri}):
-            self.cache_hit += 1
-            return True       # Object is in the local cache
-        else:
-            if self._cache_has_all_objects(_parent_uri(obj_uri)):
-                self.cache_hit += 1
-                return True   # Object is known not to exist
-            else:
-                return False  # Object is not in the cache
-
-
-    def _cache_get_object(self, obj_uri: URI) -> Optional[Dict[str, Any]]:
-        assert self.db is not None
-        self.db_calls += 1
-        self.log.debug(F"_cache_get_object: {obj_uri}")
-        return self.db[_db_collection(_parent_uri(obj_uri))].find_one({"resource_uri": obj_uri.uri})
-
-
-    def _cache_put_object(self, obj_json: Dict[str, Any]) -> None:
-        if self.db is None:
-            return
-        obj_uri      = URI(obj_json['resource_uri'])
-        obj_type_uri = _parent_uri(obj_uri)
-        self.log.debug(F"_cache_put_object: {obj_uri}")
-        self._cache_create(obj_type_uri)
-        self.db[_db_collection(obj_type_uri)].replace_one({"resource_uri" : obj_uri.uri}, obj_json, upsert=True)
-        self.db_calls += 1
-
-
-    def _cache_has_all_objects(self, obj_type_uri: URI):
-        if self.db is None:
-            return False
-        meta = self._cache_load_metadata(obj_type_uri)
-        return not meta.partial
-
-
-    def _cache_has_objects(self, obj_uri: URI, obj_type_uri: URI) -> bool:
-        if self.db is None:
-            return False
-        meta = self._cache_load_metadata(obj_type_uri)
-        return str(obj_uri) in meta.queries
-
-
-    def _cache_get_objects(self, obj_uri: URI, obj_type_uri: URI, obj_type: Type[T]) -> Iterator[Dict[Any, Any]]:
-        assert self.db          is not None
-        assert obj_uri.uri      is not None
-        assert obj_type_uri.uri is not None
-        self.log.debug(F"_cache_get_objects: obj_uri={obj_uri}")
-        #if len(obj_uri.params) > 1:
-        #    for field in _translate_query(obj_uri, param_objs, obj_type).keys():
-        #        self.log.debug(F"_cache_get_objects: create index '{field}'")
-        #        self.db[_db_collection(obj_type_uri)].create_index([(field, ASCENDING)])
-        deref = self._hints[obj_type_uri.uri].deref
-        for s, d in deref.items():
-            if s in obj_uri.params:
-                deref_uri = obj_type.__dict__["__dataclass_fields__"][s].type.root
-                deref_key = _db_collection(URI(deref_uri))
-                self.log.debug(F"_cache_get_objects: deref {deref_uri}")
-                self.db_calls += 1
-                deref_json = self.db[deref_key].find_one({d: obj_uri.params[s]})
-                assert deref_json is not None
-                obj_uri.params[s] = deref_json["resource_uri"]
-        query = _translate_query(obj_uri, obj_type)
-        dbkey = _db_collection(obj_type_uri)
-        self.log.debug(F"_cache_get_objects: query {query}")
-        self.log.debug(F"_cache_get_objects: dbkey {dbkey}")
-        self.db_calls += 1
-        for obj_json in self.db[dbkey].find(query):
-            self.log.debug(F"_cache_get_objects: get {obj_json['resource_uri']}")
-            yield obj_json
-
-
-    def _cache_check_versions(self) -> None:
-        if self.db is None:
-            return
-
-        # Check for and upgrade v0.1.0 cache format to v1 cache format:
-        cache_version_metadata = self.db.cache_info.find_one({"meta_key": "_cache_versions"})
-        if cache_version_metadata is not None:
-            self.log.info("_cache_check_versions: old cache detected")
-            if cache_version_metadata["cache_version"] == "0.1.0":
-                # This is an instance of the original MongoDB cache. The cached data is useful,
-                # but the format of the indexes and cache_info collections has changed. Remove
-                # the old indexes, and update the cache_info collection to match the new format:
-                self.log.info(f"_cache_check_versions: cache version changed 0.1.0 -> {self.cache_ver}")
-                self.log.info(f"_cache_check_versions: drop index on cache_info")
-                self.db.cache_info.drop_indexes()
-                new_items : List[Dict[str, Any]] = []
-                for item in self.db.cache_info.find():
-                    collection = item["meta_key"]
-                    if collection == "_cache_versions":
-                        new_item = {
-                            "collection"    : item["meta_key"],
-                            "dt_version"    : item["dt_version"],
-                            "cache_version" : self.cache_ver
-                        }
-                    else:
-                        self.log.info(f"_cache_check_versions: drop index on {collection}")
-                        self.db[collection].drop_indexes()
-                        new_item = {
-                            "collection"  : item["meta_key"],
-                            "created"     : item["created"],
-                            "updated"     : item["updated"],
-                            "partial"     : item["partial"],
-                            "queries"     : item["queries"],
-                            "total_count" : item["total_count"]
-                        }
-                    new_items.append(new_item)
-                for item in new_items:
-                    self.log.info(f"_cache_check_versions: remove old cache_info {item['collection']}")
-                    self.db.cache_info.delete_one({"meta_key": item['collection']})
-                    self.log.info(f"_cache_check_versions: insert new cache_info {item['collection']}")
-                    self.db.cache_info.insert_one(item)
-
-        # Find cache and datatracker versions:
-        cache_version_metadata = self.db.cache_info.find_one({"collection": "_cache_versions"})
-        if cache_version_metadata is None:
-            dt_version    = None
-            cache_version = self.cache_ver
-        else:
-            dt_version    = cache_version_metadata["dt_version"]
-            cache_version = cache_version_metadata["cache_version"]
-
-        # Check cache version
-        if cache_version == '1' and self.cache_ver == '2':
-            # Datatracker v7.40.0 added a "on_agenda" field to Session, invalidating cached Sessions.
-            # Drop all session objects from the cache, so they're re-fetched.
-            self.log.info(f"_cache_check_versions: cache version changed {cache_version} -> {self.cache_ver}")
-            self._cache_delete(URI("/api/v1/meeting/session"))
-        elif cache_version == '2' and self.cache_ver == '3':
-            # Datatracker v7.45.0 added a "purpose" field to Session, invalidating cached Sessions.
-            # Drop all session objects from the cache, so they're re-fetched.
-            self.log.info(f"_cache_check_versions: cache version changed {cache_version} -> {self.cache_ver}")
-            self._cache_delete(URI("/api/v1/meeting/session"))
-        elif cache_version != self.cache_ver:
-            # Exit if the cache version doesn't match that we're expecting. Need to add code above
-            # to update the cache if the format changes, as was done with the v0.1.1 to v1 change.
-            self.log.error(f"_cache_check_versions: cache version changed {cache_version} -> {self.cache_ver}")
-            sys.exit()
-        else:
-            self.log.info(f"_cache_check_versions: cache version {self.cache_ver}")
-
-        # check Datatracker version
-        version_info = self._datatracker_get_single(URI("/api/version/"))
-        if version_info is not None:
-            if dt_version != version_info["version"]:
-                self.log.info(f"_cache_check_versions: datatracker version updated {dt_version} -> {version_info['version']}")
-                for cache_uri in self._hints:
-                    self.log.info(f"_cache_check_versions: update cache {cache_uri}")
-                    self._cache_update(URI(cache_uri), True)
-                dt_version = version_info["version"]
-            else:
-                self.log.info(f"_cache_check_versions: datatracker version {dt_version}")
-        else:
-            self.log.warning("_cache_check_versions: could not check datatracker version")
-
-        self.db.cache_info.replace_one(
-                {"collection": "_cache_versions"},
-                {"collection": "_cache_versions", "dt_version": dt_version, "cache_version": self.cache_ver},
-                upsert=True)
-
-    # ----------------------------------------------------------------------------------------------------------------------------
     # Private methods to retrieve objects from the datatracker:
 
     def _rate_limit(self) -> None:
@@ -2445,60 +1986,21 @@ class DataTracker:
 
     def _retrieve(self, obj_uri: URI, obj_type: Type[T]) -> Optional[T]:
         self.log.debug(F"_retrieve {obj_uri}")
-        self._cache_update(_parent_uri(obj_uri), False)
-        if self._cache_has_object(obj_uri):
-            self.log.debug(F"_retrieve {obj_uri} cache hit")
-            obj_json = self._cache_get_object(obj_uri)
-            if obj_json is not None:
-                return self.pavlova.from_mapping(obj_json, obj_type)
-            else:
-                return None
+        obj_json = self._datatracker_get_single(obj_uri)
+        if obj_json is not None:
+            return self.pavlova.from_mapping(obj_json, obj_type)
         else:
-            self.log.debug(F"_retrieve {obj_uri} cache miss")
-            obj_json = self._datatracker_get_single(obj_uri)
-            if obj_json is not None:
-                self._cache_put_object(obj_json)
-                self._cache_record_query(obj_uri, _parent_uri(obj_uri))
-                return self.pavlova.from_mapping(obj_json, obj_type)
-            else:
-                return None
+            return None
 
 
     def _retrieve_multi(self, obj_uri: URI, obj_type: Type[T]) -> Iterator[T]:
         self.log.debug(F"_retrieve_multi: obj_uri {obj_uri}")
         obj_type_uri = type(obj_uri)(obj_uri.uri)
-        cache_uri = type(obj_uri)(obj_uri.uri)
         assert obj_uri.uri      is not None
         assert obj_type_uri.uri is not None
-        assert cache_uri.uri    is not None
-        for n, v in obj_uri.params.items():
-            assert n is not None
-            assert v is not None
-            if n != "time__gte" and n != "time__lt":
-                cache_uri.params[n] = v
-        self._cache_update(obj_type_uri, False)
         obj_jsons = [] # type: List[Dict[str, Any]]
-        if self._cache_has_objects(cache_uri, obj_type_uri) or self._cache_has_all_objects(obj_uri):
-            self.log.debug(F"_retrieve_multi: cache hit {cache_uri} {obj_uri}")
-            for obj_json in self._cache_get_objects(obj_uri, obj_type_uri, obj_type):
-                obj_jsons.append(obj_json)
-        else:
-            self.log.debug(F"_retrieve_multi: cache miss {cache_uri} {obj_uri}")
-            for obj_json in self._datatracker_get_multi(obj_uri):
-                obj_jsons.append(obj_json)
-                self._cache_put_object(obj_json)
-                # If this object has a deref field, we need to fetch and cache the referenced object too
-                if self.db is not None:
-                    for s, d in self._hints[obj_type_uri.uri].deref.items():
-                        deref_uri  = URI(obj_json[s])
-                        if self._cache_has_object(deref_uri):
-                            self.log.info(F"_retrieve_multri deref {deref_uri} already cached")
-                        else:
-                            deref_json = self._datatracker_get_single(deref_uri)
-                            if deref_json is not None:
-                                self.log.info(F"_retrieve_multri deref {deref_uri}")
-                                self._cache_put_object(deref_json)
-        self._cache_record_query(cache_uri, obj_type_uri)
+        for obj_json in self._datatracker_get_multi(obj_uri):
+            obj_jsons.append(obj_json)
         sort_by = self._hints[obj_type_uri.uri].sort_by
         for obj_json in sorted(obj_jsons, key=lambda k: k[sort_by]):  # type: ignore
             fetch_obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
@@ -2880,21 +2382,13 @@ class DataTracker:
     def documents_authored_by_person(self, person : Person) -> Iterator[DocumentAuthor]:
         url = DocumentAuthorURI("/api/v1/doc/documentauthor/")
         url.params["person"] = person.id
-        for author in self._retrieve_multi(url, DocumentAuthor):
-            # When fetching DocumentAuthor records, retrieve the corresponding Document so the cache updates correctly
-            if self.db is not None:
-                self.document(author.document)
-            yield author
+        return self._retrieve_multi(url, DocumentAuthor)
 
 
     def documents_authored_by_email(self, email : Email) -> Iterator[DocumentAuthor]:
         url = DocumentAuthorURI("/api/v1/doc/documentauthor/")
         url.params["email"] = email.address
-        for author in self._retrieve_multi(url, DocumentAuthor):
-            # When fetching DocumentAuthor records, retrieve the corresponding Document so the cache updates correctly
-            if self.db is not None:
-                self.document(author.document)
-            yield author
+        return self._retrieve_multi(url, DocumentAuthor)
 
 
     # Datatracker API endpoints returning information about related documents:
