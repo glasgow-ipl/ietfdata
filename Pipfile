@@ -26,6 +26,7 @@ pavlova = "*"
 python-dateutil = "*"
 pymongo = "*"
 requests = "*"
+requests-cache = "*"
 
 [requires]
 python_version = "3.8"
