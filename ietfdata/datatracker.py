@@ -1741,7 +1741,7 @@ class DataTracker:
         else:
             self.session = CachedSession(expire_after=0)
 
-        self.ua        = "glasgow-ietfdata/0.5.7"          # Update when making a new relaase
+        self.ua        = "glasgow-ietfdata/0.6.0"          # Update when making a new relaase
         self.base_url  = "https://datatracker.ietf.org"
         self.http_req  = 0
         self.get_count = 0
