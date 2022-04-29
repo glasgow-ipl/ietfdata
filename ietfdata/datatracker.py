@@ -1716,7 +1716,7 @@ class DataTracker:
             if cache_port is not None:
                 mongodb_port = int(cache_port)
             if cache_user is not None:
-                mongodb_user = cache_username
+                mongodb_user = cache_user
             if cache_pass is not None:
                 mongodb_pass = cache_pass
 
