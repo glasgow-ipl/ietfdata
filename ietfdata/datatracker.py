@@ -1104,7 +1104,7 @@ class IPRDisclosureBaseURI(URI):
 class IPRDisclosureBase(Resource):
     by                 : PersonURI
     compliant          : bool
-    docs               : List[DocumentURI]
+    docs               : List[DocumentAliasURI]
     holder_legal_name  : str
     id                 : int
     notes              : str
