@@ -2037,19 +2037,19 @@ class DataTracker:
             url.params["name"] = name
         if name_contains is not None:
             url.params["name__contains"] = name_contains
-        return self._retrieve_multi(url, PersonAlias)
+        yield from self._retrieve_multi(url, PersonAlias)
 
 
     def person_history(self, person: Person) -> Iterator[HistoricalPerson]:
         url = HistoricalPersonURI("/api/v1/person/historicalperson/")
         url.params["id"] = person.id
-        return self._retrieve_multi(url, HistoricalPerson)
+        yield from self._retrieve_multi(url, HistoricalPerson)
 
 
     def person_events(self, person: Person) -> Iterator[PersonEvent]:
         url = PersonEventURI("/api/v1/person/personevent/")
         url.params["person"] = person.id
-        return self._retrieve_multi(url, PersonEvent)
+        yield from self._retrieve_multi(url, PersonEvent)
 
 
     def people(self,
@@ -2088,7 +2088,7 @@ class DataTracker:
             url.params["plain"] = name_plain
         if name_plain_contains is not None:
             url.params["plain__contains"] = name_plain_contains
-        return self._retrieve_multi(url, Person)
+        yield from self._retrieve_multi(url, Person)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -2108,19 +2108,19 @@ class DataTracker:
     def email_for_person(self, person: Person) -> Iterator[Email]:
         uri = EmailURI("/api/v1/person/email/")
         uri.params["person"] = person.id
-        return self._retrieve_multi(uri, Email)
+        yield from self._retrieve_multi(uri, Email)
 
 
     def email_history_for_address(self, email_addr: str) -> Iterator[HistoricalEmail]:
         uri = HistoricalEmailURI("/api/v1/person/historicalemail/")
         uri.params["address"] = email_addr
-        return self._retrieve_multi(uri, HistoricalEmail)
+        yield from self._retrieve_multi(uri, HistoricalEmail)
 
 
     def email_history_for_person(self, person: Person) -> Iterator[HistoricalEmail]:
         uri = HistoricalEmailURI("/api/v1/person/historicalemail/")
         uri.params["person"] = person.id
-        return self._retrieve_multi(uri, HistoricalEmail)
+        yield from self._retrieve_multi(uri, HistoricalEmail)
 
 
     def emails(self,
@@ -2143,7 +2143,7 @@ class DataTracker:
         url.params["time__lt"]   = until
         if addr_contains is not None:
             url.params["address__contains"] = addr_contains
-        return self._retrieve_multi(url, Email)
+        yield from self._retrieve_multi(url, Email)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -2173,7 +2173,7 @@ class DataTracker:
             url.params["stream"] = stream.slug
         if group is not None:
             url.params["group"] = group.id
-        return self._retrieve_multi(url, Document)
+        yield from self._retrieve_multi(url, Document)
 
 
     # Datatracker API endpoints returning information about document aliases:
@@ -2196,7 +2196,7 @@ class DataTracker:
         url = DocumentAliasURI("/api/v1/doc/docalias/")
         if name is not None:
             url.params["name"] = name
-        return self._retrieve_multi(url, DocumentAlias)
+        yield from self._retrieve_multi(url, DocumentAlias)
 
 
     def document_from_draft(self, draft: str) -> Optional[Document]:
@@ -2278,7 +2278,7 @@ class DataTracker:
 
 
     def document_types(self) -> Iterator[DocumentType]:
-        return self._retrieve_multi(DocumentTypeURI("/api/v1/name/doctypename/"), DocumentType)
+        yield from self._retrieve_multi(DocumentTypeURI("/api/v1/name/doctypename/"), DocumentType)
 
 
     # Datatracker API endpoints returning information about document states:
@@ -2301,7 +2301,7 @@ class DataTracker:
             url.params["type"] = state_type.slug
         if slug is not None:
             url.params["slug"] = slug
-        return self._retrieve_multi(url, DocumentState)
+        yield from self._retrieve_multi(url, DocumentState)
 
 
     def document_state_type(self, state_type_uri : DocumentStateTypeURI) -> Optional[DocumentStateType]:
@@ -2314,7 +2314,7 @@ class DataTracker:
 
     def document_state_types(self) -> Iterator[DocumentStateType]:
         url = DocumentStateTypeURI("/api/v1/doc/statetype/")
-        return self._retrieve_multi(url, DocumentStateType)
+        yield from self._retrieve_multi(url, DocumentStateType)
 
 
     # Datatracker API endpoints returning information about document events:
@@ -2365,7 +2365,7 @@ class DataTracker:
             url.params["by"]   = by.id
         if event_type is not None:
             url.params["type"] = event_type
-        return self._retrieve_multi(url, DocumentEvent)
+        yield from self._retrieve_multi(url, DocumentEvent)
 
 
     # Datatracker API endpoints returning information about document authorship:
@@ -2376,19 +2376,19 @@ class DataTracker:
     def document_authors(self, document : Document) -> Iterator[DocumentAuthor]:
         url = DocumentAuthorURI("/api/v1/doc/documentauthor/")
         url.params["document"] = document.id
-        return self._retrieve_multi(url, DocumentAuthor)
+        yield from self._retrieve_multi(url, DocumentAuthor)
 
 
     def documents_authored_by_person(self, person : Person) -> Iterator[DocumentAuthor]:
         url = DocumentAuthorURI("/api/v1/doc/documentauthor/")
         url.params["person"] = person.id
-        return self._retrieve_multi(url, DocumentAuthor)
+        yield from self._retrieve_multi(url, DocumentAuthor)
 
 
     def documents_authored_by_email(self, email : Email) -> Iterator[DocumentAuthor]:
         url = DocumentAuthorURI("/api/v1/doc/documentauthor/")
         url.params["email"] = email.address
-        return self._retrieve_multi(url, DocumentAuthor)
+        yield from self._retrieve_multi(url, DocumentAuthor)
 
 
     # Datatracker API endpoints returning information about related documents:
@@ -2408,7 +2408,7 @@ class DataTracker:
             url.params["target"] = target.id
         if relationship_type is not None:
             url.params["relationship"] = relationship_type.slug
-        return self._retrieve_multi(url, RelatedDocument)
+        yield from self._retrieve_multi(url, RelatedDocument)
 
 
     def relationship_type(self, relationship_type_uri: RelationshipTypeURI) -> Optional[RelationshipType]:
@@ -2440,7 +2440,7 @@ class DataTracker:
             An iterator of RelationshipType objects
         """
         url = RelationshipTypeURI("/api/v1/name/docrelationshipname/")
-        return self._retrieve_multi(url, RelationshipType)
+        yield from self._retrieve_multi(url, RelationshipType)
 
 
     # Datatracker API endpoints returning information about document history:
@@ -2475,7 +2475,7 @@ class DataTracker:
            A sequence of BallotPositionName objects
         """
         url = BallotPositionNameURI("/api/v1/name/ballotpositionname/")
-        return self._retrieve_multi(url, BallotPositionName)
+        yield from self._retrieve_multi(url, BallotPositionName)
 
 
     def ballot_type(self, ballot_type_uri : BallotTypeURI) -> Optional[BallotType]:
@@ -2495,7 +2495,7 @@ class DataTracker:
         url = BallotTypeURI("/api/v1/doc/ballottype/")
         if doc_type is not None:
             url.params["doc_type"] = doc_type.slug
-        return self._retrieve_multi(url, BallotType)
+        yield from self._retrieve_multi(url, BallotType)
 
 
 
@@ -2535,7 +2535,7 @@ class DataTracker:
             url.params["doc"] = doc.id
         if event_type is not None:
             url.params["type"] = event_type
-        return self._retrieve_multi(url, BallotDocumentEvent)
+        yield from self._retrieve_multi(url, BallotDocumentEvent)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -2555,7 +2555,7 @@ class DataTracker:
         url = SubmissionURI("/api/v1/submit/submission/")
         url.params["submission_date__gte"] = date_since
         url.params["submission_date__lt"] = date_until
-        return self._retrieve_multi(url, Submission)
+        yield from self._retrieve_multi(url, Submission)
 
 
     def submission_event(self, event_uri: SubmissionEventURI) -> Optional[SubmissionEvent]:
@@ -2586,7 +2586,7 @@ class DataTracker:
             url.params["by"] = by.id
         if submission is not None:
             url.params["submission"] = submission.id
-        return self._retrieve_multi(url, SubmissionEvent)
+        yield from self._retrieve_multi(url, SubmissionEvent)
 
     # ----------------------------------------------------------------------------------------------------------------------------
     # Datatracker API endpoints returning miscellaneous information about documents:
@@ -2614,7 +2614,7 @@ class DataTracker:
 
 
     def streams(self) -> Iterator[Stream]:
-        return self._retrieve_multi(StreamURI("/api/v1/name/streamname/"), Stream)
+        yield from self._retrieve_multi(StreamURI("/api/v1/name/streamname/"), Stream)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -2669,7 +2669,7 @@ class DataTracker:
             url.params["state"] = state.slug
         if parent is not None:
             url.params["parent"] = parent.id
-        return self._retrieve_multi(url, Group)
+        yield from self._retrieve_multi(url, Group)
 
 
     def group_history(self, group_history_uri: GroupHistoryURI) -> Optional[GroupHistory]:
@@ -2679,7 +2679,7 @@ class DataTracker:
     def group_histories_from_acronym(self, acronym: str) -> Iterator[GroupHistory]:
         url = GroupHistoryURI("/api/v1/group/grouphistory/")
         url.params["acronym"] = acronym
-        return self._retrieve_multi(url, GroupHistory)
+        yield from self._retrieve_multi(url, GroupHistory)
 
 
     def group_histories(self,
@@ -2697,7 +2697,7 @@ class DataTracker:
             url.params["state"] = state.slug
         if parent is not None:
             url.params["parent"] = parent.id
-        return self._retrieve_multi(url, GroupHistory)
+        yield from self._retrieve_multi(url, GroupHistory)
 
 
     def group_event(self, group_event_uri : GroupEventURI) -> Optional[GroupEvent]:
@@ -2719,7 +2719,7 @@ class DataTracker:
             url.params["group"] = group.id
         if type is not None:
             url.params["type"]  = type
-        return self._retrieve_multi(url, GroupEvent)
+        yield from self._retrieve_multi(url, GroupEvent)
 
     def group_url(self, group_url_uri: GroupUrlURI) -> Optional[GroupUrl]:
         return self._retrieve(group_url_uri, GroupUrl)
@@ -2729,7 +2729,7 @@ class DataTracker:
         url = GroupUrlURI("/api/v1/group/groupurl/")
         if group is not None:
             url.params["group"] = group.id
-        return self._retrieve_multi(url, GroupUrl)
+        yield from self._retrieve_multi(url, GroupUrl)
 
 
     def group_milestone_statename(self, group_milestone_statename_uri: GroupMilestoneStateNameURI) -> Optional[GroupMilestoneStateName]:
@@ -2737,7 +2737,7 @@ class DataTracker:
 
 
     def group_milestone_statenames(self) -> Iterator[GroupMilestoneStateName]:
-        return self._retrieve_multi(GroupMilestoneStateNameURI("/api/v1/name/groupmilestonestatename/"), GroupMilestoneStateName)
+        yield from self._retrieve_multi(GroupMilestoneStateNameURI("/api/v1/name/groupmilestonestatename/"), GroupMilestoneStateName)
 
 
     def group_milestone(self, group_milestone_uri : GroupMilestoneURI) -> Optional[GroupMilestone]:
@@ -2756,7 +2756,7 @@ class DataTracker:
             url.params["group"] = group.id
         if state is not None:
             url.params["state"] = state.slug
-        return self._retrieve_multi(url, GroupMilestone)
+        yield from self._retrieve_multi(url, GroupMilestone)
 
 
     def role_name(self, role_name_uri: RoleNameURI) -> Optional[RoleName]:
@@ -2768,7 +2768,7 @@ class DataTracker:
 
 
     def role_names(self) -> Iterator[RoleName]:
-        return self._retrieve_multi(RoleNameURI("/api/v1/name/rolename/"), RoleName)
+        yield from self._retrieve_multi(RoleNameURI("/api/v1/name/rolename/"), RoleName)
 
 
     def group_role(self, group_role_uri : GroupRoleURI) -> Optional[GroupRole]:
@@ -2789,7 +2789,7 @@ class DataTracker:
             url.params["name"] = name.slug
         if person is not None:
             url.params["person"] = person.id
-        return self._retrieve_multi(url, GroupRole)
+        yield from self._retrieve_multi(url, GroupRole)
 
 
     def group_role_history(self, group_role_history_uri : GroupRoleHistoryURI) -> Optional[GroupRoleHistory]:
@@ -2810,7 +2810,7 @@ class DataTracker:
             url.params["name"] = name.slug
         if person is not None:
             url.params["person"] = person.id
-        return self._retrieve_multi(url, GroupRoleHistory)
+        yield from self._retrieve_multi(url, GroupRoleHistory)
 
 
     def group_milestone_history(self, group_milestone_history_uri : GroupMilestoneHistoryURI) -> Optional[GroupMilestoneHistory]:
@@ -2832,7 +2832,7 @@ class DataTracker:
             url.params["milestone"] = milestone.id
         if state is not None:
             url.params["state"] = state.slug
-        return self._retrieve_multi(url, GroupMilestoneHistory)
+        yield from self._retrieve_multi(url, GroupMilestoneHistory)
 
 
     def group_milestone_event(self, group_milestone_event_uri : GroupMilestoneEventURI) -> Optional[GroupMilestoneEvent]:
@@ -2857,7 +2857,7 @@ class DataTracker:
             url.params["milestone"] = milestone.id
         if type is not None:
             url.params["type"] = type
-        return self._retrieve_multi(url, GroupMilestoneEvent)
+        yield from self._retrieve_multi(url, GroupMilestoneEvent)
 
 
     def group_state_change_event(self, group_state_change_event_uri : GroupStateChangeEventURI) -> Optional[GroupStateChangeEvent]:
@@ -2879,7 +2879,7 @@ class DataTracker:
             url.params["group"] = group.id
         if state is not None:
             url.params["state"] = state.slug
-        return self._retrieve_multi(url, GroupStateChangeEvent)
+        yield from self._retrieve_multi(url, GroupStateChangeEvent)
 
 
     def group_state(self, group_state_uri : GroupStateURI) -> Optional[GroupState]:
@@ -2892,7 +2892,7 @@ class DataTracker:
 
     def group_states(self) -> Iterator[GroupState]:
         url = GroupStateURI("/api/v1/name/groupstatename/")
-        return self._retrieve_multi(url, GroupState)
+        yield from self._retrieve_multi(url, GroupState)
 
 
     def group_type_name(self, group_type_name_uri : GroupTypeNameURI) -> Optional[GroupTypeName]:
@@ -2904,7 +2904,7 @@ class DataTracker:
 
 
     def group_type_names(self) -> Iterator[GroupTypeName]:
-        return self._retrieve_multi(GroupTypeNameURI("/api/v1/name/grouptypename/"), GroupTypeName)
+        yield from self._retrieve_multi(GroupTypeNameURI("/api/v1/name/grouptypename/"), GroupTypeName)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -2943,7 +2943,7 @@ class DataTracker:
         """
         url = SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/")
         url.params["schedule"] = schedule.id
-        return self._retrieve_multi(url, SessionAssignment)
+        yield from self._retrieve_multi(url, SessionAssignment)
 
 
     def meeting_session_status(self, session: Session) -> SessionStatusName:
@@ -2962,7 +2962,7 @@ class DataTracker:
 
 
     def meeting_session_status_names(self) -> Iterator[SessionStatusName]:
-        return self._retrieve_multi(SessionStatusNameURI("/api/v1/name/sessionstatusname/"), SessionStatusName)
+        yield from self._retrieve_multi(SessionStatusNameURI("/api/v1/name/sessionstatusname/"), SessionStatusName)
 
 
     def meeting_session_purpose(self, purpose_uri: SessionPurposeURI) -> Optional[SessionPurpose]:
@@ -2970,7 +2970,7 @@ class DataTracker:
 
 
     def meeting_session_purposes(self) -> Iterator[SessionPurpose]:
-        return self._retrieve_multi(SessionPurposeURI("/api/v1/name/sessionpurposename/"), SessionPurpose)
+        yield from self._retrieve_multi(SessionPurposeURI("/api/v1/name/sessionpurposename/"), SessionPurpose)
 
 
     def meeting_session(self, session_uri : SessionURI) -> Optional[Session]:
@@ -2984,7 +2984,7 @@ class DataTracker:
         url.params["meeting"]  = meeting.id
         if group is not None:
             url.params["group"] = group.id
-        return self._retrieve_multi(url, Session)
+        yield from self._retrieve_multi(url, Session)
 
 
     def meeting_timeslot(self, timeslot_uri: TimeslotURI) -> Optional[Timeslot]:
@@ -3003,7 +3003,7 @@ class DataTracker:
             url.params["session"] = session.id
         if by is not None:
             url.params["by"] = by.id
-        return self._retrieve_multi(url, SchedulingEvent)
+        yield from self._retrieve_multi(url, SchedulingEvent)
 
 
     def meeting_schedule(self, schedule_uri : ScheduleURI) -> Optional[Schedule]:
@@ -3040,7 +3040,7 @@ class DataTracker:
         url.params["date__lte"] = end_date
         if meeting_type is not None:
             url.params["type"] = meeting_type.slug
-        return self._retrieve_multi(url, Meeting)
+        yield from self._retrieve_multi(url, Meeting)
 
 
 
@@ -3062,7 +3062,7 @@ class DataTracker:
         Returns:
             An iterator of MeetingType objects
         """
-        return self._retrieve_multi(MeetingTypeURI("/api/v1/name/meetingtypename/"), MeetingType)
+        yield from self._retrieve_multi(MeetingTypeURI("/api/v1/name/meetingtypename/"), MeetingType)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -3090,7 +3090,7 @@ class DataTracker:
 
 
     def ipr_disclosure_states(self) -> Iterator[IPRDisclosureState]:
-        return self._retrieve_multi(IPRDisclosureStateURI("/api/v1/name/iprdisclosurestatename/"), IPRDisclosureState)
+        yield from self._retrieve_multi(IPRDisclosureStateURI("/api/v1/name/iprdisclosurestatename/"), IPRDisclosureState)
 
 
     def ipr_disclosure_base(self, ipr_disclosure_base_uri: IPRDisclosureBaseURI) -> Optional[IPRDisclosureBase]:
@@ -3118,7 +3118,7 @@ class DataTracker:
             url.params["submitter_email"] = submitter_email
         if submitter_name is not None:
             url.params["submitter_name"] = submitter_name
-        return self._retrieve_multi(url, IPRDisclosureBase)
+        yield from self._retrieve_multi(url, IPRDisclosureBase)
 
 
     def generic_ipr_disclosure(self, generic_ipr_disclosure_uri: GenericIPRDisclosureURI) -> Optional[GenericIPRDisclosure]:
@@ -3149,7 +3149,7 @@ class DataTracker:
             url.params["submitter_email"] = submitter_email
         if submitter_name is not None:
             url.params["submitter_name"] = submitter_name
-        return self._retrieve_multi(url, GenericIPRDisclosure)
+        yield from self._retrieve_multi(url, GenericIPRDisclosure)
 
 
     def ipr_license_type(self, ipr_license_type_uri: IPRLicenseTypeURI) -> Optional[IPRLicenseType]:
@@ -3157,7 +3157,7 @@ class DataTracker:
 
 
     def ipr_license_types(self) -> Iterator[IPRLicenseType]:
-        return self._retrieve_multi(IPRLicenseTypeURI("/api/v1/name/iprlicensetypename/"), IPRLicenseType)
+        yield from self._retrieve_multi(IPRLicenseTypeURI("/api/v1/name/iprlicensetypename/"), IPRLicenseType)
 
 
     def holder_ipr_disclosure(self, holder_ipr_disclosure_uri: HolderIPRDisclosureURI) -> Optional[HolderIPRDisclosure]:
@@ -3197,7 +3197,7 @@ class DataTracker:
             url.params["submitter_email"] = submitter_email
         if submitter_name is not None:
             url.params["submitter_name"] = submitter_name
-        return self._retrieve_multi(url, HolderIPRDisclosure)
+        yield from self._retrieve_multi(url, HolderIPRDisclosure)
 
 
     def thirdparty_ipr_disclosure(self, thirdparty_ipr_disclosure_uri: ThirdPartyIPRDisclosureURI) -> Optional[ThirdPartyIPRDisclosure]:
@@ -3231,7 +3231,7 @@ class DataTracker:
             url.params["submitter_email"] = submitter_email
         if submitter_name is not None:
             url.params["submitter_name"] = submitter_name
-        return self._retrieve_multi(url, HolderIPRDisclosure)
+        yield from self._retrieve_multi(url, HolderIPRDisclosure)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -3281,7 +3281,7 @@ class DataTracker:
 
 
     def review_assignment_states(self) -> Iterator[ReviewAssignmentState]:
-        return self._retrieve_multi(ReviewAssignmentStateURI("/api/v1/name/reviewassignmentstatename/"), ReviewAssignmentState)
+        yield from self._retrieve_multi(ReviewAssignmentStateURI("/api/v1/name/reviewassignmentstatename/"), ReviewAssignmentState)
 
 
     def review_result_type(self, review_result_uri: ReviewResultTypeURI) -> Optional[ReviewResultType]:
@@ -3293,7 +3293,7 @@ class DataTracker:
 
 
     def review_result_types(self) -> Iterator[ReviewResultType]:
-        return self._retrieve_multi(ReviewResultTypeURI("/api/v1/name/reviewresultname/"), ReviewResultType)
+        yield from self._retrieve_multi(ReviewResultTypeURI("/api/v1/name/reviewresultname/"), ReviewResultType)
 
 
     def review_type(self, review_type_uri: ReviewTypeURI) -> Optional[ReviewType]:
@@ -3305,7 +3305,7 @@ class DataTracker:
 
 
     def review_types(self) -> Iterator[ReviewType]:
-        return self._retrieve_multi(ReviewTypeURI("/api/v1/name/reviewtypename/"), ReviewType)
+        yield from self._retrieve_multi(ReviewTypeURI("/api/v1/name/reviewtypename/"), ReviewType)
 
 
     def review_request_state(self, review_request_state_uri: ReviewRequestStateURI) -> Optional[ReviewRequestState]:
@@ -3317,7 +3317,7 @@ class DataTracker:
 
 
     def review_request_states(self) -> Iterator[ReviewRequestState]:
-        return self._retrieve_multi(ReviewRequestStateURI("/api/v1/name/reviewrequeststatename/"), ReviewRequestState)
+        yield from self._retrieve_multi(ReviewRequestStateURI("/api/v1/name/reviewrequeststatename/"), ReviewRequestState)
 
 
     def review_request(self, review_request_uri: ReviewRequestURI) -> Optional[ReviewRequest]:
@@ -3345,7 +3345,7 @@ class DataTracker:
             url.params["team"] = team.id
         if type is not None:
             url.params["type"] = type.slug
-        return self._retrieve_multi(url, ReviewRequest)
+        yield from self._retrieve_multi(url, ReviewRequest)
 
 
     def review_assignment(self, review_assignment_uri: ReviewAssignmentURI) -> Optional[ReviewAssignment]:
@@ -3374,7 +3374,7 @@ class DataTracker:
             url.params["reviewer"] = reviewer.address
         if state is not None:
             url.params["state"] = state.slug
-        return self._retrieve_multi(url, ReviewAssignment)
+        yield from self._retrieve_multi(url, ReviewAssignment)
 
 
     def review_wish(self, review_wish_uri: ReviewWishURI) -> Optional[ReviewWish]:
@@ -3396,7 +3396,7 @@ class DataTracker:
             url.params["person"] = person.id
         if team is not None:
             url.params["team"] = team.id
-        return self._retrieve_multi(url, ReviewWish)
+        yield from self._retrieve_multi(url, ReviewWish)
 
 
     def historical_unavailable_period(self, historical_unavailable_period_uri: HistoricalUnavailablePeriodURI) -> Optional[HistoricalUnavailablePeriod]:
@@ -3417,7 +3417,7 @@ class DataTracker:
             url.params["person"] = person.id
         if team is not None:
             url.params["team"] = team.id
-        return self._retrieve_multi(url, HistoricalUnavailablePeriod)
+        yield from self._retrieve_multi(url, HistoricalUnavailablePeriod)
 
 
     def historical_review_request(self, historical_review_request_uri: HistoricalReviewRequestURI) -> Optional[HistoricalReviewRequest]:
@@ -3451,7 +3451,7 @@ class DataTracker:
             url.params["team"] = team.id
         if type is not None:
             url.params["type"] = type.slug
-        return self._retrieve_multi(url, HistoricalReviewRequest)
+        yield from self._retrieve_multi(url, HistoricalReviewRequest)
 
 
     def next_reviewer_in_team(self, next_reviewer_in_team_uri: NextReviewerInTeamURI) -> Optional[NextReviewerInTeam]:
@@ -3463,7 +3463,7 @@ class DataTracker:
         url = NextReviewerInTeamURI("/api/v1/review/nextreviewerinteam/")
         if team is not None:
             url.params["team"] = team.id
-        return self._retrieve_multi(url, NextReviewerInTeam)
+        yield from self._retrieve_multi(url, NextReviewerInTeam)
 
 
     def review_team_settings(self, review_team_settings_uri: ReviewTeamSettingsURI) -> Optional[ReviewTeamSettings]:
@@ -3475,7 +3475,7 @@ class DataTracker:
         url = ReviewTeamSettingsURI("/api/v1/review/reviewteamsettings/")
         if group is not None:
             url.params["group"] = group.id
-        return self._retrieve_multi(url, ReviewTeamSettings)
+        yield from self._retrieve_multi(url, ReviewTeamSettings)
 
 
     def reviewer_settings(self, reviewer_settings_uri: ReviewerSettingsURI) -> Optional[ReviewerSettings]:
@@ -3490,7 +3490,7 @@ class DataTracker:
             url.params["person"] = person.id
         if team is not None:
             url.params["team"] = team.id
-        return self._retrieve_multi(url, ReviewerSettings)
+        yield from self._retrieve_multi(url, ReviewerSettings)
 
 
     def unavailable_period(self, unavailable_period_uri: UnavailablePeriodURI) -> Optional[UnavailablePeriod]:
@@ -3505,7 +3505,7 @@ class DataTracker:
             url.params["person"] = person.id
         if team is not None:
             url.params["team"] = team.id
-        return self._retrieve_multi(url, UnavailablePeriod)
+        yield from self._retrieve_multi(url, UnavailablePeriod)
 
 
     def historical_reviewer_settings(self, historical_reviewer_settings_uri: HistoricalReviewerSettingsURI) -> Optional[HistoricalReviewerSettings]:
@@ -3527,7 +3527,7 @@ class DataTracker:
             url.params["person"] = person.id
         if team is not None:
             url.params["team"] = team.id
-        return self._retrieve_multi(url, HistoricalReviewerSettings)
+        yield from self._retrieve_multi(url, HistoricalReviewerSettings)
 
 
     def historical_review_assignment(self, historical_review_assignment_uri: HistoricalReviewAssignmentURI) -> Optional[HistoricalReviewAssignment]:
@@ -3559,7 +3559,7 @@ class DataTracker:
             url.params["reviewer"] = reviewer.address
         if state is not None:
             url.params["state"] = state.slug
-        return self._retrieve_multi(url, HistoricalReviewAssignment)
+        yield from self._retrieve_multi(url, HistoricalReviewAssignment)
 
 
     def review_secretary_settings(self, review_secretary_settings_uri: ReviewSecretarySettingsURI) -> Optional[ReviewSecretarySettings]:
@@ -3574,7 +3574,7 @@ class DataTracker:
             url.params["person"] = person.id
         if team is not None:
             url.params["team"] = team.id
-        return self._retrieve_multi(url, ReviewSecretarySettings)
+        yield from self._retrieve_multi(url, ReviewSecretarySettings)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -3591,7 +3591,7 @@ class DataTracker:
         url = EmailListURI("/api/v1/mailinglists/list/")
         if name is not None:
             url.params["name"] = name
-        return self._retrieve_multi(url, EmailList)
+        yield from self._retrieve_multi(url, EmailList)
 
 
     def email_list_subscriptions(self,
@@ -3602,7 +3602,7 @@ class DataTracker:
             url.params["email"] = email_addr
         if email_list is not None:
             url.params["lists"] = email_list.id
-        return self._retrieve_multi(url, EmailListSubscriptions)
+        yield from self._retrieve_multi(url, EmailListSubscriptions)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -3641,7 +3641,7 @@ class DataTracker:
 
     def continents(self) -> Iterator[Continent]:
         url = ContinentURI("/api/v1/name/continentname/")
-        return self._retrieve_multi(url, Continent)
+        yield from self._retrieve_multi(url, Continent)
 
 
     def country(self, country_uri: CountryURI) -> Optional[Country]:
@@ -3666,7 +3666,7 @@ class DataTracker:
             url.params["slug"] = slug
         if name is not None:
             url.params["name"] = name
-        return self._retrieve_multi(url, Country)
+        yield from self._retrieve_multi(url, Country)
 
 
     def country_alias(self, country_alias_uri : CountryAliasURI) -> Optional[CountryAlias]:
@@ -3676,7 +3676,7 @@ class DataTracker:
     def country_aliases(self, alias : str) -> Iterator[CountryAlias]:
         url = CountryAliasURI("/api/v1/stats/countryalias/")
         url.params["alias"] = alias
-        return self._retrieve_multi(url, CountryAlias)
+        yield from self._retrieve_multi(url, CountryAlias)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -3722,7 +3722,7 @@ class DataTracker:
             url.params["reg_type"] = reg_type
         if ticket_type is not None:
             url.params["ticket_type"] = ticket_type
-        return self._retrieve_multi(url, MeetingRegistration)
+        yield from self._retrieve_multi(url, MeetingRegistration)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -3748,7 +3748,7 @@ class DataTracker:
             url.params["group"] = group.id
         if name is not None:
             url.params["name"] = name.slug
-        return self._retrieve_multi(url, AnnouncementFrom)
+        yield from self._retrieve_multi(url, AnnouncementFrom)
 
 
     #def message(self, message_uri: MessageURI) -> Optional[Message]:
@@ -3776,7 +3776,7 @@ class DataTracker:
     #        url.params["subject__contains"] = subject_contains
     #    if body_contains is not None:
     #        url.params["body__contains"] = body_contains
-    #    return self._retrieve_multi(url, Message)
+    #    yield from self._retrieve_multi(url, Message)
 
 
     def send_queue_entry(self, send_queue_uri: SendQueueURI) -> Optional[SendQueueEntry]:
@@ -3795,7 +3795,7 @@ class DataTracker:
             url.params["by"] = by.id
         if message is not None:
             url.params["message"] = message.id
-        return self._retrieve_multi(url, SendQueueEntry)
+        yield from self._retrieve_multi(url, SendQueueEntry)
 
 
 # =================================================================================================================================
