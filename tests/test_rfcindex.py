@@ -98,7 +98,7 @@ class TestRFCIndex(unittest.TestCase):
         # Some RFCs have <kw></kw> which is not useful. Check that we correctly strip this out.
         rfc = self.index.rfc("RFC2351")
         if rfc is not None:
-            self.assertEqual(rfc.keywords, ["internet", "protocol", "encapsulation", "transactional", "traffic", "messaging"])
+            self.assertEqual(rfc.keywords, ["IP", "internet protocol", "encapsulation", "transactional", "traffic", "messaging"])
         else:
             self.fail("Cannot find RFC")
 
