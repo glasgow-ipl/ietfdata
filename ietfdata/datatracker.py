@@ -1698,6 +1698,10 @@ class DataTracker:
     """
     A class for interacting with the IETF DataTracker.
     """
+    db_conn : Optional[MongoClient]
+    db      : Optional[Database]
+    backend : Optional[MongoCache]
+
     def __init__(self,
             use_cache: bool = False,
             mongodb_host: str = "localhost",
@@ -1725,26 +1729,33 @@ class DataTracker:
         logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
         self.log = logging.getLogger("ietfdata")
 
+        self.ua        = "glasgow-ietfdata/0.6.0"          # Update when making a new relaase
+        self.base_url  = "https://datatracker.ietf.org"
+        self.http_req  = 0
+        self.get_count = 0
+
         if use_cache:
             self.log.info(f"mongodb host = {mongodb_host}")
             self.log.info(f"mongodb port = {mongodb_port}")
             self.log.info(f"mongodb user = {mongodb_user}")
             self.log.info(f"mongodb pass = {mongodb_pass}")
-            database = MongoClient(host=mongodb_host, port=mongodb_port, username=mongodb_user, password=mongodb_pass)
-            backend  = MongoCache(db_name="ietfdata_requests", connection=database)
+            self.db_conn = MongoClient(host=mongodb_host, port=mongodb_port, username=mongodb_user, password=mongodb_pass)
+            self.db      = self.db_conn.ietfdata
+            self.backend = MongoCache(db_name="ietfdata_requests", connection=self.db_conn)
             if cache_timeout is not None:
                 self.log.info(f"Cache enabled; timeout = {cache_timeout}")
-                self.session = CachedSession(backend=backend, expire_after=cache_timeout)
+                self.session = CachedSession(backend=self.backend, expire_after=cache_timeout)
             else:
                 self.log.info(f"Cache enabled; timeout = (auto)")
-                self.session = CachedSession(backend=backend, cache_control=True)
+                self.session = CachedSession(backend=self.backend, cache_control=True)
+            # check Datatracker and cache versions
+            self.cache_ver = "4" # Increment when changing cache architecture
+            self._cache_check_versions()
         else:
+            self.db_conn = None
+            self.db      = None
+            self.backend = None
             self.session = CachedSession(expire_after=0)
-
-        self.ua        = "glasgow-ietfdata/0.6.0"          # Update when making a new relaase
-        self.base_url  = "https://datatracker.ietf.org"
-        self.http_req  = 0
-        self.get_count = 0
 
         self.pavlova = Pavlova()
         for uri_type in URI.__subclasses__():
@@ -1828,6 +1839,9 @@ class DataTracker:
         self._hints["/api/v1/submit/submission/"]                  = Hints(Submission,                  "id")
         self._hints["/api/v1/submit/submissionevent/"]             = Hints(SubmissionEvent,             "id")
 
+
+    def __del__(self):
+        self.session.close()
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -1971,6 +1985,70 @@ class DataTracker:
                 time.sleep(retry_time)
                 retry_time *= 2
 
+
+    # ----------------------------------------------------------------------------------------------------------------------------
+    # Private methods to control the cache:
+
+    def _cache_check_versions(self) -> None:
+        if self.db is None:
+            return
+
+        # Check for and remove obsolete v0.1.0 cache format:
+        cache_version_metadata = self.db.cache_info.find_one({"meta_key": "_cache_versions"})
+        if cache_version_metadata is not None:
+            self.log.warning("_cache_check_versions: old cache detected")
+            if cache_version_metadata["cache_version"] == "0.1.0":
+                self.log.warning(f"_cache_check_versions: cache version changed 0.1.0 -> {self.cache_ver}")
+                for collection in self.db.list_collection_names():
+                    if collection.startswith("api_v1"):
+                        self.log.info(f"_cache_check_versions: remove obsolete cache {collection}")
+                        self.db[collection].drop_indexes()
+                        self.db[collection].drop()
+                self.db.cache_info.delete_one({"meta_key": "_cache_versions"})
+
+        # Find cache and datatracker versions:
+        cache_version_metadata = self.db.cache_info.find_one({"collection": "_cache_versions"})
+        if cache_version_metadata is None:
+            dt_version    = None
+            cache_version = self.cache_ver
+        else:
+            dt_version    = cache_version_metadata["dt_version"]
+            cache_version = cache_version_metadata["cache_version"]
+
+        # Check cache version
+        if cache_version == '1' or cache_version == "2" or cache_version == "3":
+            self.log.info(f"_cache_check_versions: cache version changed {cache_version} -> {self.cache_ver}")
+            for collection in self.db.list_collection_names():
+                if collection.startswith("api_v1"):
+                    self.log.info(f"_cache_check_versions: remove obsolete cache {collection}")
+                    self.db[collection].drop_indexes()
+                    self.db[collection].drop()
+            self.db.cache_info.delete_many({"collection": {"$regex": "^api_v1"}})
+        elif self.cache_ver != cache_version:
+            # Exit if the cache version doesn't match that we're expecting. Need to add code above
+            # to update the cache if the format changes, as was done with the v0.1.1 to v1 change.
+            self.log.error(f"_cache_check_versions: cache version changed {cache_version} -> {self.cache_ver}")
+            sys.exit()
+        else:
+            self.log.info(f"_cache_check_versions: cache version {self.cache_ver}")
+
+        # check Datatracker version
+        version_info = self._datatracker_get_single(URI("/api/version/"))
+        if version_info is not None:
+            if dt_version != version_info["version"]:
+                self.log.info(f"_cache_check_versions: datatracker version changed {dt_version} -> {version_info['version']}")
+                self.log.info(f"_cache_check_versions: cache cleared")
+                self.session.cache.clear()
+                dt_version = version_info["version"]
+            else:
+                self.log.info(f"_cache_check_versions: datatracker version {dt_version}")
+        else:
+            self.log.warning("_cache_check_versions: could not check datatracker version")
+
+        self.db.cache_info.replace_one(
+                {"collection": "_cache_versions"},
+                {"collection": "_cache_versions", "dt_version": dt_version, "cache_version": self.cache_ver},
+                upsert=True)
 
     # ----------------------------------------------------------------------------------------------------------------------------
     # Private methods to retrieve objects from the datatracker:
