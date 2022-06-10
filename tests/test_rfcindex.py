@@ -58,7 +58,7 @@ class TestRFCIndex(unittest.TestCase):
             self.assertEqual(rfc.year,         2003)
             self.assertEqual(rfc.formats,      ["ASCII", "PS", "PDF", "HTML"])
             self.assertEqual(rfc.draft,        "draft-ietf-avt-rtp-new-12")
-            self.assertEqual(rfc.keywords,     ["RTP", "end-to-end", "network", "audio", "video", "RTCP"])
+            self.assertEqual(rfc.keywords,     ["RTP", "Real-Time Transport Protocol", "end-to-end", "network", "audio", "video", "RTCP", "RTP Control Protocol"])
             self.assertEqual(rfc.updates,      [])
             self.assertEqual(rfc.updated_by,   ["RFC5506", "RFC5761", "RFC6051", "RFC6222", "RFC7022", "RFC7160", "RFC7164", "RFC8083", "RFC8108", "RFC8860"])
             self.assertEqual(rfc.obsoletes,    ["RFC1889"])
@@ -98,7 +98,7 @@ class TestRFCIndex(unittest.TestCase):
         # Some RFCs have <kw></kw> which is not useful. Check that we correctly strip this out.
         rfc = self.index.rfc("RFC2351")
         if rfc is not None:
-            self.assertEqual(rfc.keywords, ["internet", "protocol", "encapsulation", "transactional", "traffic", "messaging"])
+            self.assertEqual(rfc.keywords, ["IP", "internet protocol", "encapsulation", "transactional", "traffic", "messaging"])
         else:
             self.fail("Cannot find RFC")
 

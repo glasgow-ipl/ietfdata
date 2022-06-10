@@ -1350,12 +1350,13 @@ class TestDatatracker(unittest.TestCase):
 
     def test_streams(self) -> None:
         streams = list(self.dt.streams())
-        self.assertEqual(len(streams), 5)
-        self.assertEqual(streams[ 0].slug, "iab")
-        self.assertEqual(streams[ 1].slug, "ietf")
-        self.assertEqual(streams[ 2].slug, "irtf")
-        self.assertEqual(streams[ 3].slug, "ise")
-        self.assertEqual(streams[ 4].slug, "legacy")
+        self.assertEqual(len(streams), 6)
+        self.assertEqual(streams[ 0].slug, "editorial")
+        self.assertEqual(streams[ 1].slug, "iab")
+        self.assertEqual(streams[ 2].slug, "ietf")
+        self.assertEqual(streams[ 3].slug, "irtf")
+        self.assertEqual(streams[ 4].slug, "ise")
+        self.assertEqual(streams[ 5].slug, "legacy")
 
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to groups:
@@ -1589,7 +1590,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_role_names(self) -> None:
         role_names = list(self.dt.role_names())
-        self.assertEqual(len(role_names), 31)
+        self.assertEqual(len(role_names), 32)
         self.assertEqual(role_names[ 0].slug, "ad")
         self.assertEqual(role_names[ 1].slug, "admdir")
         self.assertEqual(role_names[ 2].slug, "advisor")
@@ -1604,23 +1605,24 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(role_names[11].slug, "devdir")
         self.assertEqual(role_names[12].slug, "editor")
         self.assertEqual(role_names[13].slug, "execdir")
-        self.assertEqual(role_names[14].slug, "lead")
-        self.assertEqual(role_names[15].slug, "liaiman")
-        self.assertEqual(role_names[16].slug, "liaison")
-        self.assertEqual(role_names[17].slug, "liaison_cc_contact")
-        self.assertEqual(role_names[18].slug, "liaison_contact")
-        self.assertEqual(role_names[19].slug, "matman")
-        self.assertEqual(role_names[20].slug, "member")
-        self.assertEqual(role_names[21].slug, "pre-ad")
-        self.assertEqual(role_names[22].slug, "recman")
-        self.assertEqual(role_names[23].slug, "reviewer")
-        self.assertEqual(role_names[24].slug, "robot")
-        self.assertEqual(role_names[25].slug, "secr")
-        self.assertEqual(role_names[26].slug, "techadv")
-        self.assertEqual(role_names[27].slug, "trac-admin")
-        self.assertEqual(role_names[28].slug, "trac-editor")
-        self.assertEqual(role_names[29].slug, "yc_admin")
-        self.assertEqual(role_names[30].slug, "yc_operator")
+        self.assertEqual(role_names[14].slug, "exofficio")
+        self.assertEqual(role_names[15].slug, "lead")
+        self.assertEqual(role_names[16].slug, "liaiman")
+        self.assertEqual(role_names[17].slug, "liaison")
+        self.assertEqual(role_names[18].slug, "liaison_cc_contact")
+        self.assertEqual(role_names[19].slug, "liaison_contact")
+        self.assertEqual(role_names[20].slug, "matman")
+        self.assertEqual(role_names[21].slug, "member")
+        self.assertEqual(role_names[22].slug, "pre-ad")
+        self.assertEqual(role_names[23].slug, "recman")
+        self.assertEqual(role_names[24].slug, "reviewer")
+        self.assertEqual(role_names[25].slug, "robot")
+        self.assertEqual(role_names[26].slug, "secr")
+        self.assertEqual(role_names[27].slug, "techadv")
+        self.assertEqual(role_names[28].slug, "trac-admin")
+        self.assertEqual(role_names[29].slug, "trac-editor")
+        self.assertEqual(role_names[30].slug, "yc_admin")
+        self.assertEqual(role_names[31].slug, "yc_operator")
 
 
 
@@ -1643,7 +1645,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_roles_email(self) -> None:
         group_roles = list(self.dt.group_roles(email="csp@csperkins.org"))
-        self.assertEqual(len(group_roles), 10)
+        self.assertEqual(len(group_roles), 11)
         self.assertEqual(group_roles[0].id, 1076)   # SAFE BoF chair
         self.assertEqual(group_roles[1].id, 3998)   # TSV DIR reviewer
         self.assertEqual(group_roles[2].id, 8464)   # IRSG chair
@@ -1654,6 +1656,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(group_roles[7].id, 11103)  # TSV ART reviewer
         self.assertEqual(group_roles[8].id, 11680)  # IRTF ANRW chair
         self.assertEqual(group_roles[9].id, 12818)  # IETF Delegate during IETF 113 plenary
+        self.assertEqual(group_roles[10].id, 12875) # RSAB member
 
 
     def test_group_roles_group(self) -> None:
@@ -1680,7 +1683,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_roles_person(self) -> None:
         group_roles = list(self.dt.group_roles(person=self.dt.person(PersonURI("/api/v1/person/person/20209/"))))
-        self.assertEqual(len(group_roles), 10)
+        self.assertEqual(len(group_roles), 11)
         self.assertEqual(group_roles[0].id, 1076)   # SAFE BoF chair
         self.assertEqual(group_roles[1].id, 3998)   # TSV DIR reviewer
         self.assertEqual(group_roles[2].id, 8464)   # IRSG chair
@@ -1691,6 +1694,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(group_roles[7].id, 11103)  # TSV ART reviewer
         self.assertEqual(group_roles[8].id, 11680)  # IRTF ANRW chair
         self.assertEqual(group_roles[9].id, 12818)  # IETF Delegate during IETF 113 plenary
+        self.assertEqual(group_roles[10].id, 12875) # RSAB member
 
 
     def test_group_milestone_history(self) -> None:
@@ -1796,7 +1800,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_email(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(email="csp@csperkins.org"))
-        self.assertEqual(len(group_role_histories), 48)
+        self.assertEqual(len(group_role_histories), 49)
 
 
     def test_group_role_histories_group(self) -> None:
@@ -1815,7 +1819,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_person(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(person=self.dt.person(PersonURI("/api/v1/person/person/20209/"))))
-        self.assertEqual(len(group_role_histories), 48)
+        self.assertEqual(len(group_role_histories), 49)
 
 
     def test_group_state_change_event(self) -> None:
@@ -1942,30 +1946,31 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_type_names(self) -> None:
         group_type_names = list(self.dt.group_type_names())
-        self.assertEqual(len(group_type_names), 23)
+        self.assertEqual(len(group_type_names), 24)
         self.assertEqual(group_type_names[ 0].slug, "adhoc")
         self.assertEqual(group_type_names[ 1].slug, "adm")
         self.assertEqual(group_type_names[ 2].slug, "ag")
         self.assertEqual(group_type_names[ 3].slug, "area")
         self.assertEqual(group_type_names[ 4].slug, "dir")
-        self.assertEqual(group_type_names[ 5].slug, "iab")
-        self.assertEqual(group_type_names[ 6].slug, "iabasg")
-        self.assertEqual(group_type_names[ 7].slug, "iana")
-        self.assertEqual(group_type_names[ 8].slug, "iesg")
-        self.assertEqual(group_type_names[ 9].slug, "ietf")
-        self.assertEqual(group_type_names[10].slug, "individ")
-        self.assertEqual(group_type_names[11].slug, "irtf")
-        self.assertEqual(group_type_names[12].slug, "ise")
-        self.assertEqual(group_type_names[13].slug, "isoc")
-        self.assertEqual(group_type_names[14].slug, "nomcom")
-        self.assertEqual(group_type_names[15].slug, "program")
-        self.assertEqual(group_type_names[16].slug, "rag")
-        self.assertEqual(group_type_names[17].slug,  "review")
-        self.assertEqual(group_type_names[18].slug, "rfcedtyp")
-        self.assertEqual(group_type_names[19].slug, "rg")
-        self.assertEqual(group_type_names[20].slug, "sdo")
-        self.assertEqual(group_type_names[21].slug, "team")
-        self.assertEqual(group_type_names[22].slug, "wg")
+        self.assertEqual(group_type_names[ 5].slug, "editorial")
+        self.assertEqual(group_type_names[ 6].slug, "iab")
+        self.assertEqual(group_type_names[ 7].slug, "iabasg")
+        self.assertEqual(group_type_names[ 8].slug, "iana")
+        self.assertEqual(group_type_names[ 9].slug, "iesg")
+        self.assertEqual(group_type_names[10].slug, "ietf")
+        self.assertEqual(group_type_names[11].slug, "individ")
+        self.assertEqual(group_type_names[12].slug, "irtf")
+        self.assertEqual(group_type_names[13].slug, "ise")
+        self.assertEqual(group_type_names[14].slug, "isoc")
+        self.assertEqual(group_type_names[15].slug, "nomcom")
+        self.assertEqual(group_type_names[16].slug, "program")
+        self.assertEqual(group_type_names[17].slug, "rag")
+        self.assertEqual(group_type_names[18].slug,  "review")
+        self.assertEqual(group_type_names[19].slug, "rfcedtyp")
+        self.assertEqual(group_type_names[20].slug, "rg")
+        self.assertEqual(group_type_names[21].slug, "sdo")
+        self.assertEqual(group_type_names[22].slug, "team")
+        self.assertEqual(group_type_names[23].slug, "wg")
 
 
     # -----------------------------------------------------------------------------------------------------------------------------
