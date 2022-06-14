@@ -1,7 +1,7 @@
 Change Log -- ietfdata
 ======================
 
-## Version 0.6.0 -- ??
+## Version 0.6.0 -- 14 June 2022
 
  - Switch to requests-cache for the cache
 
