@@ -1,4 +1,4 @@
-# Copyright (C) 2020-2021 University of Glasgow
+# Copyright (C) 2020-2022 University of Glasgow
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -63,7 +63,7 @@ def _parse_archive_url(archive_url:str) -> Tuple[str, str]:
     return (mailing_list, message_hash)
 
 
-def _ml_message_from_db_message(mailing_list: "MailingList", gridfs_id: int, imap_uid: int, headers: Dict[str, str], timestamp: datetime) -> MailingListMessage:
+def _ml_message_from_db_message(mailing_list: MailingList, gridfs_id: int, imap_uid: int, headers: Dict[str, str], timestamp: datetime) -> MailingListMessage:
     return MailingListMessage(mailing_list,
                               gridfs_id,
                               imap_uid,
@@ -81,7 +81,7 @@ def _ml_message_from_db_message(mailing_list: "MailingList", gridfs_id: int, ima
 
 @dataclass
 class MailingListMessage:
-    _mailing_list : "MailingList"
+    _mailing_list : MailingList
     _gridfs_id    : int
     _imap_uid     : int
     message_id    : Optional[str]
@@ -92,15 +92,15 @@ class MailingListMessage:
     references    : Optional[str]
     archived_at   : Optional[str]
     headers       : Dict[str, str]
-    parent        : Optional["MailingListMessage"] = None
-    children      : List["MailingListMessage"] = field(default_factory=list)
+    parent        : Optional[MailingListMessage] = None
+    children      : List[MailingListMessage] = field(default_factory=list)
 
 
     def __post_init__(self):
         self.list_name = self._mailing_list._list_name
 
 
-    def add_child_message(self, child: "MailingListMessage"):
+    def add_child_message(self, child: MailingListMessage):
         self.children.append(child)
 
 
