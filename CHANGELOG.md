@@ -1,7 +1,12 @@
 Change Log -- ietfdata
 ======================
 
-## Version 0.6.0 -- 14 June 2022
+## Version 0.6.1 -- ??
+
+ -
+
+
+## Version 0.6.0 -- 14 June 2022
 
  - Switch to requests-cache for the cache
 
@@ -17,27 +22,27 @@ Change Log -- ietfdata
  - Add `purpose` field to `Session` class, bump cache version
 
 
-## Version 0.5.5 -- 1 December 2021
+## Version 0.5.5 -- 1 December 2021
 
  - Be more robust downloading mail archives
 
 
-## Version 0.5.4 -- 26 November 2021
+## Version 0.5.4 -- 26 November 2021
 
  - Fix bluesheet document URLs
 
-## Version 0.5.3 -- 22 November 2021
+## Version 0.5.3 -- 22 November 2021
 
  - Fix potential IMAP timeout
  - Add `on_agenda` field to `Session` class, bump cache version
 
 
-## Version 0.5.2 -- 26 October 2021
+## Version 0.5.2 -- 26 October 2021
 
  - Drop required Python version down to 3.8
 
 
-## Version 0.5.1 -- 1 October 2021
+## Version 0.5.1 -- 1 October 2021
 
  - Allow empty event type when fetching document events
 
@@ -75,7 +80,7 @@ Change Log -- ietfdata
  - Update tests
 
 
-## Version 0.3.1 -- 2020-06-13
+## Version 0.3.1 -- 2020-06-13
 
  - Expand API coverage for Meetings and IPR disclosures
  - Include the PEP 561 `py.typed` marker in the generated package
@@ -119,7 +124,7 @@ Change Log -- ietfdata
    tracking, with additional states.
 
 
-## Version 0.1.1 -- 2019-08-30
+## Version 0.1.1 -- 2019-08-30
 
  - Fix license metadata
 
