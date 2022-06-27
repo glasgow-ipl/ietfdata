@@ -3667,7 +3667,7 @@ class TestDatatracker(unittest.TestCase):
 
 
     #def test_message(self) -> None:
-    #    message = self.dt.message(MessageURI("/api/v1/message/message/158636/"))
+    #    message = self.dt.message(DTMessageURI("/api/v1/message/message/158636/"))
     #    if message is not None:
     #        self.assertEqual(message.bcc,            "")
     #        self.assertEqual(message.body,           "\nA New Internet-Draft is available from the on-line Internet-Drafts directories.\n\n\n        Title           : Describing Protocol Data Units with Augmented Packet Header Diagrams\n        Authors         : Stephen McQuistin\n                          Vivian Band\n                          Dejice Jacob\n                          Colin Perkins\n\tFilename        : draft-mcquistin-augmented-ascii-diagrams-05.txt\n\tPages           : 26\n\tDate            : 2020-06-17\n\nAbstract:\n   This document describes a machine-readable format for specifying the\n   syntax of protocol data units within a protocol specification.  This\n   format is comprised of a consistently formatted packet header\n   diagram, followed by structured explanatory text.  It is designed to\n   maintain human readability while enabling support for automated\n   parser generation from the specification document.  This document is\n   itself an example of how the format can be used.\n\n\nThe IETF datatracker status page for this draft is:\nhttps://datatracker.ietf.org/doc/draft-mcquistin-augmented-ascii-diagrams/\n\nThere are also htmlized versions available at:\nhttps://tools.ietf.org/html/draft-mcquistin-augmented-ascii-diagrams-05\nhttps://datatracker.ietf.org/doc/html/draft-mcquistin-augmented-ascii-diagrams-05\n\nA diff from the previous version is available at:\nhttps://www.ietf.org/rfcdiff?url2=draft-mcquistin-augmented-ascii-diagrams-05\n\n\nPlease note that it may take a couple of minutes from the time of submission\nuntil the htmlized version and diff are available at tools.ietf.org.\n\nInternet-Drafts are also available by anonymous FTP at:\nftp://ftp.ietf.org/internet-drafts/\n\n")
@@ -3680,7 +3680,7 @@ class TestDatatracker(unittest.TestCase):
     #        self.assertEqual(message.related_docs,   [DocumentURI("/api/v1/doc/document/draft-mcquistin-augmented-ascii-diagrams/")])
     #        self.assertEqual(message.related_groups, [])
     #        self.assertEqual(message.reply_to, "")
-    #        self.assertEqual(message.resource_uri,   MessageURI("/api/v1/message/message/158636/"))
+    #        self.assertEqual(message.resource_uri,   DTMessageURI("/api/v1/message/message/158636/"))
     #        self.assertEqual(message.sent,           datetime.fromisoformat("2020-06-17T05:18:33.607859"))
     #        self.assertEqual(message.subject,        "I-D Action: draft-mcquistin-augmented-ascii-diagrams-05.txt")
     #        self.assertEqual(message.time,           datetime.fromisoformat("2020-06-17T05:18:33"))
@@ -3733,7 +3733,7 @@ class TestDatatracker(unittest.TestCase):
         if send_queue_entry is not None:
             self.assertEqual(send_queue_entry.by,           PersonURI("/api/v1/person/person/105651/"))
             self.assertEqual(send_queue_entry.id,           1)
-            self.assertEqual(send_queue_entry.message,      MessageURI("/api/v1/message/message/4001/"))
+            self.assertEqual(send_queue_entry.message,      DTMessageURI("/api/v1/message/message/4001/"))
             self.assertEqual(send_queue_entry.note,         "")
             self.assertEqual(send_queue_entry.resource_uri, SendQueueURI("/api/v1/message/sendqueue/1/"))
             self.assertEqual(send_queue_entry.send_at,      None)
@@ -3754,7 +3754,7 @@ class TestDatatracker(unittest.TestCase):
 
 
     #def test_send_queue_message(self) -> None:
-    #    message = self.dt.message(MessageURI("/api/v1/message/message/4001/"))
+    #    message = self.dt.message(DTMessageURI("/api/v1/message/message/4001/"))
     #    if message is not None:
     #        send_queue = list(self.dt.send_queue(message = message))
     #        self.assertEqual(len(send_queue),  1)

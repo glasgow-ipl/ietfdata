@@ -1643,12 +1643,12 @@ class AnnouncementFrom(Resource):
 
 
 @dataclass(frozen=True)
-class MessageURI(URI):
+class DTMessageURI(URI):
     root : str = "/api/v1/message/message/"
 
 
 @dataclass(frozen=True)
-class Message(Resource):
+class DTMessage(Resource):
     bcc            : str
     body           : str
     by             : PersonURI
@@ -1660,7 +1660,7 @@ class Message(Resource):
     related_docs   : List[DocumentURI]
     related_groups : List[GroupURI]
     reply_to       : str
-    resource_uri   : MessageURI
+    resource_uri   : DTMessageURI
     sent           : datetime
     subject        : str
     time           : datetime
@@ -1676,7 +1676,7 @@ class SendQueueURI(URI):
 class SendQueueEntry(Resource):
     by             : PersonURI
     id             : int
-    message        : MessageURI
+    message        : DTMessageURI
     note           : str
     resource_uri   : SendQueueURI
     send_at        : Optional[datetime]
@@ -1794,7 +1794,7 @@ class DataTracker:
         self._hints["/api/v1/meeting/session/"]                    = Hints(Session,                     "id")
         self._hints["/api/v1/meeting/timeslot/"]                   = Hints(Timeslot,                    "id")
         self._hints["/api/v1/message/announcementfrom/"]           = Hints(AnnouncementFrom,            "id")
-        self._hints["/api/v1/message/message/"]                    = Hints(Message,                     "id")
+        self._hints["/api/v1/message/message/"]                    = Hints(DTMessage,                     "id")
         self._hints["/api/v1/message/sendqueue/"]                  = Hints(SendQueueEntry,              "id")
         self._hints["/api/v1/name/ballotpositionname/"]            = Hints(BallotPositionName,          "slug")
         self._hints["/api/v1/name/docrelationshipname/"]           = Hints(RelationshipType,            "slug")
@@ -3829,8 +3829,8 @@ class DataTracker:
         yield from self._retrieve_multi(url, AnnouncementFrom)
 
 
-    #def message(self, message_uri: MessageURI) -> Optional[Message]:
-    #    return self._retrieve(message_uri, Message)
+    #def message(self, message_uri: DTMessageURI) -> Optional[DTMessage]:
+    #    return self._retrieve(message_uri, DTMessage)
 
 
     #def messages(self,
@@ -3840,8 +3840,8 @@ class DataTracker:
     #            frm              : Optional[str]      = None,
     #            related_doc      : Optional[Document] = None,
     #            subject_contains : Optional[str]      = None,
-    #            body_contains    : Optional[str]      = None) -> Iterator[Message]:
-    #    url = MessageURI("/api/v1/message/message/")
+    #            body_contains    : Optional[str]      = None) -> Iterator[DTMessage]:
+    #    url = DTMessageURI("/api/v1/message/message/")
     #    url.params["time__gte"]       = since
     #    url.params["time__lt"]       = until
     #    if by is not None:
@@ -3854,7 +3854,7 @@ class DataTracker:
     #        url.params["subject__contains"] = subject_contains
     #    if body_contains is not None:
     #        url.params["body__contains"] = body_contains
-    #    yield from self._retrieve_multi(url, Message)
+    #    yield from self._retrieve_multi(url, DTMessage)
 
 
     def send_queue_entry(self, send_queue_uri: SendQueueURI) -> Optional[SendQueueEntry]:
@@ -3865,7 +3865,7 @@ class DataTracker:
                 since   : str                = "1970-01-01T00:00:00",
                 until   : str                = "2038-01-19T03:14:07",
                 by      : Optional[Person]   = None,
-                message : Optional[Message]  = None) -> Iterator[SendQueueEntry]:
+                message : Optional[DTMessage]  = None) -> Iterator[SendQueueEntry]:
         url = SendQueueURI("/api/v1/message/sendqueue/")
         url.params["time__gte"] = since
         url.params["time__lt"]  = until
