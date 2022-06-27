@@ -1590,7 +1590,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_role_names(self) -> None:
         role_names = list(self.dt.role_names())
-        self.assertEqual(len(role_names), 32)
+        self.assertEqual(len(role_names), 34)
         self.assertEqual(role_names[ 0].slug, "ad")
         self.assertEqual(role_names[ 1].slug, "admdir")
         self.assertEqual(role_names[ 2].slug, "advisor")
@@ -1621,8 +1621,10 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(role_names[27].slug, "techadv")
         self.assertEqual(role_names[28].slug, "trac-admin")
         self.assertEqual(role_names[29].slug, "trac-editor")
-        self.assertEqual(role_names[30].slug, "yc_admin")
-        self.assertEqual(role_names[31].slug, "yc_operator")
+        self.assertEqual(role_names[30].slug, "wikiadmin")
+        self.assertEqual(role_names[31].slug, "wikiman")
+        self.assertEqual(role_names[32].slug, "yc_admin")
+        self.assertEqual(role_names[33].slug, "yc_operator")
 
 
 
@@ -1858,7 +1860,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_groups_state(self) -> None:
         groups = list(self.dt.groups(state=self.dt.group_state(GroupStateURI("/api/v1/name/groupstatename/abandon/"))))
-        self.assertEqual(len(groups), 9)
+        self.assertEqual(len(groups), 10)
         self.assertEqual(groups[0].id, 1949)
         self.assertEqual(groups[1].id, 2009)
         self.assertEqual(groups[2].id, 2018)
@@ -1868,6 +1870,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(groups[6].id, 2240)    # SMART
         self.assertEqual(groups[7].id, 2275)    # SHMO was renamed to SHMOO while chartering
         self.assertEqual(groups[8].id, 2295)    # TERM
+        self.assertEqual(groups[9].id, 2334)    # JSON Web Proofs
 
 
     def test_groups_parent(self) -> None:
