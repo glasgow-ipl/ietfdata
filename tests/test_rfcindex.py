@@ -113,7 +113,7 @@ class TestRFCIndex(unittest.TestCase):
         bcp = self.index.bcp("BCP0009")
         if bcp is not None:
             self.assertEqual(bcp.doc_id,  "BCP0009")
-            self.assertEqual(bcp.is_also, ["RFC2026", "RFC5657", "RFC6410", "RFC7100", "RFC7127", "RFC7475", "RFC8789"])
+            self.assertEqual(bcp.is_also, ["RFC2026", "RFC5657", "RFC6410", "RFC7100", "RFC7127", "RFC7475", "RFC8789", "RFC9282"])
         else:
             self.fail("Cannot find BCP")
 
