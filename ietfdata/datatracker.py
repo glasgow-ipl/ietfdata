@@ -145,6 +145,8 @@ class Person(Resource):
     # Don't use this for nicknames, and don't use it unless you've actually
     # observed that the datatracker shows your name incorrectly."
     plain           : str
+    pronouns_freetext     : str
+    pronouns_selectable   : str
 
 
 @dataclass(frozen=True)
@@ -167,6 +169,8 @@ class HistoricalPerson(Resource):
     history_type          : str
     history_date          : datetime
     plain                 : str
+    pronouns_freetext     : str
+    pronouns_selectable   : str
 
 
 @dataclass(frozen=True)
@@ -322,7 +326,6 @@ class Submission(Resource):
     draft           : DocumentURI
     file_size       : Optional[int]
     file_types      : str   # e.g., ".txt,.xml"
-    first_two_pages : str
     group           : Optional[GroupURI]
     id              : int
     name            : str
