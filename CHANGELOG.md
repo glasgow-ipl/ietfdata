@@ -6,6 +6,7 @@ Change Log -- ietfdata
  - Rename `Message` to `DTMessage`
  - Remove `first_two_lines` from `Submission`, to match changes to the
    datatracker
+ - Add `checkedin` field to `MeetingRegistration`
 
 
 ## Version 0.6.0 -- 14 June 2022

@@ -1625,6 +1625,7 @@ class MeetingRegistration(Resource):
     reg_type     : str
     resource_uri : MeetingRegistrationURI
     ticket_type  : str
+    checkedin    : bool
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------
