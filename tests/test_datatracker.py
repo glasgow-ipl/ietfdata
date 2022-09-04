@@ -3447,7 +3447,7 @@ class TestDatatracker(unittest.TestCase):
         if ml is not None:
             self.assertEqual(len(ml), 1)
             self.assertEqual(ml[0].id,            262)
-            self.assertEqual(ml[0].description,  "IETF-Discussion")
+            self.assertEqual(ml[0].description,  "IETF-Discussion. This is the most general IETF mailing list, intended for discussion of technical, procedural, operational, and other topics for which no dedicated mailing lists exist.")
             self.assertEqual(ml[0].resource_uri, EmailListURI("/api/v1/mailinglists/list/262/"))
             self.assertEqual(ml[0].advertised,   True)
             self.assertEqual(ml[0].name,         "ietf")
