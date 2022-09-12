@@ -1836,7 +1836,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_email(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(email="csp@csperkins.org"))
-        self.assertEqual(len(group_role_histories), 54)
+        self.assertEqual(len(group_role_histories), 55)
 
 
     def test_group_role_histories_group(self) -> None:
@@ -1855,7 +1855,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_person(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(person=self.dt.person(PersonURI("/api/v1/person/person/20209/"))))
-        self.assertEqual(len(group_role_histories), 54)
+        self.assertEqual(len(group_role_histories), 55)
 
 
     def test_group_state_change_event(self) -> None:
@@ -1909,11 +1909,10 @@ class TestDatatracker(unittest.TestCase):
 
     def test_groups_parent(self) -> None:
         groups = list(self.dt.groups(parent=self.dt.group(GroupURI("/api/v1/group/group/1/"))))
-        self.assertEqual(len(groups), 4)
+        self.assertEqual(len(groups), 3)
         self.assertEqual(groups[0].id, 2)       # IESG
         self.assertEqual(groups[1].id, 7)       # IAB
         self.assertEqual(groups[2].id, 2173)    # IANA Community Coordination Group
-        self.assertEqual(groups[3].id, 2225)    # Hot RFC lightning talks
 
 
     def test_group_state(self) -> None:
