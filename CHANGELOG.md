@@ -1,6 +1,11 @@
 Change Log -- ietfdata
 ======================
 
+## Version 0.6.2 -- 28 October 2022
+
+ - Catch-up with changes to the Datatracker
+
+
 ## Version 0.6.1 -- 4 August 2022
 
  - Rename `Message` to `DTMessage`
