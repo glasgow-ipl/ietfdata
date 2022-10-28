@@ -63,6 +63,7 @@ def print_dt_info(rfc, doc):
 
 
 for rfc in ri.rfcs():
+    print("")
     print(rfc.doc_id)
     print("  rfc.title        | {} | {}".format(rfc.doc_id, rfc.title))
     print("  rfc.draft        | {} | {}".format(rfc.doc_id, rfc.draft))
