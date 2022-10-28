@@ -298,8 +298,8 @@ class MailingList:
                     msg_fetch.append(msg_id)
 
         # Fetch the messages
-        for i in range(0, len(msg_fetch), 512):
-            msg_slice = msg_fetch[slice(i, i+512, 1)]
+        for i in range(0, len(msg_fetch), 16):
+            msg_slice = msg_fetch[slice(i, i+16, 1)]
             for msg_id, msg in imap.fetch(msg_slice, "RFC822").items():
                 self.log.debug(f"fetch {self._list_name}/{msg_id:06d}.msg")
                 e = email.message_from_bytes(msg[b"RFC822"], policy=policy.default)
