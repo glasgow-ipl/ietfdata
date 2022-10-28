@@ -1,4 +1,4 @@
-# Copyright (C) 2020-2021 University of Glasgow
+# Copyright (C) 2022 University of Glasgow
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -25,14 +25,18 @@
 
 import os
 import sys
+import textwrap
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+from pathlib              import Path
 from ietfdata.datatracker import *
-from ietfdata.mailarchive import *
+
+# =============================================================================
 
 dt = DataTracker()
-ma = MailArchive()
 
-ma.download_all_messages()
+for alias in dt.person_aliases(name="Colin Perkins"):
+    for email in dt.email_for_person(dt.person(alias.person)):
+        print(email.address)
 
