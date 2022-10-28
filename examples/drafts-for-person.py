@@ -23,21 +23,24 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import sys
 import os
-import time
+import sys
+import textwrap
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from ietfdata.datatracker     import *
-from ietfdata.datatracker_ext import *
-from ietfdata.rfcindex        import *
+from pathlib              import Path
+from ietfdata.datatracker import *
 
-dt = DataTrackerExt()
-ri = RFCIndex()
+# =============================================================================
 
-for rfc in reversed(list(ri.rfcs())):
-    print(F"{rfc.doc_id} ({rfc.month} {rfc.year})")
-    for d in dt.draft_history_for_rfc(rfc):
-        print("    {0: <50} | {1} | {2}".format(d.draft.name, d.rev, d.date.strftime("%Y-%m-%d")))
+dt = DataTracker()
+p  = dt.person_from_email("csp@csperkins.org")
+
+for da in dt.documents_authored_by_person(p):
+    doc = dt.document(da.document)
+    print(doc.title)
+    print(doc.name)
+    print("")
+
 
