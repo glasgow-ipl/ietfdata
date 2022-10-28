@@ -50,7 +50,9 @@ import pandas as pd
 # =================================================================================================
 # Private helper functions:
 
-def _parse_archive_url(archive_url:str) -> Tuple[str, str]:
+def _parse_archive_url(archive_url:Union[str,List[str]]) -> Tuple[str, str]:
+    if isinstance(archive_url, list):  # FIXME
+        archive_url = archive_url[0]
     aa_start = archive_url.find("://mailarchive.ietf.org/arch/msg")
     aa_uri   = archive_url[aa_start+33:].strip()
 
