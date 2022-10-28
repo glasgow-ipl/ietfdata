@@ -24,6 +24,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import os
+import requests
 import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -34,11 +35,19 @@ from ietfdata.rfcindex    import *
 
 dt = DataTracker()
 
-bluesheets = dt.document_type_from_slug("bluesheets")
-quic = dt.group_from_acronym("quic")
+with requests.Session() as session:
+    print("Finding bluesheets for QUIC WG:")
 
-for doc in dt.documents(doctype = bluesheets, group = quic):
-    print(doc.title)
-    print(doc.url())
-    print("")
+    bs = dt.document_type_from_slug("bluesheets")
+    wg = dt.group_from_acronym("quic")
+
+    for doc in dt.documents(doctype = bs, group = wg):
+        print(f"  {doc.title}")
+        print(f"  {doc.url()}")
+
+        response = session.get(doc.url(), verify=True)
+        if response.status_code != 200:
+            print(f"  {response.status_code}")
+
+        print("")
 
