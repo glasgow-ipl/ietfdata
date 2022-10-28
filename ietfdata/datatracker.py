@@ -140,7 +140,6 @@ class Person(Resource):
     photo           : str
     photo_thumb     : str
     biography       : str
-    consent         : bool
     # Plain name correction: Use this if you have a Spanish double surname.
     # Don't use this for nicknames, and don't use it unless you've actually
     # observed that the datatracker shows your name incorrectly."
@@ -162,7 +161,6 @@ class HistoricalPerson(Resource):
     photo                 : str
     photo_thumb           : str
     biography             : str
-    consent               : bool
     history_change_reason : Optional[str]
     history_user          : Optional[str]
     history_id            : int
@@ -1733,7 +1731,7 @@ class DataTracker:
         logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
         self.log = logging.getLogger("ietfdata")
 
-        self.ua        = "glasgow-ietfdata/0.6.1"          # Update when making a new relaase
+        self.ua        = "glasgow-ietfdata/0.6.2"          # Update when making a new relaase
         self.base_url  = "https://datatracker.ietf.org"
         self.http_req  = 0
         self.get_count = 0
