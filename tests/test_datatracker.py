@@ -1673,7 +1673,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_roles_email(self) -> None:
         group_roles = list(self.dt.group_roles(email="csp@csperkins.org"))
-        self.assertEqual(len(group_roles), 12)
+        self.assertEqual(len(group_roles), 13)
         self.assertEqual(group_roles[0].id, 1076)   # SAFE BoF chair
         self.assertEqual(group_roles[1].id, 3998)   # TSV DIR reviewer
         self.assertEqual(group_roles[2].id, 8464)   # IRSG chair
@@ -1686,6 +1686,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(group_roles[9].id, 12818)  # IETF Delegate during IETF 113 plenary
         self.assertEqual(group_roles[10].id, 12875) # RSAB member
         self.assertEqual(group_roles[11].id, 12915) # IAB-ISOC Policy Coordination
+        self.assertEqual(group_roles[12].id, 13098) # IAB E-Impact workshop
 
 
     def test_group_roles_group(self) -> None:
@@ -1712,7 +1713,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_roles_person(self) -> None:
         group_roles = list(self.dt.group_roles(person=self.dt.person(PersonURI("/api/v1/person/person/20209/"))))
-        self.assertEqual(len(group_roles), 12)
+        self.assertEqual(len(group_roles), 13)
         self.assertEqual(group_roles[0].id, 1076)   # SAFE BoF chair
         self.assertEqual(group_roles[1].id, 3998)   # TSV DIR reviewer
         self.assertEqual(group_roles[2].id, 8464)   # IRSG chair
@@ -1725,6 +1726,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(group_roles[9].id, 12818)  # IETF Delegate during IETF 113 plenary
         self.assertEqual(group_roles[10].id, 12875) # RSAB member
         self.assertEqual(group_roles[11].id, 12915) # IAB-ISOC Policy Coordination
+        self.assertEqual(group_roles[12].id, 13098) # IAB E-Impact workshop
 
 
     def test_group_milestone_history(self) -> None:
