@@ -1,6 +1,11 @@
 Change Log -- ietfdata
 ======================
 
+## Version 0.6.4 -- 14 December 2022
+
+ - Fix `meeting_session_status()`
+
+
 ## Version 0.6.3 -- 14 December 2022
 
  - `meeting_session_status()` can return None

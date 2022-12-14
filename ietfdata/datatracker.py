@@ -1731,7 +1731,7 @@ class DataTracker:
         logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
         self.log = logging.getLogger("ietfdata")
 
-        self.ua        = "glasgow-ietfdata/0.6.3"          # Update when making a new relaase
+        self.ua        = "glasgow-ietfdata/0.6.4"          # Update when making a new relaase
         self.base_url  = "https://datatracker.ietf.org"
         self.http_req  = 0
         self.get_count = 0
@@ -3029,7 +3029,7 @@ class DataTracker:
     def meeting_session_status(self, session: Session) -> Optional[SessionStatusName]:
         sched_events = list(self.meeting_scheduling_events(session=session))
         if len(sched_events) > 0:
-            status_name = self.meeting_session_status_name(sched_events[1].status)
+            status_name = self.meeting_session_status_name(sched_events[-1].status)
             return status_name
         return None
 
