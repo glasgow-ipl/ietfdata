@@ -4,6 +4,7 @@ Change Log -- ietfdata
 ## Version 0.6.3 -- 14 December 2022
 
  - `meeting_session_status()` can return None
+ - Update dependencies to fix security issues
 
 
 ## Version 0.6.2 -- 28 October 2022

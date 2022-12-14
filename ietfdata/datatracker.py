@@ -3510,8 +3510,8 @@ class DataTracker:
             until         : str                          = "2038-01-19T03:14:07",
             history_since : str                          = "1970-01-01T00:00:00",
             history_until : str                          = "2038-01-19T03:14:07",
-            history_type  : str                          = None,
-            id            : int                          = None,
+            history_type  : Optional[str]                = None,
+            id            : Optional[int]                = None,
             doc           : Optional[Document]           = None,
             requested_by  : Optional[Person]             = None,
             state         : Optional[ReviewRequestState] = None,
@@ -3596,7 +3596,7 @@ class DataTracker:
     def historical_reviewer_settings_all(self,
             history_since : str                          = "1970-01-01T00:00:00",
             history_until : str                          = "2038-01-19T03:14:07",
-            id            : int                          = None,
+            id            : Optional[int]                = None,
             person        : Optional[Person]             = None,
             team          : Optional[Group]              = None) -> Iterator[HistoricalReviewerSettings]:
         url = HistoricalReviewerSettingsURI("/api/v1/review/historicalreviewersettings/")
@@ -3620,7 +3620,7 @@ class DataTracker:
             assigned_until         : str                             = "2038-01-19T03:14:07",
             completed_since        : str                             = "1970-01-01T00:00:00",
             completed_until        : str                             = "2038-01-19T03:14:07",
-            id                     : int                             = None,
+            id                     : Optional[int]                   = None,
             result                 : Optional[ReviewResultType]      = None,
             review_request         : Optional[ReviewRequest]         = None,
             reviewer               : Optional[Email]                 = None,

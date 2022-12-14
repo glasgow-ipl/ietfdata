@@ -2043,6 +2043,8 @@ class TestDatatracker(unittest.TestCase):
         session = self.dt.meeting_session(SessionURI("/api/v1/meeting/session/25907/"))
         if session is not None:
             status  = self.dt.meeting_session_status(session)
+            if status is None:
+                self.fail("Cannot find session status")
             self.assertEqual(status.slug, "sched")
         else:
             self.fail("Cannot find session")
