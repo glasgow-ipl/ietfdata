@@ -2262,7 +2262,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(meeting.agenda_warning_note,              "")
             self.assertEqual(meeting.show_important_dates,             True)
             print(meeting.updated)
-            self.assertEqual(meeting.updated,                          datetime.fromisoformat("2016-12-22T09:57:15"))
+            self.assertEqual(meeting.updated,                          datetime.fromisoformat("2023-02-10T10:42:38"))
             self.assertEqual(meeting.agenda,                           ScheduleURI("/api/v1/meeting/schedule/209/"))
             self.assertEqual(meeting.schedule,                         ScheduleURI("/api/v1/meeting/schedule/209/"))
             self.assertEqual(meeting.number,                           "90")
