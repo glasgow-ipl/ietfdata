@@ -1732,7 +1732,7 @@ class DataTracker:
         self.log = logging.getLogger("ietfdata")
 
         self.ua        = "glasgow-ietfdata/0.6.4"          # Update when making a new relaase
-        self.base_url  = "https://datatracker.ietf.org"
+        self.base_url  = os.environ.get("IETFDATA_DT_URL", "https://datatracker.ietf.org")
         self.http_req  = 0
         self.get_count = 0
 
