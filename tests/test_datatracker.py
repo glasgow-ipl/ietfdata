@@ -1757,7 +1757,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_milestone_histories_group(self) -> None:
         group_milestone_histories = list(self.dt.group_milestone_histories(group=self.dt.group(GroupURI("/api/v1/group/group/1326/"))))
-        self.assertEqual(len(group_milestone_histories), 39)
+        self.assertEqual(len(group_milestone_histories), 40)
 
 
     def test_group_milestone_histories_milestone(self) -> None:
@@ -1799,7 +1799,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_milestone_events_group(self) -> None:
         group_milestone_events = list(self.dt.group_milestone_events(group=self.dt.group(GroupURI("/api/v1/group/group/1326/"))))
-        self.assertEqual(len(group_milestone_events), 50)
+        self.assertEqual(len(group_milestone_events), 51)
 
 
     def test_group_milestone_events_milestone(self) -> None:
@@ -1893,7 +1893,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_groups_state(self) -> None:
         groups = list(self.dt.groups(state=self.dt.group_state(GroupStateURI("/api/v1/name/groupstatename/abandon/"))))
-        self.assertEqual(len(groups), 11)
+        self.assertEqual(len(groups), 12)
         self.assertEqual(groups[ 0].id, 1949)
         self.assertEqual(groups[ 1].id, 2009)
         self.assertEqual(groups[ 2].id, 2018)
@@ -1902,9 +1902,10 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(groups[ 5].id, 2200)
         self.assertEqual(groups[ 6].id, 2240)    # SMART
         self.assertEqual(groups[ 7].id, 2275)    # SHMO was renamed to SHMOO while chartering
-        self.assertEqual(groups[ 8].id, 2295)    # TERM
-        self.assertEqual(groups[ 9].id, 2334)    # JSON Web Proofs
-        self.assertEqual(groups[10].id, 2348)    # RADEXTRA
+        self.assertEqual(groups[ 8].id, 2290)    # 
+        self.assertEqual(groups[ 9].id, 2295)    # TERM
+        self.assertEqual(groups[10].id, 2334)    # JSON Web Proofs
+        self.assertEqual(groups[11].id, 2348)    # RADEXTRA
 
 
     def test_groups_parent(self) -> None:
