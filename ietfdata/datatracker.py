@@ -1731,7 +1731,7 @@ class DataTracker:
         logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
         self.log = logging.getLogger("ietfdata")
 
-        self.ua        = "glasgow-ietfdata/0.6.4"          # Update when making a new relaase
+        self.ua        = "glasgow-ietfdata/0.6.5"          # Update when making a new relaase
         self.base_url  = os.environ.get("IETFDATA_DT_URL", "https://datatracker.ietf.org")
         self.http_req  = 0
         self.get_count = 0
@@ -2242,6 +2242,7 @@ class DataTracker:
             since   : str = "1970-01-01T00:00:00",
             until   : str = "2038-01-19T03:14:07",
             doctype : Optional[DocumentType] = None,
+            state   : Optional[DocumentState] = None,
             stream  : Optional[Stream]       = None,
             group   : Optional[Group]        = None) -> Iterator[Document]:
         url = DocumentURI("/api/v1/doc/document/")
@@ -2249,6 +2250,8 @@ class DataTracker:
         url.params["time__lt"] = until
         if doctype is not None:
             url.params["type"] = doctype.slug
+        if state is not None:
+            url.params["states"] = state.id
         if stream is not None:
             url.params["stream"] = stream.slug
         if group is not None:

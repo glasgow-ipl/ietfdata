@@ -1,6 +1,11 @@
 Change Log -- ietfdata
 ======================
 
+## Version 0.6.5 -- 14 December 2022
+
+ - Add `state` filter to `documents()`
+ - Update tests
+
 ## Version 0.6.4 -- 14 December 2022
 
  - Fix `meeting_session_status()`
