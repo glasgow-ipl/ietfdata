@@ -1046,6 +1046,7 @@ class Session(Resource):
     comments            : str
     on_agenda           : bool
     purpose             : SessionPurposeURI
+    has_onsite_tool     : bool
 
 
 @dataclass(frozen=True)
