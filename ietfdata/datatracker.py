@@ -401,7 +401,6 @@ class Document(Resource):
     rev                : str           # If `rfc` is not None, `rev` will point to the RFC publication notice
     abstract           : str
     internal_comments  : str
-    order              : int
     note               : str
     ad                 : Optional[PersonURI]
     shepherd           : Optional[EmailURI]
