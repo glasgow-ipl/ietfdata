@@ -1,10 +1,16 @@
 Change Log -- ietfdata
 ======================
 
+## Version 0.6.6 -- 19 May 2023
+
+ - Catch-up with changes to the Datatracker
+
+
 ## Version 0.6.5 -- 14 December 2022
 
  - Add `state` filter to `documents()`
  - Update tests
+
 
 ## Version 0.6.4 -- 14 December 2022
 
