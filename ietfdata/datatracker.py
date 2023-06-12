@@ -1046,6 +1046,7 @@ class Session(Resource):
     on_agenda           : bool
     purpose             : SessionPurposeURI
     has_onsite_tool     : bool
+    chat_room           : str
 
 
 @dataclass(frozen=True)

@@ -1881,7 +1881,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_groups_state(self) -> None:
         groups = list(self.dt.groups(state=self.dt.group_state(GroupStateURI("/api/v1/name/groupstatename/abandon/"))))
-        self.assertEqual(len(groups), 12)
+        self.assertEqual(len(groups), 13)
         self.assertEqual(groups[ 0].id, 1949)
         self.assertEqual(groups[ 1].id, 2009)
         self.assertEqual(groups[ 2].id, 2018)
@@ -1894,6 +1894,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(groups[ 9].id, 2295)    # TERM
         self.assertEqual(groups[10].id, 2334)    # JSON Web Proofs
         self.assertEqual(groups[11].id, 2348)    # RADEXTRA
+        self.assertEqual(groups[12].id, 2389)    # NIMBY was renamed to IVY while chartering
 
 
     def test_groups_parent(self) -> None:
