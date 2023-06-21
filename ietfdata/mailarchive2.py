@@ -170,9 +170,9 @@ class Message:
     def header_date(self) -> Optional[datetime]:
         msg_date = None # type: Optional[datetime]
         try:
-            msg_date = email.utils.parsedate(self._headers["date"][0]) # type: Optional[Tuple[int, int, int, int, int, int, int, int, int]]
-            if msg_date is not None:
-                msg_date = datetime.fromtimestamp(time.mktime(msg_date))
+            parsed_date = email.utils.parsedate(self._headers["date"][0]) 
+            if parsed_date is not None:
+                msg_date = datetime.fromtimestamp(time.mktime(parsed_date))
             else:
                 msg_date = None
         except:
@@ -244,7 +244,7 @@ class Message:
         return replies
 
 
-    def add_child_message(self, child: MailingListMessage):
+    def add_child_message(self, child: Message):
         self._children.append(child)
 
 
@@ -253,8 +253,9 @@ class Message:
 
 
     def get_child_from_addrs(self, child_from_addrs: List[str]) -> List[str]:
-        if self.header_from() is not None:
-            child_from_addrs.append(self.header_from())
+        header_from = self.header_from()
+        if header_from is not None:
+            child_from_addrs.append(header_from)
         for child in self._children:
             child.get_child_from_addrs(child_from_addrs)
         return child_from_addrs
@@ -474,7 +475,7 @@ class MailingList:
             if message.header_in_reply_to() is None:
                 threads.append(message)
             if message.header_in_reply_to() is not None and message.header_in_reply_to() in message_by_message_id:
-                message.parent = message_by_message_id[message.header_in_reply_to()]
+                message._parent = message_by_message_id[message.header_in_reply_to()]
                 message_by_message_id[message.header_in_reply_to()].add_child_message(message)
 
         return iter([MessageThread(message) for message in threads])
