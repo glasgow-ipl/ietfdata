@@ -163,8 +163,17 @@ class Message:
         return self._headers["subject"][0] if "subject" in self._headers else None
 
 
-    def header_date(self) -> Optional[str]:
-        return self._headers["date"][0] if "date" in self._headers else None
+    def header_date(self) -> Optional[datetime]:
+        msg_date = None # type: Optional[datetime]
+        try:
+            msg_date = email.utils.parsedate(self._headers["date"][0]) # type: Optional[Tuple[int, int, int, int, int, int, int, int, int]]
+            if msg_date is not None:
+                msg_date = datetime.fromtimestamp(time.mktime(msg_date))
+            else:
+                msg_date = None
+        except:
+            msg_date = None
+        return msg_date
 
 
     def header_message_id(self) -> Optional[str]:
