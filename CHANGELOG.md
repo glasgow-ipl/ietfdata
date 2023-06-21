@@ -1,6 +1,12 @@
 Change Log -- ietfdata
 ======================
 
+## Version 0.6.7 -- 21 June 2023
+
+ - Catch-up with changes to the Datatracker
+ - Add threading to mailarchive2
+
+
 ## Version 0.6.6 -- 19 May 2023
 
  - Catch-up with changes to the Datatracker
