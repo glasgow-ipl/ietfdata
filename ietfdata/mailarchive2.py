@@ -42,6 +42,7 @@ from email              import policy, utils
 from email.message      import Message as EmailMessage
 from email_reply_parser import EmailReplyParser
 from imapclient         import IMAPClient
+from dataclasses        import field
 
 # =================================================================================================
 # Database design for the mail archive:
@@ -100,6 +101,8 @@ class Message:
     _timestamp    : datetime
     _size         : int
     _headers      : Dict[str, List[str]]
+    _parent       : Optional[Message] = None
+    _children     : List[Message] = field(default_factory=list)
 
     def __init__(self,
                  ml: MailingList,
@@ -116,6 +119,7 @@ class Message:
         self._timestamp    = timestamp
         self._size         = size
         self._headers      = headers
+        self._children     = []
 
 
     # Accessors for messages properties. Messages in IMAP are assigned
@@ -231,6 +235,29 @@ class Message:
         return replies
 
 
+    def add_child_message(self, child: MailingListMessage):
+        self._children.append(child)
+
+
+    def get_child_count(self) -> int:
+        return len(self._children) + sum([child.get_child_count() for child in self._children])
+
+
+    def get_child_from_addrs(self, child_from_addrs: List[str]) -> List[str]:
+        if self.header_from() is not None:
+            child_from_addrs.append(self.header_from())
+        for child in self._children:
+            child.get_child_from_addrs(child_from_addrs)
+        return child_from_addrs
+
+
+    def get_child_dates(self, child_dates: List[datetime]):
+        child_dates.append(self.timestamp())
+        for child in self._children:
+            child.get_child_dates(child_dates)
+        return child_dates
+
+
 # =================================================================================================
 
 class MessageThread:
@@ -239,15 +266,18 @@ class MessageThread:
 
 
     def get_message_count(self):
-        pass # FIXME
+        return 1 + self.root.get_child_count()
 
 
     def get_unique_from_count(self):
-        pass # FIXME
+        from_addrs = self.root.get_child_from_addrs([])
+        return len(list(set(from_addrs)))
 
 
     def get_duration(self):
-        pass # FIXME
+        earliest_date = self.root.timestamp()
+        latest_date = sorted(self.root.get_child_dates([]), reverse=True)[0]
+        return latest_date - earliest_date
 
 
 # =================================================================================================
@@ -425,6 +455,20 @@ class MailingList:
         imap.logout()
         return msgs_to_fetch
 
+
+    def threads(self) -> Iterator[MessageThread]:
+        threads = []
+        message_by_message_id = {message.header_message_id() : message for message in self.messages()}
+
+        for message_id in message_by_message_id:
+            message = message_by_message_id[message_id]
+            if message.header_in_reply_to() is None:
+                threads.append(message)
+            if message.header_in_reply_to() is not None and message.header_in_reply_to() in message_by_message_id:
+                message.parent = message_by_message_id[message.header_in_reply_to()]
+                message_by_message_id[message.header_in_reply_to()].add_child_message(message)
+
+        return iter([MessageThread(message) for message in threads])
 
     #def threads(self) -> Iterator[MessageThread]:
     #    ts = TopologicalSorter()
