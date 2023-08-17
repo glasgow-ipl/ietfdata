@@ -1874,6 +1874,13 @@ class DataTracker:
                 elif r.status_code == 404:
                     self.log.debug(F"_datatracker_get_single: ({r.status_code}) {obj_uri}")
                     return None
+                elif r.status_code == 429:
+                    retry_time = int(r.headers['Retry-After'])
+                    self.log.warning(F"_datatracker_get_single ({r.status_code}) {obj_uri}")
+                    self.log.warning(F"_datatracker_get_single {r.headers}")
+                    self.log.warning(F"_datatracker_get_single rate limit exceeded, retry in {retry_time} seconds")
+                    self.session.close()
+                    time.sleep(retry_time)
                 else:
                     self.log.warning(F"_datatracker_get_single: error {r.status_code} {obj_uri} - retry in {retry_time}")
                     if retry_time > 60:
@@ -1936,8 +1943,8 @@ class DataTracker:
                     elif r.status_code == 429:
                         retry_time = int(r.headers['Retry-After'])
                         self.log.warning(F"_datatracker_get_multi ({r.status_code}) {obj_uri}")
-                        self.log.warning(F"_datatracker_get_multi rate limit exceeded, retry in {retry_time} seconds")
                         self.log.warning(F"_datatracker_get_multi {r.headers}")
+                        self.log.warning(F"_datatracker_get_multi rate limit exceeded, retry in {retry_time} seconds")
                         self.session.close()
                         time.sleep(retry_time)
                         retry = True
