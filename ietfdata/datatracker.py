@@ -1864,7 +1864,7 @@ class DataTracker:
                 self._rate_limit()
                 self.get_count += 1
                 r = self.session.get(req_url, params = req_params, headers = req_headers, verify = True, stream = False)
-                self.log.debug(f"_datatracker_get_single in_cache={r.from_cache} cached={r.created_at} expires={r.expires} {req_url}") #type:ignore
+                self.log.debug(f"_datatracker_get_single in_cache={r.from_cache} cached={r.created_at} expires={r.expires} {req_url}")
                 if r.status_code == 200:
                     self.log.debug(F"_datatracker_get_single: ({r.status_code}) {obj_uri}")
                     url_obj = r.json() # type: Dict[str, Any]
@@ -1914,7 +1914,7 @@ class DataTracker:
                 try:
                     self.get_count += 1
                     r = self.session.get(url = req_url, params = req_params, headers = req_headers, verify = True, stream = False)
-                    self.log.debug(f"_datatracker_get_multi  in_cache={r.from_cache} cached={r.created_at} expires={r.expires} {obj_uri}") #type:ignore
+                    self.log.debug(f"_datatracker_get_multi  in_cache={r.from_cache} cached={r.created_at} expires={r.expires} {obj_uri}")
                     if r.status_code == 200:
                         self.log.debug(F"_datatracker_get_multi ({r.status_code}) {obj_uri}")
                         meta = r.json()['meta']
@@ -1965,7 +1965,7 @@ class DataTracker:
                 req_headers = {'User-Agent': self.ua}
                 self.get_count += 1
                 r = self.session.get(url = req_url, params = req_params, headers = req_headers, verify = True, stream = False)
-                self.log.debug(f"_datatracker_get_multic in_cache={r.from_cache} cached={r.created_at} expires={r.expires} {req_url}") #type:ignore
+                self.log.debug(f"_datatracker_get_multic in_cache={r.from_cache} cached={r.created_at} expires={r.expires} {req_url}")
                 if r.status_code == 200:
                     meta = r.json()['meta']
                     total_count = meta['total_count'] # type: int
