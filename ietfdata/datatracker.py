@@ -67,7 +67,7 @@ from pavlova          import Pavlova
 from pavlova.parsers  import GenericParser
 from pymongo          import MongoClient, ASCENDING, TEXT, ReplaceOne
 from pymongo.database import Database
-from requests_cache   import CachedSession, MongoCache
+from requests_cache   import CachedSession, MongoCache, DO_NOT_CACHE
 
 # =================================================================================================================================
 # Classes to represent the JSON-serialised objects returned by the Datatracker API:
@@ -1755,10 +1755,11 @@ class DataTracker:
             self.cache_ver = "4" # Increment when changing cache architecture
             self._cache_check_versions()
         else:
+            self.log.warning("CACHE DISABLED")
             self.db_conn = None
             self.db      = None
             self.backend = None
-            self.session = CachedSession(expire_after=0)
+            self.session = CachedSession(expire_after=DO_NOT_CACHE)
 
         self.pavlova = Pavlova()
         for uri_type in URI.__subclasses__():
@@ -1844,6 +1845,7 @@ class DataTracker:
 
 
     def __del__(self):
+        self.session.remove_expired_responses()
         self.session.close()
 
 
@@ -1931,7 +1933,12 @@ class DataTracker:
                                 fetched_objs[obj["resource_uri"]] = obj
                             yield obj
                         total_count = meta["total_count"]
-                    elif r.status_code == 500:
+                    elif r.status_code == 429 
+                        self.log.warning(F"_datatracker_get_multi ({r.status_code}) {obj_uri}")
+                        self.session.close()
+                        time.sleep(30)
+                        retry = True
+                    elif r.status_code == 500 
                         self.log.warning(F"_datatracker_get_multi ({r.status_code}) {obj_uri}")
                         if retry_time > 60:
                             self.log.info(F"_datatracker_get_multi retry time exceeded")
