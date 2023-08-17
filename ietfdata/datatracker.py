@@ -2882,7 +2882,7 @@ class DataTracker:
 
     def group_role_histories(self,
             email         : Optional[str]           = None,
-            group         : Optional[Group]         = None,
+            group         : Optional[GroupHistory]  = None,
             name          : Optional[RoleName]      = None,
             person        : Optional[Person]        = None) -> Iterator[GroupRoleHistory]:
         url = GroupRoleHistoryURI("/api/v1/group/rolehistory/")
