@@ -1934,9 +1934,10 @@ class DataTracker:
                             yield obj
                         total_count = meta["total_count"]
                     elif r.status_code == 429:
-                        self.log.warning(F"_datatracker_get_multi ({r.status_code}) {obj_uri}")
                         retry_time = int(r.headers['Retry-After'])
-                        self.log.warning(F"_datatracker_get_multi retry after 429 in {retry_time}")
+                        self.log.warning(F"_datatracker_get_multi ({r.status_code}) {obj_uri}")
+                        self.log.warning(F"_datatracker_get_multi rate limit exceeded, retry in {retry_time} seconds")
+                        self.log.warning(F"_datatracker_get_multi {r.headers}")
                         self.session.close()
                         time.sleep(retry_time)
                         retry = True
