@@ -1845,7 +1845,6 @@ class DataTracker:
 
 
     def __del__(self):
-        self.session.remove_expired_responses()
         self.session.close()
 
 
