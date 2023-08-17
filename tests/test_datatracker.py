@@ -55,7 +55,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(json["resource_uri"], "/api/v1/person/email/csp@csperkins.org/")
             self.assertEqual(json["address"],      "csp@csperkins.org")
             self.assertEqual(json["person"],       "/api/v1/person/person/20209/")
-            self.assertEqual(json["time"],         "1970-01-01T23:59:59")
+            self.assertEqual(json["time"],         "1970-01-02T07:59:59Z")
             self.assertEqual(json["primary"],      True)
             self.assertEqual(json["active"],       True)
         else:
@@ -1070,7 +1070,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(e.type,            "new_revision")
             self.assertEqual(e.desc,            "New version available: <b>draft-irtf-cfrg-randomness-improvements-09.txt</b>")
             self.assertEqual(e.rev,             "09")
-            self.assertEqual(e.time,            datetime.fromisoformat("2020-01-27T06:41:36"))
+            self.assertEqual(e.time,            datetime.fromisoformat("2020-01-27T06:41:36 PST"))
         else:
             self.fail("Cannot find event")
 
@@ -1827,12 +1827,9 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_group_role_histories_group(self) -> None:
-        group_role_histories = list(self.dt.group_role_histories(group=self.dt.group(GroupURI("/api/v1/group/group/1997/"))))
-        self.assertEqual(len(group_role_histories), 4)
-        self.assertEqual(group_role_histories[0].id, 4062)
-        self.assertEqual(group_role_histories[1].id, 4063)
-        self.assertEqual(group_role_histories[2].id, 4064)
-        self.assertEqual(group_role_histories[3].id, 4065)
+        group_role_histories = list(self.dt.group_role_histories(group=self.dt.group_history(GroupHistoryURI("/api/v1/group/grouphistory/256/"))))
+        self.assertEqual(len(group_role_histories), 1)
+        self.assertEqual(group_role_histories[0].id, 519)
 
 
     def test_group_role_histories_name(self) -> None:
