@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  python: circleci/python@1.3.2
+  python: circleci/python@2.0.3
 
 jobs:
   build-and-test:
@@ -26,7 +26,7 @@ jobs:
   build-and-test-mongodb:
     docker:
       - image: cimg/python:3.9
-      - image: circleci/mongo:4.4.2
+      - image: circleci/mongo:4.4.22
     steps:
       - checkout
       - run:
