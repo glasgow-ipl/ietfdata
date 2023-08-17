@@ -1935,7 +1935,7 @@ class DataTracker:
                         total_count = meta["total_count"]
                     elif r.status_code == 429:
                         self.log.warning(F"_datatracker_get_multi ({r.status_code}) {obj_uri}")
-                        self.log.warning(F"_datatracker_get_multi retry after {r.headers['Retry-After']}")
+                        self.log.warning(F"_datatracker_get_multi retry after 429 in {r.headers['Retry-After']}")
                         self.session.close()
                         time.sleep(30)
                         retry = True
