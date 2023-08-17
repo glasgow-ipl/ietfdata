@@ -1,6 +1,11 @@
 Change Log -- ietfdata
 ======================
 
+## Version 0.6.8 -- 17 August 2023
+
+ - Catch-up with changes to the Datatracker
+
+
 ## Version 0.6.7 -- 21 June 2023
 
  - Catch-up with changes to the Datatracker
