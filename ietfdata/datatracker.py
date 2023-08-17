@@ -1734,7 +1734,7 @@ class DataTracker:
             if cache_pass is not None:
                 mongodb_pass = cache_pass
 
-        cache_limit = int(os.environ.get('IETFDATA_CACHE_RATELIMIT', "10000"))
+        cache_limit = float(os.environ.get('IETFDATA_CACHE_RATELIMIT', "10000"))
 
         logging.getLogger('requests_cache').setLevel('WARN')
 
