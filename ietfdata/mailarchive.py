@@ -328,10 +328,11 @@ class MailingList:
                         if key not in headers:
                             try:
                                 value = e.get_all(key)
-                                if len(value) == 1:
-                                    headers[key.replace(".", "-")] = value[0]
-                                else:
-                                    headers[key.replace(".", "-")] = value
+                                if value is not None:
+                                    if len(value) == 1:
+                                        headers[key.replace(".", "-")] = value[0]
+                                    else:
+                                        headers[key.replace(".", "-")] = value
                             except Exception as ex:
                                 self.log.info(f"cannot extract header: {key} -- {ex}")
                 except:

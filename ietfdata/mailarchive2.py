@@ -434,7 +434,9 @@ class MailingList:
                     for header in e.keys():
                         if header not in headers:
                             try:
-                                headers[header.lower().replace(".", "-")] = e.get_all(header)
+                                header_values = e.get_all(header)
+                                if header_values is not None:
+                                    headers[header.lower().replace(".", "-")] = header_values
                             except Exception as ex:
                                 self._log.info(f"cannot extract header {header} for {self._list_name}/{uid}")
                 except:
