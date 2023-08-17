@@ -12,6 +12,7 @@ jobs:
       - run:
           environment:
             MYPYPATH: stubs
+            IETFDATA_CACHE_RATELIMIT: 1.5
           command: |
             pipenv install --dev
             pipenv run make test
