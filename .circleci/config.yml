@@ -26,7 +26,7 @@ jobs:
   build-and-test-mongodb:
     docker:
       - image: cimg/python:3.9
-      - image: circleci/mongo:4.4.22
+      - image: circleci/mongo:4.4.12
     steps:
       - checkout
       - run:
