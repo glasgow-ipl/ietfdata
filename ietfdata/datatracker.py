@@ -67,7 +67,14 @@ from pavlova          import Pavlova
 from pavlova.parsers  import GenericParser
 from pymongo          import MongoClient, ASCENDING, TEXT, ReplaceOne
 from pymongo.database import Database
-from requests_cache   import CachedSession, MongoCache, DO_NOT_CACHE
+from requests_cache   import CacheMixin, MongoCache, DO_NOT_CACHE
+from requests_ratelimiter import LimiterMixin
+
+class CachedLimiterSession(CacheMixin, LimiterMixin, requests.Session):
+    """
+    Session class with caching and rate-limiting behavior. Accepts arguments for both
+    LimiterSession and CachedSession.
+    """
 
 # =================================================================================================================================
 # Classes to represent the JSON-serialised objects returned by the Datatracker API:
@@ -1718,6 +1725,7 @@ class DataTracker:
             cache_port = os.environ.get('IETFDATA_CACHE_PORT', 27017)
             cache_user = os.environ.get('IETFDATA_CACHE_USER')
             cache_pass = os.environ.get('IETFDATA_CACHE_PASSWORD')
+            cache_limit = int(os.environ.get('IETFDATA_CACHE_RATELIMIT', "10000"))
             if cache_host is not None:
                 mongodb_host = cache_host
             if cache_port is not None:
@@ -1742,15 +1750,16 @@ class DataTracker:
             self.log.info(f"mongodb port = {mongodb_port}")
             self.log.info(f"mongodb user = {mongodb_user}")
             self.log.info(f"mongodb pass = {mongodb_pass}")
+            self.log.info(f"mongodb limit = {cache_limit}")
             self.db_conn = MongoClient(host=mongodb_host, port=mongodb_port, username=mongodb_user, password=mongodb_pass)
             self.db      = self.db_conn.ietfdata
             self.backend = MongoCache(db_name="ietfdata_requests", connection=self.db_conn)
             if cache_timeout is not None:
                 self.log.info(f"Cache enabled; timeout = {cache_timeout}")
-                self.session = CachedSession(backend=self.backend, expire_after=cache_timeout)
+                self.session = CachedLimiterSession(backend=self.backend, expire_after=cache_timeout, per_second=cache_limit)
             else:
                 self.log.info(f"Cache enabled; timeout = (auto)")
-                self.session = CachedSession(backend=self.backend, cache_control=True)
+                self.session = CachedLimiterSession(backend=self.backend, cache_control=True, per_second=cache_limit)
             # check Datatracker and cache versions
             self.cache_ver = "4" # Increment when changing cache architecture
             self._cache_check_versions()
@@ -1759,7 +1768,7 @@ class DataTracker:
             self.db_conn = None
             self.db      = None
             self.backend = None
-            self.session = CachedSession(expire_after=DO_NOT_CACHE)
+            self.session = CachedLimiterSession(expire_after=DO_NOT_CACHE, per_second=cache_limit)
 
         self.pavlova = Pavlova()
         for uri_type in URI.__subclasses__():
@@ -1845,7 +1854,8 @@ class DataTracker:
 
 
     def __del__(self):
-        self.session.close()
+        #self.session.close()
+        pass
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -1862,10 +1872,9 @@ class DataTracker:
                 req_url     = self.base_url + obj_uri.uri
                 req_headers = {'User-Agent': self.ua}
                 req_params  = obj_uri.params
-                self._rate_limit()
                 self.get_count += 1
                 r = self.session.get(req_url, params = req_params, headers = req_headers, verify = True, stream = False)
-                self.log.debug(f"_datatracker_get_single in_cache={r.from_cache} cached={r.created_at} expires={r.expires} {req_url}") #type:ignore
+                self.log.debug(f"_datatracker_get_single in_cache={r.from_cache} cached={r.created_at} expires={r.expires} {req_url}")
                 if r.status_code == 200:
                     self.log.debug(F"_datatracker_get_single: ({r.status_code}) {obj_uri}")
                     url_obj = r.json() # type: Dict[str, Any]
@@ -1878,14 +1887,12 @@ class DataTracker:
                     self.log.warning(F"_datatracker_get_single ({r.status_code}) {obj_uri}")
                     self.log.warning(F"_datatracker_get_single {r.headers}")
                     self.log.warning(F"_datatracker_get_single rate limit exceeded, retry in {retry_time} seconds")
-                    self.session.close()
                     time.sleep(retry_time)
                 else:
                     self.log.warning(F"_datatracker_get_single: error {r.status_code} {obj_uri} - retry in {retry_time}")
                     if retry_time > 60:
                         self.log.error(F"_datatracker_get_single: error - retry limit exceeded")
                         sys.exit(1)
-                    self.session.close()
                     time.sleep(retry_time)
                     retry_time *= 2
             except requests.exceptions.ConnectionError:
@@ -1893,7 +1900,6 @@ class DataTracker:
                 if retry_time > 60:
                     self.log.error(F"_datatracker_get_single: error - retry limit exceeded")
                     sys.exit(1)
-                self.session.close()
                 time.sleep(retry_time)
                 retry_time *= 2
 
@@ -1911,7 +1917,6 @@ class DataTracker:
         total_count  = -1
         fetched_objs = {} # type: Dict[str, Dict[Any, Any]]
         while obj_uri.uri is not None:
-            self._rate_limit()
             retry = True
             retry_time = 1.875
             while retry:
@@ -1922,7 +1927,7 @@ class DataTracker:
                 try:
                     self.get_count += 1
                     r = self.session.get(url = req_url, params = req_params, headers = req_headers, verify = True, stream = False)
-                    self.log.debug(f"_datatracker_get_multi  in_cache={r.from_cache} cached={r.created_at} expires={r.expires} {obj_uri}") #type:ignore
+                    self.log.debug(f"_datatracker_get_multi  in_cache={r.from_cache} cached={r.created_at} expires={r.expires} {obj_uri}")
                     if r.status_code == 200:
                         self.log.debug(F"_datatracker_get_multi ({r.status_code}) {obj_uri}")
                         meta = r.json()['meta']
@@ -1944,7 +1949,6 @@ class DataTracker:
                         self.log.warning(F"_datatracker_get_multi ({r.status_code}) {obj_uri}")
                         self.log.warning(F"_datatracker_get_multi {r.headers}")
                         self.log.warning(F"_datatracker_get_multi rate limit exceeded, retry in {retry_time} seconds")
-                        self.session.close()
                         time.sleep(retry_time)
                         retry = True
                     elif r.status_code == 500:
@@ -1952,7 +1956,6 @@ class DataTracker:
                         if retry_time > 60:
                             self.log.info(F"_datatracker_get_multi retry time exceeded")
                             sys.exit(1)
-                        self.session.close()
                         time.sleep(retry_time)
                         retry_time *= 2
                         retry = True
@@ -1961,7 +1964,6 @@ class DataTracker:
                         sys.exit(1)
                 except requests.exceptions.ConnectionError:
                     self.log.warning(F"_datatracker_get_multi: connection error - will retry in {retry_time}")
-                    self.session.close()
                     time.sleep(retry_time)
                     retry_time *= 2
                     retry = True
@@ -1981,7 +1983,7 @@ class DataTracker:
                 req_headers = {'User-Agent': self.ua}
                 self.get_count += 1
                 r = self.session.get(url = req_url, params = req_params, headers = req_headers, verify = True, stream = False)
-                self.log.debug(f"_datatracker_get_multic in_cache={r.from_cache} cached={r.created_at} expires={r.expires} {req_url}") #type:ignore
+                self.log.debug(f"_datatracker_get_multic in_cache={r.from_cache} cached={r.created_at} expires={r.expires} {req_url}")
                 if r.status_code == 200:
                     meta = r.json()['meta']
                     total_count = meta['total_count'] # type: int
@@ -1992,7 +1994,6 @@ class DataTracker:
                     if retry_time > 60:
                         self.log.error(F"_datatracker_get_multi_count: error - retry limit exceeded")
                         sys.exit(1)
-                    self.session.close()
                     time.sleep(retry_time)
                     retry_time *= 2
             except requests.exceptions.ConnectionError:
@@ -2000,7 +2001,6 @@ class DataTracker:
                 if retry_time > 60:
                     self.log.error(F"_datatracker_get_multi_count: error - retry limit exceeded")
                     sys.exit(1)
-                self.session.close()
                 time.sleep(retry_time)
                 retry_time *= 2
 
@@ -2072,15 +2072,6 @@ class DataTracker:
     # ----------------------------------------------------------------------------------------------------------------------------
     # Private methods to retrieve objects from the datatracker:
 
-    def _rate_limit(self) -> None:
-        # A trivial rate limiter. Called before every HTTP GET to the datatracker.
-        # The datatracker objects if more than 100 requests are made on a single
-        # persistent HTTP connection.
-        self.http_req += 1
-        if (self.http_req % 100) == 0:
-            self.session.close()
-
-
     def _retrieve(self, obj_uri: URI, obj_type: Type[T]) -> Optional[T]:
         self.log.debug(F"_retrieve {obj_uri}")
         obj_json = self._datatracker_get_single(obj_uri)
@@ -2099,7 +2090,7 @@ class DataTracker:
         for obj_json in self._datatracker_get_multi(obj_uri):
             obj_jsons.append(obj_json)
         sort_by = self._hints[obj_type_uri.uri].sort_by
-        for obj_json in sorted(obj_jsons, key=lambda k: k[sort_by]):  # type: ignore
+        for obj_json in sorted(obj_jsons, key=lambda k: k[sort_by]):
             fetch_obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
             yield fetch_obj
 
