@@ -1027,7 +1027,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_document_state_types(self) -> None:
         st = list(self.dt.document_state_types())
-        self.assertEqual(len(st), 29)
+        self.assertEqual(len(st), 30)
         self.assertEqual(st[ 0].slug, 'agenda')
         self.assertEqual(st[ 1].slug, 'bluesheets')
         self.assertEqual(st[ 2].slug, 'bofreq')
@@ -1057,6 +1057,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(st[26].slug, 'shepwrit')
         self.assertEqual(st[27].slug, 'slides')
         self.assertEqual(st[28].slug, 'statchg')
+        self.assertEqual(st[29].slug, 'statement')
 
 
     def test_document_event(self) -> None:
@@ -1315,7 +1316,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_document_types(self) -> None:
         types = list(self.dt.document_types())
-        self.assertEqual(len(types), 17)
+        self.assertEqual(len(types), 18)
         self.assertEqual(types[ 0].slug, "agenda")
         self.assertEqual(types[ 1].slug, "bluesheets")
         self.assertEqual(types[ 2].slug, "bofreq")
@@ -1333,6 +1334,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(types[14].slug, "shepwrit")
         self.assertEqual(types[15].slug, "slides")
         self.assertEqual(types[16].slug, "statchg")
+        self.assertEqual(types[17].slug, "statement")
 
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to streams:
@@ -1663,7 +1665,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_roles_email(self) -> None:
         group_roles = list(self.dt.group_roles(email="csp@csperkins.org"))
-        self.assertEqual(len(group_roles), 13)
+        self.assertEqual(len(group_roles), 12)
         self.assertEqual(group_roles[0].id, 1076)   # SAFE BoF chair
         self.assertEqual(group_roles[1].id, 3998)   # TSV DIR reviewer
         self.assertEqual(group_roles[2].id, 8464)   # IRSG chair
@@ -1673,10 +1675,9 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(group_roles[6].id, 10200)  # IAB EDM programme member
         self.assertEqual(group_roles[7].id, 11103)  # TSV ART reviewer
         self.assertEqual(group_roles[8].id, 11680)  # IRTF ANRW chair
-        self.assertEqual(group_roles[9].id, 12818)  # IETF Delegate during IETF 113 plenary
-        self.assertEqual(group_roles[10].id, 12875) # RSAB member
-        self.assertEqual(group_roles[11].id, 12915) # IAB-ISOC Policy Coordination
-        self.assertEqual(group_roles[12].id, 13098) # IAB E-Impact workshop
+        self.assertEqual(group_roles[9].id, 12875)  # RSAB member
+        self.assertEqual(group_roles[10].id, 12915) # IAB-ISOC Policy Coordination
+        self.assertEqual(group_roles[11].id, 13098) # IAB E-Impact workshop
 
 
     def test_group_roles_group(self) -> None:
@@ -1703,7 +1704,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_roles_person(self) -> None:
         group_roles = list(self.dt.group_roles(person=self.dt.person(PersonURI("/api/v1/person/person/20209/"))))
-        self.assertEqual(len(group_roles), 13)
+        self.assertEqual(len(group_roles), 12)
         self.assertEqual(group_roles[0].id, 1076)   # SAFE BoF chair
         self.assertEqual(group_roles[1].id, 3998)   # TSV DIR reviewer
         self.assertEqual(group_roles[2].id, 8464)   # IRSG chair
@@ -1713,10 +1714,9 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(group_roles[6].id, 10200)  # IAB EDM programme member
         self.assertEqual(group_roles[7].id, 11103)  # TSV ART reviewer
         self.assertEqual(group_roles[8].id, 11680)  # IRTF ANRW chair
-        self.assertEqual(group_roles[9].id, 12818)  # IETF Delegate during IETF 113 plenary
-        self.assertEqual(group_roles[10].id, 12875) # RSAB member
-        self.assertEqual(group_roles[11].id, 12915) # IAB-ISOC Policy Coordination
-        self.assertEqual(group_roles[12].id, 13098) # IAB E-Impact workshop
+        self.assertEqual(group_roles[9].id, 12875) # RSAB member
+        self.assertEqual(group_roles[10].id, 12915) # IAB-ISOC Policy Coordination
+        self.assertEqual(group_roles[11].id, 13098) # IAB E-Impact workshop
 
 
     def test_group_milestone_history(self) -> None:
@@ -1822,7 +1822,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_email(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(email="csp@csperkins.org"))
-        self.assertEqual(len(group_role_histories), 67)
+        self.assertEqual(len(group_role_histories), 71)
 
 
     def test_group_role_histories_group(self) -> None:
@@ -1838,7 +1838,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_person(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(person=self.dt.person(PersonURI("/api/v1/person/person/20209/"))))
-        self.assertEqual(len(group_role_histories), 67)
+        self.assertEqual(len(group_role_histories), 71)
 
 
     def test_group_state_change_event(self) -> None:
@@ -1877,7 +1877,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_groups_state(self) -> None:
         groups = list(self.dt.groups(state=self.dt.group_state(GroupStateURI("/api/v1/name/groupstatename/abandon/"))))
-        self.assertEqual(len(groups), 13)
+        self.assertEqual(len(groups), 14)
         self.assertEqual(groups[ 0].id, 1949)
         self.assertEqual(groups[ 1].id, 2009)
         self.assertEqual(groups[ 2].id, 2018)
@@ -1890,7 +1890,8 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(groups[ 9].id, 2295)    # TERM
         self.assertEqual(groups[10].id, 2334)    # JSON Web Proofs
         self.assertEqual(groups[11].id, 2348)    # RADEXTRA
-        self.assertEqual(groups[12].id, 2389)    # NIMBY was renamed to IVY while chartering
+        self.assertEqual(groups[12].id, 2387)    # CONGRESS was renamed to CCWG while chartering
+        self.assertEqual(groups[13].id, 2389)    # NIMBY was renamed to IVY while chartering
 
 
     def test_groups_parent(self) -> None:
