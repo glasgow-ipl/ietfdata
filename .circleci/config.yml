@@ -45,4 +45,6 @@ workflows:
   main:
     jobs:
       - build-and-test
-      - build-and-test-mongodb
+      - after:
+          requires:
+            - build-and-test-mongodb
