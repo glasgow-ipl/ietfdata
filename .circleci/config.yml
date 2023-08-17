@@ -12,7 +12,7 @@ jobs:
       - run:
           environment:
             MYPYPATH: stubs
-            IETFDATA_CACHE_RATELIMIT: 1.5
+            IETFDATA_CACHE_RATELIMIT: 1
           command: |
             pipenv install --dev
             pipenv run make test
@@ -35,7 +35,7 @@ jobs:
           environment:
             MYPYPATH: stubs
             IETFDATA_CACHE_HOST: localhost
-            IETFDATA_CACHE_RATELIMIT: 1.5
+            IETFDATA_CACHE_RATELIMIT: 1
           command: |
             pipenv install --dev
             pipenv run make test
