@@ -1725,7 +1725,6 @@ class DataTracker:
             cache_port = os.environ.get('IETFDATA_CACHE_PORT', 27017)
             cache_user = os.environ.get('IETFDATA_CACHE_USER')
             cache_pass = os.environ.get('IETFDATA_CACHE_PASSWORD')
-            cache_limit = int(os.environ.get('IETFDATA_CACHE_RATELIMIT', "10000"))
             if cache_host is not None:
                 mongodb_host = cache_host
             if cache_port is not None:
@@ -1734,6 +1733,8 @@ class DataTracker:
                 mongodb_user = cache_user
             if cache_pass is not None:
                 mongodb_pass = cache_pass
+
+        cache_limit = int(os.environ.get('IETFDATA_CACHE_RATELIMIT', "10000"))
 
         logging.getLogger('requests_cache').setLevel('WARN')
 
