@@ -1933,12 +1933,12 @@ class DataTracker:
                                 fetched_objs[obj["resource_uri"]] = obj
                             yield obj
                         total_count = meta["total_count"]
-                    elif r.status_code == 429 
+                    elif r.status_code == 429:
                         self.log.warning(F"_datatracker_get_multi ({r.status_code}) {obj_uri}")
                         self.session.close()
                         time.sleep(30)
                         retry = True
-                    elif r.status_code == 500 
+                    elif r.status_code == 500:
                         self.log.warning(F"_datatracker_get_multi ({r.status_code}) {obj_uri}")
                         if retry_time > 60:
                             self.log.info(F"_datatracker_get_multi retry time exceeded")
