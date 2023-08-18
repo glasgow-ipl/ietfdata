@@ -16,14 +16,8 @@ jobs:
           command: |
             pipenv install --dev
             pipenv run make test
-            pipenv run coverage run --source ietfdata tests/test_rfcindex.py
-            pipenv run coverage run -a --source ietfdata tests/test_datatracker.py
-            pipenv run coverage report
-            pipenv run coverage html
           name: Test
           no_output_timeout: 15m
-      - store_artifacts:
-          path: htmlcov
 
   build-and-test-mongodb:
     docker:
@@ -42,8 +36,6 @@ jobs:
             pipenv run make test
           name: Test-Cache
           no_output_timeout: 15m
-      - store_artifacts:
-          path: htmlcov
 
 workflows:
   main:
