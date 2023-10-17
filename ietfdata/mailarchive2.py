@@ -142,6 +142,7 @@ class Message:
 
 
     # Timestamp is the time the messages was received by the IMAP server
+    # FIXME: rename to `date_received()`
     def timestamp(self) -> datetime:
         return self._timestamp
 
@@ -151,22 +152,27 @@ class Message:
 
 
     # Accessors for commonly-used headers:
+    # FIXME: This should be removed; use `header("from")` instead
     def header_from(self) -> Optional[str]:
         return self._headers["from"][0] if "from" in self._headers else None
 
 
+    # FIXME: This should be removed; use `header("to")` instead
     def header_to(self) -> Optional[str]:
         return self._headers["to"][0] if "to" in self._headers else None
 
 
+    # FIXME: This should be removed; use `header("cc")` instead
     def header_cc(self) -> Optional[str]:
         return self._headers["cc"][0] if "cc" in self._headers else None
 
 
+    # FIXME: This should be removed; use `header("subject")` instead
     def header_subject(self) -> Optional[str]:
         return self._headers["subject"][0] if "subject" in self._headers else None
 
 
+    # FIXME: rename to `date()`
     def header_date(self) -> Optional[datetime]:
         msg_date = None # type: Optional[datetime]
         try:
@@ -180,14 +186,17 @@ class Message:
         return msg_date
 
 
+    # FIXME: This should be removed; use `header("message-id")` instead
     def header_message_id(self) -> Optional[str]:
         return self._headers["message-id"][0] if "message-id" in self._headers else None
 
 
+    # FIXME: This should be removed; use `header("in-reply-to")` instead
     def header_in_reply_to(self) -> Optional[str]:
         return self._headers["in-reply-to"][0] if "in-reply-to" in self._headers else None
 
 
+    # FIXME: This should be removed; use `header("references")` instead
     def header_references(self) -> Optional[str]:
         return self._headers["references"][0] if "references" in self._headers else None
 
@@ -244,14 +253,17 @@ class Message:
         return replies
 
 
+    # FIXME: remove
     def add_child_message(self, child: Message):
         self._children.append(child)
 
 
+    # FIXME: remove
     def get_child_count(self) -> int:
         return len(self._children) + sum([child.get_child_count() for child in self._children])
 
 
+    # FIXME: remove
     def get_child_from_addrs(self, child_from_addrs: List[str]) -> List[str]:
         header_from = self.header_from()
         if header_from is not None:
@@ -261,6 +273,7 @@ class Message:
         return child_from_addrs
 
 
+    # FIXME: remove
     def get_child_dates(self, child_dates: List[datetime]):
         child_dates.append(self.timestamp())
         for child in self._children:
@@ -270,6 +283,7 @@ class Message:
 
 # =================================================================================================
 
+# FIXME: remove
 class MessageThread:
     def __init__(self, root: Message):
         self.root = root
@@ -337,6 +351,7 @@ class MailingList:
             yield msg["uid"]
 
 
+    # FIXME: add `uidvalidity` parameter?
     def message(self, uid: int) -> Optional[Message]:
         message = self._mail_archive._db.messages.find_one({"list" : self._list_name, "uidvalidity": self._uidvalidity, "uid": uid})
         if message is not None:
@@ -468,6 +483,7 @@ class MailingList:
         return msgs_to_fetch
 
 
+    # FIXME: remove
     def threads(self) -> Iterator[MessageThread]:
         threads = []
         message_by_message_id = {message.header_message_id() : message for message in self.messages()}
@@ -481,18 +497,6 @@ class MailingList:
                 message_by_message_id[message.header_in_reply_to()].add_child_message(message)
 
         return iter([MessageThread(message) for message in threads])
-
-    #def threads(self) -> Iterator[MessageThread]:
-    #    ts = TopologicalSorter()
-    #    for msg in self.messages():
-    #        if msg.header_references() is not None:
-    #            ts.add(msg.header_message_id(), msg.header_references().split(" ").reverse())
-    #        elif msg.header_in_reply_to() is not None:
-    #            ts.add(msg.header_message_id(), msg.header_in_reply_to())
-    #        else:
-    #            ts.add(msg.header_message_id())
-    #    for msg_id in ts.static_order():
-    #        print(msg_id)
 
 
 # =================================================================================================
