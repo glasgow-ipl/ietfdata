@@ -1,6 +1,12 @@
 Change Log -- ietfdata
 ======================
 
+## Version 0.7.0 -- ???
+
+ - Update mailarchive2.py as the new mail access API
+ - Remove mailarchive.py
+
+
 ## Version 0.6.8 -- 17 August 2023
 
  - Catch-up with changes to the Datatracker

@@ -1,4 +1,4 @@
-# Copyright (C) 2020-2022 University of Glasgow
+# Copyright (C) 2020-2023 University of Glasgow
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -39,7 +39,7 @@ from gridfs             import GridFS
 from pymongo            import MongoClient, ASCENDING, ReplaceOne, UpdateOne
 from pymongo.database   import Database
 from email              import policy, utils
-from email.message      import Message as EmailMessage
+from email.message      import Message
 from email_reply_parser import EmailReplyParser
 from imapclient         import IMAPClient
 from dataclasses        import field
@@ -93,42 +93,41 @@ from dataclasses        import field
 #
 # =================================================================================================
 
-class Message:
-    _mailing_list : MailingList
-    _uidvalidity  : int
-    _uid          : int
-    _gridfs_id    : int
-    _timestamp    : datetime
-    _size         : int
-    _headers      : Dict[str, List[str]]
-    _parent       : Optional[Message] = None
-    _children     : List[Message] = field(default_factory=list)
+class Envelope:
+    _mailing_list  : MailingList
+    _uidvalidity   : int
+    _uid           : int
+    _gridfs_id     : int
+    _dste_received : datetime
+    _size          : int
+    _headers       : Dict[str, List[str]]
 
     def __init__(self,
-                 ml: MailingList,
-                 uidvalidity: int,
-                 uid: int,
-                 gridfs_id: int,
-                 timestamp: datetime,
-                 size:int,
-                 headers: Dict[str, List[str]]) -> None:
-        self._mailing_list = ml
-        self._uidvalidity  = uidvalidity
-        self._uid          = uid
-        self._gridfs_id    = gridfs_id
-        self._timestamp    = timestamp
-        self._size         = size
-        self._headers      = headers
-        self._children     = []
+                 ml            : MailingList,
+                 uidvalidity   : int,
+                 uid           : int,
+                 gridfs_id     : int,
+                 date_received : datetime,
+                 size          : int,
+                 headers       : Dict[str, List[str]]) -> None:
+        self._mailing_list  = ml
+        self._uidvalidity   = uidvalidity
+        self._uid           = uid
+        self._gridfs_id     = gridfs_id
+        self._dste_received = date_received
+        self._size          = size
+        self._headers       = headers
 
 
-    # Accessors for messages properties. Messages in IMAP are assigned
-    # a unique identifier `uid()` within a folder representing a mailing
-    # list. That identifier is not supposed to change, but the IMAP
-    # standard recognises that mailboxes occasionally get rebuilt. If
-    # this happens, the `uidvalidity()` will change. The combination of
-    # mailing_list(), uid(), and uidvalidity() uniquely identifies a 
-    # message on the server.
+    # Accessors for properties of the message in this Envelope. 
+    #
+    # Messages in IMAP are assigned a unique identifier `uid()` within a folder
+    # representing a mailing list. That identifier is not supposed to change,
+    # but the IMAP standard recognises that mailboxes occasionally get rebuilt.
+    # If this happens, the `uidvalidity()` will change. The combination of
+    # mailing_list(), uid(), and uidvalidity() uniquely identifies a message on
+    # the server.
+
     def mailing_list(self) -> MailingList:
         return self._mailing_list
 
@@ -141,39 +140,25 @@ class Message:
         return self._uid
 
 
-    # Timestamp is the time the messages was received by the IMAP server
-    # FIXME: rename to `date_received()`
-    def timestamp(self) -> datetime:
-        return self._timestamp
+    def date_received(self) -> datetime:
+        return self._dste_received
 
 
     def size(self) -> int:
         return self._size
 
 
-    # Accessors for commonly-used headers:
-    # FIXME: This should be removed; use `header("from")` instead
-    def header_from(self) -> Optional[str]:
-        return self._headers["from"][0] if "from" in self._headers else None
+    def date(self) -> Optional[datetime]:
+        """
+        The "Date:" header from the Message within this Envelope, parsed into a
+        `DateTime` object.
 
+        This will return `None` if the "Date:" header is not present or cannot
+        be parsed. 
 
-    # FIXME: This should be removed; use `header("to")` instead
-    def header_to(self) -> Optional[str]:
-        return self._headers["to"][0] if "to" in self._headers else None
-
-
-    # FIXME: This should be removed; use `header("cc")` instead
-    def header_cc(self) -> Optional[str]:
-        return self._headers["cc"][0] if "cc" in self._headers else None
-
-
-    # FIXME: This should be removed; use `header("subject")` instead
-    def header_subject(self) -> Optional[str]:
-        return self._headers["subject"][0] if "subject" in self._headers else None
-
-
-    # FIXME: rename to `date()`
-    def header_date(self) -> Optional[datetime]:
+        The `header("date")` method can be used to return the unparsed "Date:"
+        header as a `str`.
+        """
         msg_date = None # type: Optional[datetime]
         try:
             parsed_date = email.utils.parsedate(self._headers["date"][0]) 
@@ -186,122 +171,80 @@ class Message:
         return msg_date
 
 
-    # FIXME: This should be removed; use `header("message-id")` instead
-    def header_message_id(self) -> Optional[str]:
-        return self._headers["message-id"][0] if "message-id" in self._headers else None
-
-
-    # FIXME: This should be removed; use `header("in-reply-to")` instead
-    def header_in_reply_to(self) -> Optional[str]:
-        return self._headers["in-reply-to"][0] if "in-reply-to" in self._headers else None
-
-
-    # FIXME: This should be removed; use `header("references")` instead
-    def header_references(self) -> Optional[str]:
-        return self._headers["references"][0] if "references" in self._headers else None
-
-
-    # Accessor for other headers:
     def header(self, header_name:str) -> List[str]:
-        return self._headers[header_name]
+        """
+        Accessor for the headers of the message in this Envelope.
+
+        Some headers, e.g., "Received:" are expected to occur multiple times
+        within a message and will return a list containing multiple items. 
+
+        Other headers, e.g., "From:", are only supposed to occur once in each
+        message. In these cases, this method should return a list containing a
+        single value. Note, however, that the IETF mail archive contains some
+        malformed messages with unexpected duplicate headers. For example,
+        there are some messages with two addresses in the "From:" line.
+        """
+        if not header_name in self._headers:
+            return []
+        else:
+            return self._headers[header_name]
 
 
-    # Accessor for message body:
-    def body(self) -> EmailMessage:
+    def contents(self) -> Message:
+        """
+        Return the Message contained within this Envelope.
+        """
         msg = self._mailing_list._mail_archive._fs.get(self._gridfs_id)
         return email.message_from_bytes(msg.read(), policy=policy.default)
 
 
-    # Find the messages that this is in reply to. Each message can only be
-    # in reply to a single other message, but there may be multiple copies
-    # of that message in the archive if it was sent to multiple lists, each
-    # of which may have different replies.  This method returns all the copies.
-    # If this is the first message in a thread, then an empty list is returned.
-    def in_reply_to(self) -> List[Message]:
-        in_reply_to = self.header_in_reply_to()
-        references  = self.header_references()
-        if in_reply_to is not None:
-            parent = in_reply_to
+    def in_reply_to(self) -> List[Envelope]:
+        """
+        Return the envelopes containing the messages that this is in reply to. 
+
+        Each message can only be in reply to a single other message, but there
+        may be multiple copies of that message in the archive if it was sent to
+        multiple lists, each of which may itself have different replies. This
+        method returns all such copies.
+
+        If this is the first message in a thread, then an empty list is returned.
+        """
+        in_reply_to = self.header("in-reply-to")
+        references  = self.header("references")
+        if len(in_reply_to) == 1:
+            parent = in_reply_to[0]
         elif references is not None:
-            parent = references.split(" ")[-1]
+            parent = references[0].split(" ")[-1]
         else:
             return []
         parents = []
         for message in self._mailing_list._mail_archive._db.messages.find({"message_id": parent}):
-            mailing_list = self._mailing_list._mail_archive.mailing_list(message["list"])
-            uidvalidity  = message["uidvalidity"]
-            uid          = message["uid"]
-            gridfs_id    = message["gridfs_id"]
-            timestamp    = message["timestamp"]
-            size         = message["size"]
-            headers      = message["headers"]
-            parents.append(Message(mailing_list, uidvalidity, uid, gridfs_id, timestamp, size, headers))
+            mailing_list  = self._mailing_list._mail_archive.mailing_list(message["list"])
+            uidvalidity   = message["uidvalidity"]
+            uid           = message["uid"]
+            gridfs_id     = message["gridfs_id"]
+            date_received = message["timestamp"]
+            size          = message["size"]
+            headers       = message["headers"]
+            parents.append(Envelope(mailing_list, uidvalidity, uid, gridfs_id, date_received, size, headers))
         return parents
 
 
-    def replies(self) -> List[Message]:
+    def replies(self) -> List[Envelope]:
+        """
+        Return the envelopes containing the messages sent in reply to this.
+        """
         replies = []
         for message in self._mailing_list._mail_archive._db.messages.find({"in_reply_to": self.header_message_id()}):
-            mailing_list = self._mailing_list._mail_archive.mailing_list(message["list"])
-            uidvalidity  = message["uidvalidity"]
-            uid          = message["uid"]
-            gridfs_id    = message["gridfs_id"]
-            timestamp    = message["timestamp"]
-            size         = message["size"]
-            headers      = message["headers"]
-            replies.append(Message(mailing_list, uidvalidity, uid, gridfs_id, timestamp, size, headers))
+            mailing_list  = self._mailing_list._mail_archive.mailing_list(message["list"])
+            uidvalidity   = message["uidvalidity"]
+            uid           = message["uid"]
+            gridfs_id     = message["gridfs_id"]
+            date_received = message["timestamp"]
+            size          = message["size"]
+            headers       = message["headers"]
+            replies.append(Envelope(mailing_list, uidvalidity, uid, gridfs_id, date_received, size, headers))
         return replies
-
-
-    # FIXME: remove
-    def add_child_message(self, child: Message):
-        self._children.append(child)
-
-
-    # FIXME: remove
-    def get_child_count(self) -> int:
-        return len(self._children) + sum([child.get_child_count() for child in self._children])
-
-
-    # FIXME: remove
-    def get_child_from_addrs(self, child_from_addrs: List[str]) -> List[str]:
-        header_from = self.header_from()
-        if header_from is not None:
-            child_from_addrs.append(header_from)
-        for child in self._children:
-            child.get_child_from_addrs(child_from_addrs)
-        return child_from_addrs
-
-
-    # FIXME: remove
-    def get_child_dates(self, child_dates: List[datetime]):
-        child_dates.append(self.timestamp())
-        for child in self._children:
-            child.get_child_dates(child_dates)
-        return child_dates
-
-
-# =================================================================================================
-
-# FIXME: remove
-class MessageThread:
-    def __init__(self, root: Message):
-        self.root = root
-
-
-    def get_message_count(self):
-        return 1 + self.root.get_child_count()
-
-
-    def get_unique_from_count(self):
-        from_addrs = self.root.get_child_from_addrs([])
-        return len(list(set(from_addrs)))
-
-
-    def get_duration(self):
-        earliest_date = self.root.timestamp()
-        latest_date = sorted(self.root.get_child_dates([]), reverse=True)[0]
-        return latest_date - earliest_date
 
 
 # =================================================================================================
@@ -319,17 +262,22 @@ class MailingList:
         self._list_name    = list_name
         ml = self._mail_archive._db.lists.find_one({"list": list_name})
         if ml is None:
-            imap = IMAPClient(host='imap.ietf.org', ssl=True, use_uid=True)
+            imap = IMAPClient(host=self._mail_archive._imap_server, ssl=True, use_uid=True)
             imap.login("anonymous", "anonymous")
-            status_imap = imap.folder_status("Shared Folders/" + self._list_name)
+
+            _, _, imap_ns_shared = imap.namespace()
+            imap_prefix    = imap_ns_shared[0][0]
+            imap_separator = imap_ns_shared[0][1]
+
+            status_imap = imap.folder_status(f"{imap_prefix}{self._list_name}")
             status_json = {
                 "list"         : self._list_name,
                 "uidvalidity"  : status_imap[b'UIDVALIDITY'],
             }
             self._mail_archive._db.lists.insert_one(status_json)
             imap.logout()
-            self._log.info(f"Created cache for list {self._list_name}")
             self._uidvalidity = status_imap[b'UIDVALIDITY']
+            self._log.info(f"Created cache for list {self._list_name}")
         else:
             self._uidvalidity = ml["uidvalidity"] #type: int
 
@@ -351,8 +299,11 @@ class MailingList:
             yield msg["uid"]
 
 
-    # FIXME: add `uidvalidity` parameter?
-    def message(self, uid: int) -> Optional[Message]:
+    def message(self, uid: int) -> Optional[Envelope]:
+        """
+        Return the Envelope containing the Message identified by the 
+        specified uid within this mailing list.
+        """
         message = self._mail_archive._db.messages.find_one({"list" : self._list_name, "uidvalidity": self._uidvalidity, "uid": uid})
         if message is not None:
             uidvalidity = message["uidvalidity"]
@@ -361,17 +312,22 @@ class MailingList:
             timestamp   = message["timestamp"]
             size        = message["size"]
             headers     = message["headers"]
-            return Message(self, uidvalidity, uid, gridfs_id, timestamp, size, headers)
+            return Envelope(self, uidvalidity, uid, gridfs_id, timestamp, size, headers)
         else:
             return None
 
 
-    def messages(self, since: str = "1970-01-01T00:00:00", until: str = "2038-01-19T03:14:07") -> Iterator[Message]:
+    def messages(self, 
+                 received_after: str = "1970-01-01T00:00:00", 
+                 received_before: str = "2038-01-19T03:14:07") -> Iterator[Envelope]:
+        """
+        Return the envelopes containing the specified messages from this mailing list.
+        """
         query = {"list"        : self._list_name,
                  "uidvalidity" : self._uidvalidity,
                  "timestamp"   : {
-                     "$gt": datetime.strptime(since, "%Y-%m-%dT%H:%M:%S"),
-                     "$lt": datetime.strptime(until, "%Y-%m-%dT%H:%M:%S")
+                     "$gt": datetime.strptime(received_after,  "%Y-%m-%dT%H:%M:%S"),
+                     "$lt": datetime.strptime(received_before, "%Y-%m-%dT%H:%M:%S")
                  }
                 }
         messages = self._mail_archive._db.messages.find(query, no_cursor_timeout=True)
@@ -382,44 +338,64 @@ class MailingList:
             timestamp   = message["timestamp"]
             size        = message["size"]
             headers     = message["headers"]
-            yield Message(self, uidvalidity, uid, gridfs_id, timestamp, size, headers)
+            yield Envelope(self, uidvalidity, uid, gridfs_id, timestamp, size, headers)
         messages.close()
 
 
     def messages_as_dataframe(self,
-                 since : str = "1970-01-01T00:00:00",
-                 until : str = "2038-01-19T03:14:07") -> pd.DataFrame:
+                              received_after  : str = "1970-01-01T00:00:00",
+                              received_before : str = "2038-01-19T03:14:07") -> pd.DataFrame:
+        """
+        Return a dataframe containing metadata about the specified messages from
+        this mailing list.
+        """
         messages_as_dict = []
-        for message in self.messages(since = since, until = until):
-            mdict = {"Message-ID"  : message.header_message_id(),
-                     "From"        : message.header_from(),
-                     "To"          : message.header_to(),
-                     "Cc"          : message.header_cc(),
-                     "Subject"     : message.header_subject(),
-                     "Date"        : message.header_date(),
-                     "In-Reply-To" : message.header_in_reply_to(),
-                     "References"  : message.header_references()}
+        for message in self.messages(received_after = received_after, received_before = received_before):
+            mdict = {"Message-ID"  : message.header("message-id")[0] if message.header("message-id") != [] else None,
+                     "From"        : message.header("from")[0],
+                     "To"          : message.header("to"),
+                     "Cc"          : message.header("cc"),
+                     "Subject"     : message.header("subject")[0],
+                     "Date"        : message.date(),
+                     "In-Reply-To" : message.header("in-reply-to") if message.header("in-reply-to") != [] else None,
+                     "References"  : message.header("references"),
+                    }
             messages_as_dict.append(mdict)
         df = pd.DataFrame(data=messages_as_dict)
         df.set_index("Message-ID", inplace=True)
         return df
 
 
-    def update(self) -> List[int]:
-        self._log.info(f"Updating list {self.name()}")
-        imap = IMAPClient(host='imap.ietf.org', ssl=True, use_uid=True)
-        imap.login("anonymous", "anonymous")
+    def update(self, verbose=True) -> List[int]:
+        """
+        Update the local copy of this mailing list from the IMAP server.
 
-        folder_status = imap.folder_status("Shared Folders/" + self._list_name)
+        This MUST be called at least once for each mailing list, else no
+        messages will be retrieved from the server. That initial update
+        may well be slow, since it downloads the entire set of messages
+        from the list. Subsequent calls to `update()` only fetch the new
+        messages and so are much faster.
+        """
+        # Login to the IMAP server:
+        self._log.info(f"Updating list {self.name()}")
+        imap = IMAPClient(host=self._mail_archive._imap_server, ssl=True, use_uid=True)
+        imap.login("anonymous", "anonymous")
+        _, _, imap_ns_shared = imap.namespace()
+        imap_prefix    = imap_ns_shared[0][0]
+        imap_separator = imap_ns_shared[0][1]
+        folder_status  = imap.folder_status(f"{imap_prefix}{self._list_name}")
+
+        # If UIDVALIDITY has changed, the cache will be invalid and we must re-download
+        # the entire folder. IMAP servers are supposed to ensure the UIDVALIDITY doesn't
+        # change, but sometimes a re-index occurs on the server so we have to handle it.
         if folder_status[b'UIDVALIDITY'] != self._uidvalidity:
-            # if UIDVALIDITY has changed, the cache will be invalid and we must re-download
-            # the entire folder. IMAP servers are supposed to ensure the UIDVALIDITY doesn't
-            # change, but sometimes a re-index occurs on the server so we have to handle it.
             self._log.warn(f"UIDVALIDITY changed for mailing list {self._list_name}")
             # Remove messages with old uidvalidity:
             for msg in self._mail_archive._db.messages.find({"list": self._list_name, "uidvalidity": self._uidvalidity}):
                 self._mail_archive._fs.delete(msg["gridfs_id"])
                 self._mail_archive._db.messages.delete_one({"list" : self._list_name, "uidvalidity": self._uidvalidity, "uid" : msg['uid']})
+                if verbose:
+                    print(f"[mailarchive] Remove {self._list_name}/{msg['uid']} due to UIDVALIDITY change")
             # Write the new uidvalidity to the database:
             list_status = {
                 "list"        : self._list_name,
@@ -428,20 +404,21 @@ class MailingList:
             self._mail_archive._db.lists.replace_one({"list" : self._list_name}, list_status)
             self._uidvalidity = folder_status[b'UIDVALIDITY']
 
-        imap.select_folder("Shared Folders/" + self._list_name, readonly=True)
+        # Find the messages to fetch:
+        imap.select_folder(f"{imap_prefix}{self._list_name}", readonly=True)
         server_messages = imap.search()
         cached_messages = list(self.message_uids())
         msgs_to_fetch   = []
-
-        # Find the messages to fetch:
         for uid in server_messages:
             if uid not in cached_messages:
                 msgs_to_fetch.append(uid)
 
-        # Fetch the messages
+        # Fetch the messages:
         for i in range(0, len(msgs_to_fetch), 16):
             uid_slice = msgs_to_fetch[slice(i, i+16, 1)]
             for uid, msg in imap.fetch(uid_slice, "INTERNALDATE RFC822.SIZE RFC822").items():
+                if verbose:
+                    print(f"[mailarchive] Fetch {self._list_name}/{uid}")
                 e = email.message_from_bytes(msg[b"RFC822"], policy=policy.default)
                 # Extract the headers:
                 headers = {}
@@ -453,9 +430,9 @@ class MailingList:
                                 if header_values is not None:
                                     headers[header.lower().replace(".", "-")] = header_values
                             except Exception as ex:
-                                self._log.info(f"cannot extract header {header} for {self._list_name}/{uid}")
+                                self._log.warn(f"Cannot extract header {header} for {self._list_name}/{uid}")
                 except:
-                    self._log.info(f"cannot extract headers for {self._list_name}/{uid}")
+                    self._log.warn(f"Cannot extract headers for {self._list_name}/{uid}")
                 # Find the parent message:
                 if "in-reply-to" in headers:
                     in_reply_to = headers["in-reply-to"][0]
@@ -483,45 +460,40 @@ class MailingList:
         return msgs_to_fetch
 
 
-    # FIXME: remove
-    def threads(self) -> Iterator[MessageThread]:
-        threads = []
-        message_by_message_id = {message.header_message_id() : message for message in self.messages()}
-
-        for message_id in message_by_message_id:
-            message = message_by_message_id[message_id]
-            if message.header_in_reply_to() is None:
-                threads.append(message)
-            if message.header_in_reply_to() is not None and message.header_in_reply_to() in message_by_message_id:
-                message._parent = message_by_message_id[message.header_in_reply_to()]
-                message_by_message_id[message.header_in_reply_to()].add_child_message(message)
-
-        return iter([MessageThread(message) for message in threads])
+    def threads(self) -> Iterator[Envelope]:
+        """
+        Yields the envelopes containing the first message in each thread in
+        this mailing list.
+        """
+        return None # FIXME
 
 
 # =================================================================================================
 
-# Private helper for MailArchive::update()
-def _update_list(ml: MailingList) -> None:
-    ml.update()
-
-
 class MailArchive:
+    """
+    A class representing the IETF email archive.
+    """
+
+    _log           : logging.Logger
+    _imap_server   : str
     _mongoclient   : MongoClient
     _db            : Database
     _fs            : GridFS
-    _log           : logging.Logger
     _mailing_lists : Dict[str, MailingList]
 
-
     def __init__(self,
-            mongodb_hostname : str = "localhost",
-            mongodb_port     : int = 27017,
-            mongodb_username : Optional[str] = None,
-            mongodb_password : Optional[str] = None):
-        # Enable logging
+                 imap_server      : str = "imap.ietf.org",
+                 mongodb_hostname : str = "localhost",
+                 mongodb_port     : str = "27017",
+                 mongodb_username : Optional[str] = None,
+                 mongodb_password : Optional[str] = None):
+        """
+        Initialise the MailArchive.
+        """
         logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
-        self._log           = logging.getLogger("ietfdata")
+        self._log         = logging.getLogger("ietfdata")
+        self._imap_server = imap_server
         # Connect to MongoDB:
         cache_host     = os.environ.get('IETFDATA_CACHE_HOST',     mongodb_hostname)
         cache_port     = os.environ.get('IETFDATA_CACHE_PORT',     mongodb_port)
@@ -543,7 +515,10 @@ class MailArchive:
 
 
     def mailing_list_names(self) -> Iterator[str]:
-        imap = IMAPClient(host='imap.ietf.org', ssl=True, use_uid=True)
+        """
+        Yield the names of the mailing lists that exist in the mail archive.
+        """
+        imap = IMAPClient(host=self._imap_server, ssl=True, use_uid=True)
         imap.login("anonymous", "anonymous")
         folders = imap.list_folders()
         imap.logout()
@@ -553,30 +528,47 @@ class MailArchive:
 
 
     def mailing_list(self, mailing_list_name: str) -> MailingList:
+        """
+        Return an object representing the given mailing list.
+        """
         if not mailing_list_name in self._mailing_lists:
             self._mailing_lists[mailing_list_name] = MailingList(self, mailing_list_name)
         return self._mailing_lists[mailing_list_name]
 
 
     def messages(self,
-                 since : str = "1970-01-01T00:00:00",
-                 until : str = "2038-01-19T03:14:07") -> Iterator[Message]:
+                 received_after : str = "1970-01-01T00:00:00",
+                 received_before : str = "2038-01-19T03:14:07") -> Iterator[Envelope]:
+        """
+        Return the envelopes of all specified messages in the archive.
+        """
         for ml_name in self.mailing_list_names():
             ml = self.mailing_list(ml_name)
-            yield from ml.messages(since, until)
+            for msg in ml.messages(received_after, received_before):
+                yield msg
 
 
-    def update(self) -> None:
-        # WARNING: The first time this method is called, it will download the
-        # entire mail archive. This will take several hours and download tens
-        # of gigabytes of data. Subsequent calls will just fetch new data, so
-        # will be much faster. Set the environment variable IETFDATA_LOGLEVEL
-        # to INFO before running this to be informed of progress.
+    def update(self, verbose = True) -> None:
+        """
+        Update the local cache of the messages from all the mailing lists.
+
+        This method should be called when working with a complete copy of
+        the mail archive to synchronise the local copy with the IETF IMAP
+        server. 
+
+        To only download a subset of the messages, use the `mailing_list()`
+        method to get a MailingList object for the lists of interest, then
+        call the `update()` method on those objects.
+
+        WARNING: The first time this method is called, it will download the
+        entire mail archive. This will take several hours and download tens
+        of gigabytes of data. Subsequent calls will just fetch new data and
+        so will be much faster.
+        """
         with concurrent.futures.ThreadPoolExecutor(max_workers = 8) as executor:
             for ml_name in self.mailing_list_names():
                 ml = self.mailing_list(ml_name)
-                executor.submit(_update_list, ml)
-
+                executor.submit(lambda mailing_list : mailing_list.update(verbose), ml)
 
 # =================================================================================================
 # vim: set tw=0 ai:
