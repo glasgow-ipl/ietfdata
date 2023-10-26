@@ -560,15 +560,40 @@ class MailArchive:
 
 
     def messages(self,
-                 received_after : str = "1970-01-01T00:00:00",
-                 received_before : str = "2038-01-19T03:14:07") -> Iterator[Envelope]:
+                 received_after  : str = "1970-01-01T00:00:00",
+                 received_before : str = "2038-01-19T03:14:07",
+								 header_from     : Optional[str] = None,
+								 header_to       : Optional[str] = None,
+								 header_subject  : Optional[str] = None,
+								 mailing_list    : Optional[str] = None,
+								) -> Iterator[Envelope]:
         """
         Return the envelopes of all specified messages in the archive.
         """
-        for ml_name in self.mailing_list_names():
-            ml = self.mailing_list(ml_name)
-            for msg in ml.messages(received_after, received_before):
-                yield msg
+        query = {"timestamp"   : {
+                     "$gt": datetime.strptime(received_after,  "%Y-%m-%dT%H:%M:%S"),
+                     "$lt": datetime.strptime(received_before, "%Y-%m-%dT%H:%M:%S")
+                 }
+                }
+        if header_from is not None:
+            query["headers.from"] = { "$regex": f"{header_from}"}
+        if header_to is not None:
+            query["headers.to"] = { "$regex": f"{header_to}"}
+        if header_subject is not None:
+            query["headers.subject"] = { "$regex": f"{header_subject}"}
+        if mailing_list is not None:
+            query["list"] = mailing_list
+        messages = self._db.messages.find(query, no_cursor_timeout=True)
+        for message in messages:
+            mailing_list  = self.mailing_list(message["list"])
+            uidvalidity = message["uidvalidity"]
+            uid         = message["uid"]
+            gridfs_id   = message["gridfs_id"]
+            timestamp   = message["timestamp"]
+            size        = message["size"]
+            headers     = message["headers"]
+            yield Envelope(mailing_list, uidvalidity, uid, gridfs_id, timestamp, size, headers)
+        messages.close()
 
 
     def update(self, verbose = True) -> None:
