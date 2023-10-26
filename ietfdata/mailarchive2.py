@@ -543,8 +543,8 @@ class MailArchive:
         There can be multiple copies of a message with a particular ID in the
         archive if it was sent to multiple lists. This method returns all the
         copies, since each copy might have a different set of replies.  For
-				example, message "<396c8d37-f979-73fe-34fa-475a038b94f8@alum.mit.edu>"
-				appears in the archives of the "art", "last-call", and "tsvwg" lists.
+        example, message "<396c8d37-f979-73fe-34fa-475a038b94f8@alum.mit.edu>"
+        appears in the archives of the "art", "last-call", and "tsvwg" lists.
         """
         messages = []
         for message in self._db.messages.find({"message_id": message_id}):
@@ -562,11 +562,11 @@ class MailArchive:
     def messages(self,
                  received_after  : str = "1970-01-01T00:00:00",
                  received_before : str = "2038-01-19T03:14:07",
-								 header_from     : Optional[str] = None,
-								 header_to       : Optional[str] = None,
-								 header_subject  : Optional[str] = None,
-								 mailing_list    : Optional[str] = None,
-								) -> Iterator[Envelope]:
+                 header_from     : Optional[str] = None,
+                 header_to       : Optional[str] = None,
+                 header_subject  : Optional[str] = None,
+                 mailing_list    : Optional[str] = None,
+                ) -> Iterator[Envelope]:
         """
         Return the envelopes of all specified messages in the archive.
         """
