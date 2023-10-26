@@ -542,9 +542,21 @@ class MailArchive:
 
         There can be multiple copies of a message with a particular ID in the
         archive if it was sent to multiple lists. This method returns all the
-        copies, since each copy may have a different set of replies.
+        copies, since each copy might have a different set of replies.  For
+				example, message "<396c8d37-f979-73fe-34fa-475a038b94f8@alum.mit.edu>"
+				appears in the archives of the "art", "last-call", and "tsvwg" lists.
         """
-        pass # FIXME
+        messages = []
+        for message in self._db.messages.find({"message_id": message_id}):
+            mailing_list  = self.mailing_list(message["list"])
+            uidvalidity   = message["uidvalidity"]
+            uid           = message["uid"]
+            gridfs_id     = message["gridfs_id"]
+            date_received = message["timestamp"]
+            size          = message["size"]
+            headers       = message["headers"]
+            messages.append(Envelope(mailing_list, uidvalidity, uid, gridfs_id, date_received, size, headers))
+        return messages
 
 
     def messages(self,
