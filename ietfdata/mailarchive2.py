@@ -536,6 +536,17 @@ class MailArchive:
         return self._mailing_lists[mailing_list_name]
 
 
+    def message(self, message_id:str) -> List[Envelope]:
+        """
+        Return the envelopes for all messages with the specified `message_id`.
+
+        There can be multiple copies of a message with a particular ID in the
+        archive if it was sent to multiple lists. This method returns all the
+        copies, since each copy may have a different set of replies.
+        """
+        pass # FIXME
+
+
     def messages(self,
                  received_after : str = "1970-01-01T00:00:00",
                  received_before : str = "2038-01-19T03:14:07") -> Iterator[Envelope]:
