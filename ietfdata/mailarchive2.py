@@ -247,6 +247,45 @@ class Envelope:
         return replies
 
 
+    def add_metadata(self, project:str, key:str, value):
+        """
+        Add metadata relating to the message in this envelope.
+
+        Parameters:
+        - `project` -- the project or user to which this metadata relates
+        - `key`     -- the key under which the metadata should be scored
+        - `value`   -- the value of the metadata to store
+        """
+        pass # FIXME
+
+
+    def get_metadata(self, project:str, key:str):
+        """
+        Get metadata relating to the message in this envelope.
+
+        Parameters:
+        - `project` -- the project or user to which this metadata relates
+        - `key`     -- the key under which the metadata was scored
+        """
+        pass # FIXME
+
+
+    def clear_metadata(self, project:str, key:Optional[str] = None):
+        """
+        Remove metadata relating to the message in this envelope.
+
+        Parameters:
+        - `project` -- the project or user to which this metadata relates
+        - `key`     -- the key under which the metadata was scored
+
+        If the `key` is specified then only the single metadata value 
+        identified by the `project` and `key` is removed. If the `key`
+        is not specified, then all metadata relating to the project is
+        removed from this envelope.
+        """
+        pass # FIXME
+
+
 # =================================================================================================
 
 class MailingList:
