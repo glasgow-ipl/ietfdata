@@ -91,6 +91,31 @@ from dataclasses        import field
 # in the message. The gridfs_id points to a file containing the raw message content (the
 # IMAP RFC822 fetch result).
 #
+# The `parsed_headers` collections contains documents of the form:
+#
+#   { # FIXME: implement this
+#     "list": "100attendees",
+#     "uidvalidity": 1505323361m
+#     "uid":  1,
+#     "message_id": "<CAAiTEH9EVrZzF08F4T3z6QzhAnwBmKk9jhHEf=xMy-=3W4r9+Q@mail.gmail.com>",
+#     "date": 2017-09-13T10:11:47.000+00:00,
+#     "from": ["matt@conundrum.com"],        # DMARC rewriting undone, email address extracted
+#     "to":   ["100attendees@ietf.org"],     # Email addresses extracted
+#     "cc":   [],                            # Email addresses extracted
+#   }
+#
+# The `metadata` collections contains documents of the form:
+#
+#   { # FIXME: implement this
+#     "list": "100attendees",
+#     "uidvalidity": 1505323361
+#     "uid":  1,
+#     "message_id": "<CAAiTEH9EVrZzF08F4T3z6QzhAnwBmKk9jhHEf=xMy-=3W4r9+Q@mail.gmail.com>",
+#     "project": "sodestream",
+#     "key": "is_spam",
+#     "value": False,
+#   }
+#
 # =================================================================================================
 
 class Envelope:
@@ -256,7 +281,15 @@ class Envelope:
         - `key`     -- the key under which the metadata should be scored
         - `value`   -- the value of the metadata to store
         """
-        pass # FIXME
+        entry = {"list"        : self.mailing_list().name(),
+                 "uidvalidity" : self.uidvalidity(),
+                 "uid"         : self.uid(),
+                 "message_id"  : self._headers["message-id"][0] if "message-id" in self._headers else None,
+                 "project"     : project,
+                 "key"         : key,
+                 "value"       : value,
+        }
+        self._mailing_list._mail_archive._db.metadata.insert_one(entry)
 
 
     def get_metadata(self, project:str, key:str):
@@ -267,7 +300,13 @@ class Envelope:
         - `project` -- the project or user to which this metadata relates
         - `key`     -- the key under which the metadata was scored
         """
-        pass # FIXME
+        query = {"list"        : self.mailing_list().name(), 
+                 "uidvalidity" : self.uidvalidity(), 
+                 "uid"         : self.uid(),
+                 "project"     : project,
+                 "key"         : key}
+        result = self._mailing_list._mail_archive._db.metadata.find_one(query)
+        return result["value"]
 
 
     def clear_metadata(self, project:str, key:Optional[str] = None):
@@ -405,6 +444,7 @@ class MailingList:
         return df
 
 
+    # FIXME: this should update the parsed_headers database collection
     def update(self, verbose=True) -> List[int]:
         """
         Update the local copy of this mailing list from the IMAP server.
@@ -543,11 +583,13 @@ class MailArchive:
         else:
             self._mongoclient = MongoClient(host=cache_host, port=int(cache_port))
         self._db = self._mongoclient.ietfdata_mailarchive_v2
+        self._db.lists.create_index([('list', ASCENDING)], unique=True)
         self._db.messages.create_index([('list', ASCENDING), ('uidvalidity', ASCENDING), (       'uid', ASCENDING)], unique=True)
         self._db.messages.create_index([('list', ASCENDING), ('uidvalidity', ASCENDING), ( 'timestamp', ASCENDING)], unique=False)
         self._db.messages.create_index([('list', ASCENDING), ('uidvalidity', ASCENDING), ('message_id', ASCENDING)], unique=False)
         self._db.messages.create_index([('message_id', ASCENDING)], unique=False)
-        self._db.lists.create_index([('list', ASCENDING)], unique=True)
+        self._db.metadata.create_index([('list', ASCENDING), ('uidvalidity', ASCENDING), (       'uid', ASCENDING)], unique=True)
+        self._db.metadata.create_index([('message_id', ASCENDING)], unique=False)
         self._fs = GridFS(self._db)
         # Create other state:
         self._mailing_lists = {}
@@ -598,6 +640,8 @@ class MailArchive:
         return messages
 
 
+    # FIXME: add `addr_from`, `addr_to`, `addr_cc`, `sent_after`, `sent_before`
+    # parameters, operating on the parsed_headers database collection
     def messages(self,
                  received_after  : str = "1970-01-01T00:00:00",
                  received_before : str = "2038-01-19T03:14:07",
