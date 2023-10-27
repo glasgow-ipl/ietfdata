@@ -106,7 +106,7 @@ from dataclasses        import field
 #
 # The `metadata` collections contains documents of the form:
 #
-#   { # FIXME: implement this
+#   {
 #     "list": "100attendees",
 #     "uidvalidity": 1505323361
 #     "uid":  1,
@@ -144,7 +144,7 @@ class Envelope:
         self._headers       = headers
 
 
-    # Accessors for properties of the message in this Envelope. 
+    # Accessors for properties of the message in this Envelope.
     #
     # Messages in IMAP are assigned a unique identifier `uid()` within a folder
     # representing a mailing list. That identifier is not supposed to change,
@@ -179,14 +179,14 @@ class Envelope:
         `DateTime` object.
 
         This will return `None` if the "Date:" header is not present or cannot
-        be parsed. 
+        be parsed.
 
         The `header("date")` method can be used to return the unparsed "Date:"
         header as a `str`.
         """
         msg_date = None # type: Optional[datetime]
         try:
-            parsed_date = email.utils.parsedate(self._headers["date"][0]) 
+            parsed_date = email.utils.parsedate(self._headers["date"][0])
             if parsed_date is not None:
                 msg_date = datetime.fromtimestamp(time.mktime(parsed_date))
             else:
@@ -201,7 +201,7 @@ class Envelope:
         Accessor for the headers of the message in this Envelope.
 
         Some headers, e.g., "Received:" are expected to occur multiple times
-        within a message and will return a list containing multiple items. 
+        within a message and will return a list containing multiple items.
 
         Other headers, e.g., "From:", are only supposed to occur once in each
         message. In these cases, this method should return a list containing a
@@ -225,7 +225,7 @@ class Envelope:
 
     def in_reply_to(self) -> List[Envelope]:
         """
-        Return the envelopes containing the messages that this is in reply to. 
+        Return the envelopes containing the messages that this is in reply to.
 
         Each message can only be in reply to a single other message, but there
         may be multiple copies of that message in the archive if it was sent to
@@ -280,6 +280,13 @@ class Envelope:
         - `project` -- the project or user to which this metadata relates
         - `key`     -- the key under which the metadata should be scored
         - `value`   -- the value of the metadata to store
+
+        The `project` is intended to allow different users to store metadata
+        in a shared mail archive database. For example, a group project that
+        works with the mail archive might tag message envelopes with agreed-
+        upon metadata using the project's name in the `project` field, while
+        exploratory work from individual members of the project might use
+        their username as the basis for the `project` (e.g., "alice_test4").
         """
         entry = {"list"        : self.mailing_list().name(),
                  "uidvalidity" : self.uidvalidity(),
@@ -300,8 +307,8 @@ class Envelope:
         - `project` -- the project or user to which this metadata relates
         - `key`     -- the key under which the metadata was scored
         """
-        query = {"list"        : self.mailing_list().name(), 
-                 "uidvalidity" : self.uidvalidity(), 
+        query = {"list"        : self.mailing_list().name(),
+                 "uidvalidity" : self.uidvalidity(),
                  "uid"         : self.uid(),
                  "project"     : project,
                  "key"         : key}
@@ -317,12 +324,18 @@ class Envelope:
         - `project` -- the project or user to which this metadata relates
         - `key`     -- the key under which the metadata was scored
 
-        If the `key` is specified then only the single metadata value 
+        If the `key` is specified then only the single metadata value
         identified by the `project` and `key` is removed. If the `key`
-        is not specified, then all metadata relating to the project is
+        is not specified, then all metadata relating to `project` is
         removed from this envelope.
         """
-        pass # FIXME
+        query = {"list"        : self.mailing_list().name(),
+                 "uidvalidity" : self.uidvalidity(),
+                 "uid"         : self.uid(),
+                 "project"     : project}
+        if key is not None:
+            query["key"] = key
+        self._mailing_list._mail_archive._db.metadata.delete_many(query)
 
 
 # =================================================================================================
@@ -379,7 +392,7 @@ class MailingList:
 
     def message(self, uid: int) -> Optional[Envelope]:
         """
-        Return the Envelope containing the Message identified by the 
+        Return the Envelope containing the Message identified by the
         specified uid within this mailing list.
         """
         message = self._mail_archive._db.messages.find_one({"list" : self._list_name, "uidvalidity": self._uidvalidity, "uid": uid})
@@ -395,8 +408,8 @@ class MailingList:
             return None
 
 
-    def messages(self, 
-                 received_after: str = "1970-01-01T00:00:00", 
+    def messages(self,
+                 received_after: str = "1970-01-01T00:00:00",
                  received_before: str = "2038-01-19T03:14:07") -> Iterator[Envelope]:
         """
         Return the envelopes containing the specified messages from this mailing list.
@@ -588,7 +601,7 @@ class MailArchive:
         self._db.messages.create_index([('list', ASCENDING), ('uidvalidity', ASCENDING), ( 'timestamp', ASCENDING)], unique=False)
         self._db.messages.create_index([('list', ASCENDING), ('uidvalidity', ASCENDING), ('message_id', ASCENDING)], unique=False)
         self._db.messages.create_index([('message_id', ASCENDING)], unique=False)
-        self._db.metadata.create_index([('list', ASCENDING), ('uidvalidity', ASCENDING), (       'uid', ASCENDING)], unique=True)
+        self._db.metadata.create_index([('list', ASCENDING), ('uidvalidity', ASCENDING), (       'uid', ASCENDING)], unique=False)
         self._db.metadata.create_index([('message_id', ASCENDING)], unique=False)
         self._fs = GridFS(self._db)
         # Create other state:
@@ -685,7 +698,7 @@ class MailArchive:
 
         This method should be called when working with a complete copy of
         the mail archive to synchronise the local copy with the IETF IMAP
-        server. 
+        server.
 
         To only download a subset of the messages, use the `mailing_list()`
         method to get a MailingList object for the lists of interest, then
