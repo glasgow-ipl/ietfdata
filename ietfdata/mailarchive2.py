@@ -477,6 +477,9 @@ class MailingList:
         from the list. Subsequent calls to `update()` only fetch the new
         messages and so are much faster.
         """
+        if verbose:
+            print(f"[mailarchive] Check {self._list_name}")
+
         # Login to the IMAP server:
         self._log.info(f"Updating list {self.name()}")
         imap = IMAPClient(host=self._mail_archive._imap_server, ssl=True, use_uid=True)
