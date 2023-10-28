@@ -446,7 +446,7 @@ class MailingList:
                               received_after  : str = "1970-01-01T00:00:00",
                               received_before : str = "2038-01-19T03:14:07") -> pd.DataFrame:
         """
-        Return a dataframe containing metadata about the specified messages from
+        Return a dataframe containing information about the specified messages from
         this mailing list.
         """
         messages_as_dict = []
