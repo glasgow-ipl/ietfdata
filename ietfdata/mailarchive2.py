@@ -802,5 +802,18 @@ class MailArchive:
                 ml = self.mailing_list(ml_name)
                 executor.submit(lambda mailing_list : mailing_list.update(verbose), ml)
 
+
+    def clear_metadata(self, project: str):
+        """
+        Remove metadata relating to the project from all mailing lists
+        and message envelopes.
+
+        WARNING: This is a destructive operation that should not normally
+        be needed. Use with care.
+        """
+        self._db.lists_metadata.delete_many({"project": project})
+        self._db.metadata.delete_many({"project": project})
+
+
 # =================================================================================================
 # vim: set tw=0 ai:
