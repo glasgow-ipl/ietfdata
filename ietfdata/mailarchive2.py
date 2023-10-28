@@ -57,6 +57,15 @@ from dataclasses        import field
 #     uidvalidity: 1505323361
 #   }
 #
+# The `lists_metadata` collections contains documents of the form:
+#
+#   {
+#     "list": "100attendees",
+#     "project": "sodestream",
+#     "key": "is_spam",
+#     "value": False,
+#   }
+#
 # The uidvalidity value is provided by the IMAP server when selecting a mailbox,
 # and should never change. If it does, messages with the old uidvalidity MUST be
 # deleted and the mailbox MUST be re-downloaded.
@@ -560,6 +569,64 @@ class MailingList:
         return None # FIXME
 
 
+    def add_metadata(self, project:str, key:str, value):
+        """
+        Add metadata relating to the list.
+
+        Parameters:
+        - `project` -- the project or user to which this metadata relates
+        - `key`     -- the key under which the metadata should be scored
+        - `value`   -- the value of the metadata to store
+
+        The `project` is intended to allow different users to store metadata
+        in a shared mail archive database. For example, a group project that
+        works with the mail archive might tag message envelopes with agreed-
+        upon metadata using the project's name in the `project` field, while
+        exploratory work from individual members of the project might use
+        their username as the basis for the `project` (e.g., "alice_test4").
+        """
+        entry = {"list"    : self._list_name,
+                 "project" : project,
+                 "key"     : key,
+                 "value"   : value,
+        }
+        self._mail_archive._db.lists_metadata.insert_one(entry)
+
+
+    def get_metadata(self, project:str, key:str):
+        """
+        Get metadata relating to the list.
+
+        Parameters:
+        - `project` -- the project or user to which this metadata relates
+        - `key`     -- the key under which the metadata was scored
+        """
+        query = {"list"    : self._list_name,
+                 "project" : project,
+                 "key"     : key}
+        result = self._mail_archive._db.lists_metadata.find_one(query)
+        return result["value"]
+
+
+    def clear_metadata(self, project:str, key:Optional[str] = None):
+        """
+        Remove metadata relating to the list.
+
+        Parameters:
+        - `project` -- the project or user to which this metadata relates
+        - `key`     -- the key under which the metadata was scored
+
+        If the `key` is specified then only the single metadata value
+        identified by the `project` and `key` is removed. If the `key`
+        is not specified, then all metadata relating to `project` is
+        removed from this envelope.
+        """
+        query = {"list"    : self._list_name,
+                 "project" : project}
+        if key is not None:
+            query["key"] = key
+        self._mail_archive._db.lists_metadata.delete_many(query)
+
 # =================================================================================================
 
 class MailArchive:
@@ -596,13 +663,34 @@ class MailArchive:
         else:
             self._mongoclient = MongoClient(host=cache_host, port=int(cache_port))
         self._db = self._mongoclient.ietfdata_mailarchive_v2
-        self._db.lists.create_index([('list', ASCENDING)], unique=True)
-        self._db.messages.create_index([('list', ASCENDING), ('uidvalidity', ASCENDING), (       'uid', ASCENDING)], unique=True)
-        self._db.messages.create_index([('list', ASCENDING), ('uidvalidity', ASCENDING), ( 'timestamp', ASCENDING)], unique=False)
-        self._db.messages.create_index([('list', ASCENDING), ('uidvalidity', ASCENDING), ('message_id', ASCENDING)], unique=False)
-        self._db.messages.create_index([('message_id', ASCENDING)], unique=False)
-        self._db.metadata.create_index([('list', ASCENDING), ('uidvalidity', ASCENDING), (       'uid', ASCENDING)], unique=False)
-        self._db.metadata.create_index([('message_id', ASCENDING)], unique=False)
+        self._db.lists.create_index([('list', ASCENDING),
+                                    ], unique=True)
+        self._db.lists_metadata.create_index([('list', ASCENDING),
+                                              ('project', ASCENDING),
+                                              ('key', ASCENDING),
+                                             ], unique=True)
+        self._db.messages.create_index([('list', ASCENDING),
+                                        ('uidvalidity', ASCENDING),
+                                        ('uid', ASCENDING),
+                                       ], unique=True)
+        self._db.messages.create_index([('list', ASCENDING),
+                                        ('uidvalidity', ASCENDING),
+                                        ('timestamp', ASCENDING),
+                                       ], unique=False)
+        self._db.messages.create_index([('list', ASCENDING),
+                                        ('uidvalidity', ASCENDING),
+                                        ('message_id', ASCENDING),
+                                       ], unique=False)
+        self._db.messages.create_index([('message_id', ASCENDING),
+                                       ], unique=False)
+        self._db.metadata.create_index([('list', ASCENDING), 
+                                        ('uidvalidity', ASCENDING), 
+                                        ('uid', ASCENDING),
+                                        ('project', ASCENDING),
+                                        ('key', ASCENDING),
+                                       ], unique=False)
+        self._db.metadata.create_index([('message_id', ASCENDING)
+                                       ], unique=False)
         self._fs = GridFS(self._db)
         # Create other state:
         self._mailing_lists = {}
