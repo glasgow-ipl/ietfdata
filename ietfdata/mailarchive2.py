@@ -189,6 +189,20 @@ class Envelope:
         else:
             return self._headers[header_name]
 
+    
+    def header_message_id(self) -> str:
+        """
+        Accesor for the message-id header of the message in this Envelope.
+
+        Returns a string containing the message-id. In case this header is
+        repeated, the value that is encountered last is returned. In case 
+        the header is missing the return value is None. 
+        """
+        msg_id_list = self.header("message-id")
+        if len(msg_id_list) >= 1:
+            return msg_id_list[-1]
+        else:
+            return None
 
     def contents(self) -> Message:
         """
@@ -213,7 +227,7 @@ class Envelope:
         references  = self.header("references")
         if len(in_reply_to) == 1:
             parent = in_reply_to[0]
-        elif references is not None:
+        elif references is not None and len(references) > 0:
             parent = references[0].split(" ")[-1]
         else:
             return []
@@ -256,7 +270,15 @@ class Envelope:
         - `key`     -- the key under which the metadata should be scored
         - `value`   -- the value of the metadata to store
         """
-        pass # FIXME
+        self._mailing_list._mail_archive._db.metadata.insert_one({
+            "project" : project,
+            "key" : key,
+            "uid" : self.uid(),
+            "uidvalidity" : self.uidvalidity(),
+            "mailing_list" : self.mailing_list().name(),
+            "value" : value
+        })
+
 
 
     def get_metadata(self, project:str, key:str):
@@ -267,7 +289,15 @@ class Envelope:
         - `project` -- the project or user to which this metadata relates
         - `key`     -- the key under which the metadata was scored
         """
-        pass # FIXME
+        r = self._mailing_list._mail_archive._db.metadata.find_one({
+                "project": project, 
+                "key":key,
+                "uid":self.uid(),
+                "uidvalidity":self.uidvalidity(),
+                "mailing_list": self.mailing_list().name()
+            })
+        return r["value"]
+      
 
 
     def clear_metadata(self, project:str, key:Optional[str] = None):
@@ -283,7 +313,19 @@ class Envelope:
         is not specified, then all metadata relating to the project is
         removed from this envelope.
         """
-        pass # FIXME
+        query_filter = {
+                "project": project, 
+                "uid": self.uid(),
+                "uidvalidity": self.uidvalidity(),
+                "mailing_list": self.mailing_list().name()
+        }
+
+        if key is not None:
+            query_filter["key"] = key
+
+        self._mailing_list._mail_archive._db.metadata.delete_many(query_filter)
+ 
+ 
 
 
 # =================================================================================================
@@ -504,8 +546,10 @@ class MailingList:
         Yields the envelopes containing the first message in each thread in
         this mailing list.
         """
-        return None # FIXME
-
+        for msg in self.messages():
+            if len(msg.in_reply_to()) == 0:
+                yield msg
+ 
 
 # =================================================================================================
 
@@ -547,7 +591,10 @@ class MailArchive:
         self._db.messages.create_index([('list', ASCENDING), ('uidvalidity', ASCENDING), ( 'timestamp', ASCENDING)], unique=False)
         self._db.messages.create_index([('list', ASCENDING), ('uidvalidity', ASCENDING), ('message_id', ASCENDING)], unique=False)
         self._db.messages.create_index([('message_id', ASCENDING)], unique=False)
+        self._db.messages.create_index([('in_reply_to', ASCENDING)], unique=False)
         self._db.lists.create_index([('list', ASCENDING)], unique=True)
+        self._db.metadata.create_index([("project", ASCENDING), ('key', ASCENDING), ('list', ASCENDING), ('uidvalidity', ASCENDING), (       'uid', ASCENDING)], unique=True)
+
         self._fs = GridFS(self._db)
         # Create other state:
         self._mailing_lists = {}
