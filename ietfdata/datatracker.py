@@ -1417,16 +1417,15 @@ class ReviewTeamSettingsURI(URI):
 
 @dataclass(frozen=True)
 class ReviewTeamSettings(Resource):
-    autosuggest                             : bool
-    group                                   : GroupURI
-    id                                      : int
-    notify_ad_when                          : List[ReviewResultTypeURI]
-    remind_days_unconfirmed_assignments     : Optional[int]
-    resource_uri                            : ReviewTeamSettingsURI
-    review_results                          : List[ReviewResultTypeURI]
-    review_types                            : List[ReviewTypeURI]
-    secr_mail_alias                         : str
-    allow_reviewer_to_reject_after_deadline : bool
+    autosuggest                         : bool
+    group                               : GroupURI
+    id                                  : int
+    notify_ad_when                      : List[ReviewResultTypeURI]
+    remind_days_unconfirmed_assignments : Optional[int]
+    resource_uri                        : ReviewTeamSettingsURI
+    review_results                      : List[ReviewResultTypeURI]
+    review_types                        : List[ReviewTypeURI]
+    secr_mail_alias                     : str
 
 
 @dataclass(frozen=True)
