@@ -34,7 +34,7 @@ import time
 
 from datetime           import datetime, timedelta
 from graphlib           import TopologicalSorter
-from typing             import Dict, Iterator, List, Optional, Tuple, Union
+from typing             import Dict, Iterator, List, Optional, Tuple, Union, Any
 from gridfs             import GridFS
 from pymongo            import MongoClient, ASCENDING, ReplaceOne, UpdateOne
 from pymongo.database   import Database
@@ -247,7 +247,7 @@ class Envelope:
         references  = self.header("references")
         if len(in_reply_to) == 1:
             parent = in_reply_to[0]
-        elif references is not None:
+        elif len(references) > 0:
             parent = references[0].split(" ")[-1]
         else:
             return []
@@ -269,7 +269,7 @@ class Envelope:
         Return the envelopes containing the messages sent in reply to this.
         """
         replies = []
-        for message in self._mailing_list._mail_archive._db.messages.find({"in_reply_to": self.header_message_id()}):
+        for message in self._mailing_list._mail_archive._db.messages.find({"in_reply_to": self.header("message-id")[0]}):
             mailing_list  = self._mailing_list._mail_archive.mailing_list(message["list"])
             uidvalidity   = message["uidvalidity"]
             uid           = message["uid"]
@@ -321,8 +321,11 @@ class Envelope:
                  "uid"         : self.uid(),
                  "project"     : project,
                  "key"         : key}
-        result = self._mailing_list._mail_archive._db.metadata.find_one(query)
-        return result["value"]
+        result = self._mailing_list._mail_archive._db.metadata.find_one(query) # type: Optional[Dict[str, Any]]
+        if result is not None:
+            return result["value"]
+        else:
+            return None
 
 
     def clear_metadata(self, project:str, key:Optional[str] = None):
@@ -604,8 +607,11 @@ class MailingList:
         query = {"list"    : self._list_name,
                  "project" : project,
                  "key"     : key}
-        result = self._mail_archive._db.lists_metadata.find_one(query)
-        return result["value"]
+        result = self._mail_archive._db.lists_metadata.find_one(query) # type: Optional[Dict[str, Any]]
+        if result is not None:
+            return result["value"]
+        else:
+            return None
 
 
     def clear_metadata(self, project:str, key:Optional[str] = None):
@@ -744,12 +750,12 @@ class MailArchive:
     # FIXME: add `addr_from`, `addr_to`, `addr_cc`, `sent_after`, `sent_before`
     # parameters, operating on the parsed_headers database collection
     def messages(self,
-                 received_after  : str = "1970-01-01T00:00:00",
-                 received_before : str = "2038-01-19T03:14:07",
-                 header_from     : Optional[str] = None,
-                 header_to       : Optional[str] = None,
-                 header_subject  : Optional[str] = None,
-                 mailing_list    : Optional[str] = None,
+                 received_after    : str = "1970-01-01T00:00:00",
+                 received_before   : str = "2038-01-19T03:14:07",
+                 header_from       : Optional[str] = None,
+                 header_to         : Optional[str] = None,
+                 header_subject    : Optional[str] = None,
+                 mailing_list_name : Optional[str] = None,
                 ) -> Iterator[Envelope]:
         """
         Return the envelopes of all specified messages in the archive.
@@ -758,24 +764,24 @@ class MailArchive:
                      "$gt": datetime.strptime(received_after,  "%Y-%m-%dT%H:%M:%S"),
                      "$lt": datetime.strptime(received_before, "%Y-%m-%dT%H:%M:%S")
                  }
-                }
+                } # type: Dict[str, Union[str, Dict[str, Any]]]
         if header_from is not None:
             query["headers.from"] = { "$regex": f"{header_from}"}
         if header_to is not None:
             query["headers.to"] = { "$regex": f"{header_to}"}
         if header_subject is not None:
             query["headers.subject"] = { "$regex": f"{header_subject}"}
-        if mailing_list is not None:
-            query["list"] = mailing_list
+        if mailing_list_name is not None:
+            query["list"] = mailing_list_name
         messages = self._db.messages.find(query, no_cursor_timeout=True)
         for message in messages:
-            mailing_list  = self.mailing_list(message["list"])
-            uidvalidity = message["uidvalidity"]
-            uid         = message["uid"]
-            gridfs_id   = message["gridfs_id"]
-            timestamp   = message["timestamp"]
-            size        = message["size"]
-            headers     = message["headers"]
+            mailing_list = self.mailing_list(message["list"])
+            uidvalidity  = message["uidvalidity"]
+            uid          = message["uid"]
+            gridfs_id    = message["gridfs_id"]
+            timestamp    = message["timestamp"]
+            size         = message["size"]
+            headers      = message["headers"]
             yield Envelope(mailing_list, uidvalidity, uid, gridfs_id, timestamp, size, headers)
         messages.close()
 
