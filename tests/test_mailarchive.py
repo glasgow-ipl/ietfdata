@@ -34,14 +34,14 @@ from unittest.mock import patch, Mock
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from ietfdata.datatracker  import *
-from ietfdata.mailarchive2 import *
+from ietfdata.datatracker import *
+from ietfdata.mailarchive import *
 
 
 # =================================================================================================================================
 # Unit tests:
 
-class TestMailArchive2(unittest.TestCase):
+class TestMailArchive(unittest.TestCase):
     dt : DataTracker
     ma : MailArchive
 
@@ -69,6 +69,15 @@ class TestMailArchive2(unittest.TestCase):
         self.assertEqual(mlist.name(), "100attendees")
         self.assertEqual(mlist.num_messages(), 434)
 
+
+    def test_mailarchive_message_from_archive_url(self) -> None:
+        msg = self.ma.message_from_archive_url("https://mailarchive.ietf.org/arch/msg/100attendees/w-zDVgSif2qjO4zhl3TUokb-ZNM")
+        if msg is not None:
+            self.assertEqual(msg.list_name,  "100attendees")
+            self.assertEqual(msg.message_id, "<75EBC4EB-32D0-4D65-AC17-BEFDAB13AC00@gmail.com>")
+            self.assertEqual(msg._imap_uid,  333)
+        else:
+            self.fail("Cannot find message: https://mailarchive.ietf.org/arch/msg/100attendees/w-zDVgSif2qjO4zhl3TUokb-ZNM")
 
 if __name__ == '__main__':
     unittest.main()

@@ -1822,7 +1822,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_email(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(email="csp@csperkins.org"))
-        self.assertEqual(len(group_role_histories), 76)
+        self.assertEqual(len(group_role_histories), 71)
 
 
     def test_group_role_histories_group(self) -> None:
@@ -1838,7 +1838,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_person(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(person=self.dt.person(PersonURI("/api/v1/person/person/20209/"))))
-        self.assertEqual(len(group_role_histories), 76)
+        self.assertEqual(len(group_role_histories), 71)
 
 
     def test_group_state_change_event(self) -> None:
@@ -2475,13 +2475,12 @@ class TestDatatracker(unittest.TestCase):
 
     def test_ipr_disclosure_states(self) -> None:
         states = list(self.dt.ipr_disclosure_states())
-        self.assertEqual(len(states), 6)
+        self.assertEqual(len(states), 5)
         self.assertEqual(states[0].slug,  "parked")
         self.assertEqual(states[1].slug,  "pending")
         self.assertEqual(states[2].slug,  "posted")
         self.assertEqual(states[3].slug,  "rejected")
         self.assertEqual(states[4].slug,  "removed")
-        self.assertEqual(states[5].slug,  "removed_objfalse")
 
 
     def test_ipr_disclosure_base(self) -> None:
@@ -3058,10 +3057,11 @@ class TestDatatracker(unittest.TestCase):
 
     def test_review_wishes_team(self) -> None:
         review_wishes = list(self.dt.review_wishes(team=self.dt.group(GroupURI("/api/v1/group/group/1972/")))) # GenART
-        self.assertEqual(len(review_wishes),  3)
+        self.assertEqual(len(review_wishes),  4)
         self.assertEqual(review_wishes[0].id, 7)
         self.assertEqual(review_wishes[1].id, 24)
         self.assertEqual(review_wishes[2].id, 43)
+        self.assertEqual(review_wishes[3].id, 53)
 
 
     def test_reviewer_settings(self) -> None:
