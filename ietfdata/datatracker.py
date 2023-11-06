@@ -147,9 +147,9 @@ class Person(Resource):
     photo           : str
     photo_thumb     : str
     biography       : str
-    # Plain name correction: Use this if you have a Spanish double surname.
-    # Don't use this for nicknames, and don't use it unless you've actually
-    # observed that the datatracker shows your name incorrectly."
+    # Plain name correction: Use this if you have a Spanish double surname.
+    # Don't use this for nicknames, and don't use it unless you've actually
+    # observed that the datatracker shows your name incorrectly."
     plain           : str
     pronouns_freetext     : str
     pronouns_selectable   : str
@@ -330,7 +330,7 @@ class Submission(Resource):
     document_date   : Optional[datetime]
     draft           : DocumentURI
     file_size       : Optional[int]
-    file_types      : str   # e.g., ".txt,.xml"
+    file_types      : str   # e.g., ".txt,.xml"
     group           : Optional[GroupURI]
     id              : int
     name            : str
@@ -977,8 +977,8 @@ class Timeslot(Resource):
     sessions      : List[SessionURI]  # Sessions assigned to this slot in various versions of the agenda; current assignment is last
     name          : str
     time          : datetime
-    duration      : str               # FIXME: this should be a timedelta object
-    location      : Optional[str]     # FIXME: this is a URI "/api/v1/meeting/room/668"
+    duration      : str               # FIXME: this should be a timedelta object
+    location      : Optional[str]     # FIXME: this is a URI "/api/v1/meeting/room/668"
     show_location : bool
     modified      : datetime
 
@@ -1417,15 +1417,16 @@ class ReviewTeamSettingsURI(URI):
 
 @dataclass(frozen=True)
 class ReviewTeamSettings(Resource):
-    autosuggest                         : bool
-    group                               : GroupURI
-    id                                  : int
-    notify_ad_when                      : List[ReviewResultTypeURI]
-    remind_days_unconfirmed_assignments : Optional[int]
-    resource_uri                        : ReviewTeamSettingsURI
-    review_results                      : List[ReviewResultTypeURI]
-    review_types                        : List[ReviewTypeURI]
-    secr_mail_alias                     : str
+    autosuggest                             : bool
+    group                                   : GroupURI
+    id                                      : int
+    notify_ad_when                          : List[ReviewResultTypeURI]
+    remind_days_unconfirmed_assignments     : Optional[int]
+    resource_uri                            : ReviewTeamSettingsURI
+    review_results                          : List[ReviewResultTypeURI]
+    review_types                            : List[ReviewTypeURI]
+    secr_mail_alias                         : str
+    allow_reviewer_to_reject_after_deadline : bool
 
 
 @dataclass(frozen=True)
@@ -1741,7 +1742,7 @@ class DataTracker:
         logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
         self.log = logging.getLogger("ietfdata")
 
-        self.ua        = "glasgow-ietfdata/0.7.0"          # Update when making a new relaase
+        self.ua        = "glasgow-ietfdata/0.7.0"          # Update when making a new relaase
         self.base_url  = os.environ.get("IETFDATA_DT_URL", "https://datatracker.ietf.org")
         self.http_req  = 0
         self.get_count = 0
@@ -2007,7 +2008,7 @@ class DataTracker:
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
-    # Private methods to control the cache:
+    # Private methods to control the cache:
 
     def _cache_check_versions(self) -> None:
         if self.db is None:
