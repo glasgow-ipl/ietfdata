@@ -569,8 +569,11 @@ class MailingList:
         Yields the envelopes containing the first message in each thread in
         this mailing list.
         """
-        # FIXME
-        return None # type: ignore
+        for message in self.messages():
+            inlist_parents = [parent.mailing_list() is self for parent in message.in_reply_to()]
+            print(inlist_parents)
+            if inlist_parents.count(True) == 0:
+                yield message
 
 
     def add_metadata(self, project:str, key:str, value):
