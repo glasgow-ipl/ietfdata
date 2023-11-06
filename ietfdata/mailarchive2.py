@@ -571,7 +571,6 @@ class MailingList:
         """
         for message in self.messages():
             inlist_parents = [parent.mailing_list() is self for parent in message.in_reply_to()]
-            print(inlist_parents)
             if inlist_parents.count(True) == 0:
                 yield message
 
