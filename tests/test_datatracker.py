@@ -462,7 +462,7 @@ class TestDatatracker(unittest.TestCase):
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to documents:
 
-    # There is one test_document_*() method for each document type
+    # There is one test_document_*() method for each document type
 
     def test_document_agenda(self) -> None:
         d  = self.dt.document(DocumentURI("/api/v1/doc/document/agenda-90-precis/"))
@@ -1670,7 +1670,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(group_roles[1].id, 3998)   # TSV DIR reviewer
         self.assertEqual(group_roles[2].id, 8464)   # IRSG chair
         self.assertEqual(group_roles[3].id, 8465)   # IRTF Open Meeting chair
-        self.assertEqual(group_roles[4].id, 8466)   # IRTF chair
+        self.assertEqual(group_roles[4].id, 8466)   # IRTF chair
         self.assertEqual(group_roles[5].id, 9355)   # RMCAT chair
         self.assertEqual(group_roles[6].id, 10200)  # IAB EDM programme member
         self.assertEqual(group_roles[7].id, 11103)  # TSV ART reviewer
@@ -1709,7 +1709,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(group_roles[1].id, 3998)   # TSV DIR reviewer
         self.assertEqual(group_roles[2].id, 8464)   # IRSG chair
         self.assertEqual(group_roles[3].id, 8465)   # IRTF Open Meeting chair
-        self.assertEqual(group_roles[4].id, 8466)   # IRTF chair
+        self.assertEqual(group_roles[4].id, 8466)   # IRTF chair
         self.assertEqual(group_roles[5].id, 9355)   # RMCAT chair
         self.assertEqual(group_roles[6].id, 10200)  # IAB EDM programme member
         self.assertEqual(group_roles[7].id, 11103)  # TSV ART reviewer
@@ -1822,7 +1822,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_email(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(email="csp@csperkins.org"))
-        self.assertEqual(len(group_role_histories), 71)
+        self.assertEqual(len(group_role_histories), 76)
 
 
     def test_group_role_histories_group(self) -> None:
@@ -1838,7 +1838,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_person(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(person=self.dt.person(PersonURI("/api/v1/person/person/20209/"))))
-        self.assertEqual(len(group_role_histories), 71)
+        self.assertEqual(len(group_role_histories), 76)
 
 
     def test_group_state_change_event(self) -> None:
@@ -2475,12 +2475,13 @@ class TestDatatracker(unittest.TestCase):
 
     def test_ipr_disclosure_states(self) -> None:
         states = list(self.dt.ipr_disclosure_states())
-        self.assertEqual(len(states), 5)
+        self.assertEqual(len(states), 6)
         self.assertEqual(states[0].slug,  "parked")
         self.assertEqual(states[1].slug,  "pending")
         self.assertEqual(states[2].slug,  "posted")
         self.assertEqual(states[3].slug,  "rejected")
         self.assertEqual(states[4].slug,  "removed")
+        self.assertEqual(states[5].slug,  "removed_objfalse")
 
 
     def test_ipr_disclosure_base(self) -> None:
@@ -3057,11 +3058,10 @@ class TestDatatracker(unittest.TestCase):
 
     def test_review_wishes_team(self) -> None:
         review_wishes = list(self.dt.review_wishes(team=self.dt.group(GroupURI("/api/v1/group/group/1972/")))) # GenART
-        self.assertEqual(len(review_wishes),  4)
+        self.assertEqual(len(review_wishes),  3)
         self.assertEqual(review_wishes[0].id, 7)
         self.assertEqual(review_wishes[1].id, 24)
         self.assertEqual(review_wishes[2].id, 43)
-        self.assertEqual(review_wishes[3].id, 53)
 
 
     def test_reviewer_settings(self) -> None:
