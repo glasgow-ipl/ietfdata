@@ -15,6 +15,7 @@ ietfdata = {editable = true, path = "."}
 types-six = "*"
 types-requests = "*"
 types-python-dateutil = "*"
+setuptools-pipfile = {file = "."}
 
 [packages]
 bs4 = "*"
