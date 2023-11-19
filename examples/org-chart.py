@@ -39,7 +39,11 @@ dt = DataTracker()
 def print_group(group : Group, level : int):
     for i in range(0, level):
         print("  ", end="")
-    print(group.name)
+    group_type = (dt.group_type_name(group.type).name)
+    if group_type == "SDO":
+        pass
+    else:
+        print(f"{group.name} ({group_type})")
     for g in dt.groups(parent = group, state = dt.group_state_from_slug("active")):
         print_group(g, level + 1)
 
