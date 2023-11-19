@@ -3026,14 +3026,14 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_review_wish(self) -> None:
-        review_wish = self.dt.review_wish(ReviewWishURI("/api/v1/review/reviewwish/7/"))
+        review_wish = self.dt.review_wish(ReviewWishURI("/api/v1/review/reviewwish/63/"))
         if review_wish is not None:
-            self.assertEqual(review_wish.doc,          DocumentURI("/api/v1/doc/document/draft-ietf-perc-double/"))
-            self.assertEqual(review_wish.id,           7)
-            self.assertEqual(review_wish.person,       PersonURI("/api/v1/person/person/5376/"))
-            self.assertEqual(review_wish.resource_uri, ReviewWishURI("/api/v1/review/reviewwish/7/"))
-            self.assertEqual(review_wish.team,         GroupURI("/api/v1/group/group/1972/"))
-            self.assertEqual(review_wish.time,         datetime.fromisoformat("2018-05-10T08:41:39-07:00"))
+            self.assertEqual(review_wish.doc,          DocumentURI("/api/v1/doc/document/draft-arkko-ipv6-transition-guidelines/"))
+            self.assertEqual(review_wish.id,           63)
+            self.assertEqual(review_wish.person,       PersonURI("/api/v1/person/person/113626/"))
+            self.assertEqual(review_wish.resource_uri, ReviewWishURI("/api/v1/review/reviewwish/63/"))
+            self.assertEqual(review_wish.team,         GroupURI("/api/v1/group/group/1976/"))
+            self.assertEqual(review_wish.time,         datetime.fromisoformat("2022-09-15T11:35:19+00:00"))
         else:
             self.fail("Cannot find review wish")
 
@@ -3044,24 +3044,27 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_review_wishes_doc(self) -> None:
-        review_wishes = list(self.dt.review_wishes(doc=self.dt.document(DocumentURI("/api/v1/doc/document/draft-ietf-perc-double/"))))
+        review_wishes = list(self.dt.review_wishes(doc=self.dt.document(DocumentURI("/api/v1/doc/document/draft-arkko-ipv6-transition-guidelines/"))))
         self.assertEqual(len(review_wishes),  1)
-        self.assertEqual(review_wishes[0].id, 7)
+        self.assertEqual(review_wishes[0].id, 63)
 
 
     def test_review_wishes_person(self) -> None:
-        review_wishes = list(self.dt.review_wishes(person=self.dt.person(PersonURI("/api/v1/person/person/5376/"))))
-        self.assertEqual(len(review_wishes),  2)
-        self.assertEqual(review_wishes[0].id, 7)
-        self.assertEqual(review_wishes[1].id, 43)
+        review_wishes = list(self.dt.review_wishes(person=self.dt.person(PersonURI("/api/v1/person/person/113626/"))))
+        self.assertEqual(len(review_wishes),  7)
+        self.assertEqual(review_wishes[0].id, 60)
+        self.assertEqual(review_wishes[1].id, 61)
+        self.assertEqual(review_wishes[2].id, 62)
+        self.assertEqual(review_wishes[3].id, 63)
+        self.assertEqual(review_wishes[4].id, 64)
+        self.assertEqual(review_wishes[5].id, 65)
+        self.assertEqual(review_wishes[6].id, 66)
 
 
     def test_review_wishes_team(self) -> None:
         review_wishes = list(self.dt.review_wishes(team=self.dt.group(GroupURI("/api/v1/group/group/1972/")))) # GenART
-        self.assertEqual(len(review_wishes),  3)
-        self.assertEqual(review_wishes[0].id, 7)
-        self.assertEqual(review_wishes[1].id, 24)
-        self.assertEqual(review_wishes[2].id, 43)
+        self.assertEqual(len(review_wishes),  1)
+        self.assertEqual(review_wishes[0].id, 24)
 
 
     def test_reviewer_settings(self) -> None:
