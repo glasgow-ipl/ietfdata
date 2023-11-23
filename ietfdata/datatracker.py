@@ -206,6 +206,52 @@ class PersonEvent(Resource):
     type            : str
 
 
+@dataclass(frozen=True)
+class ExtResourceTypeNameURI(URI):
+    root : str = "/api/v1/name/extresourcetypename/"
+
+
+@dataclass(frozen=True)
+class ExtResourceTypeName(Resource):
+    resource_uri : ExtResourceTypeNameURI
+    desc         : str
+    name         : str
+    order        : int
+    slug         : str
+    used         : bool
+
+
+@dataclass(frozen=True)
+class ExtResourceNameURI(URI):
+    root : str = "/api/v1/name/extresourcename/"
+
+
+@dataclass(frozen=True)
+class ExtResourceName(Resource):
+    resource_uri  : ExtResourceNameURI
+    type          : ExtResourceTypeNameURI
+    desc          : str
+    name          : str
+    order         : int
+    slug          : str
+    used          : bool
+
+
+@dataclass(frozen=True)
+class PersonExtResourceURI(URI):
+    root : str = "/api/v1/person/personextresource/"
+
+
+@dataclass(frozen=True)
+class PersonExtResource(Resource):
+    id           : int
+    resource_uri : PersonExtResourceURI
+    display_name : str
+    person       : PersonURI
+    name         : ExtResourceNameURI
+    value        : str
+
+
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to email addresses:
 
@@ -1809,12 +1855,14 @@ class DataTracker:
         self._hints["/api/v1/meeting/session/"]                    = Hints(Session,                     "id")
         self._hints["/api/v1/meeting/timeslot/"]                   = Hints(Timeslot,                    "id")
         self._hints["/api/v1/message/announcementfrom/"]           = Hints(AnnouncementFrom,            "id")
-        self._hints["/api/v1/message/message/"]                    = Hints(DTMessage,                     "id")
+        self._hints["/api/v1/message/message/"]                    = Hints(DTMessage,                   "id")
         self._hints["/api/v1/message/sendqueue/"]                  = Hints(SendQueueEntry,              "id")
         self._hints["/api/v1/name/ballotpositionname/"]            = Hints(BallotPositionName,          "slug")
         self._hints["/api/v1/name/docrelationshipname/"]           = Hints(RelationshipType,            "slug")
         self._hints["/api/v1/name/doctagname/"]                    = Hints(DocumentTag,                 "slug")
         self._hints["/api/v1/name/doctypename/"]                   = Hints(DocumentType,                "slug")
+        self._hints["/api/v1/name/extresourcename/"]               = Hints(ExtResourceName,             "slug")
+        self._hints["/api/v1/name/extresourcetypename/"]           = Hints(ExtResourceTypeName,         "slug")
         self._hints["/api/v1/name/groupmilestonestatename/"]       = Hints(GroupMilestoneStateName,     "slug")
         self._hints["/api/v1/name/groupstatename/"]                = Hints(GroupState,                  "slug")
         self._hints["/api/v1/name/grouptypename/"]                 = Hints(GroupTypeName,               "slug")
@@ -1835,6 +1883,7 @@ class DataTracker:
         self._hints["/api/v1/person/historicalperson/"]            = Hints(HistoricalPerson,            "id")
         self._hints["/api/v1/person/person/"]                      = Hints(Person,                      "id")
         self._hints["/api/v1/person/personevent/"]                 = Hints(PersonEvent,                 "id")
+        self._hints["/api/v1/person/personextresource/"]           = Hints(PersonExtResource,           "id")
         self._hints["/api/v1/review/historicalreviewassignment/"]  = Hints(HistoricalReviewAssignment,  "id")
         self._hints["/api/v1/review/historicalreviewersettings/"]  = Hints(HistoricalReviewerSettings,  "id")
         self._hints["/api/v1/review/historicalreviewrequest/"]     = Hints(HistoricalReviewRequest,     "id")
@@ -2179,6 +2228,55 @@ class DataTracker:
         if name_plain_contains is not None:
             url.params["plain__contains"] = name_plain_contains
         yield from self._retrieve_multi(url, Person)
+
+
+    def person_ext_resource(self, person_ext_resource_uri: PersonExtResourceURI) -> Optional[PersonExtResource]:
+        """
+        Retrieve information about an external resource associated with a
+        person.
+
+        External resources include GitHub usernames and personal webpages,
+        amongst other things.
+        """
+        return self._retrieve(person_ext_resource_uri, PersonExtResource)
+
+
+    def person_ext_resources(self,
+                             person        : Optional[Person] = None,
+                             resource_name : Optional[ExtResourceName] = None,
+                             resource_slug : Optional[str] = None) -> Iterator[PersonExtResource]:
+        url = PersonExtResourceURI("/api/v1/person/personextresource/")
+        if person is not None:
+            url.params["person"] = person.id
+        if resource_name is not None:
+            url.params["name"] = resource_name.slug
+        if resource_slug is not None:
+            url.params["name"] = resource_slug
+        yield from self._retrieve_multi(url, PersonExtResource)
+
+
+    def ext_resource_name(self, ext_resource_name_uri: ExtResourceNameURI) -> Optional[ExtResourceName]:
+        return self._retrieve(ext_resource_name_uri, ExtResourceName)
+
+
+    def ext_resource_name_from_slug(self, slug: str) -> Optional[ExtResourceName]:
+        return self._retrieve(ExtResourceNameURI(F"/api/v1/name/extresourcename/{slug}/"), ExtResourceName)
+
+
+    def ext_resource_names(self) -> Iterator[ExtResourceName]:
+        yield from self._retrieve_multi(ExtResourceNameURI("/api/v1/name/extresourcename/"), ExtResourceName)
+
+
+    def ext_resource_type_name(self, ext_resource_type_name_uri: ExtResourceTypeNameURI) -> Optional[ExtResourceTypeName]:
+        return self._retrieve(ext_resource_type_name_uri, ExtResourceTypeName)
+
+
+    def ext_resource_type_name_from_slug(self, slug: str) -> Optional[ExtResourceTypeName]:
+        return self._retrieve(ExtResourceTypeNameURI(F"/api/v1/name/extresourcetypename/{slug}/"), ExtResourceTypeName)
+
+
+    def ext_resource_type_names(self) -> Iterator[ExtResourceTypeName]:
+        yield from self._retrieve_multi(ExtResourceTypeNameURI("/api/v1/name/extresourcetypename/"), ExtResourceTypeName)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------

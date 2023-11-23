@@ -5,6 +5,17 @@ Change Log -- ietfdata
 
  - Update mailarchive2.py as the new mail access API
  - Remove mailarchive.py
+ - Add the following methods, and associated types, to `DataTracker`
+     `person_ext_resource()`
+     `person_ext_resources()`
+     `ext_resource_name()`
+     `ext_resource_name_from_slug()`
+     `ext_resource_names()`
+     `ext_resource_type_name()`
+     `ext_resource_type_name_from_slug()`
+     `ext_resource_type_names()`
+   These make it possible to retrieve GitHub identifiers, and similar,
+   for people.
 
 
 ## Version 0.6.8 -- 17 August 2023

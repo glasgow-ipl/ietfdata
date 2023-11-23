@@ -459,6 +459,41 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(p[ 0].resource_uri, PersonURI("/api/v1/person/person/20209/"))
 
 
+    def test_person_ext_resource(self) -> None:
+        r = self.dt.person_ext_resource(PersonExtResourceURI("/api/v1/person/personextresource/177/"))
+        if r is not None:
+            self.assertEqual(r.resource_uri, PersonExtResourceURI("/api/v1/person/personextresource/177/"))
+            self.assertEqual(r.id,           177)
+            self.assertEqual(r.display_name, "")
+            self.assertEqual(r.person,       PersonURI("/api/v1/person/person/20209/"))
+            self.assertEqual(r.name,         ExtResourceNameURI("/api/v1/name/extresourcename/github_username/"))
+            self.assertEqual(r.value,        "csperkins")
+        else:
+            self.fail("Cannot find PersonExternalResource")
+
+
+    def test_person_ext_resources(self) -> None:
+        p = self.dt.person_from_email("csp@csperkins.org")
+        r = list(self.dt.person_ext_resources(p))
+        self.assertEqual(len(r), 3)
+        self.assertEqual(r[0].value, "csperkins")
+        self.assertEqual(r[1].value, "https://csperkins.org/")
+        self.assertEqual(r[2].value, "https://www.gla.ac.uk/schools/computing/staff/colinperkins/")
+
+
+    def test_ext_resource_name(self) -> None:
+        r = self.dt.ext_resource_name(ExtResourceNameURI("/api/v1/name/extresourcename/github_username/"))
+        if r is not None:
+            self.assertEqual(r.resource_uri, ExtResourceNameURI("/api/v1/name/extresourcename/github_username/"))
+            self.assertEqual(r.desc,  "GitHub Username")
+            self.assertEqual(r.name,  "GitHub Username")
+            self.assertEqual(r.order, 0)
+            self.assertEqual(r.slug,  "github_username")
+            self.assertEqual(r.type,  ExtResourceTypeNameURI("/api/v1/name/extresourcetypename/string/"))
+            self.assertEqual(r.used,  True)
+        else:
+            self.fail("Cannot find ExtResourceName")
+
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to documents:
 
