@@ -567,13 +567,61 @@ class MailingList:
         return msgs_to_fetch
 
 
-    def threads(self) -> Iterator[Envelope]:
+    def threads(self) -> Dict[str, List[Envelope]]:
         """
-        Yields the envelopes containing the first message in each thread in
-        this mailing list.
+        Returns a dictionary of threads in this mailing list.
+
+        The dictionary returned maps message-id values of the first messages in
+        each thread to lists of the Envelope objects containing that message.
+
+        Threads frequently start on one mailing list and have later messages
+        sent to a different mailing list. If you have a complete copy of the
+        mail archive (i.e., if you previously called `MailArchive::update()`),
+        then this function will track threads across lists to find the first
+        message in each.
+
+        The first message in a thread can be copied to several mailing lists.
+        If this happens, the message-id for the thread will map to a list of
+        Envelope objects, each representing a copy of the message sent to a
+        different mailing list.
+        If the first message in the thread was only sent to a single mailing
+        list, then the message-id for the thread will map onto a list with a
+        single Envelope.
         """
-        # FIXME
-        return None # type: ignore
+        threads = {}
+        seen    = {} # type: Dict[str,Envelope]
+        for msg in self.messages():
+            msg_id  = msg.header("message-id")[0]
+            seen[msg_id] = msg
+
+            self._log.debug(f"{msg.uid():5} {msg.header('message-id')} {msg.header('subject')}")
+
+            parents = msg.in_reply_to()
+            if len(parents) == 0:
+                # This is the first message in the thread
+                if msg.header("message-id")[0] not in threads:
+                    threads[msg.header("message-id")[0]] = [msg]
+                self._log.debug("      First in thread")
+            elif parents[0].header("message-id")[0] in seen:
+                # This is part of a thread we've already seen
+                self._log.debug(f"      {parents[0].header('message-id')} {parents[0].header('subject')}")
+                self._log.debug(f"      seen")
+            else:
+                # This is either a new thread that has been copied to this list
+                # where the earlier messages in the thread are on another list,
+                # or this message is part of an existing thread but has arrived
+                # before its parent.
+                curr = parents
+                while True:
+                    self._log.debug(f"      {curr[0].header('message-id')} {curr[0].header('subject')}")
+                    parents = curr[0].in_reply_to()
+                    if len(parents) == 0:
+                        self._log.debug("      First in thread")
+                        if curr[0].header("message-id")[0] not in threads:
+                            threads[curr[0].header("message-id")[0]] = curr
+                        break
+                    curr = parents
+        return threads
 
 
     def add_metadata(self, project:str, key:str, value):
