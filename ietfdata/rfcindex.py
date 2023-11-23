@@ -262,14 +262,21 @@ class RfcEntry:
             return "iso8859_1"
         elif self.doc_id == "RFC2166":
             return "windows-1252"
-        elif (self.doc_id == "RFC2497") or (self.doc_id == "RFC2497") or \
-             (self.doc_id == "RFC2557"):
+        elif (self.doc_id == "RFC2497") or (self.doc_id == "RFC2557"):
             return "iso8859_1"
         elif self.doc_id == "RFC2708":
             # This RFC is corrupt: line 521 has a byte with value 0xC6 that
             # is clearly intended to be a ' character, but that code point
             # doesn't correspond to ' in any character set I can find. Use
             # ISO 8859-1 which gets all characters right apart from this.
+            #
+            # According to Greg Skinner: "regarding the test in line 268
+            # for RFC2708, as far as I can tell, U+0092 was introduced in
+            # draft-ietf-printmib-job-protomap-01 in multiple places. In -02,
+            # it was replaced with U+0027 everywhere except section 5.0.
+            # Somehow, that stray character became the corrupt text you
+            # identified."
+            # (https://github.com/glasgow-ipl/ietfdata/issues/137)
             return "iso8859_1"
         elif self.doc_id == "RFC2875":
             # Both the text and PDF versions of this document have corrupt
