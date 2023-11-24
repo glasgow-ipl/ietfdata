@@ -35,5 +35,7 @@ doc = dt.document_from_draft("draft-ietf-eppext-keyrelay")
 for submit_url in doc.submissions:
     submit = dt.submission(submit_url)
     print(f"{submit.name}-{submit.rev} {submit.submission_date}")
+    for a in submit.parse_authors():
+        print(f"  {a}")
 
 
