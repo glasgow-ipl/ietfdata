@@ -137,7 +137,7 @@ class Person(Resource):
     resource_uri    : PersonURI
     id              : int
     name            : str            # Full name in Unicode
-    name_from_draft : str
+    name_from_draft : Optional[str]
     ascii           : str            # Name as rendered in ASCII
     # ascii_short: Fill in this with initials and surname only if taking the initials
     # and surname of the ASCII name above produces an incorrect initials-only form.
@@ -160,7 +160,7 @@ class HistoricalPerson(Resource):
     resource_uri          : HistoricalPersonURI
     id                    : int
     name                  : str
-    name_from_draft       : str
+    name_from_draft       : Optional[str]
     ascii                 : str
     ascii_short           : Optional[str]
     user                  : str
