@@ -1857,7 +1857,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_email(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(email="csp@csperkins.org"))
-        self.assertEqual(len(group_role_histories), 76)
+        self.assertEqual(len(group_role_histories), 77)
 
 
     def test_group_role_histories_group(self) -> None:
@@ -1873,7 +1873,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_person(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(person=self.dt.person(PersonURI("/api/v1/person/person/20209/"))))
-        self.assertEqual(len(group_role_histories), 76)
+        self.assertEqual(len(group_role_histories), 77)
 
 
     def test_group_state_change_event(self) -> None:
@@ -2004,7 +2004,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_type_names(self) -> None:
         group_type_names = list(self.dt.group_type_names())
-        self.assertEqual(len(group_type_names), 25)
+        self.assertEqual(len(group_type_names), 26)
         self.assertEqual(group_type_names[ 0].slug, "adhoc")
         self.assertEqual(group_type_names[ 1].slug, "adm")
         self.assertEqual(group_type_names[ 2].slug, "ag")
@@ -2014,22 +2014,23 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(group_type_names[ 6].slug, "edwg")
         self.assertEqual(group_type_names[ 7].slug, "iab")
         self.assertEqual(group_type_names[ 8].slug, "iabasg")
-        self.assertEqual(group_type_names[ 9].slug, "iana")
-        self.assertEqual(group_type_names[10].slug, "iesg")
-        self.assertEqual(group_type_names[11].slug, "ietf")
-        self.assertEqual(group_type_names[12].slug, "individ")
-        self.assertEqual(group_type_names[13].slug, "irtf")
-        self.assertEqual(group_type_names[14].slug, "ise")
-        self.assertEqual(group_type_names[15].slug, "isoc")
-        self.assertEqual(group_type_names[16].slug, "nomcom")
-        self.assertEqual(group_type_names[17].slug, "program")
-        self.assertEqual(group_type_names[18].slug, "rag")
-        self.assertEqual(group_type_names[19].slug, "review")
-        self.assertEqual(group_type_names[20].slug, "rfcedtyp")
-        self.assertEqual(group_type_names[21].slug, "rg")
-        self.assertEqual(group_type_names[22].slug, "sdo")
-        self.assertEqual(group_type_names[23].slug, "team")
-        self.assertEqual(group_type_names[24].slug, "wg")
+        self.assertEqual(group_type_names[ 9].slug, "iabworkshop")
+        self.assertEqual(group_type_names[10].slug, "iana")
+        self.assertEqual(group_type_names[11].slug, "iesg")
+        self.assertEqual(group_type_names[12].slug, "ietf")
+        self.assertEqual(group_type_names[13].slug, "individ")
+        self.assertEqual(group_type_names[14].slug, "irtf")
+        self.assertEqual(group_type_names[15].slug, "ise")
+        self.assertEqual(group_type_names[16].slug, "isoc")
+        self.assertEqual(group_type_names[17].slug, "nomcom")
+        self.assertEqual(group_type_names[18].slug, "program")
+        self.assertEqual(group_type_names[19].slug, "rag")
+        self.assertEqual(group_type_names[20].slug, "review")
+        self.assertEqual(group_type_names[21].slug, "rfcedtyp")
+        self.assertEqual(group_type_names[22].slug, "rg")
+        self.assertEqual(group_type_names[23].slug, "sdo")
+        self.assertEqual(group_type_names[24].slug, "team")
+        self.assertEqual(group_type_names[25].slug, "wg")
 
 
     # -----------------------------------------------------------------------------------------------------------------------------
