@@ -26,6 +26,7 @@
 import json
 import sys
 
+from datetime    import timedelta
 from dataclasses import dataclass, field
 from typing      import List, Dict, Optional, Iterator
 
@@ -243,7 +244,7 @@ if __name__ == "__main__":
     pdb = ParticipantDB(old_path)
 
     # Add identifiers based on the IETF DataTracker:
-    dt  = DataTrackerExt()
+    dt  = DataTrackerExt(cache_timeout = timedelta(hours=1))
     for msg in dt.emails():
         pdb.person_with_identifier("email", msg.address)
         pdb.identifies_same_person("email", msg.address, "dt_person_uri", str(msg.person))
