@@ -92,13 +92,13 @@ class DataTrackerExt(DataTracker):
     """
 
     def __init__(self,
-            use_cache: bool = False,
-            mongodb_hostname: str = "localhost",
-            mongodb_port: int = 27017,
-            mongodb_username: Optional[str] = None,
-            mongodb_password: Optional[str] = None):
-        super().__init__(use_cache, mongodb_hostname, mongodb_port, mongodb_username, mongodb_password)
-
+                 use_cache     : bool = False,
+                 mongodb_host  : str  = os.getenv("IETFDATA_CACHE_HOST", "localhost"),
+                 mongodb_port  : str  = os.getenv("IETFDATA_CACHE_PORT", "27017"),
+                 mongodb_user  : Optional[str] = os.getenv("IETFDATA_CACHE_USER"),
+                 mongodb_pass  : Optional[str] = os.getenv("IETFDATA_CACHE_PASSWORD"),
+                 cache_timeout : Optional[timedelta] = None):
+        super().__init__(use_cache, mongodb_host, mongodb_port, mongodb_user, mongodb_pass, cache_timeout)
 
 
     def draft_history(self, draft: Document, drafts_seen: List[Document] = []) -> List[DraftHistory]:
