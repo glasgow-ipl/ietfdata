@@ -28,7 +28,6 @@ python-dateutil = "*"
 pymongo = "*"
 requests = "*"
 requests-cache = "*"
-requests-ratelimiter = "*"
 
 [requires]
 python_version = "3.9"

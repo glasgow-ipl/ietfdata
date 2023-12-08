@@ -53,6 +53,7 @@ import logging
 import os
 import re
 import requests
+import requests_cache
 import sys
 import time
 import urllib.parse
@@ -67,14 +68,6 @@ from pavlova          import Pavlova
 from pavlova.parsers  import GenericParser
 from pymongo          import MongoClient, ASCENDING, TEXT, ReplaceOne
 from pymongo.database import Database
-from requests_cache   import CacheMixin, MongoCache, DO_NOT_CACHE
-from requests_ratelimiter import LimiterMixin
-
-class CachedLimiterSession(CacheMixin, LimiterMixin, requests.Session):
-    """
-    Session class with caching and rate-limiting behavior. Accepts arguments for both
-    LimiterSession and CachedSession.
-    """
 
 # =================================================================================================================================
 # Classes to represent the JSON-serialised objects returned by the Datatracker API:
@@ -1757,31 +1750,18 @@ class DataTracker:
     """
     db_conn : Optional[MongoClient]
     db      : Optional[Database]
-    backend : Optional[MongoCache]
+    backend : Optional[requests_cache.MongoCache]
 
     def __init__(self,
-            use_cache: bool = False,
-            mongodb_host: str = "localhost",
-            mongodb_port: int = 27017,
-            mongodb_user: Optional[str] = None,
-            mongodb_pass: Optional[str] = None,
-            cache_timeout: Optional[timedelta] = None):
-        if os.environ.get('IETFDATA_CACHE_HOST') is not None:
-            use_cache = True
-            cache_host = os.environ.get('IETFDATA_CACHE_HOST')
-            cache_port = os.environ.get('IETFDATA_CACHE_PORT', 27017)
-            cache_user = os.environ.get('IETFDATA_CACHE_USER')
-            cache_pass = os.environ.get('IETFDATA_CACHE_PASSWORD')
-            if cache_host is not None:
-                mongodb_host = cache_host
-            if cache_port is not None:
-                mongodb_port = int(cache_port)
-            if cache_user is not None:
-                mongodb_user = cache_user
-            if cache_pass is not None:
-                mongodb_pass = cache_pass
+                 use_cache     : bool = False,
+                 mongodb_host  : str  = os.getenv("IETFDATA_CACHE_HOST", "localhost"),
+                 mongodb_port  : str  = os.getenv("IETFDATA_CACHE_PORT", "27017"),
+                 mongodb_user  : Optional[str] = os.getenv("IETFDATA_CACHE_USER"),
+                 mongodb_pass  : Optional[str] = os.getenv("IETFDATA_CACHE_PASSWORD"),
+                 cache_timeout : Optional[timedelta] = None):
 
-        cache_limit = float(os.environ.get('IETFDATA_CACHE_RATELIMIT', "10000"))
+        if os.getenv("IETFDATA_CACHE_HOST") is not None:
+            use_cache = True
 
         logging.getLogger('requests_cache').setLevel('WARN')
 
@@ -1790,33 +1770,31 @@ class DataTracker:
 
         self.ua        = "glasgow-ietfdata/0.7.0"          # Update when making a new relaase
         self.base_url  = os.environ.get("IETFDATA_DT_URL", "https://datatracker.ietf.org")
-        self.http_req  = 0
         self.get_count = 0
 
         if use_cache:
-            self.log.info(f"mongodb host = {mongodb_host}")
-            self.log.info(f"mongodb port = {mongodb_port}")
-            self.log.info(f"mongodb user = {mongodb_user}")
-            self.log.info(f"mongodb pass = {mongodb_pass}")
-            self.log.info(f"mongodb limit = {cache_limit}")
-            self.db_conn = MongoClient(host=mongodb_host, port=mongodb_port, username=mongodb_user, password=mongodb_pass)
+            self.log.warning(f"mongodb host = {mongodb_host}")
+            self.log.warning(f"mongodb port = {mongodb_port}")
+            self.log.warning(f"mongodb user = {mongodb_user}")
+            self.log.warning(f"mongodb pass = {mongodb_pass}")
+            self.db_conn = MongoClient(host  =mongodb_host,
+                                       port = int(mongodb_port),
+                                       username = mongodb_user,
+                                       password = mongodb_pass)
             self.db      = self.db_conn.ietfdata
-            self.backend = MongoCache(db_name="ietfdata_requests", connection=self.db_conn)
+            self.backend = requests_cache.MongoCache(db_name="ietfdata_requests", connection=self.db_conn)
             if cache_timeout is not None:
-                self.log.info(f"Cache enabled; timeout = {cache_timeout}")
-                self.session = CachedLimiterSession(backend=self.backend, expire_after=cache_timeout, per_second=cache_limit)
+                self.log.warning(f"Cache enabled; timeout = {cache_timeout}")
+                self.session = requests_cache.CachedSession(backend=self.backend, expire_after=cache_timeout)
             else:
-                self.log.info(f"Cache enabled; timeout = (auto)")
-                self.session = CachedLimiterSession(backend=self.backend, cache_control=True, per_second=cache_limit)
-            # check Datatracker and cache versions
-            self.cache_ver = "4" # Increment when changing cache architecture
-            self._cache_check_versions()
+                self.log.warning(f"Cache enabled; timeout = (auto)")
+                self.session = requests_cache.CachedSession(backend=self.backend, cache_control=True)
         else:
             self.log.warning("CACHE DISABLED")
             self.db_conn = None
             self.db      = None
             self.backend = None
-            self.session = CachedLimiterSession(expire_after=DO_NOT_CACHE, per_second=cache_limit)
+            self.session = requests_cache.CachedSession(expire_after = requests_cache.DO_NOT_CACHE)
 
         self.pavlova = Pavlova()
         for uri_type in URI.__subclasses__():
@@ -2055,70 +2033,6 @@ class DataTracker:
                 time.sleep(retry_time)
                 retry_time *= 2
 
-
-    # ----------------------------------------------------------------------------------------------------------------------------
-    # Private methods to control the cache:
-
-    def _cache_check_versions(self) -> None:
-        if self.db is None:
-            return
-
-        # Check for and remove obsolete v0.1.0 cache format:
-        cache_version_metadata = self.db.cache_info.find_one({"meta_key": "_cache_versions"})
-        if cache_version_metadata is not None:
-            self.log.warning("_cache_check_versions: old cache detected")
-            if cache_version_metadata["cache_version"] == "0.1.0":
-                self.log.warning(f"_cache_check_versions: cache version changed 0.1.0 -> {self.cache_ver}")
-                for collection in self.db.list_collection_names():
-                    if collection.startswith("api_v1"):
-                        self.log.info(f"_cache_check_versions: remove obsolete cache {collection}")
-                        self.db[collection].drop_indexes()
-                        self.db[collection].drop()
-                self.db.cache_info.delete_one({"meta_key": "_cache_versions"})
-
-        # Find cache and datatracker versions:
-        cache_version_metadata = self.db.cache_info.find_one({"collection": "_cache_versions"})
-        if cache_version_metadata is None:
-            dt_version    = None
-            cache_version = self.cache_ver
-        else:
-            dt_version    = cache_version_metadata["dt_version"]
-            cache_version = cache_version_metadata["cache_version"]
-
-        # Check cache version
-        if cache_version == '1' or cache_version == "2" or cache_version == "3":
-            self.log.info(f"_cache_check_versions: cache version changed {cache_version} -> {self.cache_ver}")
-            for collection in self.db.list_collection_names():
-                if collection.startswith("api_v1"):
-                    self.log.info(f"_cache_check_versions: remove obsolete cache {collection}")
-                    self.db[collection].drop_indexes()
-                    self.db[collection].drop()
-            self.db.cache_info.delete_many({"collection": {"$regex": "^api_v1"}})
-        elif self.cache_ver != cache_version:
-            # Exit if the cache version doesn't match that we're expecting. Need to add code above
-            # to update the cache if the format changes, as was done with the v0.1.1 to v1 change.
-            self.log.error(f"_cache_check_versions: cache version changed {cache_version} -> {self.cache_ver}")
-            sys.exit()
-        else:
-            self.log.info(f"_cache_check_versions: cache version {self.cache_ver}")
-
-        # check Datatracker version
-        version_info = self._datatracker_get_single(URI("/api/version/"))
-        if version_info is not None:
-            if dt_version != version_info["version"]:
-                self.log.info(f"_cache_check_versions: datatracker version changed {dt_version} -> {version_info['version']}")
-                self.log.info(f"_cache_check_versions: cache cleared")
-                self.session.cache.clear()
-                dt_version = version_info["version"]
-            else:
-                self.log.info(f"_cache_check_versions: datatracker version {dt_version}")
-        else:
-            self.log.warning("_cache_check_versions: could not check datatracker version")
-
-        self.db.cache_info.replace_one(
-                {"collection": "_cache_versions"},
-                {"collection": "_cache_versions", "dt_version": dt_version, "cache_version": self.cache_ver},
-                upsert=True)
 
     # ----------------------------------------------------------------------------------------------------------------------------
     # Private methods to retrieve objects from the datatracker:
