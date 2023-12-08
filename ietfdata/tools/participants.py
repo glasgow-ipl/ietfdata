@@ -23,6 +23,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+import email.utils
 import json
 import sys
 
@@ -243,13 +244,12 @@ if __name__ == "__main__":
 
     pdb  = ParticipantDB(old_path)
 
-    blocklist = ["noreply@ietf.org"]
+    ignore = ["noreply@ietf.org"]
 
     # Add identifiers based on the IETF DataTracker:
-    dt  = DataTrackerExt(cache_timeout = timedelta(hours=3))
+    dt  = DataTrackerExt(cache_timeout = timedelta(hours=6))
     for msg in dt.emails():
-        if msg.address in blocklist:
-            print(f"blocked {msg.address}")
+        if msg.address in ignore:
             continue
         pdb.person_with_identifier("email", msg.address)
         pdb.identifies_same_person("email", msg.address, "dt_person_uri", str(msg.person))
@@ -273,23 +273,18 @@ if __name__ == "__main__":
         ml = ma.mailing_list(n)
         print(f"*** {ml.name()}")
         for envelope in ml.messages():
-            message = envelope.contents()
-            if message["from"] is not None:
-                for addr in message["from"].addresses:
-                    email_addr = f"{addr.username}@{addr.domain}"
-                    email_name = f"{addr.display_name}"
-                    email_full = f"{email_name} <{email_addr}>"
-                    if email_addr in blocklist:
-                        print(f"blocked {email_addr}")
-                        continue
-                    if email_full not in seen:
-                        pdb.person_with_identifier("email", email_addr)
-                        person = dt.person_from_name_email(email_name, email_addr)
-                        if person is not None:
-                            pdb.identifies_same_person("email", email_addr, "dt_person_uri", str(person.resource_uri))
-                            seen[email_full] = str(person.resource_uri)
-                        else:
-                            seen[email_full] = "-"
+            for email_name, email_addr in email.utils.getaddresses(envelope.header("from")):
+                email_full = f"{email_name} <{email_addr}>"
+                if email_addr in ignore:
+                    continue
+                if email_full not in seen:
+                    pdb.person_with_identifier("email", email_addr)
+                    person = dt.person_from_name_email(email_name, email_addr)
+                    if person is not None:
+                        pdb.identifies_same_person("email", email_addr, "dt_person_uri", str(person.resource_uri))
+                        seen[email_full] = str(person.resource_uri)
+                    else:
+                        seen[email_full] = "-"
 
     print(f"Saving: {new_path}")
     pdb.save(new_path)
