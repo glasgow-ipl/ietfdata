@@ -271,6 +271,7 @@ if __name__ == "__main__":
 
 
     # Add identifiers based on the IETF mailing list archive:
+    cache = {}
     ma = MailArchive()
     for n in ma.mailing_list_names():
         ml = ma.mailing_list(n)
@@ -281,7 +282,13 @@ if __name__ == "__main__":
                 name  = addr.display_name
                 pdb.person_with_identifier("email", email_addr)
 
-                person = dt.person_from_name_email(name, email_addr)
+                key = f"{name} <{email_addr}>"
+                if key in cache:
+                    person = cache[key]
+                    print(f"cache hit: {key}")
+                else:
+                    person = dt.person_from_name_email(name, email_addr)
+                    cache[key] = person
                 if person is not None:
                     pdb.identifies_same_person("email", email_addr, "dt_person_uri", str(person.resource_uri))
 
