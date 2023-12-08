@@ -73,7 +73,15 @@ def names_to_try(name: str, email: str) -> List[str]:
             alias = split[0][0].upper() + split[0][1:] + " " + split[2][0].upper() + split[2][1:]
             names.append(alias)
 
-    return names
+    utf8_safe_names = []
+    for n in names:
+        try:
+            n.encode("utf-8")
+            utf8_safe_names.append(n)
+        except UnicodeEncodeError:
+            pass
+
+    return utf8_safe_names
 
 # =================================================================================================================================
 
