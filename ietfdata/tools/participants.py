@@ -241,7 +241,6 @@ if __name__ == "__main__":
         print("ERROR: refusing to overwrite input file")
         sys.exit(2)
 
-    seen = {}
     pdb  = ParticipantDB(old_path)
 
     blocklist = ["noreply@ietf.org"]
@@ -254,22 +253,8 @@ if __name__ == "__main__":
             continue
         pdb.person_with_identifier("email", msg.address)
         pdb.identifies_same_person("email", msg.address, "dt_person_uri", str(msg.person))
-        seen[msg.address] = str(msg.person)
-
-        #if msg.person is not None:
-        #    person = dt.person(msg.person)
-        #    if person is not None:
-        #        print(person)
-        #        if person.name is not None and person.name != "":
-        #            pdb.identifies_same_person("dt_person_uri", str(msg.person), "name", person.name)
-        #        if person.name_from_draft is not None and person.name_from_draft != "":
-        #            pdb.identifies_same_person("dt_person_uri", str(msg.person), "name", person.name_from_draft)
-        #        if person.ascii is not None and person.ascii != "":
-        #            pdb.identifies_same_person("dt_person_uri", str(msg.person), "name", person.ascii)
-        #        if person.ascii_short is not None and person.ascii_short != "":
-        #            pdb.identifies_same_person("dt_person_uri", str(msg.person), "name", person.ascii_short)
-
-    # FIXME: the code is merging all people with affiliation "Cisco Systems"
+        # We don't need to add names here. The call to dt.person_by_name_email()
+        # below handles name matching.
 
 
     for resource in dt.person_ext_resources():
@@ -282,7 +267,8 @@ if __name__ == "__main__":
 
 
     # Add identifiers based on the IETF mailing list archive:
-    ma = MailArchive()
+    seen = {}
+    ma   = MailArchive()
     for n in ma.mailing_list_names():
         ml = ma.mailing_list(n)
         print(f"*** {ml.name()}")
@@ -296,7 +282,7 @@ if __name__ == "__main__":
                     if email_addr in blocklist:
                         print(f"blocked {email_addr}")
                         continue
-                    if email_full not in seen and email_addr not in seen:
+                    if email_full not in seen:
                         pdb.person_with_identifier("email", email_addr)
                         person = dt.person_from_name_email(email_name, email_addr)
                         if person is not None:
