@@ -249,12 +249,14 @@ if __name__ == "__main__":
               "noreply=40github.com@dmarc.ietf.org"]
 
     # Add identifiers based on the IETF DataTracker:
+    seen_addr = set()
     dt  = DataTrackerExt(cache_timeout = timedelta(hours=12))
     for msg in dt.emails():
         if msg.address in ignore:
             continue
         pdb.person_with_identifier("email", msg.address)
         pdb.identifies_same_person("email", msg.address, "dt_person_uri", str(msg.person))
+        seen_addr.add(msg.address)
         # We don't need to add names here. The call to dt.person_by_name_email()
         # below handles name matching.
 
@@ -269,7 +271,7 @@ if __name__ == "__main__":
 
 
     # Add identifiers based on the IETF mailing list archive:
-    seen = set()
+    seen_full = set()
     ma   = MailArchive()
     for n in ma.mailing_list_names():
         ml = ma.mailing_list(n)
