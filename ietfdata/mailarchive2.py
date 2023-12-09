@@ -433,7 +433,7 @@ class MailingList:
                      "$lt": datetime.strptime(received_before, "%Y-%m-%dT%H:%M:%S")
                  }
                 }
-        messages = self._mail_archive._db.messages.find(query, no_cursor_timeout=True)
+        messages = self._mail_archive._db.messages.find(query, sort=[("uid", ASCENDING)], batch_size=100)
         for message in messages:
             uidvalidity = message["uidvalidity"]
             uid         = message["uid"]
@@ -442,7 +442,6 @@ class MailingList:
             size        = message["size"]
             headers     = message["headers"]
             yield Envelope(self, uidvalidity, uid, gridfs_id, timestamp, size, headers)
-        messages.close()
 
 
     def messages_as_dataframe(self,
@@ -727,20 +726,18 @@ class MailArchive:
                                               ('project', ASCENDING),
                                               ('key', ASCENDING),
                                              ], unique=True)
+
         self._db.messages.create_index([('list', ASCENDING),
                                         ('uidvalidity', ASCENDING),
                                         ('uid', ASCENDING),
                                        ], unique=True)
         self._db.messages.create_index([('list', ASCENDING),
                                         ('uidvalidity', ASCENDING),
-                                        ('timestamp', ASCENDING),
-                                       ], unique=False)
-        self._db.messages.create_index([('list', ASCENDING),
-                                        ('uidvalidity', ASCENDING),
                                         ('message_id', ASCENDING),
                                        ], unique=False)
         self._db.messages.create_index([('message_id', ASCENDING),
                                        ], unique=False)
+
         self._db.metadata.create_index([('list', ASCENDING), 
                                         ('uidvalidity', ASCENDING), 
                                         ('uid', ASCENDING),
