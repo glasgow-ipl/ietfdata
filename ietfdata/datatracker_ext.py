@@ -55,7 +55,7 @@ def names_to_try(name: str, email: str) -> List[str]:
 
     # Derive names from the email address:
     if "@" in email:
-        local, remote = email.split("@")
+        local, remote = email.rsplit("@", 1)
 
         if local.endswith(".ietf") or local.endswith("-ietf") or local.endswith("+ietf"):
             local = local[:-5]
@@ -335,6 +335,12 @@ class DataTrackerExt(DataTracker):
         email "From:" header, try to find a person in the datatracker. This uses a
         number of heuristics if there is no exact match.
         """
+        assert len(email_addr) > 0
+
+        # Decode DMARC (e.g., arnaud.taddei=40broadcom.com@dmarc.ietf.org -> arnaud.taddei@broadcom.com)
+        if email_addr.endswith("@dmarc.ietf.org"):
+            email_addr = email_addr[:-15].replace("=40", "@")
+
         # Try to match on the email address:
         email = self.email_for_address(email_addr)
         if email is not None and email.person is not None:
@@ -343,9 +349,9 @@ class DataTrackerExt(DataTracker):
 
         # Try to match on the base email address:
         if "@" in email_addr:
-            local, remote = email_addr.split("@")
+            local, remote = email_addr.rsplit("@", 1)
             if local.count("+") == 1:
-                base, suffix = local.split("+")
+                base, suffix = local.rsplit("+", 1)
                 email_base = F"{base}@{remote}"
                 email = self.email_for_address(email_base)
                 if email is not None and email.person is not None:
