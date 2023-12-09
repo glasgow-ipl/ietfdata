@@ -244,10 +244,12 @@ if __name__ == "__main__":
 
     pdb  = ParticipantDB(old_path)
 
-    ignore = ["noreply@ietf.org"]
+    ignore = ["noreply@ietf.org",
+              "noreply@github.com",
+              "noreply=40github.com@dmarc.ietf.org"]
 
     # Add identifiers based on the IETF DataTracker:
-    dt  = DataTrackerExt(cache_timeout = timedelta(hours=6))
+    dt  = DataTrackerExt(cache_timeout = timedelta(hours=12))
     for msg in dt.emails():
         if msg.address in ignore:
             continue
@@ -267,11 +269,13 @@ if __name__ == "__main__":
 
 
     # Add identifiers based on the IETF mailing list archive:
-    seen = {}
+    seen = set()
     ma   = MailArchive()
     for n in ma.mailing_list_names():
         ml = ma.mailing_list(n)
+        print(f"*** ")
         print(f"*** {ml.name()}")
+        print(f"*** ")
         for envelope in ml.messages():
             for email_name, email_addr in email.utils.getaddresses(envelope.header("from")):
                 email_full = f"{email_name} <{email_addr}>"
@@ -282,9 +286,7 @@ if __name__ == "__main__":
                     person = dt.person_from_name_email(email_name, email_addr)
                     if person is not None:
                         pdb.identifies_same_person("email", email_addr, "dt_person_uri", str(person.resource_uri))
-                        seen[email_full] = str(person.resource_uri)
-                    else:
-                        seen[email_full] = "-"
+                    seen.add(email_full)
 
     print(f"Saving: {new_path}")
     pdb.save(new_path)
