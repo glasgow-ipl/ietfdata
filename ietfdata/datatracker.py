@@ -64,7 +64,7 @@ from inspect          import signature
 from typing           import List, Optional, Tuple, Dict, Iterator, Type, TypeVar, Any, Union, Generic, get_origin
 from dataclasses      import dataclass, field
 from pathlib          import Path
-from pavlova          import Pavlova
+from pavlova          import Pavlova, PavlovaParsingError
 from pavlova.parsers  import GenericParser
 from pymongo          import MongoClient, ASCENDING, TEXT, ReplaceOne
 from pymongo.database import Database
@@ -2041,7 +2041,12 @@ class DataTracker:
         self.log.debug(F"_retrieve {obj_uri}")
         obj_json = self._datatracker_get_single(obj_uri)
         if obj_json is not None:
-            return self.pavlova.from_mapping(obj_json, obj_type)
+            res = None
+            try:
+                res = self.pavlova.from_mapping(obj_json, obj_type)
+            except PavlovaParsingError:
+                self.log.error(f"Cannot parse response {obj_json}")
+            return res
         else:
             return None
 
