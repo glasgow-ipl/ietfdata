@@ -279,16 +279,22 @@ if __name__ == "__main__":
         print(f"*** {ml.name()}")
         print(f"*** ")
         for envelope in ml.messages():
+            print(f"{ml.name()}/{envelope.uid()}")
             for email_name, email_addr in email.utils.getaddresses(envelope.header("from")):
                 email_full = f"{email_name} <{email_addr}>"
+                if email_addr == "":
+                    continue
                 if email_addr in ignore:
                     continue
-                if email_full not in seen:
+                if email_addr in seen_addr:
+                    # This address is already associated with a datatracker uri
+                    continue
+                if email_full not in seen_full:
                     pdb.person_with_identifier("email", email_addr)
                     person = dt.person_from_name_email(email_name, email_addr)
                     if person is not None:
                         pdb.identifies_same_person("email", email_addr, "dt_person_uri", str(person.resource_uri))
-                    seen.add(email_full)
+                    seen_full.add(email_full)
 
     print(f"Saving: {new_path}")
     pdb.save(new_path)
