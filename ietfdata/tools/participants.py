@@ -246,7 +246,10 @@ if __name__ == "__main__":
 
     ignore = ["noreply@ietf.org",
               "noreply@github.com",
-              "noreply=40github.com@dmarc.ietf.org"]
+              "noreply=40github.com@dmarc.ietf.org",
+              "notifications@github.com",
+              "noreply@icloud.com",
+              ]
 
     # Add identifiers based on the IETF DataTracker:
     seen_addr = set()
