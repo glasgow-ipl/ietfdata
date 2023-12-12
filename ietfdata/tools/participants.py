@@ -249,7 +249,13 @@ if __name__ == "__main__":
               "noreply=40github.com@dmarc.ietf.org",
               "notifications@github.com",
               "noreply@icloud.com",
-              ]
+              "noname@noname.com",
+              "tracker-forces@mip4.org", # FORCES issue tracker
+              "tracker-forces@MIP4.ORG", # FORCES issue tracker
+              "3761bis@frobbit.se",      # 3761bis issue tracker
+              "ietf-action@ietf.org",    # IETF issues tracker
+              "ctp_issues@danforsberg.info", # Seamoby CTP issue tracker
+             ]
 
     # Add identifiers based on the IETF DataTracker:
     seen_addr = set()
@@ -291,6 +297,9 @@ if __name__ == "__main__":
                     continue
                 if email_addr in seen_addr:
                     # This address is already associated with a datatracker uri
+                    continue
+                if email_name.endswith(" via RT"):
+                    # This is an automated email from the RT issues tracker software
                     continue
                 if email_full not in seen_full:
                     pdb.person_with_identifier("email", email_addr)
