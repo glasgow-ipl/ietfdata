@@ -23,6 +23,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+import glob
+
 import email.utils
 import json
 import sys
@@ -187,21 +189,28 @@ class ParticipantDB:
                     return p
 
         # Try to match on the name:
+        p = self.person_with_name(name)
+        self.add_identifier(p, "email", email_addr)
+        return p
+        
+    def person_with_name(self, name: str) -> Participant:
+        # Try to match on the name:
         for suffix in [" via Datatracker", " via RT"]:
             if name.endswith(suffix):
                 name = name[:-len(suffix)]
 
-        for n in names_to_try(name, email_addr):
+        for n in names_to_try(name, ""):
             people = self.names.get(n.lower(), [])
             if len(people) == 1:
-                print(f"person_with_name_email: {name} <{email_addr}> -> Participant({id(people[0])}) (name match)")
+                print(f"person_with_name: {name} -> Participant({id(people[0])}) (name match)")
                 p = people[0]
                 self.add_name(p, name)
                 return p
 
-        print(f"person_with_name_email: {name} <{email_addr}> failed to match")
-        p = self.person_with_identifier("email", email_addr)
+        print(f"person_with_name: {name} failed to match")
+        p = Participant()
         self.add_name(p, name)
+        self.people.add(p)
         return p
 
 
@@ -344,17 +353,9 @@ if __name__ == "__main__":
               "noreply=40github.com@dmarc.ietf.org",
               "notifications@github.com",
               "noreply@icloud.com",
-              "noname@noname.com",
-              "messenger@webex.com",
-              "tracker-forces@mip4.org", # FORCES issue tracker
-              "tracker-forces@MIP4.ORG", # FORCES issue tracker
-              "tracker-mip6@mip4.org",   # Mobile IPv6 issue tracker
-              "tracker-mip4@mip4.org",   # Mobile IPv4 issue tracker
-              "tracker-mip4@levkowetz.com",
-              "3761bis@frobbit.se",      # 3761bis issue tracker
-              "ietf-action@ietf.org",    # IETF issues tracker
-              "ctp_issues@danforsberg.info", # Seamoby CTP issue tracker
-             ]
+              "support@github.com",
+              
+              ]
 
     # Fetch all IETF Datatracker people:
     dt  = DataTrackerExt(cache_timeout = timedelta(hours=12))
@@ -393,21 +394,10 @@ if __name__ == "__main__":
         if str(resource.name) == "/api/v1/name/extresourcename/gitlab_username/":
             pdb.identifies_same_person("dt_person_uri", str(resource.person), "gitlab_username", resource.value)
 
+
     # Add identifiers based on the IETF mailing list archive:
     seen_full = set()
     ma   = MailArchive()
-
-    # Add the mailing list addresses, and their -admin, -archive, and -request 
-    # addresses, to the ignore list. These will never appear in the legitimate
-    # "From:" lines but are frequently used by spammers.
-    for n in ma.mailing_list_names():
-        ignore.append(f"{n}@ietf.org")
-        ignore.append(f"{n}-admin@ietf.org")
-        ignore.append(f"{n}-archive@ietf.org")
-        ignore.append(f"{n}-archive@lists.ietf.org")
-        ignore.append(f"{n}-archive@megatron.ietf.org")
-        ignore.append(f"{n}-request@ietf.org")
-
     for n in ma.mailing_list_names():
         ml = ma.mailing_list(n)
         print(f"*** ")
@@ -424,12 +414,10 @@ if __name__ == "__main__":
                 if email_addr in seen_addr:
                     # This address is already associated with a datatracker uri
                     continue
-                if email_name.endswith(" via RT"):
-                    # This is an automated email from the RT issues tracker software
-                    continue
                 if email_full not in seen_full:
                     pdb.person_with_name_email(email_name, email_addr)
                     seen_full.add(email_full)
+
 
     print(f"Saving: {new_path}")
     pdb.save(new_path)
