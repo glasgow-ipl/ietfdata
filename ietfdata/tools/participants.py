@@ -395,6 +395,18 @@ if __name__ == "__main__":
             pdb.identifies_same_person("dt_person_uri", str(resource.person), "gitlab_username", resource.value)
 
 
+    # Add the mailing list addresses, and their -admin, -archive, and -request 
+    # addresses, to the ignore list. These will never appear in the legitimate
+    # "From:" lines but are frequently used by spammers.
+    for n in ma.mailing_list_names():
+        ignore.append(f"{n}@ietf.org")
+        ignore.append(f"{n}-admin@ietf.org")
+        ignore.append(f"{n}-archive@ietf.org")
+        ignore.append(f"{n}-archive@lists.ietf.org")
+        ignore.append(f"{n}-archive@megatron.ietf.org")
+        ignore.append(f"{n}-request@ietf.org")
+
+
     # Add identifiers based on the IETF mailing list archive:
     seen_full = set()
     ma   = MailArchive()
@@ -413,6 +425,9 @@ if __name__ == "__main__":
                     continue
                 if email_addr in seen_addr:
                     # This address is already associated with a datatracker uri
+                    continue
+                if email_name.endswith(" via RT"):
+                    # This is an automated email from the RT issues tracker software
                     continue
                 if email_full not in seen_full:
                     pdb.person_with_name_email(email_name, email_addr)
