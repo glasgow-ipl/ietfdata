@@ -344,9 +344,17 @@ if __name__ == "__main__":
               "noreply=40github.com@dmarc.ietf.org",
               "notifications@github.com",
               "noreply@icloud.com",
-              "support@github.com",
-              
-              ]
+              "noname@noname.com",
+              "messenger@webex.com",
+              "tracker-forces@mip4.org", # FORCES issue tracker
+              "tracker-forces@MIP4.ORG", # FORCES issue tracker
+              "tracker-mip6@mip4.org",   # Mobile IPv6 issue tracker
+              "tracker-mip4@mip4.org",   # Mobile IPv4 issue tracker
+              "tracker-mip4@levkowetz.com",
+              "3761bis@frobbit.se",      # 3761bis issue tracker
+              "ietf-action@ietf.org",    # IETF issues tracker
+              "ctp_issues@danforsberg.info", # Seamoby CTP issue tracker
+             ]
 
     # Fetch all IETF Datatracker people:
     dt  = DataTrackerExt(cache_timeout = timedelta(hours=12))
@@ -385,10 +393,21 @@ if __name__ == "__main__":
         if str(resource.name) == "/api/v1/name/extresourcename/gitlab_username/":
             pdb.identifies_same_person("dt_person_uri", str(resource.person), "gitlab_username", resource.value)
 
-
     # Add identifiers based on the IETF mailing list archive:
     seen_full = set()
     ma   = MailArchive()
+
+    # Add the mailing list addresses, and their -admin, -archive, and -request 
+    # addresses, to the ignore list. These will never appear in the legitimate
+    # "From:" lines but are frequently used by spammers.
+    for n in ma.mailing_list_names():
+        ignore.append(f"{n}@ietf.org")
+        ignore.append(f"{n}-admin@ietf.org")
+        ignore.append(f"{n}-archive@ietf.org")
+        ignore.append(f"{n}-archive@lists.ietf.org")
+        ignore.append(f"{n}-archive@megatron.ietf.org")
+        ignore.append(f"{n}-request@ietf.org")
+
     for n in ma.mailing_list_names():
         ml = ma.mailing_list(n)
         print(f"*** ")
@@ -404,6 +423,9 @@ if __name__ == "__main__":
                     continue
                 if email_addr in seen_addr:
                     # This address is already associated with a datatracker uri
+                    continue
+                if email_name.endswith(" via RT"):
+                    # This is an automated email from the RT issues tracker software
                     continue
                 if email_full not in seen_full:
                     pdb.person_with_name_email(email_name, email_addr)
