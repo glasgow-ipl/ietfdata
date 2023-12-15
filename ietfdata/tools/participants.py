@@ -23,6 +23,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+import glob
+
 import email.utils
 import json
 import sys
@@ -38,11 +40,12 @@ from ietfdata.mailarchive2    import *
 class Participant:
     person_id   : Optional[str]
     identifiers : Dict[str,List[str]]
-
+    names       : List[str]
 
     def __init__(self, person_id: Optional[str] = None):
         self.person_id   = person_id
         self.identifiers = {}
+        self.names       = []
         print(f"Participant({id(self)}) created ({self.person_id})")
 
 
@@ -58,6 +61,14 @@ class Participant:
                 print(f"Participant({id(self)}) has_identifier: {ident_type} -> {ident_value}")
 
 
+    def add_name(self, name: str):
+        if name not in self.names:
+            self.names.append(name)
+            print(f"Participant({id(self)}) add_name: {name}")
+        else:
+            print(f"Participant({id(self)}) has_name: {name}")
+
+
     def num_idents(self) -> int:
         count = 0
         for ident_type in self.identifiers:
@@ -70,23 +81,28 @@ class Participant:
         for ident_type in self.identifiers:
             for ident_value in self.identifiers[ident_type]:
                 other.add_identifier(ident_type, ident_value)
+        for name in self.names:
+            other.add_name(name)
         self.identifiers = {}
+        self.names = []
 
 
     def __repr__(self) -> str:
-        return f"Participant({id(self)}){str(self.identifiers)}"
+        return f"Participant({id(self)}){str(self.names), str(self.identifiers)}"
 
 
 
 class ParticipantDB:
     pid: int
     idents: Dict[str,Dict[str,Participant]]
+    names: Dict[str,List[Participant]]
     people: set[Participant]
 
     def __init__(self, path:Optional[Path] = None):
         self.pid = 0
         self.idents = {}
         self.people = set()
+        self.names = {}
         if path is not None:
             with open(path, "r") as inf:
                 saved_data = json.load(inf)
@@ -94,11 +110,15 @@ class ParticipantDB:
                     person = Participant(pid)
                     self.people.add(person)
                     for ident_type in saved_data[pid]:
-                        for ident_value in saved_data[pid][ident_type]:
-                            person.add_identifier(ident_type, ident_value)
-                            if not ident_type in self.idents:
-                                self.idents[ident_type] = {}
-                            self.idents[ident_type][ident_value] = person
+                        if ident_type == "name":
+                            for name in saved_data[pid]["name"]:
+                                self.add_name(person, name)
+                        else:
+                            for ident_value in saved_data[pid][ident_type]:
+                                person.add_identifier(ident_type, ident_value)
+                                if not ident_type in self.idents:
+                                    self.idents[ident_type] = {}
+                                self.idents[ident_type][ident_value] = person
                     pid_int = int(pid[4:])
                     if pid_int > self.pid:
                         self.pid = pid_int
@@ -110,7 +130,7 @@ class ParticipantDB:
             if person.person_id is None:
                 self.pid += 1
                 person.person_id = f"PID:{self.pid:06}"
-            people[person.person_id] = person.identifiers
+            people[person.person_id] = {"names": person.names} | person.identifiers
         with open(path, "w") as outf:
             json.dump(people, outf, indent=3, sort_keys=True)
 
@@ -138,6 +158,60 @@ class ParticipantDB:
                 person = self.idents[ident_type][ident_value]
                 print(f"Participant({id(person)}) already_exists: {ident_type} -> {ident_value}")
         return person
+
+
+    def person_with_name_email(self, name: str, email_addr: str) -> Participant:
+        """
+        Given a name and an email address, for example as might be extracted from an
+        email "From:" header, try to find an existing participant. This uses a
+        number of heuristics if there is no exact match.
+        """
+
+        # Decode DMARC (e.g., arnaud.taddei=40broadcom.com@dmarc.ietf.org -> arnaud.taddei@broadcom.com)
+        if email_addr.endswith("@dmarc.ietf.org"):
+            email_addr = email_addr[:-15].replace("=40", "@")
+
+        # Try to match on the email address:
+        if self.has_identifier("email", email_addr):
+            p = self.person_with_identifier("email", email_addr)
+            self.add_name(p, name)
+            return p
+
+        # Try to match on the base email address:
+        if "@" in email_addr:
+            local, remote = email_addr.rsplit("@", 1)
+            if local.count("+") == 1:
+                base, suffix = local.rsplit("+", 1)
+                email_base = F"{base}@{remote}"
+                if self.has_identifier("email", email_base):
+                    p = self.person_with_identifier("email", email_base)
+                    self.add_name(p, email_name)
+                    return p
+
+        # Try to match on the name:
+        p = self.person_with_name(name)
+        self.add_identifier(p, "email", email_addr)
+        return p
+        
+    def person_with_name(self, name: str) -> Participant:
+        # Try to match on the name:
+        for suffix in [" via Datatracker", " via RT"]:
+            if name.endswith(suffix):
+                name = name[:-len(suffix)]
+
+        for n in names_to_try(name, ""):
+            people = self.names.get(n.lower(), [])
+            if len(people) == 1:
+                print(f"person_with_name: {name} -> Participant({id(people[0])}) (name match)")
+                p = people[0]
+                self.add_name(p, name)
+                return p
+
+        print(f"person_with_name: {name} failed to match")
+        p = Participant()
+        self.add_name(p, name)
+        self.people.add(p)
+        return p
 
 
     def identifies_same_person(self, ident_type1:str, ident_value1: str, ident_type2:str, ident_value2: str):
@@ -208,6 +282,32 @@ class ParticipantDB:
             raise RuntimeError("This cannot happen (2)")
 
 
+    def add_name(self, person: Participant, name: str):
+        if name == "":
+            return
+        person.add_name(name)
+        if name.lower() not in self.names:
+            self.names[name.lower()] = []
+        if person not in self.names[name.lower()]:
+            self.names[name.lower()].append(person)
+
+
+    def add_identifier(self, person: Participant, ident_type: str, ident_value: str):
+        person.add_identifier(ident_type, ident_value)
+        if not ident_type in self.idents:
+            self.idents[ident_type] = {}
+            self.idents[ident_type][ident_value] = person
+        else:
+            if ident_value not in self.idents[ident_type]:
+                self.idents[ident_type][ident_value] = person
+            else:
+                person.merge_into(self.idents[ident_type][ident_value])
+
+
+    def has_identifier(self, ident_type: str, ident_value: str) -> bool:
+        return ident_type in self.idents and ident_value in self.idents[ident_type]
+
+
     def _update_refs(self, from_person: Participant, to_person: Participant):
         """
         Private helper method: do not use.
@@ -218,8 +318,12 @@ class ParticipantDB:
                 if self.idents[ident_type][ident_value] == from_person:
                     self.idents[ident_type][ident_value] = to_person
                     print(f"    {ident_type} -> {ident_value}")
-
-
+        for name in to_person.names:
+            if from_person in self.names[name.lower()]:
+                self.names[name.lower()].remove(from_person)
+            if to_person not in self.names[name.lower()]:
+                self.names[name.lower()].append(to_person)
+                print(f"    name -> {name}")
 
 if __name__ == "__main__":
     if len(sys.argv) == 2:
@@ -249,29 +353,37 @@ if __name__ == "__main__":
               "noreply=40github.com@dmarc.ietf.org",
               "notifications@github.com",
               "noreply@icloud.com",
-              "noname@noname.com",
-              "messenger@webex.com",
-              "tracker-forces@mip4.org", # FORCES issue tracker
-              "tracker-forces@MIP4.ORG", # FORCES issue tracker
-              "tracker-mip6@mip4.org",   # Mobile IPv6 issue tracker
-              "tracker-mip4@mip4.org",   # Mobile IPv4 issue tracker
-              "tracker-mip4@levkowetz.com",
-              "3761bis@frobbit.se",      # 3761bis issue tracker
-              "ietf-action@ietf.org",    # IETF issues tracker
-              "ctp_issues@danforsberg.info", # Seamoby CTP issue tracker
-             ]
+              "support@github.com",
+              
+              ]
 
+    # Fetch all IETF Datatracker people:
+    dt  = DataTrackerExt(cache_timeout = timedelta(hours=12))
+    dt_people = {}
+    for dt_person in dt.people():
+        dt_people[str(dt_person.resource_uri)] = dt_person
+    
     # Add identifiers based on the IETF DataTracker:
     seen_addr = set()
-    dt  = DataTrackerExt(cache_timeout = timedelta(hours=12))
+    seen_people = set()
+
     for msg in dt.emails():
         if msg.address in ignore:
             continue
-        pdb.person_with_identifier("email", msg.address)
+        p = pdb.person_with_identifier("email", msg.address)
         pdb.identifies_same_person("email", msg.address, "dt_person_uri", str(msg.person))
+        if msg.person is not None and str(msg.person) not in seen_people:
+            dt_person = dt_people[str(msg.person)]
+            pdb.add_name(p, dt_person.name)
+            pdb.add_name(p, dt_person.ascii)
+            if dt_person.name_from_draft is not None and dt_person.name_from_draft != "":
+                pdb.add_name(p, dt_person.name_from_draft)
+            if dt_person.ascii_short is not None and dt_person.ascii_short != "":
+                pdb.add_name(p, dt_person.ascii_short)
+            if dt_person.plain is not None and dt_person.plain != "":
+                pdb.add_name(p, dt_person.plain)
+            seen_people.add(str(msg.person))
         seen_addr.add(msg.address)
-        # We don't need to add names here. The call to dt.person_by_name_email()
-        # below handles name matching.
 
 
     for resource in dt.person_ext_resources():
@@ -282,9 +394,6 @@ if __name__ == "__main__":
         if str(resource.name) == "/api/v1/name/extresourcename/gitlab_username/":
             pdb.identifies_same_person("dt_person_uri", str(resource.person), "gitlab_username", resource.value)
 
-    # Add identifiers based on the IETF mailing list archive:
-    seen_full = set()
-    ma   = MailArchive()
 
     # Add the mailing list addresses, and their -admin, -archive, and -request 
     # addresses, to the ignore list. These will never appear in the legitimate
@@ -297,6 +406,10 @@ if __name__ == "__main__":
         ignore.append(f"{n}-archive@megatron.ietf.org")
         ignore.append(f"{n}-request@ietf.org")
 
+
+    # Add identifiers based on the IETF mailing list archive:
+    seen_full = set()
+    ma   = MailArchive()
     for n in ma.mailing_list_names():
         ml = ma.mailing_list(n)
         print(f"*** ")
@@ -317,11 +430,9 @@ if __name__ == "__main__":
                     # This is an automated email from the RT issues tracker software
                     continue
                 if email_full not in seen_full:
-                    pdb.person_with_identifier("email", email_addr)
-                    person = dt.person_from_name_email(email_name, email_addr)
-                    if person is not None:
-                        pdb.identifies_same_person("email", email_addr, "dt_person_uri", str(person.resource_uri))
+                    pdb.person_with_name_email(email_name, email_addr)
                     seen_full.add(email_full)
+
 
     print(f"Saving: {new_path}")
     pdb.save(new_path)
