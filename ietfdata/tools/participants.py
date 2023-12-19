@@ -319,7 +319,7 @@ if __name__ == "__main__":
                 if email_full not in seen_full:
                     pdb.person_with_identifier("email", email_addr)
                     person = dt.person_from_name_email(email_name, email_addr)
-                    if person is not None:
+                    if person is not None and envelope.header("X-Spam-Flag") != "YES":
                         pdb.identifies_same_person("email", email_addr, "dt_person_uri", str(person.resource_uri))
                     seen_full.add(email_full)
 
