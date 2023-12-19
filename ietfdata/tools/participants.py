@@ -313,8 +313,8 @@ if __name__ == "__main__":
                 if email_addr in seen_addr:
                     # This address is already associated with a datatracker uri
                     continue
-                if email_name.endswith(" via RT"):
-                    # This is an automated email from the RT issues tracker software
+                if email_name.endswith(" via RT") or email_name.endswith(" via Datatracker"):
+                    # Discard automated emails
                     continue
                 if email_full not in seen_full:
                     pdb.person_with_identifier("email", email_addr)
