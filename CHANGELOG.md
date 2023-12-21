@@ -3,6 +3,7 @@ Change Log -- ietfdata
 
 ## Version 0.7.0 -- ???
 
+ - Require Python 3.11 or newer
  - Replace Pavlova with Pydantic as the response parser, enabling use
    of recent Python versions. As a result:
     - Python data classes are replaced with Pydantic BaseClass instances.

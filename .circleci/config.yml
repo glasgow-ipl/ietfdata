@@ -6,7 +6,7 @@ orbs:
 jobs:
   build-and-test:
     docker:
-      - image: cimg/python:3.9
+      - image: cimg/python:3.11
     steps:
       - checkout
       - run:
@@ -21,7 +21,7 @@ jobs:
 
   build-and-test-mongodb:
     docker:
-      - image: cimg/python:3.9
+      - image: cimg/python:3.11
       - image: circleci/mongo:4.4.12
     steps:
       - checkout
