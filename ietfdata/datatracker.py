@@ -1608,7 +1608,9 @@ class DataTracker:
         if os.getenv("IETFDATA_CACHE_HOST") is not None:
             use_cache = True
 
-        logging.getLogger('requests_cache').setLevel('WARN')
+        logging.getLogger('requests').setLevel('ERROR')
+        logging.getLogger('requests_cache').setLevel('ERROR')
+        logging.getLogger("urllib3").setLevel('ERROR')
 
         logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
         self.log = logging.getLogger("ietfdata")
