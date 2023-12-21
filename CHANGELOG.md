@@ -3,6 +3,15 @@ Change Log -- ietfdata
 
 ## Version 0.7.0 -- ???
 
+ - Replace Pavlova with Pydantic as the response parser, enabling use
+   of recent Python versions. As a result:
+    - Python data classes are replaced with Pydantic BaseClass instances.
+    - In `Person` and `HistoricalPerson`, the `user, `photo`,
+      `photo_thumb`, and `pronouns_freetext` fields change from
+      `str` to `Optional[str]`.
+    - In `Submission`, the `document_date` and `submission_date` fields
+      changes from `datetime` to `date`
+    - In `Meeting`, the `date` field changes from `datetime` to `date`
  - Update mailarchive2.py as the new mail access API
  - Remove mailarchive.py
  - Add the following methods, and associated types, to `DataTracker`

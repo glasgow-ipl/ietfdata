@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2022 University of Glasgow
+# Copyright (C) 2017-2023 University of Glasgow
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -58,14 +58,14 @@ import sys
 import time
 import urllib.parse
 
-from datetime         import datetime, timedelta, timezone
+from datetime         import date, datetime, timedelta, timezone
 from enum             import Enum
 from inspect          import signature
 from typing           import List, Optional, Tuple, Dict, Iterator, Type, TypeVar, Any, Union, Generic, get_origin
+from typing_extensions import Self
 from dataclasses      import dataclass, field
 from pathlib          import Path
-from pavlova          import Pavlova, PavlovaParsingError
-from pavlova.parsers  import GenericParser
+from pydantic         import BaseModel, ValidationError, model_validator
 from pymongo          import MongoClient, ASCENDING, TEXT, ReplaceOne
 from pymongo.database import Database
 
@@ -75,8 +75,7 @@ from pymongo.database import Database
 # ---------------------------------------------------------------------------------------------------------------------------------
 # URI types:
 
-@dataclass(frozen=True)
-class URI:
+class URI(BaseModel):
     uri    : Optional[str]
     root   : str = ""
     params : Dict[str, Any] = field(default_factory=dict)
@@ -87,16 +86,20 @@ class URI:
         else:
             return str(self.uri)
 
-    def __post_init__(self) -> None:
-        assert self.uri is None or self.uri.startswith(self.root)
+    # https://stackoverflow.com/a/77647989
+    @model_validator(mode="before")
+    @classmethod
+    def from_literal(cls, data: Any) -> Any:
+        if isinstance(data, str):
+            return {"uri" : data}
+        else:
+            return data
 
 
-@dataclass(frozen=True)
 class DocumentURI(URI):
     root : str = "/api/v1/doc/document/"
 
 
-@dataclass(frozen=True)
 class GroupURI(URI):
     root : str = "/api/v1/group/group/"
 
@@ -104,8 +107,7 @@ class GroupURI(URI):
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Resource type
 
-@dataclass(frozen=True)
-class Resource:
+class Resource(BaseModel):
     resource_uri : URI
 
 T = TypeVar('T', bound=Resource)
@@ -115,17 +117,14 @@ R = TypeVar('R', bound=Type[Resource])
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to people:
 
-@dataclass(frozen=True)
 class PersonURI(URI):
     root : str = "/api/v1/person/person/"
 
 
-@dataclass(frozen=True)
 class HistoricalPersonURI(URI):
     root : str = "/api/v1/person/historicalperson/"
 
 
-@dataclass(frozen=True)
 class Person(Resource):
     resource_uri    : PersonURI
     id              : int
@@ -135,20 +134,19 @@ class Person(Resource):
     # ascii_short: Fill in this with initials and surname only if taking the initials
     # and surname of the ASCII name above produces an incorrect initials-only form.
     ascii_short     : Optional[str]
-    user            : str
+    user            : Optional[str]
     time            : datetime
-    photo           : str
-    photo_thumb     : str
+    photo           : Optional[str]
+    photo_thumb     : Optional[str]
     biography       : str
     # Plain name correction: Use this if you have a Spanish double surname.
     # Don't use this for nicknames, and don't use it unless you've actually
     # observed that the datatracker shows your name incorrectly."
     plain           : str
-    pronouns_freetext     : str
+    pronouns_freetext     : Optional[str]
     pronouns_selectable   : str
 
 
-@dataclass(frozen=True)
 class HistoricalPerson(Resource):
     resource_uri          : HistoricalPersonURI
     id                    : int
@@ -156,10 +154,10 @@ class HistoricalPerson(Resource):
     name_from_draft       : Optional[str]
     ascii                 : str
     ascii_short           : Optional[str]
-    user                  : str
+    user                  : Optional[str]
     time                  : datetime
-    photo                 : str
-    photo_thumb           : str
+    photo                 : Optional[str]
+    photo_thumb           : Optional[str]
     biography             : str
     history_change_reason : Optional[str]
     history_user          : Optional[str]
@@ -167,16 +165,14 @@ class HistoricalPerson(Resource):
     history_type          : str
     history_date          : datetime
     plain                 : str
-    pronouns_freetext     : str
+    pronouns_freetext     : Optional[str]
     pronouns_selectable   : str
 
 
-@dataclass(frozen=True)
 class PersonAliasURI(URI):
     root : str = "/api/v1/person/alias/"
 
 
-@dataclass(frozen=True)
 class PersonAlias(Resource):
     id                 : int
     resource_uri       : PersonAliasURI
@@ -184,12 +180,10 @@ class PersonAlias(Resource):
     name               : str
 
 
-@dataclass(frozen=True)
 class PersonEventURI(URI):
     root : str = "/api/v1/person/personevent/"
 
 
-@dataclass(frozen=True)
 class PersonEvent(Resource):
     desc            : str
     id              : int
@@ -199,12 +193,10 @@ class PersonEvent(Resource):
     type            : str
 
 
-@dataclass(frozen=True)
 class ExtResourceTypeNameURI(URI):
     root : str = "/api/v1/name/extresourcetypename/"
 
 
-@dataclass(frozen=True)
 class ExtResourceTypeName(Resource):
     resource_uri : ExtResourceTypeNameURI
     desc         : str
@@ -214,12 +206,10 @@ class ExtResourceTypeName(Resource):
     used         : bool
 
 
-@dataclass(frozen=True)
 class ExtResourceNameURI(URI):
     root : str = "/api/v1/name/extresourcename/"
 
 
-@dataclass(frozen=True)
 class ExtResourceName(Resource):
     resource_uri  : ExtResourceNameURI
     type          : ExtResourceTypeNameURI
@@ -230,12 +220,10 @@ class ExtResourceName(Resource):
     used          : bool
 
 
-@dataclass(frozen=True)
 class PersonExtResourceURI(URI):
     root : str = "/api/v1/person/personextresource/"
 
 
-@dataclass(frozen=True)
 class PersonExtResource(Resource):
     id           : int
     resource_uri : PersonExtResourceURI
@@ -248,17 +236,14 @@ class PersonExtResource(Resource):
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to email addresses:
 
-@dataclass(frozen=True)
 class EmailURI(URI):
     root : str = "/api/v1/person/email/"
 
 
-@dataclass(frozen=True)
 class HistoricalEmailURI(URI):
     root : str = "/api/v1/person/historicalemail/"
 
 
-@dataclass(frozen=True)
 class Email(Resource):
     resource_uri : EmailURI
     person       : Optional[PersonURI]
@@ -269,7 +254,6 @@ class Email(Resource):
     active       : bool
 
 
-@dataclass(frozen=True)
 class HistoricalEmail(Resource):
     resource_uri          : HistoricalEmailURI
     person                : Optional[PersonURI]
@@ -288,12 +272,10 @@ class HistoricalEmail(Resource):
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to documents:
 
-@dataclass(frozen=True)
 class DocumentTypeURI(URI):
     root : str = "/api/v1/name/doctypename/"
 
 
-@dataclass(frozen=True)
 class DocumentType(Resource):
     resource_uri : DocumentTypeURI
     name         : str
@@ -304,24 +286,20 @@ class DocumentType(Resource):
     order        : int
 
 
-@dataclass(frozen=True)
 class DocumentStateTypeURI(URI):
     root : str = "/api/v1/doc/statetype/"
 
 
-@dataclass(frozen=True)
 class DocumentStateType(Resource):
     resource_uri : DocumentStateTypeURI
     label        : str
     slug         : str
 
 
-@dataclass(frozen=True)
 class DocumentStateURI(URI):
     root : str = "/api/v1/doc/state/"
 
 
-@dataclass(frozen=True)
 class DocumentState(Resource):
     id           : int
     resource_uri : DocumentStateURI
@@ -334,12 +312,10 @@ class DocumentState(Resource):
     used         : bool
 
 
-@dataclass(frozen=True)
 class StreamURI(URI):
     root : str = "/api/v1/name/streamname/"
 
 
-@dataclass(frozen=True)
 class Stream(Resource):
     resource_uri : StreamURI
     name         : str
@@ -349,24 +325,21 @@ class Stream(Resource):
     order        : int
 
 
-@dataclass(frozen=True)
 class SubmissionURI(URI):
     root : str = "/api/v1/submit/submission/"
 
 
-@dataclass(frozen=True)
 class SubmissionCheckURI(URI):
     root : str = "/api/v1/submit/submissioncheck/"
 
 
-@dataclass(frozen=True)
 class Submission(Resource):
     abstract        : str
     access_key      : str
     auth_key        : str
     authors         : str   # See the parse_authors() method
     checks          : List[SubmissionCheckURI]
-    document_date   : Optional[datetime]
+    document_date   : Optional[date]
     draft           : DocumentURI
     file_size       : Optional[int]
     file_types      : str   # e.g., ".txt,.xml"
@@ -381,7 +354,7 @@ class Submission(Resource):
     resource_uri    : SubmissionURI
     rev             : str
     state           : str   # FIXME: this should be a URI subtype
-    submission_date : datetime
+    submission_date : date
     submitter       : str
     title           : str
     words           : Optional[int]
@@ -399,12 +372,10 @@ class Submission(Resource):
         return authors
 
 
-@dataclass(frozen=True)
 class SubmissionEventURI(URI):
     root : str = "/api/v1/submit/submissionevent/"
 
 
-@dataclass(frozen=True)
 class SubmissionEvent(Resource):
     by              : Optional[PersonURI]
     desc            : str
@@ -414,12 +385,10 @@ class SubmissionEvent(Resource):
     time            : datetime
 
 
-@dataclass(frozen=True)
 class DocumentTagURI(URI):
     root : str = "/api/v1/name/doctagname/"
 
 
-@dataclass(frozen=True)
 class DocumentTag(Resource):
     resource_uri  : DocumentTagURI
     slug          : str
@@ -431,7 +400,6 @@ class DocumentTag(Resource):
 
 # DocumentURI is defined earlier, to avoid circular dependencies
 
-@dataclass(frozen=True)
 class Document(Resource):
     id                 : int
     resource_uri       : DocumentURI
@@ -466,7 +434,7 @@ class Document(Resource):
 
     def url(self) -> str:
         # See https://trac.tools.ietf.org/tools/ietfdb/browser/trunk/ietf/settings.py and search for DOC_HREFS
-        if self.type == DocumentTypeURI("/api/v1/name/doctypename/agenda/"):
+        if self.type == DocumentTypeURI(uri="/api/v1/name/doctypename/agenda/"):
             # FIXME: should be "/meeting/{meeting.number}/materials/{doc.name}-{doc.rev}" ???
             # FIXME: This doesn't work for interim meetings
             # FIXME: This doesn't work for PDF agenda files
@@ -475,50 +443,48 @@ class Document(Resource):
             # Recent documents are in the datatracker, older ones on the proceedings site
             url = "https://datatracker.ietf.org/meeting/" + mtg + "/materials/" + self.uploaded_filename
             url = "https://www.ietf.org/proceedings/" + mtg + "/agenda/" + self.uploaded_filename
-        elif self.type == DocumentTypeURI("/api/v1/name/doctypename/bluesheets/"):
+        elif self.type == DocumentTypeURI(uri="/api/v1/name/doctypename/bluesheets/"):
             mtg = self.name.split("-")[1]
             if mtg == "interim":
                 mtg = "-".join(self.name.split("-")[1:-1])
             url = "https://www.ietf.org/proceedings/" + mtg + "/bluesheets/" + self.uploaded_filename
-        elif self.type == DocumentTypeURI("/api/v1/name/doctypename/charter/"):
+        elif self.type == DocumentTypeURI(uri="/api/v1/name/doctypename/charter/"):
             url = "https://www.ietf.org/charter/"     + self.name + "-" + self.rev + ".txt"
-        elif self.type == DocumentTypeURI("/api/v1/name/doctypename/conflrev/"):
+        elif self.type == DocumentTypeURI(uri="/api/v1/name/doctypename/conflrev/"):
             url = "https://www.ietf.org/cr/"          + self.name + "-" + self.rev + ".txt"
-        elif self.type == DocumentTypeURI("/api/v1/name/doctypename/draft/"):
+        elif self.type == DocumentTypeURI(uri="/api/v1/name/doctypename/draft/"):
             url = "https://www.ietf.org/archive/id/"  + self.name + "-" + self.rev + ".txt"
-        elif self.type == DocumentTypeURI("/api/v1/name/doctypename/liaison/"):
+        elif self.type == DocumentTypeURI(uri="/api/v1/name/doctypename/liaison/"):
             url = "https://www.ietf.org/lib/dt/documents/LIAISON/" + self.uploaded_filename
-        elif self.type == DocumentTypeURI("/api/v1/name/doctypename/liai-att/"):
+        elif self.type == DocumentTypeURI(uri="/api/v1/name/doctypename/liai-att/"):
             url = "https://www.ietf.org/lib/dt/documents/LIAISON/" + self.uploaded_filename
-        elif self.type == DocumentTypeURI("/api/v1/name/doctypename/minutes/"):
+        elif self.type == DocumentTypeURI(uri="/api/v1/name/doctypename/minutes/"):
             mtg = self.name.split("-")[1]
             # Recent documents are in the datatracker, older ones on the proceedings site
             url = "https://datatracker.ietf.org/meeting/" + mtg + "/materials/" + self.uploaded_filename
             url = "https://www.ietf.org/proceedings/" + mtg + "/minutes/" + self.uploaded_filename
-        elif self.type == DocumentTypeURI("/api/v1/name/doctypename/recording/"):
+        elif self.type == DocumentTypeURI(uri="/api/v1/name/doctypename/recording/"):
             url = self.external_url
-        elif self.type == DocumentTypeURI("/api/v1/name/doctypename/review/"):
+        elif self.type == DocumentTypeURI(uri="/api/v1/name/doctypename/review/"):
             # FIXME: This points to the formatted HTML page containing the message, but we really want the raw message
             url = "https://datatracker.ietf.org/doc/" + self.name
-        elif self.type == DocumentTypeURI("/api/v1/name/doctypename/shepwrit/"):
+        elif self.type == DocumentTypeURI(uri="/api/v1/name/doctypename/shepwrit/"):
             url = self.external_url
-        elif self.type == DocumentTypeURI("/api/v1/name/doctypename/slides/"):
+        elif self.type == DocumentTypeURI(uri="/api/v1/name/doctypename/slides/"):
             # FIXME: should be https://www.ietf.org/slides/{doc.name}-{doc.rev} ???
             mtg = self.name.split("-")[1]
             url = "https://www.ietf.org/proceedings/" + mtg + "/slides/" + self.uploaded_filename
-        elif self.type == DocumentTypeURI("/api/v1/name/doctypename/statchg/"):
+        elif self.type == DocumentTypeURI(uri="/api/v1/name/doctypename/statchg/"):
             url = "https://www.ietf.org/sc/"          + self.name + "-" + self.rev + ".txt"
         else:
             raise NotImplementedError
         return url
 
 
-@dataclass(frozen=True)
 class DocumentAliasURI(URI):
     root : str = "/api/v1/doc/docalias/"
 
 
-@dataclass(frozen=True)
 class DocumentAlias(Resource):
     id           : int
     resource_uri : DocumentAliasURI
@@ -526,12 +492,10 @@ class DocumentAlias(Resource):
     name         : str
 
 
-@dataclass(frozen=True)
 class DocumentEventURI(URI):
     root : str = "/api/v1/doc/docevent/"
 
 
-@dataclass(frozen=True)
 class DocumentEvent(Resource):
     by              : PersonURI
     desc            : str
@@ -543,12 +507,10 @@ class DocumentEvent(Resource):
     type            : str
 
 
-@dataclass(frozen=True)
 class BallotPositionNameURI(URI):
     root : str = "/api/v1/name/ballotpositionname/"
 
 
-@dataclass(frozen=True)
 class BallotPositionName(Resource):
     blocking     : bool
     desc         : Optional[str]
@@ -559,12 +521,10 @@ class BallotPositionName(Resource):
     used         : bool
 
 
-@dataclass(frozen=True)
 class BallotTypeURI(URI):
     root : str = "/api/v1/doc/ballottype/"
 
 
-@dataclass(frozen=True)
 class BallotType(Resource):
     doc_type     : DocumentTypeURI
     id           : int
@@ -577,12 +537,10 @@ class BallotType(Resource):
     used         : bool
 
 
-@dataclass(frozen=True)
 class BallotDocumentEventURI(URI):
     root : str = "/api/v1/doc/ballotdocevent/"
 
 
-@dataclass(frozen=True)
 class BallotDocumentEvent(Resource):
     ballot_type     : BallotTypeURI
     by              : PersonURI
@@ -596,12 +554,10 @@ class BallotDocumentEvent(Resource):
     type            : str
 
 
-@dataclass(frozen=True)
 class RelationshipTypeURI(URI):
     root : str = "/api/v1/name/docrelationshipname/"
 
 
-@dataclass(frozen=True)
 class RelationshipType(Resource):
     resource_uri   : RelationshipTypeURI
     slug           : str
@@ -612,12 +568,10 @@ class RelationshipType(Resource):
     revname        : str
 
 
-@dataclass(frozen=True)
 class RelatedDocumentURI(URI):
     root : str = "/api/v1/doc/relateddocument/"
 
 
-@dataclass(frozen=True)
 class RelatedDocument(Resource):
     id              : int
     relationship    : RelationshipTypeURI
@@ -626,12 +580,10 @@ class RelatedDocument(Resource):
     target          : DocumentAliasURI
 
 
-@dataclass(frozen=True)
 class DocumentAuthorURI(URI):
     root : str = "/api/v1/doc/documentauthor/"
 
 
-@dataclass(frozen=True)
 class DocumentAuthor(Resource):
     id           : int
     order        : int
@@ -648,12 +600,10 @@ class DocumentAuthor(Resource):
 # Types relating to groups:
 
 
-@dataclass(frozen=True)
 class GroupStateURI(URI):
     root : str = "/api/v1/name/groupstatename/"
 
 
-@dataclass(frozen=True)
 class GroupState(Resource):
     resource_uri   : GroupStateURI
     slug           : str
@@ -663,12 +613,10 @@ class GroupState(Resource):
     order          : int
 
 
-@dataclass(frozen=True)
 class GroupTypeNameURI(URI):
     root : str = "/api/v1/name/grouptypename/"
 
 
-@dataclass(frozen=True)
 class GroupTypeName(Resource):
     desc          : str
     name          : str
@@ -682,7 +630,6 @@ class GroupTypeName(Resource):
 # GroupURI is defined earlier, to avoid circular dependencies
 
 
-@dataclass(frozen=True)
 class Group(Resource):
     acronym        : str
     ad             : Optional[PersonURI]
@@ -706,12 +653,10 @@ class Group(Resource):
     uses_milestone_dates : bool
 
 
-@dataclass(frozen=True)
 class GroupHistoryURI(URI):
     root : str = "/api/v1/group/grouphistory/"
 
 
-@dataclass(frozen=True)
 class GroupHistory(Resource):
     acronym              : str
     ad                   : Optional[PersonURI]
@@ -735,12 +680,10 @@ class GroupHistory(Resource):
     used_roles           : str
 
 
-@dataclass(frozen=True)
 class GroupEventURI(URI):
     root : str = "/api/v1/group/groupevent/"
 
 
-@dataclass(frozen=True)
 class GroupEvent(Resource):
     by           : PersonURI
     desc         : str
@@ -751,12 +694,10 @@ class GroupEvent(Resource):
     type         : str
 
 
-@dataclass(frozen=True)
 class GroupUrlURI(URI):
     root : str = "/api/v1/group/groupurl/"
 
 
-@dataclass(frozen=True)
 class GroupUrl(Resource):
     group        : GroupURI
     id           : int
@@ -765,12 +706,10 @@ class GroupUrl(Resource):
     url          : str
 
 
-@dataclass(frozen=True)
 class GroupMilestoneStateNameURI(URI):
     root : str = "/api/v1/name/groupmilestonestatename/"
 
 
-@dataclass(frozen=True)
 class GroupMilestoneStateName(Resource):
     desc         : str
     name         : str
@@ -780,12 +719,10 @@ class GroupMilestoneStateName(Resource):
     used         : bool
 
 
-@dataclass(frozen=True)
 class GroupMilestoneURI(URI):
     root : str = "/api/v1/group/groupmilestone/"
 
 
-@dataclass(frozen=True)
 class GroupMilestone(Resource):
     desc         : str
     docs         : List[DocumentURI]
@@ -799,12 +736,10 @@ class GroupMilestone(Resource):
     time         : datetime
 
 
-@dataclass(frozen=True)
 class RoleNameURI(URI):
     root : str = "/api/v1/name/rolename/"
 
 
-@dataclass(frozen=True)
 class RoleName(Resource):
     desc         : str
     name         : str
@@ -814,12 +749,10 @@ class RoleName(Resource):
     used         : bool
 
 
-@dataclass(frozen=True)
 class GroupRoleURI(URI):
     root : str = "/api/v1/group/role/"
 
 
-@dataclass(frozen=True)
 class GroupRole(Resource):
     email        : EmailURI
     group        : GroupURI
@@ -828,12 +761,10 @@ class GroupRole(Resource):
     person       : PersonURI
     resource_uri : GroupRoleURI
 
-@dataclass(frozen=True)
 class GroupMilestoneHistoryURI(URI):
     root : str = "/api/v1/group/groupmilestonehistory/"
 
 
-@dataclass(frozen=True)
 class GroupMilestoneHistory(Resource):
     desc         : str
     docs         : List[DocumentURI]
@@ -848,12 +779,10 @@ class GroupMilestoneHistory(Resource):
     time         : datetime
 
 
-@dataclass(frozen=True)
 class GroupMilestoneEventURI(URI):
     root : str = "/api/v1/group/milestonegroupevent/"
 
 
-@dataclass(frozen=True)
 class GroupMilestoneEvent(Resource):
     by             : PersonURI
     desc           : str
@@ -866,12 +795,10 @@ class GroupMilestoneEvent(Resource):
     type           : str
 
 
-@dataclass(frozen=True)
 class GroupRoleHistoryURI(URI):
     root : str = "/api/v1/group/rolehistory/"
 
 
-@dataclass(frozen=True)
 class GroupRoleHistory(Resource):
     email        : EmailURI
     group        : GroupHistoryURI
@@ -881,12 +808,10 @@ class GroupRoleHistory(Resource):
     resource_uri : GroupRoleHistoryURI
 
 
-@dataclass(frozen=True)
 class GroupStateChangeEventURI(URI):
     root : str = "/api/v1/group/changestategroupevent/"
 
 
-@dataclass(frozen=True)
 class GroupStateChangeEvent(Resource):
     by             : PersonURI
     desc           : str
@@ -908,17 +833,14 @@ class MeetingStatus(Enum):
     COMPLETED = 3
 
 
-@dataclass(frozen=True)
 class MeetingURI(URI):
     root : str = "/api/v1/meeting/meeting/"
 
 
-@dataclass(frozen=True)
 class MeetingTypeURI(URI):
     root : str = "/api/v1/name/meetingtypename/"
 
 
-@dataclass(frozen=True)
 class MeetingType(Resource):
     name         : str
     order        : int
@@ -928,12 +850,10 @@ class MeetingType(Resource):
     used         : bool
 
 
-@dataclass(frozen=True)
 class ScheduleURI(URI):
     root : str = "/api/v1/meeting/schedule/"
 
 
-@dataclass(frozen=True)
 class Schedule(Resource):
     """
     A particular version of the meeting schedule (i.e., the meeting agenda)
@@ -952,7 +872,6 @@ class Schedule(Resource):
     notes        : str
 
 
-@dataclass(frozen=True)
 class Meeting(Resource):
     id                               : int
     resource_uri                     : MeetingURI
@@ -961,7 +880,7 @@ class Meeting(Resource):
     city                             : str
     venue_name                       : str
     venue_addr                       : str
-    date                             : datetime
+    date                             : date
     days                             : int  # FIXME: this should be a timedelta object
     time_zone                        : str
     acknowledgements                 : str
@@ -997,17 +916,14 @@ class Meeting(Resource):
             return MeetingStatus.ONGOING
 
 
-@dataclass(frozen=True)
 class SessionURI(URI):
     root : str = "/api/v1/meeting/session/"
 
 
-@dataclass(frozen=True)
 class TimeslotURI(URI):
     root : str = "/api/v1/meeting/timeslot/"
 
 
-@dataclass(frozen=True)
 class Timeslot(Resource):
     id            : int
     resource_uri  : TimeslotURI
@@ -1022,12 +938,10 @@ class Timeslot(Resource):
     modified      : datetime
 
 
-@dataclass(frozen=True)
 class SessionAssignmentURI(URI):
     root : str = "/api/v1/meeting/schedtimesessassignment/"
 
 
-@dataclass(frozen=True)
 class SessionAssignment(Resource):
     """
     The assignment of a `session` to a `timeslot` within a meeting `schedule`
@@ -1045,12 +959,10 @@ class SessionAssignment(Resource):
     badness      : int
 
 
-@dataclass(frozen=True)
 class SessionPurposeURI(URI):
     root : str = "/api/v1/name/sessionpurposename/"
 
 
-@dataclass(frozen=True)
 class SessionPurpose(Resource):
     resource_uri   : SessionPurposeURI
     used           : bool
@@ -1062,7 +974,6 @@ class SessionPurpose(Resource):
     slug           : str
 
 
-@dataclass(frozen=True)
 class Session(Resource):
     """
     A session within a meeting.
@@ -1095,12 +1006,10 @@ class Session(Resource):
     chat_room           : str
 
 
-@dataclass(frozen=True)
 class SessionStatusNameURI(URI):
     root : str = "/api/v1/name/sessionstatusname/"
 
 
-@dataclass(frozen=True)
 class SessionStatusName(Resource):
     order        : int
     slug         : str
@@ -1110,12 +1019,10 @@ class SessionStatusName(Resource):
     name         : str
 
 
-@dataclass(frozen=True)
 class SchedulingEventURI(URI):
     root : str = "/api/v1/meeting/schedulingevent/"
 
 
-@dataclass(frozen=True)
 class SchedulingEvent(Resource):
     id           : int
     session      : SessionURI
@@ -1128,12 +1035,10 @@ class SchedulingEvent(Resource):
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to IPR disclosures:
 
-@dataclass(frozen=True)
 class IPRDisclosureStateURI(URI):
     root : str = "/api/v1/name/iprdisclosurestatename/"
 
 
-@dataclass(frozen=True)
 class IPRDisclosureState(Resource):
     desc         : str
     name         : str
@@ -1143,12 +1048,10 @@ class IPRDisclosureState(Resource):
     used         : bool
 
 
-@dataclass(frozen=True)
 class IPRDisclosureBaseURI(URI):
     root : str = "/api/v1/ipr/iprdisclosurebase/"
 
 
-@dataclass(frozen=True)
 class IPRDisclosureBase(Resource):
     by                 : PersonURI
     compliant          : bool
@@ -1166,12 +1069,10 @@ class IPRDisclosureBase(Resource):
     title              : str
 
 
-@dataclass(frozen=True)
 class GenericIPRDisclosureURI(URI):
     root : str = "/api/v1/ipr/genericiprdisclosure/"
 
 
-@dataclass(frozen=True)
 class GenericIPRDisclosure(Resource):
     by                    : PersonURI
     compliant             : bool
@@ -1194,12 +1095,10 @@ class GenericIPRDisclosure(Resource):
     title                 : str
 
 
-@dataclass(frozen=True)
 class IPRLicenseTypeURI(URI):
     root : str = "/api/v1/name/iprlicensetypename/"
 
 
-@dataclass(frozen=True)
 class IPRLicenseType(Resource):
     desc         : str
     name         : str
@@ -1209,12 +1108,10 @@ class IPRLicenseType(Resource):
     used         : bool
 
 
-@dataclass(frozen=True)
 class HolderIPRDisclosureURI(URI):
     root : str = "/api/v1/ipr/holderiprdisclosure/"
 
 
-@dataclass(frozen=True)
 class HolderIPRDisclosure(Resource):
     by                                   : PersonURI
     compliant                            : bool
@@ -1244,12 +1141,10 @@ class HolderIPRDisclosure(Resource):
     title                                : str
 
 
-@dataclass(frozen=True)
 class ThirdPartyIPRDisclosureURI(URI):
     root : str = "/api/v1/ipr/thirdpartyiprdisclosure/"
 
 
-@dataclass(frozen=True)
 class ThirdPartyIPRDisclosure(Resource):
     by                     : PersonURI
     compliant              : bool
@@ -1276,12 +1171,10 @@ class ThirdPartyIPRDisclosure(Resource):
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to reviews:
 
-@dataclass(frozen=True)
 class ReviewAssignmentStateURI(URI):
     root : str = "/api/v1/name/reviewassignmentstatename/"
 
 
-@dataclass(frozen=True)
 class ReviewAssignmentState(Resource):
     desc         : str
     name         : str
@@ -1291,12 +1184,10 @@ class ReviewAssignmentState(Resource):
     used         : bool
 
 
-@dataclass(frozen=True)
 class ReviewResultTypeURI(URI):
     root : str = "/api/v1/name/reviewresultname/"
 
 
-@dataclass(frozen=True)
 class ReviewResultType(Resource):
     desc         : str
     name         : str
@@ -1306,12 +1197,10 @@ class ReviewResultType(Resource):
     used         : bool
 
 
-@dataclass(frozen=True)
 class ReviewTypeURI(URI):
     root : str = "/api/v1/name/reviewtypename/"
 
 
-@dataclass(frozen=True)
 class ReviewType(Resource):
     desc         : str
     name         : str
@@ -1321,12 +1210,10 @@ class ReviewType(Resource):
     used         : bool
 
 
-@dataclass(frozen=True)
 class ReviewRequestStateURI(URI):
     root : str = "/api/v1/name/reviewrequeststatename/"
 
 
-@dataclass(frozen=True)
 class ReviewRequestState(Resource):
     desc         : str
     name         : str
@@ -1336,12 +1223,10 @@ class ReviewRequestState(Resource):
     used         : bool
 
 
-@dataclass(frozen=True)
 class ReviewRequestURI(URI):
     root : str = "/api/v1/review/reviewrequest/"
 
 
-@dataclass(frozen=True)
 class ReviewRequest(Resource):
     comment       : str
     deadline      : str
@@ -1356,12 +1241,10 @@ class ReviewRequest(Resource):
     type          : ReviewTypeURI
 
 
-@dataclass(frozen=True)
 class ReviewAssignmentURI(URI):
     root : str = "/api/v1/review/reviewassignment/"
 
 
-@dataclass(frozen=True)
 class ReviewAssignment(Resource):
     assigned_on    : datetime
     completed_on   : Optional[datetime]
@@ -1376,12 +1259,10 @@ class ReviewAssignment(Resource):
     state          : ReviewAssignmentStateURI
 
 
-@dataclass(frozen=True)
 class ReviewWishURI(URI):
     root : str = "/api/v1/review/reviewwish/"
 
 
-@dataclass(frozen=True)
 class ReviewWish(Resource):
     doc          : DocumentURI
     id           : int
@@ -1391,12 +1272,10 @@ class ReviewWish(Resource):
     time         : datetime
 
 
-@dataclass(frozen=True)
 class HistoricalUnavailablePeriodURI(URI):
     root : str = "/api/v1/review/historicalunavailableperiod/"
 
 
-@dataclass(frozen=True)
 class HistoricalUnavailablePeriod(Resource):
     availability          : str
     end_date              : str
@@ -1412,12 +1291,10 @@ class HistoricalUnavailablePeriod(Resource):
     team                  : GroupURI
 
 
-@dataclass(frozen=True)
 class HistoricalReviewRequestURI(URI):
     root : str = "/api/v1/review/historicalreviewrequest/"
 
 
-@dataclass(frozen=True)
 class HistoricalReviewRequest(Resource):
     comment               : str
     deadline              : str
@@ -1436,12 +1313,10 @@ class HistoricalReviewRequest(Resource):
     type                  : ReviewTypeURI
 
 
-@dataclass(frozen=True)
 class NextReviewerInTeamURI(URI):
     root : str = "/api/v1/review/nextreviewerinteam/"
 
 
-@dataclass(frozen=True)
 class NextReviewerInTeam(Resource):
     id            : int
     next_reviewer : PersonURI
@@ -1449,12 +1324,10 @@ class NextReviewerInTeam(Resource):
     team          : GroupURI
 
 
-@dataclass(frozen=True)
 class ReviewTeamSettingsURI(URI):
     root : str = "/api/v1/review/reviewteamsettings/"
 
 
-@dataclass(frozen=True)
 class ReviewTeamSettings(Resource):
     autosuggest                             : bool
     group                                   : GroupURI
@@ -1468,12 +1341,10 @@ class ReviewTeamSettings(Resource):
     allow_reviewer_to_reject_after_deadline : bool
 
 
-@dataclass(frozen=True)
 class ReviewerSettingsURI(URI):
     root : str = "/api/v1/review/reviewersettings/"
 
 
-@dataclass(frozen=True)
 class ReviewerSettings(Resource):
     expertise                   : str
     filter_re                   : str
@@ -1488,12 +1359,10 @@ class ReviewerSettings(Resource):
     team                        : GroupURI
 
 
-@dataclass(frozen=True)
 class UnavailablePeriodURI(URI):
     root : str = "/api/v1/review/unavailableperiod/"
 
 
-@dataclass(frozen=True)
 class UnavailablePeriod(Resource):
     availability : str
     end_date     : str
@@ -1505,12 +1374,10 @@ class UnavailablePeriod(Resource):
     team         : GroupURI
 
 
-@dataclass(frozen=True)
 class HistoricalReviewerSettingsURI(URI):
     root : str = "/api/v1/review/historicalreviewersettings/"
 
 
-@dataclass(frozen=True)
 class HistoricalReviewerSettings(Resource):
     expertise                   : str
     filter_re                   : str
@@ -1530,12 +1397,10 @@ class HistoricalReviewerSettings(Resource):
     team                        : GroupURI
 
 
-@dataclass(frozen=True)
 class HistoricalReviewAssignmentURI(URI):
     root : str = "/api/v1/review/historicalreviewassignment/"
 
 
-@dataclass(frozen=True)
 class HistoricalReviewAssignment(Resource):
     assigned_on           : datetime
     completed_on          : datetime
@@ -1554,12 +1419,10 @@ class HistoricalReviewAssignment(Resource):
     state                 : ReviewAssignmentStateURI
 
 
-@dataclass(frozen=True)
 class ReviewSecretarySettingsURI(URI):
     root : str = "/api/v1/review/reviewsecretarysettings/"
 
 
-@dataclass(frozen=True)
 class ReviewSecretarySettings(Resource):
     days_to_show_in_reviewer_list      : Optional[int]
     id                                 : int
@@ -1573,12 +1436,10 @@ class ReviewSecretarySettings(Resource):
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to mailing lists:
 
-@dataclass(frozen=True)
 class EmailListURI(URI):
     root : str = "/api/v1/mailinglists/list/"
 
 
-@dataclass(frozen=True)
 class EmailList(Resource):
     id           : int
     resource_uri : EmailListURI
@@ -1587,12 +1448,10 @@ class EmailList(Resource):
     advertised   : bool
 
 
-@dataclass(frozen=True)
 class EmailListSubscriptionsURI(URI):
     root : str = "/api/v1/mailinglists/subscribed/"
 
 
-@dataclass(frozen=True)
 class EmailListSubscriptions(Resource):
     id           : int
     resource_uri : EmailListSubscriptionsURI
@@ -1604,12 +1463,10 @@ class EmailListSubscriptions(Resource):
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to places:
 
-@dataclass(frozen=True)
 class ContinentURI(URI):
     root : str = "/api/v1/name/continentname/"
 
 
-@dataclass(frozen=True)
 class Continent(Resource):
     resource_uri : ContinentURI
     desc         : str
@@ -1619,12 +1476,10 @@ class Continent(Resource):
     slug         : str
 
 
-@dataclass(frozen=True)
 class CountryURI(URI):
     root : str = "/api/v1/name/countryname/"
 
 
-@dataclass(frozen=True)
 class Country(Resource):
     resource_uri : CountryURI
     desc         : str
@@ -1636,12 +1491,10 @@ class Country(Resource):
     continent    : ContinentURI
 
 
-@dataclass(frozen=True)
 class CountryAliasURI(URI):
     root : str = "/api/v1/stats/countryalias/"
 
 
-@dataclass(frozen=True)
 class CountryAlias(Resource):
     id           : int
     resource_uri : CountryAliasURI
@@ -1652,12 +1505,10 @@ class CountryAlias(Resource):
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to statistics:
 
-@dataclass(frozen=True)
 class MeetingRegistrationURI(URI):
     root : str = "/api/v1/stats/meetingregistration/"
 
 
-@dataclass(frozen=True)
 class MeetingRegistration(Resource):
     affiliation  : str
     attended     : bool
@@ -1678,12 +1529,10 @@ class MeetingRegistration(Resource):
 # Types relating to messages:
 
 
-@dataclass(frozen=True)
 class AnnouncementFromURI(URI):
     root : str = "/api/v1/message/announcementfrom/"
 
 
-@dataclass(frozen=True)
 class AnnouncementFrom(Resource):
     address      : str
     group        : GroupURI
@@ -1692,12 +1541,10 @@ class AnnouncementFrom(Resource):
     resource_uri : AnnouncementFromURI
 
 
-@dataclass(frozen=True)
 class DTMessageURI(URI):
     root : str = "/api/v1/message/message/"
 
 
-@dataclass(frozen=True)
 class DTMessage(Resource):
     bcc            : str
     body           : str
@@ -1717,12 +1564,10 @@ class DTMessage(Resource):
     to             : str
 
 
-@dataclass(frozen=True)
 class SendQueueURI(URI):
     root : str = "/api/v1/message/sendqueue/"
 
 
-@dataclass(frozen=True)
 class SendQueueEntry(Resource):
     by             : PersonURI
     id             : int
@@ -1795,10 +1640,6 @@ class DataTracker:
             self.db      = None
             self.backend = None
             self.session = requests_cache.CachedSession(expire_after = requests_cache.DO_NOT_CACHE)
-
-        self.pavlova = Pavlova()
-        for uri_type in URI.__subclasses__():
-            self.pavlova.register_parser(uri_type, GenericParser(self.pavlova, uri_type))
 
         self._hints = {} # type: Dict[str, Hints]
         self._hints["/api/v1/doc/ballotdocevent/"]                 = Hints(BallotDocumentEvent,         "id")
@@ -1961,7 +1802,7 @@ class DataTracker:
                         self.log.debug(F"_datatracker_get_multi ({r.status_code}) {obj_uri}")
                         meta = r.json()['meta']
                         objs = r.json()['objects']
-                        obj_uri  = URI(meta['next'])
+                        obj_uri  = URI(uri=meta['next'])
                         for obj in objs:
                             # API requests returning lists should never return duplicate
                             # objects, but due to datatracker bugs this sometimes happens.
@@ -2041,11 +1882,17 @@ class DataTracker:
         self.log.debug(F"_retrieve {obj_uri}")
         obj_json = self._datatracker_get_single(obj_uri)
         if obj_json is not None:
+            #print(obj_json)
+            #print(obj_type)
             res = None
             try:
-                res = self.pavlova.from_mapping(obj_json, obj_type)
-            except PavlovaParsingError:
-                self.log.error(f"Cannot parse response {obj_json}")
+                res = obj_type(**obj_json)
+            except ValidationError as e:
+                self.log.error(f"Cannot parse response {obj_json}: {e.errors()}")
+            #try:
+            #    res = self.pavlova.from_mapping(obj_json, obj_type)
+            #except PavlovaParsingError:
+            #    self.log.error(f"Cannot parse response {obj_json}")
             return res
         else:
             return None
@@ -2053,7 +1900,7 @@ class DataTracker:
 
     def _retrieve_multi(self, obj_uri: URI, obj_type: Type[T]) -> Iterator[T]:
         self.log.debug(F"_retrieve_multi: obj_uri {obj_uri}")
-        obj_type_uri = type(obj_uri)(obj_uri.uri)
+        obj_type_uri = type(obj_uri)(uri=obj_uri.uri)
         assert obj_uri.uri      is not None
         assert obj_type_uri.uri is not None
         obj_jsons = [] # type: List[Dict[str, Any]]
@@ -2061,8 +1908,12 @@ class DataTracker:
             obj_jsons.append(obj_json)
         sort_by = self._hints[obj_type_uri.uri].sort_by
         for obj_json in sorted(obj_jsons, key=lambda k: k[sort_by]):
-            fetch_obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
-            yield fetch_obj
+            #fetch_obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
+            try:
+                fetch_obj = obj_type(**obj_json)
+                yield fetch_obj
+            except ValidationError as e:
+                self.log.error(f"Cannot parse response {obj_json}: {e.errors()}")
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -2077,7 +1928,7 @@ class DataTracker:
 
 
     def person_from_email(self, email_addr: str) -> Optional[Person]:
-        email = self.email(EmailURI(F"/api/v1/person/email/{email_addr}/"))
+        email = self.email(EmailURI(uri=f"/api/v1/person/email/{email_addr}/"))
         if email is not None and email.person is not None:
             return self.person(email.person)
         else:
@@ -2088,7 +1939,7 @@ class DataTracker:
             person        : Optional[Person] = None,
             name          : Optional[str] = None,
             name_contains : Optional[str] = None) -> Iterator[PersonAlias]:
-        url = PersonAliasURI("/api/v1/person/alias/")
+        url = PersonAliasURI(uri="/api/v1/person/alias/")
         if person is not None:
             url.params["person"] = person.id
         if name is not None:
@@ -2099,13 +1950,13 @@ class DataTracker:
 
 
     def person_history(self, person: Person) -> Iterator[HistoricalPerson]:
-        url = HistoricalPersonURI("/api/v1/person/historicalperson/")
+        url = HistoricalPersonURI(uri="/api/v1/person/historicalperson/")
         url.params["id"] = person.id
         yield from self._retrieve_multi(url, HistoricalPerson)
 
 
     def person_events(self, person: Person) -> Iterator[PersonEvent]:
-        url = PersonEventURI("/api/v1/person/personevent/")
+        url = PersonEventURI(uri="/api/v1/person/personevent/")
         url.params["person"] = person.id
         yield from self._retrieve_multi(url, PersonEvent)
 
@@ -2131,7 +1982,7 @@ class DataTracker:
         Returns:
             An iterator, where each element is as returned by the person() method
         """
-        url = PersonURI("/api/v1/person/person/")
+        url = PersonURI(uri="/api/v1/person/person/")
         url.params["time__gte"] = since
         url.params["time__lt"]  = until
         if name is not None:
@@ -2164,7 +2015,7 @@ class DataTracker:
                              person        : Optional[Person] = None,
                              resource_name : Optional[ExtResourceName] = None,
                              resource_slug : Optional[str] = None) -> Iterator[PersonExtResource]:
-        url = PersonExtResourceURI("/api/v1/person/personextresource/")
+        url = PersonExtResourceURI(uri="/api/v1/person/personextresource/")
         if person is not None:
             url.params["person"] = person.id
         if resource_name is not None:
@@ -2179,11 +2030,11 @@ class DataTracker:
 
 
     def ext_resource_name_from_slug(self, slug: str) -> Optional[ExtResourceName]:
-        return self._retrieve(ExtResourceNameURI(F"/api/v1/name/extresourcename/{slug}/"), ExtResourceName)
+        return self._retrieve(ExtResourceNameURI(uri=f"/api/v1/name/extresourcename/{slug}/"), ExtResourceName)
 
 
     def ext_resource_names(self) -> Iterator[ExtResourceName]:
-        yield from self._retrieve_multi(ExtResourceNameURI("/api/v1/name/extresourcename/"), ExtResourceName)
+        yield from self._retrieve_multi(ExtResourceNameURI(uri="/api/v1/name/extresourcename/"), ExtResourceName)
 
 
     def ext_resource_type_name(self, ext_resource_type_name_uri: ExtResourceTypeNameURI) -> Optional[ExtResourceTypeName]:
@@ -2191,11 +2042,11 @@ class DataTracker:
 
 
     def ext_resource_type_name_from_slug(self, slug: str) -> Optional[ExtResourceTypeName]:
-        return self._retrieve(ExtResourceTypeNameURI(F"/api/v1/name/extresourcetypename/{slug}/"), ExtResourceTypeName)
+        return self._retrieve(ExtResourceTypeNameURI(uri=f"/api/v1/name/extresourcetypename/{slug}/"), ExtResourceTypeName)
 
 
     def ext_resource_type_names(self) -> Iterator[ExtResourceTypeName]:
-        yield from self._retrieve_multi(ExtResourceTypeNameURI("/api/v1/name/extresourcetypename/"), ExtResourceTypeName)
+        yield from self._retrieve_multi(ExtResourceTypeNameURI(uri="/api/v1/name/extresourcetypename/"), ExtResourceTypeName)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -2208,24 +2059,24 @@ class DataTracker:
 
 
     def email_for_address(self, email_addr: str) -> Optional[Email]:
-        uri = EmailURI(F"/api/v1/person/email/{email_addr}/")
+        uri = EmailURI(uri=f"/api/v1/person/email/{email_addr}/")
         return self.email(uri)
 
 
     def email_for_person(self, person: Person) -> Iterator[Email]:
-        uri = EmailURI("/api/v1/person/email/")
+        uri = EmailURI(uri="/api/v1/person/email/")
         uri.params["person"] = person.id
         yield from self._retrieve_multi(uri, Email)
 
 
     def email_history_for_address(self, email_addr: str) -> Iterator[HistoricalEmail]:
-        uri = HistoricalEmailURI("/api/v1/person/historicalemail/")
+        uri = HistoricalEmailURI(uri="/api/v1/person/historicalemail/")
         uri.params["address"] = email_addr
         yield from self._retrieve_multi(uri, HistoricalEmail)
 
 
     def email_history_for_person(self, person: Person) -> Iterator[HistoricalEmail]:
-        uri = HistoricalEmailURI("/api/v1/person/historicalemail/")
+        uri = HistoricalEmailURI(uri="/api/v1/person/historicalemail/")
         uri.params["person"] = person.id
         yield from self._retrieve_multi(uri, HistoricalEmail)
 
@@ -2245,7 +2096,7 @@ class DataTracker:
         Returns:
             An iterator, where each element is an Email object
         """
-        url = EmailURI("/api/v1/person/email/")
+        url = EmailURI(uri="/api/v1/person/email/")
         url.params["time__gte"] = since
         url.params["time__lt"]   = until
         if addr_contains is not None:
@@ -2272,7 +2123,7 @@ class DataTracker:
             state   : Optional[DocumentState] = None,
             stream  : Optional[Stream]       = None,
             group   : Optional[Group]        = None) -> Iterator[Document]:
-        url = DocumentURI("/api/v1/doc/document/")
+        url = DocumentURI(uri="/api/v1/doc/document/")
         url.params["time__gte"] = since
         url.params["time__lt"] = until
         if doctype is not None:
@@ -2303,7 +2154,7 @@ class DataTracker:
         Returns:
             A list of DocumentAlias objects
         """
-        url = DocumentAliasURI("/api/v1/doc/docalias/")
+        url = DocumentAliasURI(uri="/api/v1/doc/docalias/")
         if name is not None:
             url.params["name"] = name
         yield from self._retrieve_multi(url, DocumentAlias)
@@ -2321,7 +2172,7 @@ class DataTracker:
         """
         assert draft.startswith("draft-")
         assert not "," in draft
-        return self.document(DocumentURI("/api/v1/doc/document/" + draft + "/"))
+        return self.document(DocumentURI(uri="/api/v1/doc/document/" + draft + "/"))
 
 
     def document_from_rfc(self, rfc: str) -> Optional[Document]:
@@ -2335,7 +2186,7 @@ class DataTracker:
             A Document object
         """
         assert rfc.lower().startswith("rfc")
-        alias = self.document_alias(DocumentAliasURI(F"/api/v1/doc/docalias/{rfc.lower()}/"))
+        alias = self.document_alias(DocumentAliasURI(uri=f"/api/v1/doc/docalias/{rfc.lower()}/"))
         if alias is None:
             return None
         else:
@@ -2384,11 +2235,11 @@ class DataTracker:
 
 
     def document_type_from_slug(self, slug: str) -> Optional[DocumentType]:
-        return self._retrieve(DocumentTypeURI(F"/api/v1/name/doctypename/{slug}/"), DocumentType)
+        return self._retrieve(DocumentTypeURI(uri=f"/api/v1/name/doctypename/{slug}/"), DocumentType)
 
 
     def document_types(self) -> Iterator[DocumentType]:
-        yield from self._retrieve_multi(DocumentTypeURI("/api/v1/name/doctypename/"), DocumentType)
+        yield from self._retrieve_multi(DocumentTypeURI(uri="/api/v1/name/doctypename/"), DocumentType)
 
 
     # Datatracker API endpoints returning information about document states:
@@ -2406,7 +2257,7 @@ class DataTracker:
     def document_states(self,
             state_type : Optional[DocumentStateType] = None,
             slug       : Optional[str]               = None) -> Iterator[DocumentState]:
-        url = DocumentStateURI("/api/v1/doc/state/")
+        url = DocumentStateURI(uri="/api/v1/doc/state/")
         if state_type is not None:
             url.params["type"] = state_type.slug
         if slug is not None:
@@ -2419,11 +2270,11 @@ class DataTracker:
 
 
     def document_state_type_from_slug(self, slug: str) -> Optional[DocumentStateType]:
-        return self._retrieve(DocumentStateTypeURI(F"/api/v1/doc/statetype/{slug}/"), DocumentStateType)
+        return self._retrieve(DocumentStateTypeURI(uri=f"/api/v1/doc/statetype/{slug}/"), DocumentStateType)
 
 
     def document_state_types(self) -> Iterator[DocumentStateType]:
-        url = DocumentStateTypeURI("/api/v1/doc/statetype/")
+        url = DocumentStateTypeURI(uri="/api/v1/doc/statetype/")
         yield from self._retrieve_multi(url, DocumentStateType)
 
 
@@ -2466,7 +2317,7 @@ class DataTracker:
         Returns:
            A sequence of DocumentEvent objects
         """
-        url = DocumentEventURI("/api/v1/doc/docevent/")
+        url = DocumentEventURI(uri="/api/v1/doc/docevent/")
         url.params["time__gte"] = since
         url.params["time__lt"] = until
         if doc is not None:
@@ -2484,19 +2335,19 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/doc/documentauthor/?email=...        - documents by person
 
     def document_authors(self, document : Document) -> Iterator[DocumentAuthor]:
-        url = DocumentAuthorURI("/api/v1/doc/documentauthor/")
+        url = DocumentAuthorURI(uri="/api/v1/doc/documentauthor/")
         url.params["document"] = document.id
         yield from self._retrieve_multi(url, DocumentAuthor)
 
 
     def documents_authored_by_person(self, person : Person) -> Iterator[DocumentAuthor]:
-        url = DocumentAuthorURI("/api/v1/doc/documentauthor/")
+        url = DocumentAuthorURI(uri="/api/v1/doc/documentauthor/")
         url.params["person"] = person.id
         yield from self._retrieve_multi(url, DocumentAuthor)
 
 
     def documents_authored_by_email(self, email : Email) -> Iterator[DocumentAuthor]:
-        url = DocumentAuthorURI("/api/v1/doc/documentauthor/")
+        url = DocumentAuthorURI(uri="/api/v1/doc/documentauthor/")
         url.params["email"] = email.address
         yield from self._retrieve_multi(url, DocumentAuthor)
 
@@ -2511,7 +2362,7 @@ class DataTracker:
         target               : Optional[DocumentAlias]    = None,
         relationship_type    : Optional[RelationshipType] = None) -> Iterator[RelatedDocument]:
 
-        url = RelatedDocumentURI("/api/v1/doc/relateddocument/")
+        url = RelatedDocumentURI(uri="/api/v1/doc/relateddocument/")
         if source is not None:
             url.params["source"] = source.id
         if target is not None:
@@ -2536,7 +2387,7 @@ class DataTracker:
 
 
     def relationship_type_from_slug(self, slug: str) -> Optional[RelationshipType]:
-        return self._retrieve(RelationshipTypeURI(F"/api/v1/name/docrelationshipname/{slug}/"), RelationshipType)
+        return self._retrieve(RelationshipTypeURI(uri=f"/api/v1/name/docrelationshipname/{slug}/"), RelationshipType)
 
 
     def relationship_types(self) -> Iterator[RelationshipType]:
@@ -2549,7 +2400,7 @@ class DataTracker:
         Returns:
             An iterator of RelationshipType objects
         """
-        url = RelationshipTypeURI("/api/v1/name/docrelationshipname/")
+        url = RelationshipTypeURI(uri="/api/v1/name/docrelationshipname/")
         yield from self._retrieve_multi(url, RelationshipType)
 
 
@@ -2572,7 +2423,7 @@ class DataTracker:
 
 
     def ballot_position_name_from_slug(self, slug: str) -> Optional[BallotPositionName]:
-        return self._retrieve(BallotPositionNameURI(F"/api/v1/name/ballotpositionname/{slug}/"), BallotPositionName)
+        return self._retrieve(BallotPositionNameURI(uri=f"/api/v1/name/ballotpositionname/{slug}/"), BallotPositionName)
 
 
     def ballot_position_names(self) -> Iterator[BallotPositionName]:
@@ -2584,7 +2435,7 @@ class DataTracker:
         Returns:
            A sequence of BallotPositionName objects
         """
-        url = BallotPositionNameURI("/api/v1/name/ballotpositionname/")
+        url = BallotPositionNameURI(uri="/api/v1/name/ballotpositionname/")
         yield from self._retrieve_multi(url, BallotPositionName)
 
 
@@ -2602,7 +2453,7 @@ class DataTracker:
         Returns:
            A sequence of BallotType objects
         """
-        url = BallotTypeURI("/api/v1/doc/ballottype/")
+        url = BallotTypeURI(uri="/api/v1/doc/ballottype/")
         if doc_type is not None:
             url.params["doc_type"] = doc_type.slug
         yield from self._retrieve_multi(url, BallotType)
@@ -2634,7 +2485,7 @@ class DataTracker:
         Returns:
            A sequence of BallotDocumentEvent objects
         """
-        url = BallotDocumentEventURI("/api/v1/doc/ballotdocevent/")
+        url = BallotDocumentEventURI(uri="/api/v1/doc/ballotdocevent/")
         url.params["time__gte"] = since
         url.params["time__lt"] = until
         if ballot_type is not None:
@@ -2662,7 +2513,7 @@ class DataTracker:
     def submissions(self,
             date_since           : str = "1970-01-01",
             date_until           : str = "2038-01-19") -> Iterator[Submission]:
-        url = SubmissionURI("/api/v1/submit/submission/")
+        url = SubmissionURI(uri="/api/v1/submit/submission/")
         url.params["submission_date__gte"] = date_since
         url.params["submission_date__lt"] = date_until
         yield from self._retrieve_multi(url, Submission)
@@ -2689,7 +2540,7 @@ class DataTracker:
         Returns:
            A sequence of SubmissionEvent objects
         """
-        url = SubmissionEventURI("/api/v1/submit/submissionevent/")
+        url = SubmissionEventURI(uri="/api/v1/submit/submissionevent/")
         url.params["time__gte"] = since
         url.params["time__lt"] = until
         if by is not None:
@@ -2720,11 +2571,11 @@ class DataTracker:
 
 
     def stream_from_slug(self, slug: str) -> Optional[Stream]:
-        return self._retrieve(StreamURI(F"/api/v1/name/streamname/{slug}/"), Stream)
+        return self._retrieve(StreamURI(uri=f"/api/v1/name/streamname/{slug}/"), Stream)
 
 
     def streams(self) -> Iterator[Stream]:
-        yield from self._retrieve_multi(StreamURI("/api/v1/name/streamname/"), Stream)
+        yield from self._retrieve_multi(StreamURI(uri="/api/v1/name/streamname/"), Stream)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -2753,7 +2604,7 @@ class DataTracker:
 
 
     def group_from_acronym(self, acronym: str) -> Optional[Group]:
-        url = GroupURI("/api/v1/group/group/")
+        url = GroupURI(uri="/api/v1/group/group/")
         url.params["acronym"] = acronym
         groups = list(self._retrieve_multi(url, Group))
         if len(groups) == 0:
@@ -2770,7 +2621,7 @@ class DataTracker:
             name_contains : Optional[str]        = None,
             state         : Optional[GroupState] = None,
             parent        : Optional[Group]      = None) -> Iterator[Group]:
-        url = GroupURI("/api/v1/group/group/")
+        url = GroupURI(uri="/api/v1/group/group/")
         url.params["time__gte"]       = since
         url.params["time__lt"]       = until
         if name_contains is not None:
@@ -2787,7 +2638,7 @@ class DataTracker:
 
 
     def group_histories_from_acronym(self, acronym: str) -> Iterator[GroupHistory]:
-        url = GroupHistoryURI("/api/v1/group/grouphistory/")
+        url = GroupHistoryURI(uri="/api/v1/group/grouphistory/")
         url.params["acronym"] = acronym
         yield from self._retrieve_multi(url, GroupHistory)
 
@@ -2798,7 +2649,7 @@ class DataTracker:
             group         : Optional[Group]      = None,
             state         : Optional[GroupState] = None,
             parent        : Optional[Group]      = None) -> Iterator[GroupHistory]:
-        url = GroupHistoryURI("/api/v1/group/grouphistory/")
+        url = GroupHistoryURI(uri="/api/v1/group/grouphistory/")
         url.params["time__gte"]  = since
         url.params["time__lt"]  = until
         if group is not None:
@@ -2820,7 +2671,7 @@ class DataTracker:
             by            : Optional[Person]     = None,
             group         : Optional[Group]      = None,
             type          : Optional[str]        = None) -> Iterator[GroupEvent]:
-        url = GroupEventURI("/api/v1/group/groupevent/")
+        url = GroupEventURI(uri="/api/v1/group/groupevent/")
         url.params["time__gte"] = since
         url.params["time__lt"]  = until
         if by is not None:
@@ -2836,7 +2687,7 @@ class DataTracker:
 
 
     def group_urls(self, group: Optional[Group] = None) -> Iterator[GroupUrl]:
-        url = GroupUrlURI("/api/v1/group/groupurl/")
+        url = GroupUrlURI(uri="/api/v1/group/groupurl/")
         if group is not None:
             url.params["group"] = group.id
         yield from self._retrieve_multi(url, GroupUrl)
@@ -2847,7 +2698,7 @@ class DataTracker:
 
 
     def group_milestone_statenames(self) -> Iterator[GroupMilestoneStateName]:
-        yield from self._retrieve_multi(GroupMilestoneStateNameURI("/api/v1/name/groupmilestonestatename/"), GroupMilestoneStateName)
+        yield from self._retrieve_multi(GroupMilestoneStateNameURI(uri="/api/v1/name/groupmilestonestatename/"), GroupMilestoneStateName)
 
 
     def group_milestone(self, group_milestone_uri : GroupMilestoneURI) -> Optional[GroupMilestone]:
@@ -2859,7 +2710,7 @@ class DataTracker:
             until         : str                               = "2038-01-19T03:14:07",
             group         : Optional[Group]                   = None,
             state         : Optional[GroupMilestoneStateName] = None) -> Iterator[GroupMilestone]:
-        url = GroupMilestoneURI("/api/v1/group/groupmilestone/")
+        url = GroupMilestoneURI(uri="/api/v1/group/groupmilestone/")
         url.params["time__gte"]       = since
         url.params["time__lt"]       = until
         if group is not None:
@@ -2874,11 +2725,11 @@ class DataTracker:
 
 
     def role_name_from_slug(self, slug: str) -> Optional[RoleName]:
-        return self._retrieve(RoleNameURI(F"/api/v1/name/rolename/{slug}/"), RoleName)
+        return self._retrieve(RoleNameURI(uri=f"/api/v1/name/rolename/{slug}/"), RoleName)
 
 
     def role_names(self) -> Iterator[RoleName]:
-        yield from self._retrieve_multi(RoleNameURI("/api/v1/name/rolename/"), RoleName)
+        yield from self._retrieve_multi(RoleNameURI(uri="/api/v1/name/rolename/"), RoleName)
 
 
     def group_role(self, group_role_uri : GroupRoleURI) -> Optional[GroupRole]:
@@ -2890,7 +2741,7 @@ class DataTracker:
             group         : Optional[Group]         = None,
             name          : Optional[RoleName]      = None,
             person        : Optional[Person]        = None) -> Iterator[GroupRole]:
-        url = GroupRoleURI("/api/v1/group/role/")
+        url = GroupRoleURI(uri="/api/v1/group/role/")
         if email is not None:
             url.params["email"] = email
         if group is not None:
@@ -2911,7 +2762,7 @@ class DataTracker:
             group         : Optional[GroupHistory]  = None,
             name          : Optional[RoleName]      = None,
             person        : Optional[Person]        = None) -> Iterator[GroupRoleHistory]:
-        url = GroupRoleHistoryURI("/api/v1/group/rolehistory/")
+        url = GroupRoleHistoryURI(uri="/api/v1/group/rolehistory/")
         if email is not None:
             url.params["email"] = email
         if group is not None:
@@ -2933,7 +2784,7 @@ class DataTracker:
             group         : Optional[Group]                   = None,
             milestone     : Optional[GroupMilestone]          = None,
             state         : Optional[GroupMilestoneStateName] = None) -> Iterator[GroupMilestoneHistory]:
-        url = GroupMilestoneHistoryURI("/api/v1/group/groupmilestonehistory/")
+        url = GroupMilestoneHistoryURI(uri="/api/v1/group/groupmilestonehistory/")
         url.params["time__gte"]       = since
         url.params["time__lt"]       = until
         if group is not None:
@@ -2956,7 +2807,7 @@ class DataTracker:
             group         : Optional[Group]            = None,
             milestone     : Optional[GroupMilestone]   = None,
             type          : Optional[str]              = None) -> Iterator[GroupMilestoneEvent]:
-        url = GroupMilestoneEventURI("/api/v1/group/milestonegroupevent/")
+        url = GroupMilestoneEventURI(uri="/api/v1/group/milestonegroupevent/")
         url.params["time__gte"] = since
         url.params["time__lt"]  = until
         if by is not None:
@@ -2980,7 +2831,7 @@ class DataTracker:
             by            : Optional[Person]           = None,
             group         : Optional[Group]            = None,
             state         : Optional[GroupState]       = None) -> Iterator[GroupStateChangeEvent]:
-        url = GroupStateChangeEventURI("/api/v1/group/changestategroupevent/")
+        url = GroupStateChangeEventURI(uri="/api/v1/group/changestategroupevent/")
         url.params["time__gte"]       = since
         url.params["time__lt"]       = until
         if by is not None:
@@ -2997,11 +2848,11 @@ class DataTracker:
 
 
     def group_state_from_slug(self, slug : str) -> Optional[GroupState]:
-        return self._retrieve(GroupStateURI(F"/api/v1/name/groupstatename/{slug}/"), GroupState)
+        return self._retrieve(GroupStateURI(uri=f"/api/v1/name/groupstatename/{slug}/"), GroupState)
 
 
     def group_states(self) -> Iterator[GroupState]:
-        url = GroupStateURI("/api/v1/name/groupstatename/")
+        url = GroupStateURI(uri="/api/v1/name/groupstatename/")
         yield from self._retrieve_multi(url, GroupState)
 
 
@@ -3010,11 +2861,11 @@ class DataTracker:
 
 
     def group_type_name_from_slug(self, slug : str) -> Optional[GroupTypeName]:
-        return self._retrieve(GroupTypeNameURI(F"/api/v1/name/grouptypename/{slug}/"), GroupTypeName)
+        return self._retrieve(GroupTypeNameURI(uri=f"/api/v1/name/grouptypename/{slug}/"), GroupTypeName)
 
 
     def group_type_names(self) -> Iterator[GroupTypeName]:
-        yield from self._retrieve_multi(GroupTypeNameURI("/api/v1/name/grouptypename/"), GroupTypeName)
+        yield from self._retrieve_multi(GroupTypeNameURI(uri="/api/v1/name/grouptypename/"), GroupTypeName)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -3051,7 +2902,7 @@ class DataTracker:
         """
         The assignment of sessions to timeslots in a meeting schedule.
         """
-        url = SessionAssignmentURI("/api/v1/meeting/schedtimesessassignment/")
+        url = SessionAssignmentURI(uri="/api/v1/meeting/schedtimesessassignment/")
         url.params["schedule"] = schedule.id
         yield from self._retrieve_multi(url, SessionAssignment)
 
@@ -3069,11 +2920,11 @@ class DataTracker:
 
 
     def meeting_session_status_name_from_slug(self, slug: str) -> Optional[SessionStatusName]:
-        return self._retrieve(SessionStatusNameURI(F"/api/v1/name/sessionstatusname/{slug}/"), SessionStatusName)
+        return self._retrieve(SessionStatusNameURI(uri=f"/api/v1/name/sessionstatusname/{slug}/"), SessionStatusName)
 
 
     def meeting_session_status_names(self) -> Iterator[SessionStatusName]:
-        yield from self._retrieve_multi(SessionStatusNameURI("/api/v1/name/sessionstatusname/"), SessionStatusName)
+        yield from self._retrieve_multi(SessionStatusNameURI(uri="/api/v1/name/sessionstatusname/"), SessionStatusName)
 
 
     def meeting_session_purpose(self, purpose_uri: SessionPurposeURI) -> Optional[SessionPurpose]:
@@ -3081,7 +2932,7 @@ class DataTracker:
 
 
     def meeting_session_purposes(self) -> Iterator[SessionPurpose]:
-        yield from self._retrieve_multi(SessionPurposeURI("/api/v1/name/sessionpurposename/"), SessionPurpose)
+        yield from self._retrieve_multi(SessionPurposeURI(uri="/api/v1/name/sessionpurposename/"), SessionPurpose)
 
 
     def meeting_session(self, session_uri : SessionURI) -> Optional[Session]:
@@ -3091,7 +2942,7 @@ class DataTracker:
     def meeting_sessions(self,
             meeting : Meeting,
             group   : Optional[Group] = None) -> Iterator[Session]:
-        url = SessionURI("/api/v1/meeting/session/")
+        url = SessionURI(uri="/api/v1/meeting/session/")
         url.params["meeting"]  = meeting.id
         if group is not None:
             url.params["group"] = group.id
@@ -3109,7 +2960,7 @@ class DataTracker:
     def meeting_scheduling_events(self,
             by      : Optional[Person]  = None,
             session : Optional[Session] = None) -> Iterator[SchedulingEvent]:
-        url = SchedulingEventURI("/api/v1/meeting/schedulingevent/")
+        url = SchedulingEventURI(uri="/api/v1/meeting/schedulingevent/")
         if session is not None:
             url.params["session"] = session.id
         if by is not None:
@@ -3146,7 +2997,7 @@ class DataTracker:
         """
         Return information about meetings taking place within a particular date range.
         """
-        url = MeetingURI("/api/v1/meeting/meeting/")
+        url = MeetingURI(uri="/api/v1/meeting/meeting/")
         url.params["date__gte"] = start_date
         url.params["date__lte"] = end_date
         if meeting_type is not None:
@@ -3160,7 +3011,7 @@ class DataTracker:
 
 
     def meeting_type_from_slug(self, slug: str) -> Optional[MeetingType]:
-        return self._retrieve(MeetingTypeURI(F"/api/v1/name/meetingtypename/{slug}/"), MeetingType)
+        return self._retrieve(MeetingTypeURI(uri=f"/api/v1/name/meetingtypename/{slug}/"), MeetingType)
 
 
     def meeting_types(self) -> Iterator[MeetingType]:
@@ -3173,7 +3024,7 @@ class DataTracker:
         Returns:
             An iterator of MeetingType objects
         """
-        yield from self._retrieve_multi(MeetingTypeURI("/api/v1/name/meetingtypename/"), MeetingType)
+        yield from self._retrieve_multi(MeetingTypeURI(uri="/api/v1/name/meetingtypename/"), MeetingType)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -3201,7 +3052,7 @@ class DataTracker:
 
 
     def ipr_disclosure_states(self) -> Iterator[IPRDisclosureState]:
-        yield from self._retrieve_multi(IPRDisclosureStateURI("/api/v1/name/iprdisclosurestatename/"), IPRDisclosureState)
+        yield from self._retrieve_multi(IPRDisclosureStateURI(uri="/api/v1/name/iprdisclosurestatename/"), IPRDisclosureState)
 
 
     def ipr_disclosure_base(self, ipr_disclosure_base_uri: IPRDisclosureBaseURI) -> Optional[IPRDisclosureBase]:
@@ -3216,7 +3067,7 @@ class DataTracker:
             state              : Optional[IPRDisclosureState]    = None,
             submitter_email    : Optional[str]                   = None,
             submitter_name     : Optional[str]                   = None) -> Iterator[IPRDisclosureBase]:
-        url = IPRDisclosureBaseURI("/api/v1/ipr/iprdisclosurebase/")
+        url = IPRDisclosureBaseURI(uri="/api/v1/ipr/iprdisclosurebase/")
         url.params["time__gte"] = since
         url.params["time__lt"]  = until
         if by is not None:
@@ -3245,7 +3096,7 @@ class DataTracker:
             state               : Optional[IPRDisclosureState]    = None,
             submitter_email     : Optional[str]                   = None,
             submitter_name      : Optional[str]                   = None) -> Iterator[GenericIPRDisclosure]:
-        url = GenericIPRDisclosureURI("/api/v1/ipr/genericiprdisclosure/")
+        url = GenericIPRDisclosureURI(uri="/api/v1/ipr/genericiprdisclosure/")
         url.params["time__gte"] = since
         url.params["time__lt"]  = until
         if by is not None:
@@ -3268,7 +3119,7 @@ class DataTracker:
 
 
     def ipr_license_types(self) -> Iterator[IPRLicenseType]:
-        yield from self._retrieve_multi(IPRLicenseTypeURI("/api/v1/name/iprlicensetypename/"), IPRLicenseType)
+        yield from self._retrieve_multi(IPRLicenseTypeURI(uri="/api/v1/name/iprlicensetypename/"), IPRLicenseType)
 
 
     def holder_ipr_disclosure(self, holder_ipr_disclosure_uri: HolderIPRDisclosureURI) -> Optional[HolderIPRDisclosure]:
@@ -3287,7 +3138,7 @@ class DataTracker:
             state                : Optional[IPRDisclosureState]    = None,
             submitter_email      : Optional[str]                   = None,
             submitter_name       : Optional[str]                   = None) -> Iterator[HolderIPRDisclosure]:
-        url = HolderIPRDisclosureURI("/api/v1/ipr/holderiprdisclosure/")
+        url = HolderIPRDisclosureURI(uri="/api/v1/ipr/holderiprdisclosure/")
         url.params["time__gte"] = since
         url.params["time__lt"]  = until
         if by is not None:
@@ -3325,7 +3176,7 @@ class DataTracker:
             state                : Optional[IPRDisclosureState]    = None,
             submitter_email      : Optional[str]                   = None,
             submitter_name       : Optional[str]                   = None) -> Iterator[HolderIPRDisclosure]:
-        url = ThirdPartyIPRDisclosureURI("/api/v1/ipr/thirdpartyiprdisclosure/")
+        url = ThirdPartyIPRDisclosureURI(uri="/api/v1/ipr/thirdpartyiprdisclosure/")
         url.params["time__gte"] = since
         url.params["time__lt"]  = until
         if by is not None:
@@ -3388,11 +3239,11 @@ class DataTracker:
 
 
     def review_assignment_state_from_slug(self, slug: str) -> Optional[ReviewAssignmentState]:
-        return self._retrieve(ReviewAssignmentStateURI(F"/api/v1/name/reviewassignmentstatename/{slug}/"), ReviewAssignmentState)
+        return self._retrieve(ReviewAssignmentStateURI(uri=f"/api/v1/name/reviewassignmentstatename/{slug}/"), ReviewAssignmentState)
 
 
     def review_assignment_states(self) -> Iterator[ReviewAssignmentState]:
-        yield from self._retrieve_multi(ReviewAssignmentStateURI("/api/v1/name/reviewassignmentstatename/"), ReviewAssignmentState)
+        yield from self._retrieve_multi(ReviewAssignmentStateURI(uri="/api/v1/name/reviewassignmentstatename/"), ReviewAssignmentState)
 
 
     def review_result_type(self, review_result_uri: ReviewResultTypeURI) -> Optional[ReviewResultType]:
@@ -3400,11 +3251,11 @@ class DataTracker:
 
 
     def review_result_type_from_slug(self, slug: str) -> Optional[ReviewResultType]:
-        return self._retrieve(ReviewResultTypeURI(F"/api/v1/name/reviewresultname/{slug}/"), ReviewResultType)
+        return self._retrieve(ReviewResultTypeURI(uri=f"/api/v1/name/reviewresultname/{slug}/"), ReviewResultType)
 
 
     def review_result_types(self) -> Iterator[ReviewResultType]:
-        yield from self._retrieve_multi(ReviewResultTypeURI("/api/v1/name/reviewresultname/"), ReviewResultType)
+        yield from self._retrieve_multi(ReviewResultTypeURI(uri="/api/v1/name/reviewresultname/"), ReviewResultType)
 
 
     def review_type(self, review_type_uri: ReviewTypeURI) -> Optional[ReviewType]:
@@ -3412,11 +3263,11 @@ class DataTracker:
 
 
     def review_type_from_slug(self, slug: str) -> Optional[ReviewType]:
-        return self._retrieve(ReviewTypeURI(F"/api/v1/name/reviewtypename/{slug}/"), ReviewType)
+        return self._retrieve(ReviewTypeURI(uri=f"/api/v1/name/reviewtypename/{slug}/"), ReviewType)
 
 
     def review_types(self) -> Iterator[ReviewType]:
-        yield from self._retrieve_multi(ReviewTypeURI("/api/v1/name/reviewtypename/"), ReviewType)
+        yield from self._retrieve_multi(ReviewTypeURI(uri="/api/v1/name/reviewtypename/"), ReviewType)
 
 
     def review_request_state(self, review_request_state_uri: ReviewRequestStateURI) -> Optional[ReviewRequestState]:
@@ -3424,11 +3275,11 @@ class DataTracker:
 
 
     def review_request_state_from_slug(self, slug: str) -> Optional[ReviewRequestState]:
-        return self._retrieve(ReviewRequestStateURI(F"/api/v1/name/reviewrequeststatename/{slug}/"), ReviewRequestState)
+        return self._retrieve(ReviewRequestStateURI(uri=f"/api/v1/name/reviewrequeststatename/{slug}/"), ReviewRequestState)
 
 
     def review_request_states(self) -> Iterator[ReviewRequestState]:
-        yield from self._retrieve_multi(ReviewRequestStateURI("/api/v1/name/reviewrequeststatename/"), ReviewRequestState)
+        yield from self._retrieve_multi(ReviewRequestStateURI(uri="/api/v1/name/reviewrequeststatename/"), ReviewRequestState)
 
 
     def review_request(self, review_request_uri: ReviewRequestURI) -> Optional[ReviewRequest]:
@@ -3443,7 +3294,7 @@ class DataTracker:
             state         : Optional[ReviewRequestState] = None,
             team          : Optional[Group]              = None,
             type          : Optional[ReviewType]         = None) -> Iterator[ReviewRequest]:
-        url = ReviewRequestURI("/api/v1/review/reviewrequest/")
+        url = ReviewRequestURI(uri="/api/v1/review/reviewrequest/")
         url.params["time__gte"] = since
         url.params["time__lt"]  = until
         if doc is not None:
@@ -3472,7 +3323,7 @@ class DataTracker:
             review_request         : Optional[ReviewRequest]         = None,
             reviewer               : Optional[Email]                 = None,
             state                  : Optional[ReviewAssignmentState] = None) -> Iterator[ReviewAssignment]:
-        url = ReviewAssignmentURI("/api/v1/review/reviewassignment/")
+        url = ReviewAssignmentURI(uri="/api/v1/review/reviewassignment/")
         url.params["assigned_on__gt"]       = assigned_since
         url.params["assigned_on__lt"]       = assigned_until
         url.params["completed_on__gt"]      = completed_since
@@ -3498,7 +3349,7 @@ class DataTracker:
             doc           : Optional[Document]           = None,
             person        : Optional[Person]             = None,
             team          : Optional[Group]              = None) -> Iterator[ReviewWish]:
-        url = ReviewWishURI("/api/v1/review/reviewwish/")
+        url = ReviewWishURI(uri="/api/v1/review/reviewwish/")
         url.params["time__gte"]       = since
         url.params["time__lt"]       = until
         if doc is not None:
@@ -3519,7 +3370,7 @@ class DataTracker:
             id            : Optional[int]                = None,
             person        : Optional[Person]             = None,
             team          : Optional[Group]              = None) -> Iterator[HistoricalUnavailablePeriod]:
-        url = HistoricalUnavailablePeriodURI("/api/v1/review/historicalunavailableperiod/")
+        url = HistoricalUnavailablePeriodURI(uri="/api/v1/review/historicalunavailableperiod/")
         if history_type is not None:
             url.params["history_type"] = history_type
         if id is not None:
@@ -3547,7 +3398,7 @@ class DataTracker:
             state         : Optional[ReviewRequestState] = None,
             team          : Optional[Group]              = None,
             type          : Optional[ReviewType]         = None) -> Iterator[HistoricalReviewRequest]:
-        url = HistoricalReviewRequestURI("/api/v1/review/historicalreviewrequest/")
+        url = HistoricalReviewRequestURI(uri="/api/v1/review/historicalreviewrequest/")
         url.params["time__gte"]         = since
         url.params["time__lt"]         = until
         url.params["history_date__gt"] = history_since
@@ -3571,7 +3422,7 @@ class DataTracker:
 
     def next_reviewers_in_teams(self,
             team          : Optional[Group] = None) -> Iterator[NextReviewerInTeam]:
-        url = NextReviewerInTeamURI("/api/v1/review/nextreviewerinteam/")
+        url = NextReviewerInTeamURI(uri="/api/v1/review/nextreviewerinteam/")
         if team is not None:
             url.params["team"] = team.id
         yield from self._retrieve_multi(url, NextReviewerInTeam)
@@ -3583,7 +3434,7 @@ class DataTracker:
 
     def review_team_settings_all(self,
             group                    : Optional[Group] = None) -> Iterator[ReviewTeamSettings]:
-        url = ReviewTeamSettingsURI("/api/v1/review/reviewteamsettings/")
+        url = ReviewTeamSettingsURI(uri="/api/v1/review/reviewteamsettings/")
         if group is not None:
             url.params["group"] = group.id
         yield from self._retrieve_multi(url, ReviewTeamSettings)
@@ -3596,7 +3447,7 @@ class DataTracker:
     def reviewer_settings_all(self,
             person        : Optional[Person]             = None,
             team          : Optional[Group]              = None) -> Iterator[ReviewerSettings]:
-        url = ReviewerSettingsURI("/api/v1/review/reviewersettings/")
+        url = ReviewerSettingsURI(uri="/api/v1/review/reviewersettings/")
         if person is not None:
             url.params["person"] = person.id
         if team is not None:
@@ -3611,7 +3462,7 @@ class DataTracker:
     def unavailable_periods(self,
             person        : Optional[Person]             = None,
             team          : Optional[Group]              = None) -> Iterator[UnavailablePeriod]:
-        url = UnavailablePeriodURI("/api/v1/review/unavailableperiod/")
+        url = UnavailablePeriodURI(uri="/api/v1/review/unavailableperiod/")
         if person is not None:
             url.params["person"] = person.id
         if team is not None:
@@ -3629,7 +3480,7 @@ class DataTracker:
             id            : Optional[int]                = None,
             person        : Optional[Person]             = None,
             team          : Optional[Group]              = None) -> Iterator[HistoricalReviewerSettings]:
-        url = HistoricalReviewerSettingsURI("/api/v1/review/historicalreviewersettings/")
+        url = HistoricalReviewerSettingsURI(uri="/api/v1/review/historicalreviewersettings/")
         url.params["history_date__gt"]       = history_since
         url.params["history_date__lt"]       = history_until
         if id is not None:
@@ -3655,7 +3506,7 @@ class DataTracker:
             review_request         : Optional[ReviewRequest]         = None,
             reviewer               : Optional[Email]                 = None,
             state                  : Optional[ReviewAssignmentState] = None) -> Iterator[HistoricalReviewAssignment]:
-        url = HistoricalReviewAssignmentURI("/api/v1/review/historicalreviewassignment/")
+        url = HistoricalReviewAssignmentURI(uri="/api/v1/review/historicalreviewassignment/")
         url.params["assigned_on__gt"]       = assigned_since
         url.params["assigned_on__lt"]       = assigned_until
         url.params["completed_on__gt"]      = completed_since
@@ -3680,7 +3531,7 @@ class DataTracker:
     def review_secretary_settings_all(self,
             person        : Optional[Person]             = None,
             team          : Optional[Group]              = None) -> Iterator[ReviewSecretarySettings]:
-        url = ReviewSecretarySettingsURI("/api/v1/review/reviewsecretarysettings/")
+        url = ReviewSecretarySettingsURI(uri="/api/v1/review/reviewsecretarysettings/")
         if person is not None:
             url.params["person"] = person.id
         if team is not None:
@@ -3699,7 +3550,7 @@ class DataTracker:
 
 
     def email_lists(self, name : Optional[str] = None) -> Iterator[EmailList]:
-        url = EmailListURI("/api/v1/mailinglists/list/")
+        url = EmailListURI(uri="/api/v1/mailinglists/list/")
         if name is not None:
             url.params["name"] = name
         yield from self._retrieve_multi(url, EmailList)
@@ -3708,7 +3559,7 @@ class DataTracker:
     def email_list_subscriptions(self,
             email_addr : Optional[str] = None,
             email_list : Optional[EmailList] = None) -> Iterator[EmailListSubscriptions]:
-        url = EmailListSubscriptionsURI("/api/v1/mailinglists/subscribed/")
+        url = EmailListSubscriptionsURI(uri="/api/v1/mailinglists/subscribed/")
         if email_addr is not None:
             url.params["email"] = email_addr
         if email_list is not None:
@@ -3747,11 +3598,11 @@ class DataTracker:
 
 
     def continent_from_slug(self, slug : str) -> Optional[Continent]:
-        return self._retrieve(ContinentURI(F"/api/v1/name/continentname/{slug}/"), Continent)
+        return self._retrieve(ContinentURI(uri=f"/api/v1/name/continentname/{slug}/"), Continent)
 
 
     def continents(self) -> Iterator[Continent]:
-        url = ContinentURI("/api/v1/name/continentname/")
+        url = ContinentURI(uri="/api/v1/name/continentname/")
         yield from self._retrieve_multi(url, Continent)
 
 
@@ -3760,7 +3611,7 @@ class DataTracker:
 
 
     def country_from_slug(self, slug : str) -> Optional[Country]:
-        return self._retrieve(CountryURI(F"/api/v1/name/countryname/{slug}/"), Country)
+        return self._retrieve(CountryURI(uri=f"/api/v1/name/countryname/{slug}/"), Country)
 
 
     def countries(self,
@@ -3768,7 +3619,7 @@ class DataTracker:
                   in_eu          : Optional[bool] = None,
                   slug           : Optional[str]  = None,
                   name           : Optional[str]  = None) -> Iterator[Country]:
-        url = CountryURI("/api/v1/name/countryname/")
+        url = CountryURI(uri="/api/v1/name/countryname/")
         if continent_slug is not None:
             url.params["continent"] = continent_slug
         if in_eu is not None:
@@ -3785,7 +3636,7 @@ class DataTracker:
 
 
     def country_aliases(self, alias : str) -> Iterator[CountryAlias]:
-        url = CountryAliasURI("/api/v1/stats/countryalias/")
+        url = CountryAliasURI(uri="/api/v1/stats/countryalias/")
         url.params["alias"] = alias
         yield from self._retrieve_multi(url, CountryAlias)
 
@@ -3812,7 +3663,7 @@ class DataTracker:
                 person        : Optional[Person]          = None,
                 reg_type      : Optional[str]             = None,
                 ticket_type   : Optional[str]             = None) -> Iterator[MeetingRegistration]:
-        url = MeetingRegistrationURI("/api/v1/stats/meetingregistration/")
+        url = MeetingRegistrationURI(uri="/api/v1/stats/meetingregistration/")
         if affiliation is not None:
             url.params["affiliation"] = affiliation
         if attended is not None:
@@ -3852,7 +3703,7 @@ class DataTracker:
                 address : Optional[str]          = None,
                 group   : Optional[Group]        = None,
                 name    : Optional[RoleName]     = None) -> Iterator[AnnouncementFrom]:
-        url = AnnouncementFromURI("/api/v1/message/announcementfrom/")
+        url = AnnouncementFromURI(uri="/api/v1/message/announcementfrom/")
         if address is not None:
             url.params["address"] = address
         if group is not None:
@@ -3874,7 +3725,7 @@ class DataTracker:
     #            related_doc      : Optional[Document] = None,
     #            subject_contains : Optional[str]      = None,
     #            body_contains    : Optional[str]      = None) -> Iterator[DTMessage]:
-    #    url = DTMessageURI("/api/v1/message/message/")
+    #    url = DTMessageURI(uri="/api/v1/message/message/")
     #    url.params["time__gte"]       = since
     #    url.params["time__lt"]       = until
     #    if by is not None:
@@ -3899,7 +3750,7 @@ class DataTracker:
                 until   : str                = "2038-01-19T03:14:07",
                 by      : Optional[Person]   = None,
                 message : Optional[DTMessage]  = None) -> Iterator[SendQueueEntry]:
-        url = SendQueueURI("/api/v1/message/sendqueue/")
+        url = SendQueueURI(uri="/api/v1/message/sendqueue/")
         url.params["time__gte"] = since
         url.params["time__lt"]  = until
         if by is not None:

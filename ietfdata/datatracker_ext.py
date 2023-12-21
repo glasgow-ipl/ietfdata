@@ -89,7 +89,7 @@ def names_to_try(name: str, email: str) -> List[str]:
 class DraftHistory:
     draft      : Document
     rev        : str
-    date       : datetime
+    date       : date
     submission : Optional[Submission]
 
 
@@ -113,7 +113,7 @@ class DataTrackerExt(DataTracker):
         """
         Find the previous versions of an Internet-Draft
         """
-        assert draft.type == DocumentTypeURI("/api/v1/name/doctypename/draft/")
+        assert draft.type == DocumentTypeURI(uri="/api/v1/name/doctypename/draft/")
 
         drafts : List[DraftHistory] = []
 
