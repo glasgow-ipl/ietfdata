@@ -9,6 +9,8 @@ jobs:
       - image: cimg/python:3.11
     steps:
       - checkout
+      - python/install-packages:
+          pkg-manager: pip
       - run:
           environment:
             MYPYPATH: stubs
@@ -25,6 +27,8 @@ jobs:
       - image: circleci/mongo:4.4.12
     steps:
       - checkout
+      - python/install-packages:
+          pkg-manager: pip
       - run:
           environment:
             MYPYPATH: stubs
