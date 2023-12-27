@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name    = "ietfdata",
+version = "0.7.0",
+authors = [
+  {name = "Colin Perkins", email = "csp@csperkins.org"}
+]
+description = "Access the IETF Data Tracker and RFC Index",
+readme = "README.md"
+requires-python = '>=3.11',
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+  "bs4",
+  "email_reply_parser",
+  "imapclient",
+  "pandas",
+  "pandas-stubs",
+  "python-dateutil",
+  "pydantic",
+  "pymongo",
+  "requests",
+  "requests-cache",
+  "mypy",
+  "wheel",
+  "twine",
+  "keyring",
+  "coverage",
+  "pymongo-stubs",
+  "types-six",
+  "types-requests",
+  "types-python-dateutil",
+]
+
