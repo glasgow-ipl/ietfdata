@@ -411,8 +411,9 @@ class Document(Resource):
     notify             : str
     expires            : Optional[str]
     type               : DocumentTypeURI
-    rfc                : Optional[int]
-    rev                : str           # If `rfc` is not None, `rev` will point to the RFC publication notice
+    rfc                : Optional[str]
+    rfc_number         : Optional[int]
+    rev                : str
     abstract           : str
     internal_comments  : str
     note               : str
@@ -479,17 +480,6 @@ class Document(Resource):
         else:
             raise NotImplementedError
         return url
-
-
-class DocumentAliasURI(URI):
-    root : str = "/api/v1/doc/docalias/"
-
-
-class DocumentAlias(Resource):
-    id           : int
-    resource_uri : DocumentAliasURI
-    document     : DocumentURI
-    name         : str
 
 
 class DocumentEventURI(URI):
@@ -577,7 +567,7 @@ class RelatedDocument(Resource):
     relationship    : RelationshipTypeURI
     resource_uri    : RelatedDocumentURI
     source          : DocumentURI
-    target          : DocumentAliasURI
+    target          : DocumentURI
 
 
 class DocumentAuthorURI(URI):
@@ -1055,7 +1045,7 @@ class IPRDisclosureBaseURI(URI):
 class IPRDisclosureBase(Resource):
     by                 : PersonURI
     compliant          : bool
-    docs               : List[DocumentAliasURI]
+    docs               : List[DocumentURI]
     holder_legal_name  : str
     id                 : int
     notes              : str
@@ -1115,7 +1105,7 @@ class HolderIPRDisclosureURI(URI):
 class HolderIPRDisclosure(Resource):
     by                                   : PersonURI
     compliant                            : bool
-    docs                                 : List[DocumentAliasURI]
+    docs                                 : List[DocumentURI]
     has_patent_pending                   : bool
     holder_contact_email                 : str
     holder_contact_info                  : str
@@ -1148,7 +1138,7 @@ class ThirdPartyIPRDisclosureURI(URI):
 class ThirdPartyIPRDisclosure(Resource):
     by                     : PersonURI
     compliant              : bool
-    docs                   : List[DocumentAliasURI]
+    docs                   : List[DocumentURI]
     has_patent_pending     : bool
     holder_legal_name      : str
     id                     : int
@@ -1646,7 +1636,6 @@ class DataTracker:
         self._hints = {} # type: Dict[str, Hints]
         self._hints["/api/v1/doc/ballotdocevent/"]                 = Hints(BallotDocumentEvent,         "id")
         self._hints["/api/v1/doc/ballottype/"]                     = Hints(BallotType,                  "slug")
-        self._hints["/api/v1/doc/docalias/"]                       = Hints(DocumentAlias,               "id")
         self._hints["/api/v1/doc/docevent/"]                       = Hints(DocumentEvent,               "id")
         self._hints["/api/v1/doc/document/"]                       = Hints(Document,                    "id")
         self._hints["/api/v1/doc/documentauthor/"]                 = Hints(DocumentAuthor,              "id")
@@ -2140,27 +2129,6 @@ class DataTracker:
 
 
     # Datatracker API endpoints returning information about document aliases:
-    # * https://datatracker.ietf.org/api/v1/doc/docalias/?name=/                 - draft that became the given RFC
-
-    def document_alias(self, document_alias_uri: DocumentAliasURI) -> Optional[DocumentAlias]:
-        return self._retrieve(document_alias_uri, DocumentAlias)
-
-
-    def document_aliases(self, name: Optional[str] = None) -> Iterator[DocumentAlias]:
-        """
-        Returns a list of DocumentAlias objects that correspond to the specified name.
-
-        Parameters:
-            name -- The name to lookup, for example "rfc3550", "std68", "bcp25", "draft-ietf-quic-transport"
-
-        Returns:
-            A list of DocumentAlias objects
-        """
-        url = DocumentAliasURI(uri="/api/v1/doc/docalias/")
-        if name is not None:
-            url.params["name"] = name
-        yield from self._retrieve_multi(url, DocumentAlias)
-
 
     def document_from_draft(self, draft: str) -> Optional[Document]:
         """
@@ -2188,11 +2156,7 @@ class DataTracker:
             A Document object
         """
         assert rfc.lower().startswith("rfc")
-        alias = self.document_alias(DocumentAliasURI(uri=f"/api/v1/doc/docalias/{rfc.lower()}/"))
-        if alias is None:
-            return None
-        else:
-            return self.document(alias.document)
+        return self.document(DocumentURI(uri="/api/v1/doc/document/" + rfc + "/"))
 
 
     def documents_from_bcp(self, bcp: str) -> Iterator[Document]:
@@ -2206,10 +2170,11 @@ class DataTracker:
             A list of Document objects
         """
         assert bcp.lower().startswith("bcp")
-        for alias in self.document_aliases(name=bcp.lower()):
-            doc = self.document(alias.document)
-            if doc is not None:
-                yield doc
+        bcp_doc = self.document(DocumentURI(uri="/api/v1/doc/document/" + bcp + "/"))
+        for rel_doc in self.related_documents(source = bcp_doc, relationship_type_slug = "contains"):
+            rfc = self.document(rel_doc.target)
+            assert rfc is not None
+            yield rfc
 
 
     def documents_from_std(self, std: str) -> Iterator[Document]:
@@ -2223,10 +2188,11 @@ class DataTracker:
             A list of Document objects
         """
         assert std.lower().startswith("std")
-        for alias in self.document_aliases(name=std.lower()):
-            doc = self.document(alias.document)
-            if doc is not None:
-                yield doc
+        std_doc = self.document(DocumentURI(uri="/api/v1/doc/document/" + std + "/"))
+        for rel_doc in self.related_documents(source = std_doc, relationship_type_slug = "contains"):
+            rfc = self.document(rel_doc.target)
+            assert rfc is not None
+            yield rfc
 
 
     # Datatracker API endpoints returning information about document types:
@@ -2360,9 +2326,10 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/doc/relateddochistory/
 
     def related_documents(self,
-        source               : Optional[Document]         = None,
-        target               : Optional[DocumentAlias]    = None,
-        relationship_type    : Optional[RelationshipType] = None) -> Iterator[RelatedDocument]:
+                          source                 : Optional[Document]         = None,
+                          target                 : Optional[Document]         = None,
+                          relationship_type      : Optional[RelationshipType] = None,
+                          relationship_type_slug : Optional[str] = None) -> Iterator[RelatedDocument]:
 
         url = RelatedDocumentURI(uri="/api/v1/doc/relateddocument/")
         if source is not None:
@@ -2371,6 +2338,8 @@ class DataTracker:
             url.params["target"] = target.id
         if relationship_type is not None:
             url.params["relationship"] = relationship_type.slug
+        if relationship_type_slug is not None:
+            url.params["relationship"] = relationship_type_slug
         yield from self._retrieve_multi(url, RelatedDocument)
 
 

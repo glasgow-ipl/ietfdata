@@ -26,6 +26,13 @@ Change Log -- ietfdata
      `ext_resource_type_names()`
    These make it possible to retrieve GitHub identifiers, and similar,
    for people.
+ - Catch-up with changes to the IETF Datatracker:
+    - RFCs are now first class documents in the datatracker
+    - The type of `Document.rfc` changes to `Optional[str]` and a new
+     `Document.rfc_number` field is added with type `Optional[int]`
+    - The `DocumentAlias` and `DocumentAliasURI` types are removed; their
+      uses are replaced by `Document` and `DocumentURI`
+    - The `document_alias()` and `document_aliases()` methods are removed. 
 
 
 ## Version 0.6.8 -- 17 August 2023

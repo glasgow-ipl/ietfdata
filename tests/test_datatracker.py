@@ -27,6 +27,7 @@ import unittest
 import os
 import sys
 
+from datetime      import date, datetime, timedelta, timezone
 from pathlib       import Path
 from unittest.mock import patch, Mock
 
@@ -44,7 +45,7 @@ class TestDatatracker(unittest.TestCase):
 
     @classmethod
     def setUpClass(self) -> None:
-        self.dt = DataTracker()
+        self.dt = DataTracker(cache_timeout = timedelta(minutes = 15))
 
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to the datatracker access layer:
@@ -663,14 +664,14 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.title,              "RTP: A Transport Protocol for Real-Time Applications")
             # self.assertEqual(d.abstract,         "This memorandum describes RTP, the real-time transport protocol...")
             self.assertEqual(d.uploaded_filename,  "")
-            self.assertEqual(d.rfc,                3550)
+            self.assertEqual(d.rfc,                None)
             self.assertEqual(d.shepherd,           None)
             self.assertEqual(d.submissions,        [])
             self.assertEqual(d.intended_std_level, "/api/v1/name/intendedstdlevelname/std/")
             self.assertEqual(d.ad,                 PersonURI(uri="/api/v1/person/person/2515/"))
             self.assertEqual(d.note,               "")
             self.assertEqual(d.words,              34861)
-            self.assertEqual(d.tags,               [DocumentTagURI(uri="/api/v1/name/doctagname/app-min/"), DocumentTagURI(uri="/api/v1/name/doctagname/errata/")])
+            self.assertEqual(d.tags,               [DocumentTagURI(uri="/api/v1/name/doctagname/app-min/")])
             self.assertEqual(d.time,               datetime.fromisoformat("2015-10-14T20:49:52+00:00"))
             self.assertEqual(d.pages,              104)
             self.assertEqual(d.stream,             StreamURI(uri="/api/v1/name/streamname/ietf/"))
@@ -985,28 +986,25 @@ class TestDatatracker(unittest.TestCase):
         else:
             self.fail("Cannot find document")
 
-    # FIXME: this needs to be updated
     def test_document_from_rfc(self) -> None:
         d  = self.dt.document_from_rfc("rfc3550")
         if d is not None:
-            self.assertEqual(d.resource_uri, DocumentURI(uri="/api/v1/doc/document/draft-ietf-avt-rtp-new/"))
+            self.assertEqual(d.resource_uri, DocumentURI(uri="/api/v1/doc/document/rfc3550/"))
         else:
             self.fail("Cannot find document")
 
-    # FIXME: this needs to be updated
     def test_documents_from_bcp(self) -> None:
         d  = list(self.dt.documents_from_bcp("bcp205"))
         if d is not None:
             self.assertEqual(len(d), 1)
-            self.assertEqual(d[0].resource_uri, DocumentURI(uri="/api/v1/doc/document/draft-sheffer-rfc6982bis/"))
+            self.assertEqual(d[0].resource_uri, DocumentURI(uri="/api/v1/doc/document/rfc7942/"))
         else:
             self.fail("Cannot find document")
 
-    # FIXME: this needs to be updated
     def test_documents_from_std(self) -> None:
         d  = list(self.dt.documents_from_std("std68"))
         self.assertEqual(len(d), 1)
-        self.assertEqual(d[0].resource_uri, DocumentURI(uri="/api/v1/doc/document/draft-crocker-rfc4234bis/"))
+        self.assertEqual(d[0].resource_uri, DocumentURI(uri="/api/v1/doc/document/rfc5234/"))
 
 
     def test_document_state(self) -> None:
@@ -2383,7 +2381,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_related_documents_all(self) -> None:
         source = self.dt.document(DocumentURI(uri="/api/v1/doc/document/draft-rfced-info-snpp-v3/"))
-        target = list(self.dt.document_aliases(name="draft-gwinn-paging-protocol-v3"))[0]
+        target = self.dt.document(DocumentURI(uri="/api/v1/doc/document/draft-gwinn-paging-protocol-v3"))
         rel    = self.dt.relationship_type_from_slug("replaces")
         rdocs  = list(self.dt.related_documents(source=source, target=target, relationship_type=rel))
         self.assertEqual(len(rdocs), 1)
@@ -2391,90 +2389,88 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(rdocs[0].relationship, RelationshipTypeURI(uri="/api/v1/name/docrelationshipname/replaces/"))
         self.assertEqual(rdocs[0].resource_uri, RelatedDocumentURI(uri="/api/v1/doc/relateddocument/3/"))
         self.assertEqual(rdocs[0].source,       DocumentURI(uri="/api/v1/doc/document/draft-rfced-info-snpp-v3/"))
-        self.assertEqual(rdocs[0].target,       DocumentAliasURI(uri="/api/v1/doc/docalias/draft-gwinn-paging-protocol-v3/"))
+        self.assertEqual(rdocs[0].target,       DocumentURI(uri="/api/v1/doc/document/draft-gwinn-paging-protocol-v3/"))
 
 
     def test_related_documents_source_target(self) -> None:
         source = self.dt.document(DocumentURI(uri="/api/v1/doc/document/draft-rfced-info-snpp-v3/"))
-        target = list(self.dt.document_aliases(name="draft-gwinn-paging-protocol-v3"))[0]
+        target = self.dt.document(DocumentURI(uri="/api/v1/doc/document/draft-gwinn-paging-protocol-v3"))
         rdocs  = list(self.dt.related_documents(source=source, target=target))
         self.assertEqual(len(rdocs), 1)
         self.assertEqual(rdocs[0].id, 3)
         self.assertEqual(rdocs[0].relationship, RelationshipTypeURI(uri="/api/v1/name/docrelationshipname/replaces/"))
         self.assertEqual(rdocs[0].resource_uri, RelatedDocumentURI(uri="/api/v1/doc/relateddocument/3/"))
         self.assertEqual(rdocs[0].source,       DocumentURI(uri="/api/v1/doc/document/draft-rfced-info-snpp-v3/"))
-        self.assertEqual(rdocs[0].target,       DocumentAliasURI(uri="/api/v1/doc/docalias/draft-gwinn-paging-protocol-v3/"))
+        self.assertEqual(rdocs[0].target,       DocumentURI(uri="/api/v1/doc/document/draft-gwinn-paging-protocol-v3/"))
 
 
     def test_related_documents_source_relationship(self) -> None:
         source = self.dt.document(DocumentURI(uri="/api/v1/doc/document/draft-rfced-info-snpp-v3/"))
-        rel    = self.dt.relationship_type_from_slug("replaces")
-        rdocs  = list(self.dt.related_documents(source=source, relationship_type=rel))
+        rdocs  = list(self.dt.related_documents(source=source, relationship_type_slug = "replaces"))
         self.assertEqual(len(rdocs), 1)
         self.assertEqual(rdocs[0].id, 3)
         self.assertEqual(rdocs[0].relationship, RelationshipTypeURI(uri="/api/v1/name/docrelationshipname/replaces/"))
         self.assertEqual(rdocs[0].resource_uri, RelatedDocumentURI(uri="/api/v1/doc/relateddocument/3/"))
         self.assertEqual(rdocs[0].source,       DocumentURI(uri="/api/v1/doc/document/draft-rfced-info-snpp-v3/"))
-        self.assertEqual(rdocs[0].target,       DocumentAliasURI(uri="/api/v1/doc/docalias/draft-gwinn-paging-protocol-v3/"))
+        self.assertEqual(rdocs[0].target,       DocumentURI(uri="/api/v1/doc/document/draft-gwinn-paging-protocol-v3/"))
 
 
     def test_related_documents_target_relationship(self) -> None:
-        target = list(self.dt.document_aliases(name="draft-gwinn-paging-protocol-v3"))[0]
-        rel    = self.dt.relationship_type_from_slug("replaces")
-        rdocs  = list(self.dt.related_documents(target=target, relationship_type=rel))
+        target = self.dt.document(DocumentURI(uri="/api/v1/doc/document/draft-gwinn-paging-protocol-v3"))
+        rdocs  = list(self.dt.related_documents(target=target, relationship_type_slug = "replaces"))
         self.assertEqual(len(rdocs), 1)
         self.assertEqual(rdocs[0].id, 3)
         self.assertEqual(rdocs[0].relationship, RelationshipTypeURI(uri="/api/v1/name/docrelationshipname/replaces/"))
         self.assertEqual(rdocs[0].resource_uri, RelatedDocumentURI(uri="/api/v1/doc/relateddocument/3/"))
         self.assertEqual(rdocs[0].source,       DocumentURI(uri="/api/v1/doc/document/draft-rfced-info-snpp-v3/"))
-        self.assertEqual(rdocs[0].target,       DocumentAliasURI(uri="/api/v1/doc/docalias/draft-gwinn-paging-protocol-v3/"))
+        self.assertEqual(rdocs[0].target,       DocumentURI(uri="/api/v1/doc/document/draft-gwinn-paging-protocol-v3/"))
 
 
     def test_related_documents_target(self) -> None:
-        target = list(self.dt.document_aliases(name="draft-gwinn-paging-protocol-v3"))[0]
+        target = self.dt.document(DocumentURI(uri="/api/v1/doc/document/draft-gwinn-paging-protocol-v3"))
         rdocs  = list(self.dt.related_documents(target=target))
         self.assertEqual(len(rdocs), 1)
         self.assertEqual(rdocs[0].id, 3)
         self.assertEqual(rdocs[0].relationship, RelationshipTypeURI(uri="/api/v1/name/docrelationshipname/replaces/"))
         self.assertEqual(rdocs[0].resource_uri, RelatedDocumentURI(uri="/api/v1/doc/relateddocument/3/"))
         self.assertEqual(rdocs[0].source,       DocumentURI(uri="/api/v1/doc/document/draft-rfced-info-snpp-v3/"))
-        self.assertEqual(rdocs[0].target,       DocumentAliasURI(uri="/api/v1/doc/docalias/draft-gwinn-paging-protocol-v3/"))
+        self.assertEqual(rdocs[0].target,       DocumentURI(uri="/api/v1/doc/document/draft-gwinn-paging-protocol-v3/"))
 
 
     def test_related_documents_source(self) -> None:
-        source = self.dt.document(DocumentURI(uri="/api/v1/doc/document/draft-rfced-info-snpp-v3/"))
-        rdocs  = list(self.dt.related_documents(source=source))
+        src_doc = self.dt.document(DocumentURI(uri="/api/v1/doc/document/draft-rfced-info-snpp-v3/"))
+        rdocs  = list(self.dt.related_documents(source = src_doc))
         self.assertEqual(len(rdocs), 6)
         self.assertEqual(rdocs[0].id, 3)
         self.assertEqual(rdocs[0].relationship, RelationshipTypeURI(uri="/api/v1/name/docrelationshipname/replaces/"))
         self.assertEqual(rdocs[0].resource_uri, RelatedDocumentURI(uri="/api/v1/doc/relateddocument/3/"))
         self.assertEqual(rdocs[0].source,       DocumentURI(uri="/api/v1/doc/document/draft-rfced-info-snpp-v3/"))
-        self.assertEqual(rdocs[0].target,       DocumentAliasURI(uri="/api/v1/doc/docalias/draft-gwinn-paging-protocol-v3/"))
-        self.assertEqual(rdocs[1].id, 2059)
-        self.assertEqual(rdocs[1].relationship, RelationshipTypeURI(uri="/api/v1/name/docrelationshipname/obs/"))
-        self.assertEqual(rdocs[1].resource_uri, RelatedDocumentURI(uri="/api/v1/doc/relateddocument/2059/"))
+        self.assertEqual(rdocs[0].target,       DocumentURI(uri="/api/v1/doc/document/draft-gwinn-paging-protocol-v3/"))
+        self.assertEqual(rdocs[1].id, 10230)
+        self.assertEqual(rdocs[1].relationship, RelationshipTypeURI(uri="/api/v1/name/docrelationshipname/refold/"))
+        self.assertEqual(rdocs[1].resource_uri, RelatedDocumentURI(uri="/api/v1/doc/relateddocument/10230/"))
         self.assertEqual(rdocs[1].source,       DocumentURI(uri="/api/v1/doc/document/draft-rfced-info-snpp-v3/"))
-        self.assertEqual(rdocs[1].target,       DocumentAliasURI(uri="/api/v1/doc/docalias/rfc1645/"))
-        self.assertEqual(rdocs[2].id, 10230)
+        self.assertEqual(rdocs[1].target,       DocumentURI(uri="/api/v1/doc/document/rfc1425/"))
+        self.assertEqual(rdocs[2].id, 10231)
         self.assertEqual(rdocs[2].relationship, RelationshipTypeURI(uri="/api/v1/name/docrelationshipname/refold/"))
-        self.assertEqual(rdocs[2].resource_uri, RelatedDocumentURI(uri="/api/v1/doc/relateddocument/10230/"))
+        self.assertEqual(rdocs[2].resource_uri, RelatedDocumentURI(uri="/api/v1/doc/relateddocument/10231/"))
         self.assertEqual(rdocs[2].source,       DocumentURI(uri="/api/v1/doc/document/draft-rfced-info-snpp-v3/"))
-        self.assertEqual(rdocs[2].target,       DocumentAliasURI(uri="/api/v1/doc/docalias/rfc1425/"))
-        self.assertEqual(rdocs[3].id, 10231)
+        self.assertEqual(rdocs[2].target,       DocumentURI(uri="/api/v1/doc/document/rfc1521/"))
+        self.assertEqual(rdocs[3].id, 10233)
         self.assertEqual(rdocs[3].relationship, RelationshipTypeURI(uri="/api/v1/name/docrelationshipname/refold/"))
-        self.assertEqual(rdocs[3].resource_uri, RelatedDocumentURI(uri="/api/v1/doc/relateddocument/10231/"))
+        self.assertEqual(rdocs[3].resource_uri, RelatedDocumentURI(uri="/api/v1/doc/relateddocument/10233/"))
         self.assertEqual(rdocs[3].source,       DocumentURI(uri="/api/v1/doc/document/draft-rfced-info-snpp-v3/"))
-        self.assertEqual(rdocs[3].target,       DocumentAliasURI(uri="/api/v1/doc/docalias/rfc1521/"))
-        self.assertEqual(rdocs[4].id, 10233)
+        self.assertEqual(rdocs[3].target,       DocumentURI(uri="/api/v1/doc/document/std10/"))
+        self.assertEqual(rdocs[4].id, 10234)
         self.assertEqual(rdocs[4].relationship, RelationshipTypeURI(uri="/api/v1/name/docrelationshipname/refold/"))
-        self.assertEqual(rdocs[4].resource_uri, RelatedDocumentURI(uri="/api/v1/doc/relateddocument/10233/"))
+        self.assertEqual(rdocs[4].resource_uri, RelatedDocumentURI(uri="/api/v1/doc/relateddocument/10234/"))
         self.assertEqual(rdocs[4].source,       DocumentURI(uri="/api/v1/doc/document/draft-rfced-info-snpp-v3/"))
-        self.assertEqual(rdocs[4].target,       DocumentAliasURI(uri="/api/v1/doc/docalias/std10/"))
-        self.assertEqual(rdocs[5].id, 10234)
-        self.assertEqual(rdocs[5].relationship, RelationshipTypeURI(uri="/api/v1/name/docrelationshipname/refold/"))
-        self.assertEqual(rdocs[5].resource_uri, RelatedDocumentURI(uri="/api/v1/doc/relateddocument/10234/"))
+        self.assertEqual(rdocs[4].target,       DocumentURI(uri="/api/v1/doc/document/rfc1486/"))
+        self.assertEqual(rdocs[5].id, 1289508)
+        self.assertEqual(rdocs[5].relationship, RelationshipTypeURI(uri="/api/v1/name/docrelationshipname/became_rfc/"))
+        self.assertEqual(rdocs[5].resource_uri, RelatedDocumentURI(uri="/api/v1/doc/relateddocument/1289508/"))
         self.assertEqual(rdocs[5].source,       DocumentURI(uri="/api/v1/doc/document/draft-rfced-info-snpp-v3/"))
-        self.assertEqual(rdocs[5].target,       DocumentAliasURI(uri="/api/v1/doc/docalias/rfc1486/"))
+        self.assertEqual(rdocs[5].target,       DocumentURI(uri="/api/v1/doc/document/rfc1861/"))
 
 
     def test_related_documents_relationship(self) -> None:
@@ -2675,7 +2671,7 @@ class TestDatatracker(unittest.TestCase):
         if holder_ipr_disclosure is not None:
             self.assertEqual(holder_ipr_disclosure.by,                                   PersonURI(uri="/api/v1/person/person/1/"))
             self.assertEqual(holder_ipr_disclosure.compliant,                            True)
-            self.assertEqual(holder_ipr_disclosure.docs,                                 [DocumentAliasURI(uri="/api/v1/doc/docalias/draft-gandhi-spring-twamp-srpm/")])
+            self.assertEqual(holder_ipr_disclosure.docs,                                 [DocumentURI(uri="/api/v1/doc/document/draft-gandhi-spring-twamp-srpm/")])
             self.assertEqual(holder_ipr_disclosure.has_patent_pending,                   False)
             self.assertEqual(holder_ipr_disclosure.holder_contact_email,                 "francesco.battipede@telecomitalia.it")
             self.assertEqual(holder_ipr_disclosure.holder_contact_info,                  "Technology Innovation-Patents\r\nVia G. Reiss Romoli 274\r\n10148 Torino - Italy\r\nT: +39 011 228 5580")
@@ -2758,7 +2754,7 @@ class TestDatatracker(unittest.TestCase):
         if thirdparty_ipr_disclosure is not None:
             self.assertEqual(thirdparty_ipr_disclosure.by,                                   PersonURI(uri="/api/v1/person/person/1/"))
             self.assertEqual(thirdparty_ipr_disclosure.compliant,                            True)
-            self.assertEqual(thirdparty_ipr_disclosure.docs,                                 [DocumentAliasURI(uri="/api/v1/doc/docalias/draft-mattsson-cfrg-det-sigs-with-noise/")])
+            self.assertEqual(thirdparty_ipr_disclosure.docs,                                 [DocumentURI(uri="/api/v1/doc/document/draft-mattsson-cfrg-det-sigs-with-noise/")])
             self.assertEqual(thirdparty_ipr_disclosure.has_patent_pending,                   False)
             self.assertEqual(thirdparty_ipr_disclosure.holder_legal_name,                    "QUALCOMM Incorporated")
             self.assertEqual(thirdparty_ipr_disclosure.id,                                   4153)

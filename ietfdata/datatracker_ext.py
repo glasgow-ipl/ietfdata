@@ -161,17 +161,15 @@ class DataTrackerExt(DataTracker):
 
         # Step 3: Use related_documents() to find additional drafts this replaces:
         for related in self.related_documents(source=draft, relationship_type=self.relationship_type_from_slug("replaces")):
-            alias  = self.document_alias(related.target)
-            if alias is not None:
-                reldoc = self.document(alias.document)
-                if reldoc is not None:
-                    found = False
-                    for r in replaces:
-                        if r.name == reldoc.name:
-                            found = True
-                            break
-                    if not found:
-                        replaces.append(reldoc)
+            reldoc = self.document(related.target)
+            if reldoc is not None:
+                found = False
+                for r in replaces:
+                    if r.name == reldoc.name:
+                        found = True
+                        break
+                if not found:
+                    replaces.append(reldoc)
 
         # Step 4: Process the drafts this replaces, to find earlier versions:
         for r in replaces:
