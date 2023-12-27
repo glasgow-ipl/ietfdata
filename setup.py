@@ -23,5 +23,6 @@ setuptools.setup(
     ],
     python_requires='>=3.11',
     setup_requires=["setuptools-pipfile"],
+    tests_require=[],
     use_pipfile=True
 )
