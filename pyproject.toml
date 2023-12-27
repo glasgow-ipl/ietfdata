@@ -3,14 +3,14 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name    = "ietfdata",
-version = "0.7.0",
+name    = "ietfdata"
+version = "0.7.0"
 authors = [
   {name = "Colin Perkins", email = "csp@csperkins.org"}
 ]
-description = "Access the IETF Data Tracker and RFC Index",
+description = "Access the IETF Data Tracker and RFC Index"
 readme = "README.md"
-requires-python = '>=3.11',
+requires-python = '>=3.11'
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: BSD License",
