@@ -1433,7 +1433,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(group.comments,       "")
             self.assertEqual(group.description,    "\n  The Audio/Video Transport Working Group was formed to specify a protocol \n  for real-time transmission of audio and video over unicast and multicast \n  UDP/IP. This is the Real-time Transport Protocol, RTP, along with its \n  associated profiles and payload formats.")
             self.assertEqual(group.id,             941)
-            self.assertEqual(group.list_archive,   "https://mailarchive.ietf.org/arch/search/?email_list=avt")
+            self.assertEqual(group.list_archive,   "https://mailarchive.ietf.org/arch/browse/avt")
             self.assertEqual(group.list_email,     "avt@ietf.org")
             self.assertEqual(group.list_subscribe, "https://www.ietf.org/mailman/listinfo/avt")
             self.assertEqual(group.name,           "Audio/Video Transport")
