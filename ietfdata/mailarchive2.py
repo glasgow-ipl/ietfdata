@@ -566,7 +566,7 @@ class MailingList:
         return msgs_to_fetch
 
 
-    def threads(self) -> Dict[str, List[Envelope]]:
+    def threads(self, this_list_only=False) -> Dict[str, List[Envelope]]:
         """
         Returns a dictionary of threads in this mailing list.
 
@@ -577,7 +577,7 @@ class MailingList:
         sent to a different mailing list. If you have a complete copy of the
         mail archive (i.e., if you previously called `MailArchive::update()`),
         then this function will track threads across lists to find the first
-        message in each.
+        message in each (unless `this_list_only` is set to True).
 
         The first message in a thread can be copied to several mailing lists.
         If this happens, the message-id for the thread will map to a list of
@@ -604,22 +604,35 @@ class MailingList:
             elif parents[0].header("message-id")[0] in seen:
                 # This is part of a thread we've already seen
                 self._log.debug(f"      {parents[0].header('message-id')} {parents[0].header('subject')}")
-                self._log.debug(f"      seen")
+                self._log.debug(f"      Continues known thread")
             else:
                 # This is either a new thread that has been copied to this list
                 # where the earlier messages in the thread are on another list,
                 # or this message is part of an existing thread but has arrived
                 # before its parent.
-                curr = parents
+                curr = []
+                curr.append(msg)
                 while True:
-                    self._log.debug(f"      {curr[0].header('message-id')} {curr[0].header('subject')}")
                     parents = curr[0].in_reply_to()
+
+                    parent_in_this_list = False
+                    for p in parents:
+                        if p.mailing_list() == self.name():
+                            parent_in_this_list = True
+                    if not parent_in_this_list and this_list_only:
+                        self._log.debug(f"      {parents[0].header('message-id')} {parents[0].header('subject')}")
+                        self._log.debug(f"      Not in this list")
+                        if curr[0].header("message-id")[0] not in threads:
+                            threads[curr[0].header("message-id")[0]] = curr
+                        break
+
                     if len(parents) == 0:
                         self._log.debug("      First in thread")
                         if curr[0].header("message-id")[0] not in threads:
                             threads[curr[0].header("message-id")[0]] = curr
                         break
                     curr = parents
+                    self._log.debug(f"      {curr[0].header('message-id')} {curr[0].header('subject')}")
         return threads
 
 
