@@ -33,6 +33,7 @@ Change Log -- ietfdata
     - The `DocumentAlias` and `DocumentAliasURI` types are removed; their
       uses are replaced by `Document` and `DocumentURI`
     - The `document_alias()` and `document_aliases()` methods are removed. 
+    - Remove `email_list()`, `email_lists()` and `email_list_subscriptions()`
 
 
 ## Version 0.6.8 -- 17 August 2023

@@ -2156,7 +2156,7 @@ class DataTracker:
             A Document object
         """
         assert rfc.lower().startswith("rfc")
-        return self.document(DocumentURI(uri="/api/v1/doc/document/" + rfc + "/"))
+        return self.document(DocumentURI(uri="/api/v1/doc/document/" + rfc.lower() + "/"))
 
 
     def documents_from_bcp(self, bcp: str) -> Iterator[Document]:
@@ -3516,26 +3516,28 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/mailinglists/list/
     #   https://datatracker.ietf.org/api/v1/mailinglists/subscribed/
 
-    def email_list(self, email_list_uri: EmailListURI) -> Optional[EmailList]:
-        return self._retrieve(email_list_uri, EmailList)
+    # These appear to have been removed in datatracker 12.5.0
+
+    # def email_list(self, email_list_uri: EmailListURI) -> Optional[EmailList]:
+    #     return self._retrieve(email_list_uri, EmailList)
 
 
-    def email_lists(self, name : Optional[str] = None) -> Iterator[EmailList]:
-        url = EmailListURI(uri="/api/v1/mailinglists/list/")
-        if name is not None:
-            url.params["name"] = name
-        yield from self._retrieve_multi(url, EmailList)
+    # def email_lists(self, name : Optional[str] = None) -> Iterator[EmailList]:
+    #     url = EmailListURI(uri="/api/v1/mailinglists/list/")
+    #     if name is not None:
+    #         url.params["name"] = name
+    #     yield from self._retrieve_multi(url, EmailList)
 
 
-    def email_list_subscriptions(self,
-            email_addr : Optional[str] = None,
-            email_list : Optional[EmailList] = None) -> Iterator[EmailListSubscriptions]:
-        url = EmailListSubscriptionsURI(uri="/api/v1/mailinglists/subscribed/")
-        if email_addr is not None:
-            url.params["email"] = email_addr
-        if email_list is not None:
-            url.params["lists"] = email_list.id
-        yield from self._retrieve_multi(url, EmailListSubscriptions)
+    # def email_list_subscriptions(self,
+    #         email_addr : Optional[str] = None,
+    #         email_list : Optional[EmailList] = None) -> Iterator[EmailListSubscriptions]:
+    #     url = EmailListSubscriptionsURI(uri="/api/v1/mailinglists/subscribed/")
+    #     if email_addr is not None:
+    #         url.params["email"] = email_addr
+    #     if email_list is not None:
+    #         url.params["lists"] = email_list.id
+    #     yield from self._retrieve_multi(url, EmailListSubscriptions)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
