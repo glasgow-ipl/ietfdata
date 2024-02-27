@@ -1060,7 +1060,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_document_state_types(self) -> None:
         st = list(self.dt.document_state_types())
-        self.assertEqual(len(st), 34)
+        self.assertEqual(len(st), 35)
         self.assertEqual(st[ 0].slug, 'agenda')
         self.assertEqual(st[ 1].slug, 'bcp')
         self.assertEqual(st[ 2].slug, 'bluesheets')
@@ -1084,17 +1084,18 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(st[20].slug, 'liai-att')
         self.assertEqual(st[21].slug, 'liaison')
         self.assertEqual(st[22].slug, 'minutes')
-        self.assertEqual(st[23].slug, 'polls')
-        self.assertEqual(st[24].slug, 'procmaterials')
-        self.assertEqual(st[25].slug, 'recording')
-        self.assertEqual(st[26].slug, 'reuse_policy')
-        self.assertEqual(st[27].slug, 'review')
-        self.assertEqual(st[28].slug, 'rfc')
-        self.assertEqual(st[29].slug, 'shepwrit')
-        self.assertEqual(st[30].slug, 'slides')
-        self.assertEqual(st[31].slug, 'statchg')
-        self.assertEqual(st[32].slug, 'statement')
-        self.assertEqual(st[33].slug, 'std')
+        self.assertEqual(st[23].slug, 'narrativeminutes')
+        self.assertEqual(st[24].slug, 'polls')
+        self.assertEqual(st[25].slug, 'procmaterials')
+        self.assertEqual(st[26].slug, 'recording')
+        self.assertEqual(st[27].slug, 'reuse_policy')
+        self.assertEqual(st[28].slug, 'review')
+        self.assertEqual(st[29].slug, 'rfc')
+        self.assertEqual(st[30].slug, 'shepwrit')
+        self.assertEqual(st[31].slug, 'slides')
+        self.assertEqual(st[32].slug, 'statchg')
+        self.assertEqual(st[33].slug, 'statement')
+        self.assertEqual(st[34].slug, 'std')
 
 
     def test_document_event(self) -> None:
@@ -1357,7 +1358,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_document_types(self) -> None:
         types = list(self.dt.document_types())
-        self.assertEqual(len(types), 22)
+        self.assertEqual(len(types), 23)
         self.assertEqual(types[ 0].slug, "agenda")
         self.assertEqual(types[ 1].slug, "bcp")
         self.assertEqual(types[ 2].slug, "bluesheets")
@@ -1370,16 +1371,17 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(types[ 9].slug, "liai-att")
         self.assertEqual(types[10].slug, "liaison")
         self.assertEqual(types[11].slug, "minutes")
-        self.assertEqual(types[12].slug, "polls")
-        self.assertEqual(types[13].slug, "procmaterials")
-        self.assertEqual(types[14].slug, "recording")
-        self.assertEqual(types[15].slug, "review")
-        self.assertEqual(types[16].slug, "rfc")
-        self.assertEqual(types[17].slug, "shepwrit")
-        self.assertEqual(types[18].slug, "slides")
-        self.assertEqual(types[19].slug, "statchg")
-        self.assertEqual(types[20].slug, "statement")
-        self.assertEqual(types[21].slug, "std")
+        self.assertEqual(types[12].slug, "narrativeminutes")
+        self.assertEqual(types[13].slug, "polls")
+        self.assertEqual(types[14].slug, "procmaterials")
+        self.assertEqual(types[15].slug, "recording")
+        self.assertEqual(types[16].slug, "review")
+        self.assertEqual(types[17].slug, "rfc")
+        self.assertEqual(types[18].slug, "shepwrit")
+        self.assertEqual(types[19].slug, "slides")
+        self.assertEqual(types[20].slug, "statchg")
+        self.assertEqual(types[21].slug, "statement")
+        self.assertEqual(types[22].slug, "std")
 
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to streams:
@@ -1867,7 +1869,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_email(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(email="csp@csperkins.org"))
-        self.assertEqual(len(group_role_histories), 80)
+        self.assertEqual(len(group_role_histories), 81)
 
 
     def test_group_role_histories_group(self) -> None:
@@ -1883,7 +1885,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_person(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(person=self.dt.person(PersonURI(uri="/api/v1/person/person/20209/"))))
-        self.assertEqual(len(group_role_histories), 80)
+        self.assertEqual(len(group_role_histories), 81)
 
 
     def test_group_state_change_event(self) -> None:
