@@ -1656,6 +1656,7 @@ class DataTracker:
         self._hints["/api/v1/doc/docevent/"]                       = Hints(DocumentEvent,               "id")
         self._hints["/api/v1/doc/document/"]                       = Hints(Document,                    "id")
         self._hints["/api/v1/doc/documentauthor/"]                 = Hints(DocumentAuthor,              "id")
+        self._hints["/api/v1/doc/documenturl/"]                    = Hints(DocumentUrl,                 "id")
         self._hints["/api/v1/doc/relateddocument/"]                = Hints(RelatedDocument,             "id")
         self._hints["/api/v1/doc/state/"]                          = Hints(DocumentState,               "id")
         self._hints["/api/v1/doc/statetype/"]                      = Hints(DocumentStateType,           "slug")
