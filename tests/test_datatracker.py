@@ -1328,6 +1328,25 @@ class TestDatatracker(unittest.TestCase):
             self.fail("Cannot find submission event")
 
 
+    def test_document_url(self) -> None:
+        doc_url = self.dt.document_url(DocumentUrlURI(uri="/api/v1/doc/documenturl/4594/"))
+        if doc_url is not None:
+            self.assertEqual(doc_url.desc,         "")
+            self.assertEqual(doc_url.doc,          DocumentURI("/api/v1/doc/document/draft-mcquistin-augmented-ascii-diagrams/"))
+            self.assertEqual(doc_url.id,           4594)
+            self.assertEqual(doc_url.resource_uri, DocumentUrlURI(uri="/api/v1/doc/documenturl/4594/"))
+            self.assertEqual(doc_url.tag,          DocumentUrlTagURI(uri="/api/v1/name/docurltagname/repository/"))
+            self.assertEqual(doc_url.url,          "https://github.com/glasgow-ipl/draft-mcquistin-augmented-ascii-diagrams")
+        else:
+            self.fail("Cannot find document URL")
+            
+            
+    def test_document_urls(self) -> None:
+        doc_urls = list(self.dt.document_urls(self.dt.document(DocumentURI(uri="/api/v1/doc/document/draft-mcquistin-augmented-ascii-diagrams/"))))
+        self.assertEqual(len(doc_urls),  1)
+        self.assertEqual(doc_urls[0].id, 4594)
+
+
     def test_document_type(self) -> None:
         doctype = self.dt.document_type(DocumentTypeURI(uri="/api/v1/name/doctypename/draft/"))
         if doctype is not None:
