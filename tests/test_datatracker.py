@@ -1332,7 +1332,7 @@ class TestDatatracker(unittest.TestCase):
         doc_url = self.dt.document_url(DocumentUrlURI(uri="/api/v1/doc/documenturl/4594/"))
         if doc_url is not None:
             self.assertEqual(doc_url.desc,         "")
-            self.assertEqual(doc_url.doc,          DocumentURI("/api/v1/doc/document/draft-mcquistin-augmented-ascii-diagrams/"))
+            self.assertEqual(doc_url.doc,          DocumentURI(uri="/api/v1/doc/document/draft-mcquistin-augmented-ascii-diagrams/"))
             self.assertEqual(doc_url.id,           4594)
             self.assertEqual(doc_url.resource_uri, DocumentUrlURI(uri="/api/v1/doc/documenturl/4594/"))
             self.assertEqual(doc_url.tag,          DocumentUrlTagURI(uri="/api/v1/name/docurltagname/repository/"))

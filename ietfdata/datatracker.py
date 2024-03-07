@@ -398,7 +398,7 @@ class DocumentUrl(Resource):
     doc          : DocumentURI
     id           : int
     resource_uri : DocumentUrlURI
-    tag_uri      : DocumentUrlTagURI
+    tag          : DocumentUrlTagURI
     url          : str
 
 
