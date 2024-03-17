@@ -385,6 +385,23 @@ class SubmissionEvent(Resource):
     time            : datetime
 
 
+class DocumentUrlTagURI(URI):
+    root : str = "/api/v1/name/docurltagname/"
+
+
+class DocumentUrlURI(URI):
+    root : str = "/api/v1/doc/documenturl/"
+    
+    
+class DocumentUrl(Resource):
+    desc         : str
+    doc          : DocumentURI
+    id           : int
+    resource_uri : DocumentUrlURI
+    tag          : DocumentUrlTagURI
+    url          : str
+
+
 class DocumentTagURI(URI):
     root : str = "/api/v1/name/doctagname/"
 
@@ -1639,6 +1656,7 @@ class DataTracker:
         self._hints["/api/v1/doc/docevent/"]                       = Hints(DocumentEvent,               "id")
         self._hints["/api/v1/doc/document/"]                       = Hints(Document,                    "id")
         self._hints["/api/v1/doc/documentauthor/"]                 = Hints(DocumentAuthor,              "id")
+        self._hints["/api/v1/doc/documenturl/"]                    = Hints(DocumentUrl,                 "id")
         self._hints["/api/v1/doc/relateddocument/"]                = Hints(RelatedDocument,             "id")
         self._hints["/api/v1/doc/state/"]                          = Hints(DocumentState,               "id")
         self._hints["/api/v1/doc/statetype/"]                      = Hints(DocumentStateType,           "slug")
@@ -2523,10 +2541,21 @@ class DataTracker:
     # ----------------------------------------------------------------------------------------------------------------------------
     # Datatracker API endpoints returning miscellaneous information about documents:
     #   https://datatracker.ietf.org/api/v1/doc/docreminder/
-    #   https://datatracker.ietf.org/api/v1/doc/documenturl/
     #   https://datatracker.ietf.org/api/v1/doc/deletedevent/
 
     # FIXME: implement these
+
+    #   https://datatracker.ietf.org/api/v1/doc/documenturl/
+    def document_url(self, document_url_uri: DocumentUrlURI) -> Optional[DocumentUrl]:
+        return self._retrieve(document_url_uri, DocumentUrl)
+    
+    
+    def document_urls(self, doc: Optional[Document] = None) -> Iterator[DocumentUrl]:
+        url = DocumentUrlURI(uri="/api/v1/doc/documenturl/")
+        if doc is not None:
+            url.params["doc"] = doc.id
+        yield from self._retrieve_multi(url, DocumentUrl)
+
 
     #   https://datatracker.ietf.org/api/v1/name/doctagname/
     def document_tag(self, tag_uri: DocumentTagURI) -> Optional[DocumentTag]:
@@ -2652,6 +2681,7 @@ class DataTracker:
         if type is not None:
             url.params["type"]  = type
         yield from self._retrieve_multi(url, GroupEvent)
+
 
     def group_url(self, group_url_uri: GroupUrlURI) -> Optional[GroupUrl]:
         return self._retrieve(group_url_uri, GroupUrl)
