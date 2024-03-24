@@ -1060,7 +1060,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_document_state_types(self) -> None:
         st = list(self.dt.document_state_types())
-        self.assertEqual(len(st), 35)
+        self.assertEqual(len(st), 34)
         self.assertEqual(st[ 0].slug, 'agenda')
         self.assertEqual(st[ 1].slug, 'bcp')
         self.assertEqual(st[ 2].slug, 'bluesheets')
@@ -1069,33 +1069,32 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(st[ 5].slug, 'chatlog')
         self.assertEqual(st[ 6].slug, 'conflrev')
         self.assertEqual(st[ 7].slug, 'draft')
-        self.assertEqual(st[ 8].slug, 'draft-iana')
-        self.assertEqual(st[ 9].slug, 'draft-iana-action')
-        self.assertEqual(st[10].slug, 'draft-iana-experts')
-        self.assertEqual(st[11].slug, 'draft-iana-review')
-        self.assertEqual(st[12].slug, 'draft-iesg')
-        self.assertEqual(st[13].slug, 'draft-rfceditor')
-        self.assertEqual(st[14].slug, 'draft-stream-editorial')
-        self.assertEqual(st[15].slug, 'draft-stream-iab')
-        self.assertEqual(st[16].slug, 'draft-stream-ietf')
-        self.assertEqual(st[17].slug, 'draft-stream-irtf')
-        self.assertEqual(st[18].slug, 'draft-stream-ise')
-        self.assertEqual(st[19].slug, 'fyi')
-        self.assertEqual(st[20].slug, 'liai-att')
-        self.assertEqual(st[21].slug, 'liaison')
-        self.assertEqual(st[22].slug, 'minutes')
-        self.assertEqual(st[23].slug, 'narrativeminutes')
-        self.assertEqual(st[24].slug, 'polls')
-        self.assertEqual(st[25].slug, 'procmaterials')
-        self.assertEqual(st[26].slug, 'recording')
-        self.assertEqual(st[27].slug, 'reuse_policy')
-        self.assertEqual(st[28].slug, 'review')
-        self.assertEqual(st[29].slug, 'rfc')
-        self.assertEqual(st[30].slug, 'shepwrit')
-        self.assertEqual(st[31].slug, 'slides')
-        self.assertEqual(st[32].slug, 'statchg')
-        self.assertEqual(st[33].slug, 'statement')
-        self.assertEqual(st[34].slug, 'std')
+        self.assertEqual(st[ 8].slug, 'draft-iana-action')
+        self.assertEqual(st[ 9].slug, 'draft-iana-experts')
+        self.assertEqual(st[10].slug, 'draft-iana-review')
+        self.assertEqual(st[11].slug, 'draft-iesg')
+        self.assertEqual(st[12].slug, 'draft-rfceditor')
+        self.assertEqual(st[13].slug, 'draft-stream-editorial')
+        self.assertEqual(st[14].slug, 'draft-stream-iab')
+        self.assertEqual(st[15].slug, 'draft-stream-ietf')
+        self.assertEqual(st[16].slug, 'draft-stream-irtf')
+        self.assertEqual(st[17].slug, 'draft-stream-ise')
+        self.assertEqual(st[18].slug, 'fyi')
+        self.assertEqual(st[19].slug, 'liai-att')
+        self.assertEqual(st[20].slug, 'liaison')
+        self.assertEqual(st[21].slug, 'minutes')
+        self.assertEqual(st[22].slug, 'narrativeminutes')
+        self.assertEqual(st[23].slug, 'polls')
+        self.assertEqual(st[24].slug, 'procmaterials')
+        self.assertEqual(st[25].slug, 'recording')
+        self.assertEqual(st[26].slug, 'reuse_policy')
+        self.assertEqual(st[27].slug, 'review')
+        self.assertEqual(st[28].slug, 'rfc')
+        self.assertEqual(st[29].slug, 'shepwrit')
+        self.assertEqual(st[30].slug, 'slides')
+        self.assertEqual(st[31].slug, 'statchg')
+        self.assertEqual(st[32].slug, 'statement')
+        self.assertEqual(st[33].slug, 'std')
 
 
     def test_document_event(self) -> None:
@@ -1760,7 +1759,7 @@ class TestDatatracker(unittest.TestCase):
         chair = self.dt.role_name_from_slug("chair")
         group_roles = list(self.dt.group_roles(group = iab, name = chair))
         self.assertEqual(len(group_roles), 1)
-        self.assertEqual(group_roles[0].id, 9605)   # IAB chair is Mirja Kühlewind
+        self.assertEqual(group_roles[0].id, 13626)   # IAB chair is Tommy Pauley
 
 
 
@@ -1889,7 +1888,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_email(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(email="csp@csperkins.org"))
-        self.assertEqual(len(group_role_histories), 82)
+        self.assertEqual(len(group_role_histories), 84)
 
 
     def test_group_role_histories_group(self) -> None:
@@ -1905,7 +1904,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_person(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(person=self.dt.person(PersonURI(uri="/api/v1/person/person/20209/"))))
-        self.assertEqual(len(group_role_histories), 82)
+        self.assertEqual(len(group_role_histories), 84)
 
 
     def test_group_state_change_event(self) -> None:
