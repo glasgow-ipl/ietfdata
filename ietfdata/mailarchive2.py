@@ -247,7 +247,7 @@ class Envelope:
         references  = self.header("references")
         if len(in_reply_to) == 1:
             parent = in_reply_to[0]
-        elif len(references) > 0:
+        elif references is not None and len(references) > 0:
             parent = references[0].split(" ")[-1]
         else:
             return []
