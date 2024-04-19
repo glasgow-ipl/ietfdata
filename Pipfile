@@ -11,11 +11,11 @@ twine = "*"
 keyring = "*"
 coverage = "*"
 pymongo-stubs = "*"
-ietfdata = {editable = true, path = "."}
 types-six = "*"
 types-requests = "*"
 types-python-dateutil = "*"
 setuptools-pipfile = {file = "."}
+ietfdata = {file = "."}
 
 [packages]
 bs4 = "*"
