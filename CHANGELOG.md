@@ -1,7 +1,7 @@
 Change Log -- ietfdata
 ======================
 
-## Version 0.7.0 -- ???
+## Version 0.7.0 -- 19 April 2024
 
  - Require Python 3.11 or newer
  - Replace Pavlova with Pydantic as the response parser, enabling use
