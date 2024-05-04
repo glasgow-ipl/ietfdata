@@ -590,49 +590,50 @@ class MailingList:
         threads = {}
         seen    = {} # type: Dict[str,Envelope]
         for msg in self.messages():
-            msg_id  = msg.header("message-id")[0]
-            seen[msg_id] = msg
-
-            self._log.debug(f"{msg.uid():5} {msg.header('message-id')} {msg.header('subject')}")
-
-            parents = msg.in_reply_to()
-            if len(parents) == 0:
-                # This is the first message in the thread
-                if msg.header("message-id")[0] not in threads:
-                    threads[msg.header("message-id")[0]] = [msg]
-                self._log.debug("      First in thread")
-            elif parents[0].header("message-id")[0] in seen:
-                # This is part of a thread we've already seen
-                self._log.debug(f"      {parents[0].header('message-id')} {parents[0].header('subject')}")
-                self._log.debug(f"      Continues known thread")
-            else:
-                # This is either a new thread that has been copied to this list
-                # where the earlier messages in the thread are on another list,
-                # or this message is part of an existing thread but has arrived
-                # before its parent.
-                curr = []
-                curr.append(msg)
-                while True:
-                    parents = curr[0].in_reply_to()
-
-                    parent_in_this_list = False
-                    for p in parents:
-                        if p.mailing_list() == self.name():
-                            parent_in_this_list = True
-                    if not parent_in_this_list and this_list_only:
-                        self._log.debug(f"      {parents[0].header('message-id')} {parents[0].header('subject')}")
-                        self._log.debug(f"      Not in this list")
-                        if curr[0].header("message-id")[0] not in threads:
-                            threads[curr[0].header("message-id")[0]] = curr
-                        break
-
-                    if len(parents) == 0:
-                        self._log.debug("      First in thread")
-                        if curr[0].header("message-id")[0] not in threads:
-                            threads[curr[0].header("message-id")[0]] = curr
-                        break
-                    curr = parents
-                    self._log.debug(f"      {curr[0].header('message-id')} {curr[0].header('subject')}")
+            if len(msg.header("message-id")) > 0:
+                msg_id  = msg.header("message-id")[0]
+                seen[msg_id] = msg
+    
+                self._log.debug(f"{msg.uid():5} {msg.header('message-id')} {msg.header('subject')}")
+    
+                parents = msg.in_reply_to()
+                if len(parents) == 0:
+                    # This is the first message in the thread
+                    if msg.header("message-id")[0] not in threads:
+                        threads[msg.header("message-id")[0]] = [msg]
+                    self._log.debug("      First in thread")
+                elif parents[0].header("message-id")[0] in seen:
+                    # This is part of a thread we've already seen
+                    self._log.debug(f"      {parents[0].header('message-id')} {parents[0].header('subject')}")
+                    self._log.debug(f"      Continues known thread")
+                else:
+                    # This is either a new thread that has been copied to this list
+                    # where the earlier messages in the thread are on another list,
+                    # or this message is part of an existing thread but has arrived
+                    # before its parent.
+                    curr = []
+                    curr.append(msg)
+                    while True:
+                        parents = curr[0].in_reply_to()
+    
+                        parent_in_this_list = False
+                        for p in parents:
+                            if p.mailing_list() == self.name():
+                                parent_in_this_list = True
+                        if not parent_in_this_list and this_list_only:
+                            self._log.debug(f"      {parents[0].header('message-id')} {parents[0].header('subject')}")
+                            self._log.debug(f"      Not in this list")
+                            if curr[0].header("message-id")[0] not in threads:
+                                threads[curr[0].header("message-id")[0]] = curr
+                            break
+    
+                        if len(parents) == 0:
+                            self._log.debug("      First in thread")
+                            if curr[0].header("message-id")[0] not in threads:
+                                threads[curr[0].header("message-id")[0]] = curr
+                            break
+                        curr = parents
+                        self._log.debug(f"      {curr[0].header('message-id')} {curr[0].header('subject')}")
         return threads
 
 
