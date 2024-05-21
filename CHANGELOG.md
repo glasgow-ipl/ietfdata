@@ -1,6 +1,14 @@
 Change Log -- ietfdata
 ======================
 
+## Version 0.7.1 -- 21 May 2024
+
+ - Update dependencies
+ - Update tests to catch-up with the datatracker
+ - Fix message threading to handle email with no Message-Id header
+ - Create index on `in-reply-to` header to improve performance
+
+
 ## Version 0.7.0 -- 19 April 2024
 
  - Require Python 3.11 or newer
