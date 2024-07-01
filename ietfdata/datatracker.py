@@ -493,7 +493,7 @@ class Document(Resource):
             mtg = self.name.split("-")[1]
             url = "https://www.ietf.org/proceedings/" + mtg + "/slides/" + self.uploaded_filename
         elif self.type == DocumentTypeURI(uri="/api/v1/name/doctypename/statchg/"):
-            url = "https://www.ietf.org/sc/"          + self.name + "-" + self.rev + ".txt"
+            url = "https://www.ietf.org/ietf-ftp/status-changes/" + self.name + "-" + self.rev + ".txt"
         else:
             raise NotImplementedError
         return url
