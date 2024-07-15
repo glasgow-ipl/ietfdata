@@ -1731,7 +1731,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_roles_email(self) -> None:
         group_roles = list(self.dt.group_roles(email="csp@csperkins.org"))
-        self.assertEqual(len(group_roles), 11)
+        self.assertEqual(len(group_roles), 12)
         self.assertEqual(group_roles[0].id, 1076)   # SAFE BoF chair
         self.assertEqual(group_roles[1].id, 3998)   # TSV DIR reviewer
         self.assertEqual(group_roles[2].id, 8464)   # IRSG chair
@@ -1741,8 +1741,9 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(group_roles[6].id, 11103)  # TSV ART reviewer
         self.assertEqual(group_roles[7].id, 11680)  # IRTF ANRW chair
         self.assertEqual(group_roles[8].id, 12875)  # RSAB member
-        self.assertEqual(group_roles[9].id, 12915) # IAB-ISOC Policy Coordination
+        self.assertEqual(group_roles[9].id, 12915)  # IAB-ISOC Policy Coordination
         self.assertEqual(group_roles[10].id, 13098) # IAB E-Impact workshop
+        self.assertEqual(group_roles[11].id, 13698) # IAB
 
 
     def test_group_roles_group(self) -> None:
@@ -1769,7 +1770,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_roles_person(self) -> None:
         group_roles = list(self.dt.group_roles(person=self.dt.person(PersonURI(uri="/api/v1/person/person/20209/"))))
-        self.assertEqual(len(group_roles), 11)
+        self.assertEqual(len(group_roles), 12)
         self.assertEqual(group_roles[0].id, 1076)   # SAFE BoF chair
         self.assertEqual(group_roles[1].id, 3998)   # TSV DIR reviewer
         self.assertEqual(group_roles[2].id, 8464)   # IRSG chair
@@ -1778,9 +1779,10 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(group_roles[5].id, 9355)   # RMCAT chair
         self.assertEqual(group_roles[6].id, 11103)  # TSV ART reviewer
         self.assertEqual(group_roles[7].id, 11680)  # IRTF ANRW chair
-        self.assertEqual(group_roles[8].id, 12875) # RSAB member
-        self.assertEqual(group_roles[9].id, 12915) # IAB-ISOC Policy Coordination
+        self.assertEqual(group_roles[8].id, 12875)  # RSAB member
+        self.assertEqual(group_roles[9].id, 12915)  # IAB-ISOC Policy Coordination
         self.assertEqual(group_roles[10].id, 13098) # IAB E-Impact workshop
+        self.assertEqual(group_roles[11].id, 13698) # IAB
 
 
     def test_group_milestone_history(self) -> None:
@@ -3744,7 +3746,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_announcements_from_name(self) -> None:
         announcements_from = list(self.dt.announcements_from(name=self.dt.role_name(RoleNameURI(uri="/api/v1/name/rolename/chair/"))))
-        self.assertEqual(len(announcements_from),  10)
+        self.assertEqual(len(announcements_from),  11)
         self.assertEqual(announcements_from[0].id, 1)
         self.assertEqual(announcements_from[1].id, 2)
         self.assertEqual(announcements_from[2].id, 3)
@@ -3755,6 +3757,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(announcements_from[7].id, 16)
         self.assertEqual(announcements_from[8].id, 24)
         self.assertEqual(announcements_from[9].id, 26)
+        self.assertEqual(announcements_from[10].id, 30)
 
 
     #def test_message(self) -> None:
