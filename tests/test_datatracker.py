@@ -611,6 +611,43 @@ class TestDatatracker(unittest.TestCase):
             self.fail("Cannot find document")
 
 
+    def test_document_chatlog(self) -> None:
+        d = self.dt.document(DocumentURI(uri="/api/v1/doc/document/chatlog-114-ohai-202207261330/"))
+        if d is not None:
+            self.assertEqual(d.internal_comments,  "")
+            self.assertEqual(d.id,                 110925)
+            self.assertEqual(d.name,               "chatlog-114-ohai-202207261330")
+            self.assertEqual(d.notify,             "")
+            self.assertEqual(d.rev,                "00")
+            self.assertEqual(d.external_url,       "")
+            self.assertEqual(d.expires,            None)
+            self.assertEqual(d.type,               DocumentTypeURI(uri="/api/v1/name/doctypename/chatlog/"))
+            self.assertEqual(d.group,              GroupURI(uri="/api/v1/group/group/2312/"))
+            self.assertEqual(d.resource_uri,       DocumentURI(uri="/api/v1/doc/document/chatlog-114-ohai-202207261330/"))
+            self.assertEqual(d.title,              "Chat Log IETF114: ohai: Tue 13:30")
+            self.assertEqual(d.abstract,           "")
+            self.assertEqual(d.uploaded_filename,  "chatlog-114-ohai-202207261330-00.json")
+            self.assertEqual(d.rfc,                None)
+            self.assertEqual(d.shepherd,           None)
+            self.assertEqual(d.submissions,        [])
+            self.assertEqual(d.intended_std_level, None)
+            self.assertEqual(d.ad,                 None)
+            self.assertEqual(d.note,               "")
+            self.assertEqual(d.words,              None)
+            self.assertEqual(d.tags,               [])
+            self.assertEqual(d.time,               datetime.fromisoformat("2022-10-18T15:21:12+0000"))
+            self.assertEqual(d.pages,              None)
+            self.assertEqual(d.stream,             None)
+            self.assertEqual(d.std_level,          None)
+            self.assertEqual(d.states,             [DocumentStateURI(uri="/api/v1/doc/state/165/")])
+        
+            url = d.url()
+            self.assertEqual(url, "https://datatracker.ietf.org/meeting/114/materials/chatlog-114-ohai-202207261330-00.json")
+            self.assertEqual(self.dt.session.get(url).status_code, 200)
+        else:
+            self.fail("Cannot find document")
+
+
     def test_document_conflrev(self) -> None:
         d  = self.dt.document(DocumentURI(uri="/api/v1/doc/document/conflict-review-kiyomoto-kcipher2/"))
         if d is not None:
