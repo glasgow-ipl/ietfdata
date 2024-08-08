@@ -451,7 +451,7 @@ class Document(Resource):
         assert self.std_level          is None or self.std_level.startswith("/api/v1/name/stdlevelname/")
 
     def url(self) -> str:
-        # See https://trac.tools.ietf.org/tools/ietfdb/browser/trunk/ietf/settings.py and search for DOC_HREFS
+        # See https://github.com/ietf-tools/datatracker/blob/main/ietf/settings.py and search for DOC_HREFS
         if self.type == DocumentTypeURI(uri="/api/v1/name/doctypename/agenda/"):
             # FIXME: should be "/meeting/{meeting.number}/materials/{doc.name}-{doc.rev}" ???
             # FIXME: This doesn't work for interim meetings
@@ -494,6 +494,11 @@ class Document(Resource):
             url = "https://www.ietf.org/proceedings/" + mtg + "/slides/" + self.uploaded_filename
         elif self.type == DocumentTypeURI(uri="/api/v1/name/doctypename/statchg/"):
             url = "https://www.ietf.org/ietf-ftp/status-changes/" + self.name + "-" + self.rev + ".txt"
+        elif self.type == DocumentTypeURI(uri="/api/v1/name/doctypename/chatlog/"):
+            mtg = self.name.split("-")[1]
+            if mtg == "interim":
+                mtg = "-".join(self.name.split("-")[1:-1])
+            url = "https://datatracker.ietf.org/meeting/" + mtg + "/materials/" + self.uploaded_filename
         else:
             raise NotImplementedError
         return url
