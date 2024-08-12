@@ -65,7 +65,7 @@ class TestRFCIndex(unittest.TestCase):
             self.assertEqual(rfc.obsoleted_by, [])
             self.assertEqual(rfc.is_also,      ["STD0064"])
             self.assertEqual(rfc.see_also,     [])
-            self.assertEqual(rfc.errata_url,   "http://www.rfc-editor.org/errata_search.php?rfc=3550")
+            self.assertEqual(rfc.errata_url,   "https://www.rfc-editor.org/errata/rfc3550")
             self.assertEqual(rfc.charset(),    "utf-8")
             self.assertEqual(rfc.content_url("ASCII"), "https://www.rfc-editor.org/rfc/rfc3550.txt")
             self.assertEqual(rfc.content_url("PS"),    "https://www.rfc-editor.org/rfc/rfc3550.ps")
