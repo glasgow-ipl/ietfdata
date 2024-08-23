@@ -1626,6 +1626,8 @@ class DataTracker:
             self.log.warning(f"cache enabled: sqlite dir={cache_dir} timeout=(auto)")
             self.session = requests_cache.CachedSession(backend=self.backend, cache_control=True)
 
+        self.log.warning(f"datatracker at {self.base_url}")
+
         self._hints = {} # type: Dict[str, Hints]
         self._hints["/api/v1/doc/ballotdocevent/"]                 = Hints(BallotDocumentEvent,         "id")
         self._hints["/api/v1/doc/ballottype/"]                     = Hints(BallotType,                  "slug")
