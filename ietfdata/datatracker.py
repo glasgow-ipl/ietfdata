@@ -432,7 +432,6 @@ class Document(Resource):
     rfc_number         : Optional[int]
     rev                : str
     abstract           : str
-    internal_comments  : str
     note               : str
     ad                 : Optional[PersonURI]
     shepherd           : Optional[EmailURI]
@@ -881,7 +880,6 @@ class Schedule(Resource):
     visible      : bool
     public       : bool
     badness      : Optional[str]
-    notes        : str
 
 
 class Meeting(Resource):
@@ -965,7 +963,6 @@ class SessionAssignment(Resource):
     schedule     : ScheduleURI
     timeslot     : TimeslotURI
     modified     : datetime
-    notes        : str
     pinned       : bool
     extendedfrom : Optional[str]
     badness      : int
@@ -1627,7 +1624,7 @@ class DataTracker:
         logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
         self.log = logging.getLogger("ietfdata")
 
-        self.ua        = "glasgow-ietfdata/0.7.1"          # Update when making a new relaase
+        self.ua        = "glasgow-ietfdata/0.7.2"          # Update when making a new relaase
         self.base_url  = os.environ.get("IETFDATA_DT_URL", "https://datatracker.ietf.org")
         self.get_count = 0
 

@@ -1,6 +1,11 @@
 Change Log -- ietfdata
 ======================
 
+## Version 0.7.2 -- 23 August 2024
+
+ - Catch-up with changes to datatracker and RFC Index
+
+
 ## Version 0.7.1 -- 21 May 2024
 
  - Update dependencies
