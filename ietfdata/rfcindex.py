@@ -30,6 +30,8 @@ from pathlib  import Path
 import xml.etree.ElementTree as ET
 import requests
 import unittest
+import os
+import logging
 
 # ==================================================================================================
 
@@ -498,17 +500,26 @@ class RFCIndex:
             return self._download_index()
 
 
-    def __init__(self, cache_dir: Optional[Path] = None):
+    def __init__(self, cache_dir: Optional[str] = None):
         """
         Parameters:
-            cache_dir      -- If set, use this directory as a cache for Datatracker objects
+            cache_dir -- If set, use this directory as a cache
         """
-        self.cache_dir       = cache_dir
+        logging.getLogger('requests').setLevel('ERROR')
+        logging.getLogger('requests_cache').setLevel('ERROR')
+        logging.getLogger("urllib3").setLevel('ERROR')
+
+        logging.basicConfig(level=os.getenv("IETFDATA_LOGLEVEL", default="INFO"))
+        self.log = logging.getLogger("rfcindex")
+
+        self.cache_dir       = os.getenv("IETFDATA_CACHEDIR", default=cache_dir)
         self._rfc            = {}
         self._rfc_not_issued = {}
         self._bcp            = {}
         self._std            = {}
         self._fyi            = {}
+
+        self.log.warning(f"cache enabled: dir={self.cache_dir}")
 
         xml = self._retrieve_index()
         if xml is None:

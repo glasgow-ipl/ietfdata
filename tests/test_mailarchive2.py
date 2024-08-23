@@ -47,7 +47,7 @@ class TestMailArchive(unittest.TestCase):
 
     @classmethod
     def setUpClass(self) -> None:
-        self.dt = DataTracker()
+        self.dt = DataTracker(cache_dir = "cache", cache_timeout = timedelta(minutes = 15))
         try:
             self.ma = MailArchive()
         except pymongo.errors.ServerSelectionTimeoutError:

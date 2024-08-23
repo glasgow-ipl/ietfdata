@@ -100,8 +100,9 @@ class DataTrackerExt(DataTracker):
     """
 
     def __init__(self,
+                 cache_dir : Optional[str] = ".",
                  cache_timeout : Optional[timedelta] = None):
-        super().__init__(cache_timeout)
+        super().__init__(cache_dir, cache_timeout)
 
 
     def draft_history(self, draft: Document, drafts_seen: List[Document] = []) -> List[DraftHistory]:

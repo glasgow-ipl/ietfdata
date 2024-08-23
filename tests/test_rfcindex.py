@@ -39,7 +39,7 @@ class TestRFCIndex(unittest.TestCase):
 
     @classmethod
     def setUpClass(self) -> None:
-        self.index = RFCIndex(cache_dir=Path("cache"))
+        self.index = RFCIndex(cache_dir = "cache")
 
     def test_rfc(self):
         rfc = self.index.rfc("RFC3550")

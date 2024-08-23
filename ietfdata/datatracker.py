@@ -1603,6 +1603,7 @@ class DataTracker:
     backend : Optional[requests_cache.SQLiteCache]
 
     def __init__(self,
+                 cache_dir     : Optional[str] = ".",
                  cache_timeout : Optional[timedelta] = None):
 
         logging.getLogger('requests').setLevel('ERROR')
@@ -1616,13 +1617,13 @@ class DataTracker:
         self.base_url  = os.environ.get("IETFDATA_DT_URL", "https://datatracker.ietf.org")
         self.get_count = 0
 
-        cache_dir = os.getenv("IETFDATA_CACHEDIR", default=".")
+        cache_dir = os.getenv("IETFDATA_CACHEDIR", default=cache_dir)
         self.backend = requests_cache.SQLiteCache(f"{cache_dir}/ietf-dt-cache.sqlite")
         if cache_timeout is not None:
-            self.log.warning(f"Cache enabled: sqlite dir={cache_dir} timeout={cache_timeout}")
+            self.log.warning(f"cache enabled: sqlite dir={cache_dir} timeout={cache_timeout}")
             self.session = requests_cache.CachedSession(backend=self.backend, expire_after=cache_timeout)
         else:
-            self.log.warning(f"Cache enabled: sqlite dir={cache_dir} timeout=(auto)")
+            self.log.warning(f"cache enabled: sqlite dir={cache_dir} timeout=(auto)")
             self.session = requests_cache.CachedSession(backend=self.backend, cache_control=True)
 
         self._hints = {} # type: Dict[str, Hints]

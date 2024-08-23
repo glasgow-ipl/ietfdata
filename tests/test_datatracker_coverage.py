@@ -62,7 +62,7 @@ class TestDatatrackerCoverage(unittest.TestCase):
 
     @classmethod
     def setUpClass(self) -> None:
-        self.dt = DataTracker()
+        self.dt = DataTracker(cache_dir = "cache", cache_timeout = timedelta(minutes = 15))
         self.fetch_api_schema()
 
 

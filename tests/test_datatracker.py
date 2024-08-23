@@ -45,7 +45,7 @@ class TestDatatracker(unittest.TestCase):
 
     @classmethod
     def setUpClass(self) -> None:
-        self.dt = DataTracker(cache_timeout = timedelta(minutes = 15))
+        self.dt = DataTracker(cache_dir = "cache", cache_timeout = timedelta(minutes = 15))
 
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to the datatracker access layer:
