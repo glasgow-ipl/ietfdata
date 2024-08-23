@@ -7,6 +7,7 @@ Change Log -- ietfdata
    The `IETFDATA_CACHEDIR` environment variable specifies the location of
    the cache, defaulting to the current directory if not specified.
    At present, the mailarchive still uses MongoDB.
+ - Allow use of local `rfc-index.xml`
 
 
 ## Version 0.7.2 -- 23 August 2024

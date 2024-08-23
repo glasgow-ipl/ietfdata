@@ -481,7 +481,11 @@ class RFCIndex:
         return False
 
 
-    def _retrieve_index(self) -> Optional[str]:
+    def _retrieve_index(self, rfc_index) -> Optional[str]:
+        if rfc_index is not None:
+            with open(rfc_index, "r") as xml_file:
+                return xml_file.read()
+
         if self.cache_dir is not None:
             cache_filepath = Path(self.cache_dir, "rfc", "rfc-index.xml")
             if self._is_cached(cache_filepath):
@@ -500,7 +504,7 @@ class RFCIndex:
             return self._download_index()
 
 
-    def __init__(self, cache_dir: Optional[str] = None):
+    def __init__(self, cache_dir: Optional[str] = None, rfc_index: Optional[str] = None):
         """
         Parameters:
             cache_dir -- If set, use this directory as a cache
@@ -521,7 +525,7 @@ class RFCIndex:
 
         self.log.warning(f"cache enabled: dir={self.cache_dir}")
 
-        xml = self._retrieve_index()
+        xml = self._retrieve_index(rfc_index)
         if xml is None:
             raise RuntimeError
 
