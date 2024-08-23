@@ -66,8 +66,6 @@ from typing_extensions import Self
 from dataclasses      import dataclass, field
 from pathlib          import Path
 from pydantic         import BaseModel, ValidationError, model_validator
-from pymongo          import MongoClient, ASCENDING, TEXT, ReplaceOne
-from pymongo.database import Database
 
 # =================================================================================================================================
 # Classes to represent the JSON-serialised objects returned by the Datatracker API:
@@ -1602,55 +1600,30 @@ class DataTracker:
     """
     A class for interacting with the IETF DataTracker.
     """
-    db_conn : Optional[MongoClient]
-    db      : Optional[Database]
-    backend : Optional[requests_cache.MongoCache]
+    backend : Optional[requests_cache.SQLiteCache]
 
     def __init__(self,
-                 use_cache     : bool = False,
-                 mongodb_host  : str  = os.getenv("IETFDATA_CACHE_HOST", "localhost"),
-                 mongodb_port  : str  = os.getenv("IETFDATA_CACHE_PORT", "27017"),
-                 mongodb_user  : Optional[str] = os.getenv("IETFDATA_CACHE_USER"),
-                 mongodb_pass  : Optional[str] = os.getenv("IETFDATA_CACHE_PASSWORD"),
                  cache_timeout : Optional[timedelta] = None):
-
-        if os.getenv("IETFDATA_CACHE_HOST") is not None:
-            use_cache = True
 
         logging.getLogger('requests').setLevel('ERROR')
         logging.getLogger('requests_cache').setLevel('ERROR')
         logging.getLogger("urllib3").setLevel('ERROR')
 
-        logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
+        logging.basicConfig(level=os.getenv("IETFDATA_LOGLEVEL", default="INFO"))
         self.log = logging.getLogger("ietfdata")
 
-        self.ua        = "glasgow-ietfdata/0.7.2"          # Update when making a new relaase
+        self.ua        = "glasgow-ietfdata/0.8.0"          # Update when making a new relaase
         self.base_url  = os.environ.get("IETFDATA_DT_URL", "https://datatracker.ietf.org")
         self.get_count = 0
 
-        if use_cache:
-            self.log.warning(f"mongodb host = {mongodb_host}")
-            self.log.warning(f"mongodb port = {mongodb_port}")
-            self.log.warning(f"mongodb user = {mongodb_user}")
-            self.log.warning(f"mongodb pass = {mongodb_pass}")
-            self.db_conn = MongoClient(host  =mongodb_host,
-                                       port = int(mongodb_port),
-                                       username = mongodb_user,
-                                       password = mongodb_pass)
-            self.db      = self.db_conn.ietfdata
-            self.backend = requests_cache.MongoCache(db_name="ietfdata_requests", connection=self.db_conn)
-            if cache_timeout is not None:
-                self.log.warning(f"Cache enabled; timeout = {cache_timeout}")
-                self.session = requests_cache.CachedSession(backend=self.backend, expire_after=cache_timeout)
-            else:
-                self.log.warning(f"Cache enabled; timeout = (auto)")
-                self.session = requests_cache.CachedSession(backend=self.backend, cache_control=True)
+        cache_dir = os.getenv("IETFDATA_CACHEDIR", default=".")
+        self.backend = requests_cache.SQLiteCache(f"{cache_dir}/ietf-dt-cache.sqlite")
+        if cache_timeout is not None:
+            self.log.warning(f"Cache enabled: sqlite dir={cache_dir} timeout={cache_timeout}")
+            self.session = requests_cache.CachedSession(backend=self.backend, expire_after=cache_timeout)
         else:
-            self.log.warning("CACHE DISABLED")
-            self.db_conn = None
-            self.db      = None
-            self.backend = None
-            self.session = requests_cache.CachedSession(expire_after = requests_cache.DO_NOT_CACHE)
+            self.log.warning(f"Cache enabled: sqlite dir={cache_dir} timeout=(auto)")
+            self.session = requests_cache.CachedSession(backend=self.backend, cache_control=True)
 
         self._hints = {} # type: Dict[str, Hints]
         self._hints["/api/v1/doc/ballotdocevent/"]                 = Hints(BallotDocumentEvent,         "id")

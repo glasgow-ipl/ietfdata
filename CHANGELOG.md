@@ -1,6 +1,14 @@
 Change Log -- ietfdata
 ======================
 
+## Version 0.8.0 
+
+ - Use a local sqlite file for the datatracker cache rather than MongoDB.
+   The `IETFDATA_CACHEDIR` environment variable specifies the location of
+   the cache, defaulting to the current directory if not specified.
+   At present, the mailarchive still uses MongoDB.
+
+
 ## Version 0.7.2 -- 23 August 2024
 
  - Catch-up with changes to datatracker and RFC Index
