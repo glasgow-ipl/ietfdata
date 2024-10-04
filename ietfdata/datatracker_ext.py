@@ -23,6 +23,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+import pprint 
+
 from datetime             import datetime, timedelta
 from ietfdata.datatracker import *
 from ietfdata.rfcindex    import *
@@ -120,7 +122,7 @@ class DataTrackerExt(DataTracker):
 
         # Step 1: Use document_events() to find previous versions of the draft.
         for event in self.document_events(doc=draft, event_type="new_revision"):
-            drafts.append(DraftHistory(draft, event.rev, event.time, None))
+            drafts.append(DraftHistory(draft, event.rev, event.time.date(), None))
 
         # Step 2: Find the submissions, and add them to the previously found
         # draft versions. Some versions of a draft may not have a submission.

@@ -1,6 +1,11 @@
 Change Log -- ietfdata
 ======================
 
+## Version 0.8.1 
+
+ - Fix type mismatch in `DataTrackerExt::draft_history()`
+
+
 ## Version 0.8.0 
 
  - Use a local sqlite file for the datatracker cache rather than MongoDB.

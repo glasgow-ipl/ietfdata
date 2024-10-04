@@ -1613,20 +1613,20 @@ class DataTracker:
         logging.basicConfig(level=os.getenv("IETFDATA_LOGLEVEL", default="INFO"))
         self.log = logging.getLogger("ietfdata")
 
-        self.ua        = "glasgow-ietfdata/0.8.0"          # Update when making a new relaase
+        self.ua        = "glasgow-ietfdata/0.8.1"          # Update when making a new relaase
         self.base_url  = os.environ.get("IETFDATA_DT_URL", "https://datatracker.ietf.org")
         self.get_count = 0
 
         cache_dir = os.getenv("IETFDATA_CACHEDIR", default=cache_dir)
         self.backend = requests_cache.SQLiteCache(f"{cache_dir}/ietf-dt-cache.sqlite")
         if cache_timeout is not None:
-            self.log.warning(f"cache enabled: sqlite dir={cache_dir} timeout={cache_timeout}")
+            self.log.info(f"cache enabled: sqlite dir={cache_dir} timeout={cache_timeout}")
             self.session = requests_cache.CachedSession(backend=self.backend, expire_after=cache_timeout)
         else:
-            self.log.warning(f"cache enabled: sqlite dir={cache_dir} timeout=(auto)")
+            self.log.info(f"cache enabled: sqlite dir={cache_dir} timeout=(auto)")
             self.session = requests_cache.CachedSession(backend=self.backend, cache_control=True)
 
-        self.log.warning(f"datatracker at {self.base_url}")
+        self.log.info(f"datatracker at {self.base_url}")
 
         self._hints = {} # type: Dict[str, Hints]
         self._hints["/api/v1/doc/ballotdocevent/"]                 = Hints(BallotDocumentEvent,         "id")
