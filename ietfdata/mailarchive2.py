@@ -776,7 +776,7 @@ class MailArchive:
         folders = imap.list_folders()
         imap.logout()
         for (flags, delimiter, name) in folders:
-            if b'\Noselect' not in flags:
+            if b'\\Noselect' not in flags:
                 yield name.split(delimiter.decode("utf-8"))[-1]
 
 
