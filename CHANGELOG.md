@@ -1,6 +1,11 @@
 Change Log -- ietfdata
 ======================
 
+## Version XXX
+
+ - Require Python 3.13
+
+
 ## Version 0.8.1 
 
  - Fix type mismatch in `DataTrackerExt::draft_history()`
