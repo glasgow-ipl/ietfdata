@@ -30,4 +30,4 @@ requests = ">=2.32.0"
 requests-cache = "*"
 
 [requires]
-python_version = "3.11"
+python_version = "3.13"
