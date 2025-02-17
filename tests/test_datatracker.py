@@ -1987,10 +1987,11 @@ class TestDatatracker(unittest.TestCase):
 
     def test_groups_parent(self) -> None:
         groups = list(self.dt.groups(parent=self.dt.group(GroupURI(uri="/api/v1/group/group/1/"))))
-        self.assertEqual(len(groups), 3)
+        self.assertEqual(len(groups), 4)
         self.assertEqual(groups[0].id, 2)       # IESG
         self.assertEqual(groups[1].id, 7)       # IAB
         self.assertEqual(groups[2].id, 2173)    # IANA Community Coordination Group
+        self.assertEqual(groups[3].id, 2447)    # New Participant Program
 
 
     def test_group_state(self) -> None:
