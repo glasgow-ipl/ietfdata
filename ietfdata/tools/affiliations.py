@@ -2,8 +2,9 @@ import sys
 import csv
 import json 
 
-from datetime    import timedelta
+import datetime
 
+from typing import Optional
 
 from ietfdata.datatracker     import *
 from ietfdata.datatracker_ext import *
@@ -18,9 +19,28 @@ import mailarchive_mbox
 
 # Affiliation Class
 class AffiliationEntry:
-    start_date  : date
-    end_date    : date
+    start_date  : datetime.date
+    end_date    : datetime.date
     affiliation : str
+    def __init__(self, affiliation:str, start_date:datetime.date, end_date:Optional[datetime.date]):
+        pass
+    def set_end_date(self, new_end_date:datetime.date):
+        pass
+    def set_affiliation(self, affiliation:str):
+        pass
+
+class AffiliationMap:
+    identifiers : list[str]
+    affiliations: list[AffiliationEntry]
+    
+    def __init__(self,identifiers:list[str],affiliations:list[AffiliationEntry]):
+        pass
+    def add_identifier(self, identifier:str):
+        pass
+    def add_affiliation(self, aff_entry:AffiliationEntry):
+        pass
+
+    
 
 class Affiliations:
     entries # entries of affiliations
@@ -34,15 +54,9 @@ class Affiliations:
                 self.entries=json.load(file)
     
     def add_affiliation(self, date:date, affiliation_str:str, identifier:str):
-        if identifier not in self.entries:
-            self.entries[identifier]=dict()
-        for start_date in self.entries[identifier]:
-
-                
-    
-        
-        
-    
+        pass
+    def save(self, output_path:Path):
+        pass
 
 def remove_suffix(input_string, suffix):
     if suffix and input_string.endswith(suffix):
