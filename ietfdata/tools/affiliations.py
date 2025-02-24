@@ -1,3 +1,5 @@
+# TODO: Add licensing
+
 import sys
 import csv
 import json 
@@ -20,45 +22,31 @@ import mailarchive_mbox
 # Affiliation Class
 class AffiliationEntry:
     start_date  : datetime.date
-    end_date    : datetime.date
-    affiliation : str
+    end_date    : Optional[datetime.date]
+    affiliation_name : str
     def __init__(self, affiliation:str, start_date:datetime.date, end_date:Optional[datetime.date]):
-        pass
+        self.affiliation_name = affiliation
+        self.start_date = start_date
+        self.end_date = end_date
     def set_end_date(self, new_end_date:datetime.date):
-        pass
-    def set_affiliation(self, affiliation:str):
-        pass
+        self.end_date = new_end_date
+    def set_affiliation_name(self, affiliation:str):
+        self.affiliation_name=affiliation
 
 class AffiliationMap:
     identifiers : list[str]
     affiliations: list[AffiliationEntry]
     
     def __init__(self,identifiers:list[str],affiliations:list[AffiliationEntry]):
-        pass
+        self.identifiers = identifiers
+        self.affiliations = affiliations
     def add_identifier(self, identifier:str):
-        pass
+        self.identifiers.append(identifier)
     def add_affiliation(self, aff_entry:AffiliationEntry):
+        # TODO: deal with affiliation entry, adjusting 'end' and start
         pass
 
-    
-
-class Affiliations:
-    entries # entries of affiliations
-    
-    def __init__(self, input_file:Optional[Path]):
-        if input_file is None:
-            self.entries = dict()
-            return
-        if Path(os.path.isfile(input_file)):
-            with open(input_file):
-                self.entries=json.load(file)
-    
-    def add_affiliation(self, date:date, affiliation_str:str, identifier:str):
-        pass
-    def save(self, output_path:Path):
-        pass
-
-def remove_suffix(input_string, suffix):
+def remove_suffix(input_string:str, suffix:str):
     if suffix and input_string.endswith(suffix):
         return input_string[:-len(suffix)]
     return input_string
@@ -81,37 +69,5 @@ def cleanup_affiliation(affiliation_str:str):
     affiliation_str = re.sub(r"^\.|\.$", "", affiliation_str)
     return affiliation_str
 
-if __name-_ == "__main__":
-    if len(sys.argv) == 2:
-        old_path = None
-        new_path = Path(sys.argv[1])
-    elif len(sys.argv) == 3:
-        old_path = Path(sys.argv[1])
-        new_path = Path(sys.argv[2])
-    else:
-        print("Usage: python3 -m ietfdata.tools.affiliations [[new.json]")
-        print("   or: python3 -m ietfdata.tools.affiliations [old.json] [new.json]")
-        sys.exit(1)
 
-    
-    
-    # normalisation patterns
-    # Load normalisation patterns
-        
-    # Load Raw affil. -> normalised affil. mapping
-    
-    
-    # Load email_domain -> normalised affil. mapping
-    
-    # Load public suffix list https://publicsuffix.org/list/ (mozilla)
-    
-    # Load Participants file
-    
-    
-    #========================================================================#
-    # Go through RFC Documents
-    
-    
-    
-    #========================================================================#
-    # Go through Emails
+
