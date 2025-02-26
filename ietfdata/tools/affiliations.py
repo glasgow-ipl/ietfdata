@@ -3,6 +3,7 @@
 import sys
 import csv
 import json 
+import copy
 
 import datetime
 
@@ -11,7 +12,6 @@ from typing import Optional
 from ietfdata.datatracker     import *
 from ietfdata.datatracker_ext import *
 from ietfdata.mailarchive2    import *
-import mailarchive_mbox 
 
 # affiliations.py --- script to generate extract affiliations
 # Mappings generated:
@@ -19,32 +19,65 @@ import mailarchive_mbox
 # 2. email_domain -> normalised affiliations mappings
 # 3. identity -> start year-month, end year-month, affiliation mapping
 
-# Affiliation Class
+# Affiliation Entry Class
 class AffiliationEntry:
     start_date  : datetime.date
     end_date    : Optional[datetime.date]
-    affiliation_name : str
+    name : str
+    
     def __init__(self, affiliation:str, start_date:datetime.date, end_date:Optional[datetime.date]):
-        self.affiliation_name = affiliation
+        self.name = cleanup_affiliation(affiliation)
         self.start_date = start_date
         self.end_date = end_date
+    
     def set_end_date(self, new_end_date:datetime.date):
         self.end_date = new_end_date
+    
     def set_affiliation_name(self, affiliation:str):
-        self.affiliation_name=affiliation
+        self.name=cleanup_affiliation(affiliation)
+    
+    def __str__(self):
+        return f'{{"name":"{self.name}","start_date":"{self.start_date}","end_date":"{self.end_date}"}}'
 
+# Affiliation mapping class
 class AffiliationMap:
     identifiers : list[str]
     affiliations: list[AffiliationEntry]
     
     def __init__(self,identifiers:list[str],affiliations:list[AffiliationEntry]):
-        self.identifiers = identifiers
-        self.affiliations = affiliations
+        self.identifiers = copy.deepcopy(identifiers)
+        self.affiliations = copy.deepcopy(affiliations)
+    
     def add_identifier(self, identifier:str):
         self.identifiers.append(identifier)
+    
     def add_affiliation(self, aff_entry:AffiliationEntry):
-        # TODO: deal with affiliation entry, adjusting 'end' and start
+        # TODO: Go through the timeline, insert the entry 
+        new_date = aff_entry.start_date
+        for affil in self.affiliations:
+            i = self.affiliations.index(affil)
+            if new_date <= affil.start_date:
+                self.affiliations.insert(i,aff_entry)
+                return #inserted entry
+        self.affiliations.append(aff_entry)
+        return
+            
+    def consolidate(self):
+        # TODO: Go through the timeline, consolidate the history
         pass
+    def __str__(self):
+        returnstr = '{"identifiers":['
+        for ident in self.identifiers:
+            returnstr += f'"{ident}",'
+        returnstr = returnstr[:-1] # strip last comma
+        returnstr += "],"
+        returnstr += '"affiliations":['
+        for affil in self.affiliations:
+            returnstr+=str(affil)
+            returnstr+=","
+        returnstr = returnstr[:-1] # strip last comma
+        returnstr += "]}"
+        return returnstr
 
 def remove_suffix(input_string:str, suffix:str):
     if suffix and input_string.endswith(suffix):
