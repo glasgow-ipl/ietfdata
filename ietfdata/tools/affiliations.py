@@ -19,6 +19,14 @@ from ietfdata.mailarchive2    import *
 # 2. email_domain -> normalised affiliations mappings
 # 3. identity -> start year-month, end year-month, affiliation mapping
 
+affiliations_norm_mapping_dict = dict()
+
+if os.path.isfile("ietfdata/tools/affiliation_normalisation_mapping.json"):
+    with open("ietfdata/tools/affiliation_normalisation_mapping.json") as f:
+        affiliations_norm_mapping_dict = json.load(f)
+else:
+    print(f"file: affiliation_normalisation_mapping.json not found")
+
 # Affiliation Entry Class
 class AffiliationEntry:
     start_date  : datetime.date
@@ -100,6 +108,11 @@ def cleanup_affiliation(affiliation_str:str):
     affiliation_str = affiliation_str.replace(",","")
     affiliation_str = affiliation_str.strip()
     affiliation_str = re.sub(r"^\.|\.$", "", affiliation_str)
+    
+    if affiliations_norm_mapping_dict is not None:
+        if affiliation_str in affiliations_norm_mapping_dict:
+            affiliation_str = affiliations_norm_mapping_dict.get(affiliation_str)
+    
     return affiliation_str
 
 
