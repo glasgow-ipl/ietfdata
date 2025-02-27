@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 import datetime
 from pathlib import Path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -14,6 +15,8 @@ if __name__ == '__main__':
     dt = DataTracker(cache_dir = "cache",cache_timeout = timedelta(minutes = 15))
     
     affil_map = list()
+    uniq_affil_list = list()
+    uniq_affil_raw = list()
     ri = RFCIndex()
     seen_addr_ietf = list()
     for rfc in ri.rfcs():
@@ -43,7 +46,7 @@ if __name__ == '__main__':
         if status is None:
             status += "N/A"
         # end setup additional attributes
-        
+        print(rfc.doc_id)
         # fetch values for additional attributes
         # Authors handling:  
         document = dt.document_from_rfc(rfc.doc_id)
@@ -70,9 +73,13 @@ if __name__ == '__main__':
                 affiliation_str = author.affiliation
             if author.affiliation == "":
                 affiliation_str = "Unknown"
-            
+           
+            if affiliation_str not in uniq_affil_raw:
+                uniq_affil_raw.append(affiliation_str)
             aff_entry = aff.AffiliationEntry(affiliation_str,rfc.date(),None)
-            
+            if aff_entry.name in uniq_affil_list :
+                uniq_affil_list.append(aff_entry.name)
+                
             af_mapping = None
             print(f"Looking for {person_uri} or {person_email_address}")
             for af_map in affil_map:
@@ -113,7 +120,7 @@ if __name__ == '__main__':
             #             aff_name = affiliation_norm_map[key]
             # 
             # if aff_name == "":
-            #     for key in academic_affiliations_map:
+            #     for key in ac ademic_affiliations_map:
             #         if affiliation_str.lower() in key.lower():
             #             aff_name = academic_affiliations_map[key]
             
@@ -122,7 +129,7 @@ if __name__ == '__main__':
             #     aff_name = f"Unknown ({affiliation_str})"
                 
     print(af_map)            
-    with open("./identifier_affiliation_map_pre_consolidation.json") as f:
+    with open("./identifier_affiliation_map_pre_consolidation.json",'w') as f:
         print("[",file=f,end='')
         n = len(affil_map)
         counter = 0
@@ -133,5 +140,7 @@ if __name__ == '__main__':
                 print(",",file=f)
         print("]",file=f)
                 
-        
-                    
+    with open("./unique_affiliations.json",'w') as f:
+        json.dump(uniq_affil_list,f)
+    with open("./unique_affiliations_raw.json",'w') as f:
+        json.dump(uniq_affil_raw,f)
