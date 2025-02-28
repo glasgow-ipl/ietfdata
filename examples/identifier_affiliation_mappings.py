@@ -17,6 +17,9 @@ if __name__ == '__main__':
     affil_map = list()
     uniq_affil_list = list()
     uniq_affil_raw = list()
+    
+    ident_index_map = dict()
+    
     ri = RFCIndex()
     seen_addr_ietf = list()
     for rfc in ri.rfcs():
@@ -77,27 +80,28 @@ if __name__ == '__main__':
             if affiliation_str not in uniq_affil_raw:
                 uniq_affil_raw.append(affiliation_str)
             aff_entry = aff.AffiliationEntry(affiliation_str,rfc.date(),None)
-            if aff_entry.name in uniq_affil_list :
+            if aff_entry.name not in uniq_affil_list :
                 uniq_affil_list.append(aff_entry.name)
                 
             af_mapping = None
             print(f"Looking for {person_uri} or {person_email_address}")
-            for af_map in affil_map:
-                if af_map.identifiers is None:
-                    continue
-                if person_uri in af_map.identifiers:
-                    af_mapping = af_map
-                if person_email_address in af_map.identifiers:
-                    af_mapping = af_map
-                if af_mapping is None:
-                    continue
-                
-                if person_uri not in af_map.identifiers:
-                    af_map.add_identifier(person_uri)
-                elif person_email_address not in af_map.identifiers and \
+            index = None
+            if person_uri in ident_index_map:
+                index=ident_index_map[person_uri]
+            elif person_email_address in ident_index_map:
+                index=ident_index_map[person_email_address]
+            if index is not None:
+                af_mapping = affil_map[index]
+            if af_mapping is not None:
+                print("found")
+                if person_uri not in af_mapping.identifiers:
+                    affil_map[index].add_identifier(person_uri)
+                    ident_index_map[person_uri]=index
+                elif person_email_address not in af_mapping.identifiers and \
                     person_email_address is not None:
-                    af_map.add_identifier(person_email_address)
-                af_map.add_affiliation(aff_entry)
+                    affil_map[index].add_identifier(person_email_address)
+                    ident_index_map[person_email_address] = index
+                affil_map[index].add_affiliation(aff_entry)
                 break # found the mapping 
             
             if af_mapping is None:
@@ -108,7 +112,9 @@ if __name__ == '__main__':
                 tmp_afil = [aff_entry]
                 tmp_mapping = aff.AffiliationMap(tmp_ident,tmp_afil)
                 affil_map.append(tmp_mapping)
-                    
+                i = len(affil_map)-1
+                for ident in tmp_ident:
+                    ident_index_map[ident] = i
             
             #aff_name = ""
             # if affiliation_str in affiliation_norm_map:
@@ -128,7 +134,7 @@ if __name__ == '__main__':
             #     print(f"Could not normalise affiliation: {affiliation_str}")
             #     aff_name = f"Unknown ({affiliation_str})"
                 
-    print(af_map)            
+    print(affil_map[0])            
     with open("./identifier_affiliation_map_pre_consolidation.json",'w') as f:
         print("[",file=f,end='')
         n = len(affil_map)
