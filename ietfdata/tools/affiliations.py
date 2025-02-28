@@ -6,7 +6,7 @@ import json
 import copy
 
 import datetime
-
+from datetime import timedelta
 from typing import Optional
 
 from ietfdata.datatracker     import *
@@ -72,7 +72,19 @@ class AffiliationMap:
             
     def consolidate(self):
         # TODO: Go through the timeline, consolidate the history
-        pass
+        # This should only be run if and only if everything has been scraped
+        tmp_head_affil = None # temporary first affil in the batch
+        consolidated_affil = list()
+        for affil in self.affiliations:
+            if tmp_head_affil is None:
+                tmp_head_affil = copy.deepcopy(affil)
+                continue
+            if tmp_head_affil.name is not affil.name:
+                tmp_head_affil.end_date = (datetime.strptime(affil.start_date,'%Y-%m-%d').date() - timedelta(days=1))
+                consolidated_affil.append(tmp_head_affil)
+                tmp_head_affil = copy.deepcopy(affil)
+        self.affiliations = copy.deepcopy(consolidated_affil)
+    
     def __str__(self):
         returnstr = '{"identifiers":['
         for ident in self.identifiers:
@@ -115,5 +127,7 @@ def cleanup_affiliation(affiliation_str:str):
     
     return affiliation_str
 
+def load_mapping(input_dict:dict):
+    pass
 
 

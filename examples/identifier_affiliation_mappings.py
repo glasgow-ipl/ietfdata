@@ -12,6 +12,17 @@ from ietfdata.rfcindex import *
 import ietfdata.tools.affiliations as aff
 
 if __name__ == '__main__':
+    if len(sys.argv) == 2:
+        input_path = None
+        output_path = Path(sys.argv[1])
+    elif len(sys.argv) == 3:
+        input_path = Path(sys.argv[1])
+        output_path = Path(sys.argv[2])
+    else:
+        print("Needs either: [input path] [output path] ")
+        print("          or: [output path]")
+        sys.exit(1)
+    
     dt = DataTracker(cache_dir = "cache",cache_timeout = timedelta(minutes = 15))
     
     affil_map = list()
@@ -115,24 +126,7 @@ if __name__ == '__main__':
                 i = len(affil_map)-1
                 for ident in tmp_ident:
                     ident_index_map[ident] = i
-            
-            #aff_name = ""
-            # if affiliation_str in affiliation_norm_map:
-            #     aff_name = affiliation_norm_map[affiliation_str]
-            # 
-            # if aff_name == "":
-            #     for key in affiliation_norm_map:
-            #         if affiliation_str.lower() in key.lower():
-            #             aff_name = affiliation_norm_map[key]
-            # 
-            # if aff_name == "":
-            #     for key in ac ademic_affiliations_map:
-            #         if affiliation_str.lower() in key.lower():
-            #             aff_name = academic_affiliations_map[key]
-            
-            # if aff_name == "" :
-            #     print(f"Could not normalise affiliation: {affiliation_str}")
-            #     aff_name = f"Unknown ({affiliation_str})"
+    
                 
     print(affil_map[0])            
     with open("./identifier_affiliation_map_pre_consolidation.json",'w') as f:
