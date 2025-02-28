@@ -83,6 +83,8 @@ class AffiliationMap:
                 tmp_head_affil.end_date = (datetime.strptime(affil.start_date,'%Y-%m-%d').date() - timedelta(days=1))
                 consolidated_affil.append(tmp_head_affil)
                 tmp_head_affil = copy.deepcopy(affil)
+        if(tmp_head_affil not in consolidated_affil):
+            consolidated_affil.append(tmp_head_affil)
         self.affiliations = copy.deepcopy(consolidated_affil)
     
     def __str__(self):
