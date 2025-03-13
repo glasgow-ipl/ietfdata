@@ -13,6 +13,8 @@ from ietfdata.datatracker     import *
 from ietfdata.datatracker_ext import *
 from ietfdata.mailarchive2    import *
 
+# load affiliation_mapping
+import affiliations_map 
 # affiliations.py --- script to generate extract affiliations
 # Mappings generated:
 # 1. raw affiliation -> normalised affiliation mappings
@@ -31,21 +33,30 @@ else:
 class AffiliationEntry:
     start_date  : datetime.date
     end_date    : Optional[datetime.date]
-    name : str
+    names : list[str]
     
-    def __init__(self, affiliation:str, start_date:datetime.date, end_date:Optional[datetime.date]):
-        self.name = cleanup_affiliation(affiliation)
+    def __init__(self, affiliation_str:str, start_date:datetime.date, end_date:Optional[datetime.date],names_list:Optional[list[str]]):
+        if names_list is not None:
+            self.names=copy.deepcopy(names_list)
+        else:
+            self.names = cleanup_affiliation(affiliation_str)
         self.start_date = start_date
         self.end_date = end_date
     
     def set_end_date(self, new_end_date:datetime.date):
         self.end_date = new_end_date
     
-    def set_affiliation_name(self, affiliation:str):
-        self.name=cleanup_affiliation(affiliation)
+    def set_affiliation_names(self, affiliation:str):
+        self.namse=cleanup_affiliation(affiliation)
     
     def __str__(self):
-        return f'{{"name":"{self.name}","start_date":"{self.start_date}","end_date":"{self.end_date}"}}'
+        return_str = '{{"names":['
+        for name in self.names:
+            return_str+=f'"{name}",'
+        return_str =  return_str.rstrip(','')
+        return_str += "],"
+        return_str += f'"start_date":"{self.start_date}","end_date":"{self.end_date}"}}'
+        return return_str
 
 # Affiliation mapping class
 class AffiliationMap:
@@ -79,12 +90,14 @@ class AffiliationMap:
             if tmp_head_affil is None:
                 tmp_head_affil = copy.deepcopy(affil)
                 continue
-            if tmp_head_affil.name is not affil.name:
-                tmp_head_affil.end_date = (datetime.strptime(affil.start_date,'%Y-%m-%d').date() - timedelta(days=1))
+            set_head_affil_names = set(tmp_head_affil.names)
+            diff_list = [item for item in affil.names not in set_head_affil_names]
+            if len(diff_list) is not 0:
+                    tmp_head_affil.end_date = (datetime.strptime(affil.start_date,'%Y-%m-%d').date() - timedelta(days=1))
+                    consolidated_affil.append(tmp_head_affil)
+                    tmp_head_affil = copy.deepcopy(affil)
+            if(tmp_head_affil not in consolidated_affil):
                 consolidated_affil.append(tmp_head_affil)
-                tmp_head_affil = copy.deepcopy(affil)
-        if(tmp_head_affil not in consolidated_affil):
-            consolidated_affil.append(tmp_head_affil)
         self.affiliations = copy.deepcopy(consolidated_affil)
     
     def __str__(self):
