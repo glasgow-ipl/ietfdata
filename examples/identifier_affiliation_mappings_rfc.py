@@ -26,8 +26,8 @@ if __name__ == '__main__':
     dt = DataTracker(cache_dir = "cache",cache_timeout = timedelta(minutes = 15))
     
     affil_map = list()
-    uniq_affil_list = list()
-    uniq_affil_raw = list()
+    uniq_affil_list = dict()
+    uniq_affil_raw = dict()
     
     ident_index_map = dict()
     
@@ -89,10 +89,16 @@ if __name__ == '__main__':
                 affiliation_str = "Unknown"
            
             if affiliation_str not in uniq_affil_raw:
-                uniq_affil_raw.append(affiliation_str)
-            aff_entry = aff.AffiliationEntry(affiliation_str,rfc.date(),None)
-            if aff_entry.name not in uniq_affil_list :
-                uniq_affil_list.append(aff_entry.name)
+                uniq_affil_raw[affiliation_str] = 1
+            else:
+                uniq_affil_raw[affiliation_str] += 1
+                
+            aff_entry = aff.AffiliationEntry(affiliation_str,rfc.date(),None,None)
+            for individual_aff in aff_entry.names:
+                if individual_aff not in uniq_affil_list :
+                    uniq_affil_list[individual_aff]=1
+                else:
+                    uniq_affil_list[individual_aff]+=1
                 
             af_mapping = None
             print(f"Looking for {person_uri} or {person_email_address}")
