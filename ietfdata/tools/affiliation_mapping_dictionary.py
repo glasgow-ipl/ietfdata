@@ -1,3 +1,10 @@
+# mapping originally from yangjun
+# TODO: clean up duplicates
+# TODO: add suffix mapping to this module 
+# TODO: add university term mapping and clearing duplicates
+# TODO: add hugo's 'bad entry' list to clear out
+# TODO: clean up duplicate entries that can be cleared by doing suffix-based
+#       cleaning and ignoring cases
 affiliation_raw_list_map = {
     "1&1 Mail & Media GmbH":
         ["1&1"],
