@@ -1740,12 +1740,15 @@ class DataTracker:
                     self.log.debug(F"_datatracker_get_single: ({r.status_code}) {obj_uri}")
                     return None
                 elif r.status_code == 429:
+                    # Some versions of the datatracker incorrectly send 429 with "Retry-After: 0".
+                    # Handle this with an exponential backoff as-if we got a 500 error.
                     retry_after = int(r.headers['Retry-After']) 
                     if retry_after != 0:
                         self.log.warning(F"_datatracker_get_single: {r.status_code} {obj_uri} - retry in {retry_after}")
                         time.sleep(retry_after)
                     else:
                         self.log.warning(F"_datatracker_get_single: {r.status_code} {obj_uri} - retry in {retry_delay}")
+                        self.log.debug(r.headers)
                         if retry_delay > 60:
                             self.log.error(F"_datatracker_get_single: retry limit exceeded")
                             sys.exit(1)
@@ -1808,12 +1811,15 @@ class DataTracker:
                             yield obj
                         total_count = meta["total_count"]
                     elif r.status_code == 429:
+                        # Some versions of the datatracker incorrectly send 429 with "Retry-After: 0".
+                        # Handle this with an exponential backoff as-if we got a 500 error.
                         retry_after = int(r.headers['Retry-After']) 
                         if retry_after != 0:
                             self.log.warning(F"_datatracker_get_multi: {r.status_code} {obj_uri} - retry in {retry_after}")
                             time.sleep(retry_after)
                         else:
                             self.log.warning(F"_datatracker_get_multi: {r.status_code} {obj_uri} - retry in {retry_delay}")
+                            self.log.debug(r.headers)
                             if retry_delay > 60:
                                 self.log.error(F"_datatracker_get_multi: retry limit exceeded")
                                 sys.exit(1)
