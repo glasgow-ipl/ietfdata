@@ -1723,7 +1723,7 @@ class DataTracker:
 
     def _datatracker_get_single(self, obj_uri: URI) -> Optional[Dict[str, Any]]:
         assert obj_uri.uri is not None
-        retry_time  = 1.875
+        retry_delay  = 1.875
         while True:
             try:
                 req_url     = self.base_url + obj_uri.uri
@@ -1740,25 +1740,31 @@ class DataTracker:
                     self.log.debug(F"_datatracker_get_single: ({r.status_code}) {obj_uri}")
                     return None
                 elif r.status_code == 429:
-                    retry_time = int(r.headers['Retry-After'])
-                    self.log.warning(F"_datatracker_get_single ({r.status_code}) {obj_uri}")
-                    self.log.warning(F"_datatracker_get_single {r.headers}")
-                    self.log.warning(F"_datatracker_get_single rate limit exceeded, retry in {retry_time} seconds")
-                    time.sleep(retry_time)
+                    retry_after = int(r.headers['Retry-After']) 
+                    if retry_after != 0:
+                        self.log.warning(F"_datatracker_get_single: {r.status_code} {obj_uri} - retry in {retry_after}")
+                        time.sleep(retry_after)
+                    else:
+                        self.log.warning(F"_datatracker_get_single: {r.status_code} {obj_uri} - retry in {retry_delay}")
+                        if retry_delay > 60:
+                            self.log.error(F"_datatracker_get_single: retry limit exceeded")
+                            sys.exit(1)
+                        time.sleep(retry_delay)
+                        retry_delay *= 2
                 else:
-                    self.log.warning(F"_datatracker_get_single: error {r.status_code} {obj_uri} - retry in {retry_time}")
-                    if retry_time > 60:
-                        self.log.error(F"_datatracker_get_single: error - retry limit exceeded")
+                    self.log.warning(F"_datatracker_get_single: {r.status_code} {obj_uri} - retry in {retry_delay}")
+                    if retry_delay > 60:
+                        self.log.error(F"_datatracker_get_single: retry limit exceeded")
                         sys.exit(1)
-                    time.sleep(retry_time)
-                    retry_time *= 2
+                    time.sleep(retry_delay)
+                    retry_delay *= 2
             except requests.exceptions.ConnectionError:
-                self.log.warning(F"_datatracker_get_single: connection error - retry in {retry_time}")
-                if retry_time > 60:
-                    self.log.error(F"_datatracker_get_single: error - retry limit exceeded")
+                self.log.warning(F"_datatracker_get_single: connection error - retry in {retry_delay}")
+                if retry_delay > 60:
+                    self.log.error(F"_datatracker_get_single: retry limit exceeded")
                     sys.exit(1)
-                time.sleep(retry_time)
-                retry_time *= 2
+                time.sleep(retry_delay)
+                retry_delay *= 2
 
 
     def _datatracker_get_multi(self, get_uri: URI, order_by: Optional[str] = None) -> Iterator[Dict[Any, Any]]:
@@ -1775,7 +1781,7 @@ class DataTracker:
         fetched_objs = {} # type: Dict[str, Dict[Any, Any]]
         while obj_uri.uri is not None:
             retry = True
-            retry_time = 1.875
+            retry_delay = 1.875
             while retry:
                 retry = False
                 req_url     = self.base_url + obj_uri.uri
@@ -1802,64 +1808,36 @@ class DataTracker:
                             yield obj
                         total_count = meta["total_count"]
                     elif r.status_code == 429:
-                        retry_time = int(r.headers['Retry-After'])
-                        self.log.warning(F"_datatracker_get_multi ({r.status_code}) {obj_uri}")
-                        self.log.warning(F"_datatracker_get_multi {r.headers}")
-                        self.log.warning(F"_datatracker_get_multi rate limit exceeded, retry in {retry_time} seconds")
-                        time.sleep(retry_time)
+                        retry_after = int(r.headers['Retry-After']) 
+                        if retry_after != 0:
+                            self.log.warning(F"_datatracker_get_multi: {r.status_code} {obj_uri} - retry in {retry_after}")
+                            time.sleep(retry_after)
+                        else:
+                            self.log.warning(F"_datatracker_get_multi: {r.status_code} {obj_uri} - retry in {retry_delay}")
+                            if retry_delay > 60:
+                                self.log.error(F"_datatracker_get_multi: retry limit exceeded")
+                                sys.exit(1)
+                            time.sleep(retry_delay)
+                            retry_delay *= 2
                         retry = True
                     elif r.status_code == 500:
                         self.log.warning(F"_datatracker_get_multi ({r.status_code}) {obj_uri}")
-                        if retry_time > 60:
+                        if retry_delay > 60:
                             self.log.info(F"_datatracker_get_multi retry time exceeded")
                             sys.exit(1)
-                        time.sleep(retry_time)
-                        retry_time *= 2
+                        time.sleep(retry_delay)
+                        retry_delay *= 2
                         retry = True
                     else:
                         self.log.error(F"_datatracker_get_multi ({r.status_code}) {obj_uri}")
                         sys.exit(1)
                 except requests.exceptions.ConnectionError:
-                    self.log.warning(F"_datatracker_get_multi: connection error - will retry in {retry_time}")
-                    time.sleep(retry_time)
-                    retry_time *= 2
+                    self.log.warning(F"_datatracker_get_multi: connection error - will retry in {retry_delay}")
+                    time.sleep(retry_delay)
+                    retry_delay *= 2
                     retry = True
         if total_count != len(fetched_objs):
             self.log.warning(F"_datatracker_get_multi: expected {total_count} objects but got {len(fetched_objs)}")
-
-
-    def _datatracker_get_multi_count(self, obj_type_uri: URI) -> int:
-        assert obj_type_uri.uri is not None
-        assert obj_type_uri.params == {}
-
-        retry_time  = 1.875
-        while True:
-            try:
-                req_url     = self.base_url + obj_type_uri.uri
-                req_params  = {"limit": 1}
-                req_headers = {'User-Agent': self.ua}
-                self.get_count += 1
-                r = self.session.get(url = req_url, params = req_params, headers = req_headers, verify = True, stream = False)
-                self.log.debug(f"_datatracker_get_multic in_cache={r.from_cache} cached={r.created_at} expires={r.expires} {req_url}")
-                if r.status_code == 200:
-                    meta = r.json()['meta']
-                    total_count = meta['total_count'] # type: int
-                    self.log.debug(F"_datatracker_get_multi_count: {r.status_code} {obj_type_uri} count={total_count}")
-                    return total_count
-                else:
-                    self.log.warning(F"_datatracker_get_multi_count: error {r.status_code} {obj_type_uri} - retry in {retry_time}")
-                    if retry_time > 60:
-                        self.log.error(F"_datatracker_get_multi_count: error - retry limit exceeded")
-                        sys.exit(1)
-                    time.sleep(retry_time)
-                    retry_time *= 2
-            except requests.exceptions.ConnectionError:
-                self.log.warning(F"_datatracker_get_multi_count: connection error - retry in {retry_time}")
-                if retry_time > 60:
-                    self.log.error(F"_datatracker_get_multi_count: error - retry limit exceeded")
-                    sys.exit(1)
-                time.sleep(retry_time)
-                retry_time *= 2
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
