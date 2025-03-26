@@ -43,7 +43,7 @@ class AffiliationEntry:
         self.namse=cleanup_affiliation(affiliation)
     
     def __str__(self):
-        return_str = '{{"names":['
+        return_str = '{"names":['
         for name in self.names:
             return_str+=f'"{name}",'
         return_str =  return_str.rstrip(',')
