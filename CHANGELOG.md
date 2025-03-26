@@ -4,6 +4,7 @@ Change Log -- ietfdata
 ## Version XXX
 
  - Require Python 3.13
+ - Update tests
 
 
 ## Version 0.8.1 
