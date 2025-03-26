@@ -4,7 +4,7 @@ Change Log -- ietfdata
 ## Version XXX
 
  - Require Python 3.13
- - Update tests
+ - Update tests and examples
  - Update rate limiting to handle 429 with "Retry-After: 0"
 
 
