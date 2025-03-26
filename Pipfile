@@ -20,7 +20,7 @@ ietfdata = {file = "."}
 [packages]
 bs4 = "*"
 email_reply_parser = "*"
-imapclient = "*"
+imapclient = "==3.0.0"
 pandas = "*"
 pandas-stubs = "*"
 python-dateutil = "*"
