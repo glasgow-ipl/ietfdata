@@ -36,13 +36,12 @@ from ietfdata.rfcindex    import *
 dt = DataTracker()
 
 with requests.Session() as session:
-	print("Finding chatlogs for ohai WG:")
+	print("Finding chatlogs for QUIC WG:")
 
 	chatlog = dt.document_type_from_slug("chatlog")
-	ohai_wg = dt.group_from_acronym("ohai")
+	ohai_wg = dt.group_from_acronym("quic")
 
 	for doc in dt.documents(doctype = chatlog, group = ohai_wg):
-		print(doc)
 		print(f"  {doc.title}")
 		print(f"  {doc.url()}")
 
