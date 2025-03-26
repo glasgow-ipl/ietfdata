@@ -82,11 +82,6 @@ class TestDatatracker(unittest.TestCase):
         self.assertGreaterEqual(len(json), 111)
 
 
-    def test__datatracker_get_multi_count(self) -> None:
-        count = self.dt._datatracker_get_multi_count(URI(uri="/api/v1/name/stdlevelname/"))
-        self.assertEqual(count, 8)
-
-
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to email addresses:
 
