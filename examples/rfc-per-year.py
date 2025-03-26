@@ -43,13 +43,13 @@ for rfc in ri.rfcs():
         rfcs_per_year[rfc.year] = 0
     rfcs_per_year[rfc.year] += 1
 
-print("Year | Published | Total")
+print("# year rfcs rfc_cumulative authors")
 
 rfcs = 0
 year = 1969
 while year < 2024:
     rfcs += rfcs_per_year[year]
-    print(f"{year} |      {rfcs_per_year[year]:4} |  {rfcs:4}")
+    print(f"  {year} {rfcs_per_year[year]:4} {rfcs:14}")
     year += 1
 
 
