@@ -55,7 +55,11 @@ def meeting_affiliation_mapping(from_year:int, until_year:int, input_mapping:Opt
             if reg.email is None:
                 print(f"This registration by {reg.last_name}.{reg.first_name} does not have email, skip")
                 continue
-            person_uri = dt.person_from_email(email_addr=reg.email)
+            person_obj = dt.person_from_email(email_addr=reg.email)
+            if person_obj is not None:
+                person_uri = str(person_obj.resource_uri)
+            else:
+                person_uri=None
             person_email_address = reg.email
             # tmp_ident_list = [person_uri,person_email_address]
             
