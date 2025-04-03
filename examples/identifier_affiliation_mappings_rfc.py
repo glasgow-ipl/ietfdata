@@ -1,7 +1,9 @@
 import os
 import sys
 import json
-import datetime
+import copy
+from datetime import timedelta
+from typing import Optional
 from pathlib import Path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -11,27 +13,17 @@ from ietfdata.rfcindex import *
 
 import ietfdata.tools.affiliations as aff
 
-if __name__ == '__main__':
-    if len(sys.argv) == 2:
-        input_path = None
-        output_path = Path(sys.argv[1])
-    elif len(sys.argv) == 3:
-        input_path = Path(sys.argv[1])
-        output_path = Path(sys.argv[2])
+# Function to fetch RFC affiliations 
+def rfc_affiliation_mapping(from_year:int, until_year:int, input_mapping:Optional[list[aff.AffiliationMap]]):
+    
+    if input_mapping is None:
+        af_mapping = list()
     else:
-        print("Needs either: [input path] [output path] ")
-        print("          or: [output path]")
-        sys.exit(1)
-    
-    dt = DataTracker(cache_dir = "cache",cache_timeout = timedelta(minutes = 15))
-    
-    affil_map = list()
+        af_mapping = copy.deepcopy(input_mapping)
+    ri = ietfdata.rfcindex.RFCIndex()
+    ident_index_map = dict()
     uniq_affil_list = dict()
     uniq_affil_raw = dict()
-    
-    ident_index_map = dict()
-    
-    ri = RFCIndex()
     seen_addr_ietf = list()
     for rfc in ri.rfcs():
         year = rfc.date().year
@@ -132,10 +124,31 @@ if __name__ == '__main__':
                 i = len(affil_map)-1
                 for ident in tmp_ident:
                     ident_index_map[ident] = i
+        with open("./rfc_unique_affiliations.json",'w') as f:
+            json.dump(uniq_affil_list,f)
+        with open("./rfc_unique_affiliations_raw.json",'w') as f:
+            json.dump(uniq_affil_raw,f)
+    return affil_map
+
+if __name__ == '__main__':
+    if len(sys.argv) == 2:
+        input_path = None
+        output_path = Path(sys.argv[1])
+    elif len(sys.argv) == 3:
+        input_path = Path(sys.argv[1])
+        output_path = Path(sys.argv[2])
+    else:
+        print("Needs either: [input path] [output path] ")
+        print("          or: [output path]")
+        sys.exit(1)
     
-                
+    dt = ietfdata.datatracker.DataTracker(cache_dir = "cache",cache_timeout = timedelta(minutes = 15))
+    
+    affil_map = list()
+    affil_map = rfc_affiliation_mapping(2003,2025,affil_map)
+    
     print(affil_map[0])            
-    with open("./identifier_affiliation_map_pre_consolidation.json",'w') as f:
+    with open(output_path,'w') as f:
         print("[",file=f,end='')
         n = len(affil_map)
         counter = 0
@@ -145,8 +158,3 @@ if __name__ == '__main__':
             if counter < n:
                 print(",",file=f)
         print("]",file=f)
-                
-    with open("./unique_affiliations.json",'w') as f:
-        json.dump(uniq_affil_list,f)
-    with open("./unique_affiliations_raw.json",'w') as f:
-        json.dump(uniq_affil_raw,f)
