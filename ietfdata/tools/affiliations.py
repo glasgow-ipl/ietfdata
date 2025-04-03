@@ -42,6 +42,12 @@ class AffiliationEntry:
     def set_affiliation_names(self, affiliation:str):
         self.namse=cleanup_affiliation(affiliation)
     
+    def match_names(self, names:list[str]):
+        for name in names:
+            if name not in self.names:
+                return False
+        return True
+    
     def __str__(self):
         return_str = '{"names":['
         for name in self.names:
@@ -83,9 +89,9 @@ class AffiliationMap:
             if tmp_head_affil is None:
                 tmp_head_affil = copy.deepcopy(affil)
                 continue
-            set_head_affil_names = set(tmp_head_affil.names)
-            diff_list = [item for item in affil.names not in set_head_affil_names]
-            if len(diff_list) != 0:
+            # set_head_affil_names = set(tmp_head_affil.names)
+            # diff_list = [item for item in affil.names not in set_head_affil_names]
+            if not tmp_head_affil.match_names(affil.names):
                     tmp_head_affil.end_date = (datetime.strptime(affil.start_date,'%Y-%m-%d').date() - timedelta(days=1))
                     consolidated_affil.append(tmp_head_affil)
                     tmp_head_affil = copy.deepcopy(affil)
