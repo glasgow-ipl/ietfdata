@@ -20,11 +20,10 @@ def meeting_affiliation_mapping(from_year:int, until_year:int, input_mapping:Opt
         af_mapping = list()
     else:
         af_mapping = copy.deepcopy(input_mapping)
-    ri = ietfdata.rfcindex.RFCIndex()
     ident_index_map = dict()
     uniq_affil_list = dict()
     uniq_affil_raw = dict()
-    seen_addr_ietf = list()
+    # seen_addr_ietf = list()
     
     # Meeting type list API output:
     # [...]
@@ -38,22 +37,27 @@ def meeting_affiliation_mapping(from_year:int, until_year:int, input_mapping:Opt
     # </object>
     # [...]
     meeting_registrations = dict()
+    meeting_obj_from_id = dict()
     for meeting in dt.meetings(f"{from_year}-01-01",f"{until_year}-01-01",dt.meeting_type_from_slug('ietf')):
         registrations = dt.meeting_registrations(meeting=meeting)
         if meeting.id not in meeting_registrations:
             meeting_registrations[meeting.id] = registrations
         else:
             meeting_registrations[meeting.id].append(registrations)
+        meeting_obj_from_id[meeting.id] = meeting
+    for meeting_id in meeting_registrations:
+        # Fetch date of the meeting
+        meeting = meeting_obj_from_id[meeting_id]
+        meeting_date = meeting.date
+        for reg in meeting_registrations[meeting_id]:
             
-    for meeting in meeting_registrations:
-        for reg in meeting_registrations[meeting]:
             # TODO: fetch person_uri if possible, create mapping
             if reg.email is None:
-                print(f"This registration does not have email, skip")
+                print(f"This registration by {reg.last_name}.{reg.first_name} does not have email, skip")
                 continue
             person_uri = dt.person_from_email(email_addr=reg.email)
             person_email_address = reg.email
-            tmp_ident_list = [person_uri,person_email_address]
+            # tmp_ident_list = [person_uri,person_email_address]
             
             affiliation_str = None
             if reg.affiliation is None:
@@ -68,7 +72,7 @@ def meeting_affiliation_mapping(from_year:int, until_year:int, input_mapping:Opt
             else:
                 uniq_affil_raw[affiliation_str] += 1
                 
-            aff_entry = aff.AffiliationEntry(affiliation_str,rfc.date(),None,None)
+            aff_entry = aff.AffiliationEntry(affiliation_str,meeting_date,None,None)
             for individual_aff in aff_entry.names:
                 if individual_aff not in uniq_affil_list :
                     uniq_affil_list[individual_aff]=1
@@ -107,9 +111,9 @@ def meeting_affiliation_mapping(from_year:int, until_year:int, input_mapping:Opt
                 i = len(affil_map)-1
                 for ident in tmp_ident:
                     ident_index_map[ident] = i
-        with open("./rfc_unique_affiliations.json",'w') as f:
+        with open("./rfc_unique_affiliations_meetings.json",'w') as f:
             json.dump(uniq_affil_list,f)
-        with open("./rfc_unique_affiliations_raw.json",'w') as f:
+        with open("./rfc_unique_affiliations_raw_meetings.json",'w') as f:
             json.dump(uniq_affil_raw,f)
     return affil_map
 
@@ -128,7 +132,7 @@ if __name__ == '__main__':
     dt = ietfdata.datatracker.DataTracker(cache_dir = "cache",cache_timeout = timedelta(minutes = 15))
     
     affil_map = list()
-    affil_map = rfc_affiliation_mapping(2003,2025,affil_map)
+    affil_map = meeting_affiliation_mapping(2003,2025,affil_map)
     
     print(affil_map[0])            
     with open(output_path,'w') as f:
