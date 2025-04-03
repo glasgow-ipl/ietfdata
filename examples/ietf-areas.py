@@ -1,4 +1,4 @@
-# Copyright (C) 2024 University of Glasgow, University of St Andrews
+# Copyright (C) 2020-2025 University of Glasgow
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -24,30 +24,16 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import os
-import requests
 import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from pathlib              import Path
 from ietfdata.datatracker import *
-from ietfdata.rfcindex    import *
 
 dt = DataTracker()
 
-with requests.Session() as session:
-	print("Finding chatlogs for QUIC WG:")
-
-	chatlog = dt.document_type_from_slug("chatlog")
-	ohai_wg = dt.group_from_acronym("quic")
-
-	for doc in dt.documents(doctype = chatlog, group = ohai_wg):
-		print(f"  {doc.title}")
-		print(f"  {doc.url()}")
-
-		response = session.get(doc.url(), verify=True)
-		if response.status_code != 200:
-			print(f"  {response.status_code}")
-
-		print("")
+for group in dt.groups(parent = dt.group_from_acronym("iesg")):
+    state = dt.group_state(group.state)
+    print(f"{state.name:12} {group.name}")
 

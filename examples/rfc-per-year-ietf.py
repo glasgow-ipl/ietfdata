@@ -1,4 +1,4 @@
-# Copyright (C) 2024 University of Glasgow, University of St Andrews
+# Copyright (C) 2020 University of Glasgow
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -24,7 +24,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import os
-import requests
 import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -33,21 +32,34 @@ from pathlib              import Path
 from ietfdata.datatracker import *
 from ietfdata.rfcindex    import *
 
-dt = DataTracker()
+# =============================================================================
 
-with requests.Session() as session:
-	print("Finding chatlogs for QUIC WG:")
+ri = RFCIndex()
 
-	chatlog = dt.document_type_from_slug("chatlog")
-	ohai_wg = dt.group_from_acronym("quic")
+rfcs_per_year = {}
+authors_per_year = {}
 
-	for doc in dt.documents(doctype = chatlog, group = ohai_wg):
-		print(f"  {doc.title}")
-		print(f"  {doc.url()}")
+# Find the number of RFCs published on the IETF stream in each year,
+# along with the number of unique authors per year.
 
-		response = session.get(doc.url(), verify=True)
-		if response.status_code != 200:
-			print(f"  {response.status_code}")
+for rfc in ri.rfcs():
+    if rfc.stream == "IETF":
+        if rfc.year not in rfcs_per_year:
+            rfcs_per_year[rfc.year] = 0
+        rfcs_per_year[rfc.year] += 1
 
-		print("")
+        if rfc.year not in authors_per_year:
+            authors_per_year[rfc.year] = []
+        for author in rfc.authors:
+            if author not in authors_per_year[rfc.year]:
+                authors_per_year[rfc.year].append(author)
+
+rfcs = 0
+year = 2000
+print("# year rfcs rfc_cumulative authors")
+while year < 2025:
+    rfcs += rfcs_per_year[year]
+    print(f"  {year} {rfcs_per_year[year]:4} {rfcs:14} {len(authors_per_year[year]):7}")
+    year += 1
+
 

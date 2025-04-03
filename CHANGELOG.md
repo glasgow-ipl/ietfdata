@@ -1,9 +1,11 @@
 Change Log -- ietfdata
 ======================
 
-## Version XXX
+## Version 0.8.2
 
  - Require Python 3.13
+ - Update tests and examples
+ - Update rate limiting to handle 429 with "Retry-After: 0"
 
 
 ## Version 0.8.1 
