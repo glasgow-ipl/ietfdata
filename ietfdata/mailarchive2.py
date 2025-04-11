@@ -760,7 +760,7 @@ class MailArchive:
                                        ], unique=False)
         self._db.metadata.create_index([('message_id', ASCENDING)
                                        ], unique=False)
-        self._db.metadata.create_index([('in_reply_to', ASCENDING)
+        self._db.messages.create_index([('in_reply_to', ASCENDING)
                                        ], unique=False)
         self._fs = GridFS(self._db)
         # Create other state:
