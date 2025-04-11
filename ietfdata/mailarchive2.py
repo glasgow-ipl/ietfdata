@@ -838,7 +838,7 @@ class MailArchive:
             query["headers.subject"] = { "$regex": f"{header_subject}"}
         if mailing_list_name is not None:
             query["list"] = mailing_list_name
-        messages = self._db.messages.find(query, no_cursor_timeout=True)
+        messages = self._db.messages.find(query)
         for message in messages:
             mailing_list = self.mailing_list(message["list"])
             uidvalidity  = message["uidvalidity"]
