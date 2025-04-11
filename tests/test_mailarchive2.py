@@ -64,7 +64,7 @@ class TestMailArchive2(unittest.TestCase):
 
     def test_mailarchive2_mailing_list(self) -> None:
         mlist = self.ma.mailing_list("100attendees")
-        mlist.update()
+        mlist.update(verbose=False)
         self.assertEqual(mlist.name(), "100attendees")
         self.assertEqual(mlist.num_messages(), 434)
 
