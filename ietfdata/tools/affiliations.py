@@ -118,35 +118,54 @@ def remove_suffix(input_string:str, suffix:str):
         return input_string[:-len(suffix)]
     return input_string
 
+def cleanup_affiliation_strip_chars(affiliation:str):
+    affiliation = affiliation.strip()
+    affiliation = affiliation.replace("\n","")
+    affiliation = re.sub(' +', ' ', affiliation)
+    affiliation = affiliation.replace(",","")
+    affiliation = affiliation.strip()
+    affiliation = re.sub(r"^\.|\.$", "", affiliation)
+    return affiliation
 
-def cleanup_affiliation(affiliation_str:str):
-    affiliation_str = affiliation_str.strip()
-    affiliation_str = affiliation_str.replace("\n","")
-    affiliation_str = re.sub(' +', ' ', affiliation_str)
+def cleanup_affiliation_suffix(affiliation:str):
     affiliation_suffixes = [", Inc.", "Inc", "LLC", "Ltd", "Limited", "Incorporated", "GmbH", "Inc.", "Systems", "Corporation", "Corp.", "Ltd.", "Technologies", "AG", "B.V.","s.r.o."]
+    for suffix in affiliation_suffixes:
+        affiliation = remove_suffix(affiliation, suffix)
+    return affiliation
+
+def cleanup_affiliation_academic(affiliation:str):
     alt_university = ["Univ.","Universtaet","Universteit","Universitaet","Université"]
     for alt in alt_university:
-        affiliation_str = affiliation_str.replace(alt, "University")
-    affiliation_str = affiliation_str.replace("TU","Technical University of")
-    affiliation_str = affiliation_str.replace("U. of", "University of")
-    for suffix in affiliation_suffixes:
-        affiliation_str = remove_suffix(affiliation_str, suffix)
-    affiliation_str = affiliation_str.replace(",","")
-    affiliation_str = affiliation_str.strip()
-    affiliation_str = re.sub(r"^\.|\.$", "", affiliation_str)
+        affiliation = affiliation.replace(alt, "University")
+    affiliation = affiliation.replace("TU","Technical University of")
+    affiliation = affiliation.replace("U. of", "University of")
+    return affiliation
+
+def cleanup_affiliation(affiliation:str):
+    affiliation = cleanup_affiliation_academic(affiliation)
+    affiliation = cleanup_affiliation_strip_chars(affiliation)
+    affiliation = cleanup_affiliation_suffix(affiliation)
     affiliation_list = None
     if afmap.affiliation_raw_list_map is not None:
-        if affiliation_str in afmap.affiliation_raw_list_map:
-            affiliation_list = copy.deepcopy(afmap.affiliation_raw_list_map.get(affiliation_str))
+        if affiliation in afmap.affiliation_raw_list_map: # attempt 1
+            affiliation_list = copy.deepcopy(afmap.affiliation_raw_list_map.get(affiliation))
         if affiliation_list is None:
-            for aff_key in afmap.affiliation_raw_list_map:
-                if affiliation_str.lower() is aff_key.lower():
+            for aff_key in afmap.affiliation_raw_list_map: # attempt 2
+                if affiliation.lower() is aff_key.lower():
                     affiliation_list = copy.deepcopy((afmap.affiliation_raw_list_map.get(aff_key)))
+        if affiliation_list is None: # attempt 3
+            tmp_split = affiliation.split("/")
+            for part in tmp_split:
+                tmp_part = part
+                tmp_part = cleanup_affiliation_academic(tmp_part)
+                tmp_part = cleanup_affiliation_strip_chars(tmp_part)
+                tmp_part = cleanup_affiliation_suffix(tmp_part)
+                for aff_key in afmap.affiliation_raw_list_map: # attempt 2
+                    if tmp_part.lower() is aff_key.lower():
+                    affiliation_list.append(afmap.affiliation_raw_list_map.get(aff_key))
     if affiliation_list is None:
-        affiliation_list = [affiliation_str]
+        affiliation_list = [affiliation]
     return affiliation_list
 
-def load_mapping(input_dict:dict):
-    pass
 
 
