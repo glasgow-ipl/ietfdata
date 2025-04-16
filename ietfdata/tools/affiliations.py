@@ -143,31 +143,28 @@ def cleanup_affiliation_academic(affiliation:str):
 
 def normalise_affiliation(affiliation:str):
     # do the look_up and return list item
-    return
+    for key in afmap.affiliation_list_map:
+        if affiliation.lower() is key.lower():
+            return afmap.affiliation_list_map.get(key)
+    return None
 
 def cleanup_affiliation(affiliation:str):
     affiliation = cleanup_affiliation_academic(affiliation)
     affiliation = cleanup_affiliation_strip_chars(affiliation)
     affiliation = cleanup_affiliation_suffix(affiliation)
     affiliation_list = None
-    if afmap.affiliation_list_map is not None:
-        if affiliation in afmap.affiliation_list_map: # attempt 1
-            affiliation_list = copy.deepcopy(afmap.affiliation_list_map.get(affiliation))
-        if affiliation_list is None:
-            for aff_key in afmap.affiliation_list_map: # attempt 2
-                if affiliation.lower() is aff_key.lower():
-                    affiliation_list = copy.deepcopy((afmap.affiliation_list_map.get(aff_key)))
-        if affiliation_list is None: # attempt 3
-            tmp_split = affiliation.split("/")
-            for part in tmp_split:
-                tmp_part = part
-                tmp_part = cleanup_affiliation_academic(tmp_part)
-                tmp_part = cleanup_affiliation_strip_chars(tmp_part)
-                tmp_part = cleanup_affiliation_suffix(tmp_part)
-                for aff_key in afmap.affiliation_list_map: # attempt 2
-                    if tmp_part.lower() is aff_key.lower():
-                    affiliation_list.append(afmap.affiliation_list_map.get(aff_key))
-    if affiliation_list is None:
+    affiliation_list = normalise_affiliation(affiliation)
+    if affiliation_list is None: # attempt 2 — unknown multi-affiliation case
+        tmp_split = affiliation.split("/")
+        for part in tmp_split:
+            tmp_part = part
+            tmp_part = cleanup_affiliation_academic(tmp_part)
+            tmp_part = cleanup_affiliation_strip_chars(tmp_part)
+            tmp_part = cleanup_affiliation_suffix(tmp_part)
+            tmp_list = normalise_affiliation(tmp_part)
+            if tmp_list is not None:
+                affiliation_list.append(tmp_list)
+    if affiliation_list is None: # if all else fails, leave after clense
         affiliation_list = [affiliation]
     return affiliation_list
 
