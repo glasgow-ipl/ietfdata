@@ -5,7 +5,7 @@
 # TODO: add hugo's 'bad entry' list to clear out
 # TODO: clean up duplicate entries that can be cleared by doing suffix-based
 #       cleaning and ignoring cases
-affiliation_raw_list_map = {
+affiliation_list_map = {
     "1&1 Mail & Media GmbH":
         ["1&1"],
     "1&1 Mail & Media Development & Technology GmbH":

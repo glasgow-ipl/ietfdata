@@ -141,18 +141,22 @@ def cleanup_affiliation_academic(affiliation:str):
     affiliation = affiliation.replace("U. of", "University of")
     return affiliation
 
+def normalise_affiliation(affiliation:str):
+    # do the look_up and return list item
+    return
+
 def cleanup_affiliation(affiliation:str):
     affiliation = cleanup_affiliation_academic(affiliation)
     affiliation = cleanup_affiliation_strip_chars(affiliation)
     affiliation = cleanup_affiliation_suffix(affiliation)
     affiliation_list = None
-    if afmap.affiliation_raw_list_map is not None:
-        if affiliation in afmap.affiliation_raw_list_map: # attempt 1
-            affiliation_list = copy.deepcopy(afmap.affiliation_raw_list_map.get(affiliation))
+    if afmap.affiliation_list_map is not None:
+        if affiliation in afmap.affiliation_list_map: # attempt 1
+            affiliation_list = copy.deepcopy(afmap.affiliation_list_map.get(affiliation))
         if affiliation_list is None:
-            for aff_key in afmap.affiliation_raw_list_map: # attempt 2
+            for aff_key in afmap.affiliation_list_map: # attempt 2
                 if affiliation.lower() is aff_key.lower():
-                    affiliation_list = copy.deepcopy((afmap.affiliation_raw_list_map.get(aff_key)))
+                    affiliation_list = copy.deepcopy((afmap.affiliation_list_map.get(aff_key)))
         if affiliation_list is None: # attempt 3
             tmp_split = affiliation.split("/")
             for part in tmp_split:
@@ -160,9 +164,9 @@ def cleanup_affiliation(affiliation:str):
                 tmp_part = cleanup_affiliation_academic(tmp_part)
                 tmp_part = cleanup_affiliation_strip_chars(tmp_part)
                 tmp_part = cleanup_affiliation_suffix(tmp_part)
-                for aff_key in afmap.affiliation_raw_list_map: # attempt 2
+                for aff_key in afmap.affiliation_list_map: # attempt 2
                     if tmp_part.lower() is aff_key.lower():
-                    affiliation_list.append(afmap.affiliation_raw_list_map.get(aff_key))
+                    affiliation_list.append(afmap.affiliation_list_map.get(aff_key))
     if affiliation_list is None:
         affiliation_list = [affiliation]
     return affiliation_list
