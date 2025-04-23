@@ -125,10 +125,11 @@ def cleanup_affiliation_strip_chars(affiliation:str):
     affiliation = affiliation.replace(",","")
     affiliation = affiliation.strip()
     affiliation = re.sub(r"^\.|\.$", "", affiliation)
+    affiliation = re.sub(' / ', '/', affiliation)
     return affiliation
 
 def cleanup_affiliation_suffix(affiliation:str):
-    affiliation_suffixes = [", Inc.", "Inc", "LLC", "Ltd", "Limited", "Incorporated", "GmbH", "Inc.", "Systems", "Corporation", "Corp.", "Ltd.", "Technologies", "AG", "B.V.","s.r.o."]
+    affiliation_suffixes = [", Inc.", "Inc", "LLC", "Ltd", "Limited", "Incorporated", "GmbH", "gmbh", "Inc.", "Systems", "Corporation", "Corp", "Corp.", "Ltd.", "LTD", "Technologies", "AG", "B.V.","s.r.o."]
     for suffix in affiliation_suffixes:
         affiliation = remove_suffix(affiliation, suffix)
     return affiliation
