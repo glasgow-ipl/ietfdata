@@ -114,24 +114,26 @@ class AffiliationMap:
         return returnstr
 
 def remove_suffix(input_string:str, suffix:str):
-    if suffix and input_string.endswith(suffix):
+    if suffix and input_string.lower().endswith(suffix.lower()):
         return input_string[:-len(suffix)]
     return input_string
 
 def cleanup_affiliation_strip_chars(affiliation:str):
     affiliation = affiliation.strip()
     affiliation = affiliation.replace("\n","")
-    affiliation = re.sub(' +', ' ', affiliation)
+    # affiliation = re.sub(' +', ' ', affiliation) # attempted to clear multiple spaces
+    affiliation = " ".join(affiliation.split()) # clean up all white spaces and re-join
     affiliation = affiliation.replace(",","")
     affiliation = affiliation.strip()
     affiliation = re.sub(r"^\.|\.$", "", affiliation)
-    affiliation = re.sub(' / ', '/', affiliation)
+    affiliation = re.sub(' /', '/', affiliation)
+    affiliation = re.sub('/ ', '/', affiliation)
     return affiliation
 
 def cleanup_affiliation_suffix(affiliation:str):
-    affiliation_suffixes = [", Inc.", "Inc", "LLC", "Ltd", "Limited", "Incorporated", "GmbH", "gmbh", "Inc.", "Systems", "Corporation", "Corp", "Corp.", "Ltd.", "LTD", "Technologies", "AG", "B.V.","s.r.o."]
+    affiliation_suffixes = [", Inc.", "Inc", "LLC", "Ltd", "Limited", "Incorporated", "GmbH", "Inc.", "Systems", "Corporation", "Co", "Co.","Corp", "Corp.", "Ltd.", "Technologies", "AG", "B.V.","s.r.o.","s.r.o","a.s"]
     for suffix in affiliation_suffixes:
-        affiliation = remove_suffix(affiliation, suffix)
+        affiliation = remove_suffix(affiliation, suffix).strip()
     return affiliation
 
 def cleanup_affiliation_academic(affiliation:str):
