@@ -119,12 +119,9 @@ def remove_suffix(input_string:str, suffix:str):
     return input_string
 
 def cleanup_affiliation_strip_chars(affiliation:str):
-    affiliation = affiliation.strip()
     affiliation = affiliation.replace("\n","")
-    # affiliation = re.sub(' +', ' ', affiliation) # attempted to clear multiple spaces
     affiliation = " ".join(affiliation.split()) # clean up all white spaces and re-join
     affiliation = affiliation.replace(",","")
-    affiliation = affiliation.strip()
     affiliation = re.sub(r"^\.|\.$", "", affiliation)
     affiliation = re.sub(' /', '/', affiliation)
     affiliation = re.sub('/ ', '/', affiliation)
