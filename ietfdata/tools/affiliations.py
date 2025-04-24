@@ -28,9 +28,9 @@ class AffiliationEntry:
     end_date    : Optional[datetime.date]
     names : list[str]
     
-    def __init__(self, affiliation_str:str, start_date:datetime.date, end_date:Optional[datetime.date],names_list:Optional[list[str]]):
-        if names_list is not None:
-            self.names=copy.deepcopy(names_list)
+    def __init__(self, affiliation_str:str, start_date:datetime.date, end_date:Optional[datetime.date],names:Optional[list[str]]):
+        if names is not None:
+            self.names=copy.deepcopy(names)
         else:
             self.names = cleanup_affiliation(affiliation_str)
         self.start_date = start_date
@@ -40,7 +40,7 @@ class AffiliationEntry:
         self.end_date = new_end_date
     
     def set_affiliation_names(self, affiliation:str):
-        self.namse=cleanup_affiliation(affiliation)
+        self.names=cleanup_affiliation(affiliation)
     
     def match_names(self, names:list[str]):
         for name in names:
@@ -50,8 +50,7 @@ class AffiliationEntry:
     
     def __str__(self):
         return_str = '{"names":['
-        for name in self.names:
-            return_str+=f'"{name}",'
+        return_str += ",".join(self.names)
         return_str =  return_str.rstrip(',')
         return_str += "],"
         return_str += f'"start_date":"{self.start_date}","end_date":"{self.end_date}"}}'
