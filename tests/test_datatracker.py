@@ -3170,9 +3170,10 @@ class TestDatatracker(unittest.TestCase):
 
     def test_review_wishes_team(self) -> None:
         review_wishes = list(self.dt.review_wishes(team=self.dt.group(GroupURI(uri="/api/v1/group/group/1972/")))) # GenART
-        self.assertEqual(len(review_wishes),  2)
+        self.assertEqual(len(review_wishes),  3)
         self.assertEqual(review_wishes[0].id, 24)
         self.assertEqual(review_wishes[1].id, 140)
+        self.assertEqual(review_wishes[2].id, 142)
 
 
     def test_reviewer_settings(self) -> None:
@@ -3689,7 +3690,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(reg.person,       PersonURI(uri="/api/v1/person/person/117769/"))
             self.assertEqual(reg.reg_type,     "remote")
             self.assertEqual(reg.resource_uri, MeetingRegistrationURI(uri="/api/v1/stats/meetingregistration/42206/"))
-            self.assertEqual(reg.ticket_type,  "full_week_pass")
+            self.assertEqual(reg.ticket_type,  "week_pass")
         else:
             self.fail("Cannot find meeting registration")
 
