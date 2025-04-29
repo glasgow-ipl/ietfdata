@@ -35,21 +35,21 @@ class Affiliations:
             print(f"{affiliation} present in affiliations, no action")
         
     def affiliations_match(self, affiliation:str, normalised:list[str]):
-        assert(normalised not None)
-        assert(affiliation not None)
+        assert(normalised is not None)
+        assert(affiliation is not None)
         
         if affiliation in self.affiliations:
-            print(f"{affiliation} already present; replacing 
+            print(f"{affiliation} already present; replacing \
                   {self.affiliations[affiliation].str} with {normalised.str}")
         self.affiliations[affiliation] = normalised
         
     
-    def _remove_suffix(input_string:str, suffix:str):
+    def _remove_suffix(self,input_string:str, suffix:str):
         if suffix and input_string.lower().endswith(suffix.lower()):
             return input_string[:-len(suffix)]
         return input_string
     
-    def _cleanup_affiliation_strip_chars(affiliation:str):
+    def _cleanup_affiliation_strip_chars(self,affiliation:str):
         affiliation = affiliation.replace("\n","")
         affiliation = " ".join(affiliation.split()) # clean up all white spaces and re-join
         affiliation = affiliation.replace(",","")
@@ -58,13 +58,13 @@ class Affiliations:
         affiliation = re.sub('/ ', '/', affiliation)
         return affiliation
     
-    def _cleanup_affiliation_suffix(affiliation:str):
+    def _cleanup_affiliation_suffix(self,affiliation:str):
         affiliation_suffixes = [", Inc.", "Inc", "LLC", "Ltd", "Limited", "Incorporated", "GmbH", "Inc.", "Systems", "Corporation", "Co", "Co.","Corp", "Corp.", "Ltd.", "Technologies", "AG", "B.V.","s.r.o.","s.r.o","a.s"]
         for suffix in affiliation_suffixes:
-            affiliation = _remove_suffix(affiliation, suffix).strip()
+            affiliation = self._remove_suffix(affiliation,suffix).strip()
         return affiliation
     
-    def _cleanup_affiliation_academic(affiliation:str):
+    def _cleanup_affiliation_academic(self,affiliation:str):
         alt_university = ["Univ.","Universtaet","Universteit","Universitaet","Université"]
         for alt in alt_university:
             affiliation = affiliation.replace(alt, "University")
@@ -80,18 +80,18 @@ class Affiliations:
         return None
     
     def cleanup_affiliation(self,affiliation:str):
-        affiliation = _cleanup_affiliation_academic(affiliation)
-        affiliation = _cleanup_affiliation_strip_chars(affiliation)
-        affiliation = _cleanup_affiliation_suffix(affiliation)
+        affiliation = self._cleanup_affiliation_academic(affiliation)
+        affiliation = self._cleanup_affiliation_strip_chars(affiliation)
+        affiliation = self._cleanup_affiliation_suffix(affiliation)
         affiliation_list = None
         affiliation_list = self.normalise(affiliation)
         if affiliation_list is None: # attempt 2 — unknown multi-affiliation case
             tmp_split = affiliation.split("/")
             for part in tmp_split:
                 tmp_part = part
-                tmp_part = _cleanup_affiliation_academic(tmp_part)
-                tmp_part = _cleanup_affiliation_strip_chars(tmp_part)
-                tmp_part = _cleanup_affiliation_suffix(tmp_part)
+                tmp_part = self._cleanup_affiliation_academic(tmp_part)
+                tmp_part = self._cleanup_affiliation_strip_chars(tmp_part)
+                tmp_part = self._cleanup_affiliation_suffix(tmp_part)
                 tmp_list = self.normalise(tmp_part)
                 if tmp_list is not None:
                     affiliation_list.append(tmp_list)
