@@ -63,6 +63,11 @@ class Affiliation:
             raise RuntimeError("Domain is None or empty.")
         if domain not in self._domains:
             self._domains.append(domain)
+   
+    def __repr__(self):
+        return f"names:[{",".join(self._names)}],preferred_name:{self._preferred_name},\
+                domains: [{",".join(self._domains)}]"
+    
     
 # Class to hold a set of affiliations
 class Affiliations:
