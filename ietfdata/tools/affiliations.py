@@ -76,10 +76,12 @@ class Affiliation:
     
 # Class to hold a set of known affiliations
 class Affiliations:
-    _affiliations : dict[str,Affiliation] 
+    _affiliations : dict[str,Affiliation]
+    _affiliations_by_name : dict[str,Affiliation]
     
     def __init__(self) -> None:
         self._affiliations = dict()
+        self._affiliations_by_name = dict()
     
     def affiliation_by_name(self, name: str) -> Affiliation:
         if name not in self._affiliations:
@@ -93,6 +95,8 @@ class Affiliations:
         else:
             print(f"Affiliation \"{name}\" already exists with matching \
                     preferred name.")
+        if name not in self._affiliations_by_name:
+            self._affiliations_by_name[name] = self._affiliations[name]
             
     def merge(self, name_1: str, name_2: str) -> None:
         # merge name_2 to name_1
@@ -117,6 +121,11 @@ class Affiliations:
                 raise RuntimeError(f"Mismatching domains for {name_1}\
                                      ({self._affiliations[name_1].domain()})\
                                      and {name_2}({name_2_domain})")
+        
+        self._affiliations_by_name[name_2] = self.affiliations[name_1]
+        for name in self._affiliations[name_2].names():
+            self._affiliations_by_name[name] = self._affiliations[name_1]
+            
         del self._affiliations[name_2]
     
     def affiliation_domain(self, name:str, domain:str) -> None:
@@ -135,16 +144,22 @@ class Affiliations:
             raise KeyError(f"Unknown affiliation: {name}")
         self._affiliations[new_name]=self._affiliations.pop(name)        
         self._affiliations[new_name].set_preferred_name(new_name)
+        if name not in self._affiliations[new_name].names():
+            self._affiliations[new_name].add_name(name)
+        if name not in self._affiliations_by_name:
+            self._affiliations_by_name[name] = self._affiliations[new_name]
     
     def normalise_affiliation(self, name:str) -> str:
         # normalise the given name
         tmp_name = name
         if tmp_name in self._affiliations: #this **is** the preferred name
             return tmp_name
-        tmp_name = cleanup_affiliation_str(name)
-        # look for 
-        
+        if tmp_name in self._affiliations_by_name:
+            return self._affiliations_by_name[tmp_name].preferred_name()
+        return None
+    
 
+# Todo: Class to go through datatracker to extract the information, clean up names, match two orgs etc.
 # Affiliation Entry Class 
 class AffiliationEntry:
     start_date  : datetime.date
@@ -174,6 +189,7 @@ class AffiliationEntry:
         return_str += "],"
         return_str += f'"start_date":"{self.start_date}","end_date":"{self.end_date}"}}'
         return return_str
+
 
 # Sets of Affiliation for Person class
 class AffiliationsForPerson:
@@ -261,12 +277,12 @@ def _cleanup_affiliation_academic(affiliation:str) ->str:
     affiliation = affiliation.replace("U. of", "University of")
     return affiliation
 
-def normalise(affiliation:str):
-    # do the look_up and return list item
-    for key in afmap:
-        if affiliation.lower() is key.lower():
-            return afmap.get(key)
-    return None
+# def normalise(affiliation:str):
+#     # do the look_up and return list item
+#     for key in afmap:
+#         if affiliation.lower() is key.lower():
+#             return afmap.get(key)
+
 
 def cleanup_affiliation_str(affiliation:str)->str:
     affiliation = _cleanup_affiliation_academic(affiliation)

@@ -14,6 +14,7 @@ from ietfdata.datatracker import *
 from ietfdata.rfcindex import *
 import ietfdata.tools.affiliations as aff
 
+## FIXME: none of the tests test anything
 
 class TestAffiliations(unittest.TestCase):
     
