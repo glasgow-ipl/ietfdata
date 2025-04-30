@@ -27,12 +27,12 @@ class Affiliation:
     
     _preferred_name: Optional[str]
     _names : list[str]
-    _domains : Optional[list[str]]
+    _domain : Optional[str]
     
     def __init(self,name:str) -> None:
         self._preferred_name = None
         self._names = [name]
-        self._domains = None
+        self._domain = None
     
     def preferred_name(self) -> Optional[str]:
         return self._preferred_name
@@ -40,8 +40,8 @@ class Affiliation:
     def names(self) -> list[str]:
         return self._names
     
-    def domains(self) -> list[str]:
-        return self._domains
+    def domain(self) -> Optional[str]:
+        return self._domain
     
     def set_preferred_name(self,name: str) -> None:
         if name in self._names:
@@ -61,17 +61,33 @@ class Affiliation:
     def add_domain(self, domain:str)->None:
         if (domain is None) || (domain ==""):
             raise RuntimeError("Domain is None or empty.")
-        if domain not in self._domains:
-            self._domains.append(domain)
+        if self._domain is None:
+            self._domain = domain
+        else:
+            raise RuntimeError(f"Domain already set to {self._domain}, \ 
+                                 but add_domain({domain}) was called.")
    
     def __repr__(self):
         return f"names:[{",".join(self._names)}],preferred_name:{self._preferred_name},\
-                domains: [{",".join(self._domains)}]"
+                domain: {self._domain}"
     
     
 # Class to hold a set of affiliations
 class Affiliations:
-   _affiliations : dict[str,Affiliation] 
+    _affiliations : dict[str,Affiliation] 
+    
+    def __init__(self) -> None:
+        self._affiliations = dict()
+    
+    def affiliation_exists(self, name: str) -> None:
+        if name not in self._affiliaitions:
+            self._affiliations[name] = Affiliation(name)
+        else:
+            print(f"Affiliation \"{name}\" already exists")
+            
+    def affiliations_match(self, name1: str, name2: str) -> None:
+
+
 
 # Affiliation Entry Class 
 class AffiliationEntry:
