@@ -30,7 +30,7 @@ class Affiliation:
     _domain : Optional[str]
     
     def __init(self,name:str) -> None:
-        self._preferred_name = None
+        self._preferred_name = name
         self._names = [name]
         self._domain = None
     
@@ -57,6 +57,8 @@ class Affiliation:
             raise RuntimeError("Name is None or empty.")
         elif name not in self._names:
             self._names.append(name) 
+        else:
+            print(f"{name} already present for {self._preferred_name}.")
     
     def add_domain(self, domain:str)->None:
         if (domain is None) || (domain ==""):
@@ -72,22 +74,76 @@ class Affiliation:
                 domain: {self._domain}"
     
     
-# Class to hold a set of affiliations
+# Class to hold a set of known affiliations
 class Affiliations:
     _affiliations : dict[str,Affiliation] 
     
     def __init__(self) -> None:
         self._affiliations = dict()
     
+    def affiliation_by_name(self, name: str) -> Affiliation:
+        if name not in self._affiliations:
+            raise KeyError(f"{name} is not a known preferred name.")
+        return self._affiliations[name]
+    
     def affiliation_exists(self, name: str) -> None:
         if name not in self._affiliaitions:
             self._affiliations[name] = Affiliation(name)
+            self._affiliations[name].set_preferred_name(name)
         else:
-            print(f"Affiliation \"{name}\" already exists")
+            print(f"Affiliation \"{name}\" already exists with matching \
+                    preferred name.")
             
-    def affiliations_match(self, name1: str, name2: str) -> None:
-
-
+    def merge(self, name_1: str, name_2: str) -> None:
+        # merge name_2 to name_1
+        if name_1 not in self._affiliations:
+            raise KeyError(f"{name_1} is not a known preferred name.")
+        if name_2 not in self._affiliations:
+            raise KeyError(f"{name_2} is not a known preferred name.")
+        
+        for name in self._affiliations[name_2].names():
+            if name not in self._affiliations[name_1]
+                self._affiliations[name_1].add_name(name)
+            if name_2 is not in self._affiliations[name_1]:
+                self._affiliations[name_1].add_name(name_2)
+        
+        name_2_domain = self._affiliations[name_2].domain()
+        if name_2_domain is not None:
+            if self._affiliations[name_1].domain() is None:
+                self._affiliations[name_1].add_domain(name_2_domain)
+            elif self._affiliations[name_1].domain() == name_2_domain:
+                pass
+            else:
+                raise RuntimeError(f"Mismatching domains for {name_1}\
+                                     ({self._affiliations[name_1].domain()})\
+                                     and {name_2}({name_2_domain})")
+        del self._affiliations[name_2]
+    
+    def affiliation_domain(self, name:str, domain:str) -> None:
+        # Indicates that `domain` is known to be used solely by the 
+        # `affiliation`
+        if name not in self._affiliations:
+            raise KeyError(f"Unknown affiliation: {name}")
+        if self._affiliations[name].domain() is None:
+            self._affiliations[name].add_domain(domain)
+        else:
+            raise RuntimeError(f"Multiple domains for affiliation: {name}")
+        
+    def affiliation_update_preferred_name(self, name: str, new_name: str) -> None:
+        # Indicates the preferred name for an affiliation
+        if name not in self._affiliations:
+            raise KeyError(f"Unknown affiliation: {name}")
+        self._affiliations[new_name]=self._affiliations.pop(name)        
+        self._affiliations[new_name].set_preferred_name(new_name)
+    
+    def normalise_affiliation(self, name:str) -> str:
+        # normalise the given name
+        tmp_name = name
+        if tmp_name in self._affiliations: #this **is** the preferred name
+            return tmp_name
+        tmp_name = cleanup_affiliation_str(name)
+        # look for 
+        
 
 # Affiliation Entry Class 
 class AffiliationEntry:
@@ -177,12 +233,12 @@ class AffiliationsForPerson:
 
 
     
-def _remove_suffix(input_string:str, suffix:str):
+def _remove_suffix(input_string:str, suffix:str) -> str:
             if suffix and input_string.lower().endswith(suffix.lower()):
                 return input_string[:-len(suffix)]
             return input_string
         
-def _cleanup_affiliation_strip_chars(affiliation:str):
+def _cleanup_affiliation_strip_chars(affiliation:str) -> str:
     affiliation = affiliation.replace("\n","")
     affiliation = " ".join(affiliation.split()) # clean up all white spaces and re-join
     affiliation = affiliation.replace(",","")
@@ -191,13 +247,13 @@ def _cleanup_affiliation_strip_chars(affiliation:str):
     affiliation = re.sub('/ ', '/', affiliation)
     return affiliation
 
-def _cleanup_affiliation_suffix(affiliation:str):
+def _cleanup_affiliation_suffix(affiliation:str) -> str:
     affiliation_suffixes = [", Inc.", "Inc", "LLC", "Ltd", "Limited", "Incorporated", "GmbH", "Inc.", "Systems", "Corporation", "Co", "Co.","Corp", "Corp.", "Ltd.", "Technologies", "AG", "B.V.","s.r.o.","s.r.o","a.s"]
     for suffix in affiliation_suffixes:
         affiliation = _remove_suffix(affiliation,suffix).strip()
     return affiliation
 
-def _cleanup_affiliation_academic(affiliation:str):
+def _cleanup_affiliation_academic(affiliation:str) ->str:
     alt_university = ["Univ.","Universtaet","Universteit","Universitaet","Université"]
     for alt in alt_university:
         affiliation = affiliation.replace(alt, "University")
@@ -212,24 +268,39 @@ def normalise(affiliation:str):
             return afmap.get(key)
     return None
 
-def cleanup_affiliation(affiliation:str):
+def cleanup_affiliation_str(affiliation:str)->str:
     affiliation = _cleanup_affiliation_academic(affiliation)
     affiliation = _cleanup_affiliation_strip_chars(affiliation)
     affiliation = _cleanup_affiliation_suffix(affiliation)
+    return affiliation
+    # affiliation_list = None
+    # affiliation_list = normalise(affiliation)
+    # if affiliation_list is None: # attempt 2 — unknown multi-affiliation case
+    #     tmp_split = affiliation.split("/")
+    #     for part in tmp_split:
+    #         tmp_part = part
+    #         tmp_part = _cleanup_affiliation_academic(tmp_part)
+    #         tmp_part = _cleanup_affiliation_strip_chars(tmp_part)
+    #         tmp_part = _cleanup_affiliation_suffix(tmp_part)
+    #         tmp_list = normalise(tmp_part)
+    #         if tmp_list is not None:
+    #             affiliation_list.append(tmp_list)
+    # if affiliation_list is None: # if all else fails, leave after cleanse
+    #     affiliation_list = [affiliation]
+    # return affiliation_list
+def cleanup_affiliation(affiliation:str)->list[str]:
+    affiliation = cleanup_affiliation_str(affiliation)
     affiliation_list = None
     affiliation_list = normalise(affiliation)
     if affiliation_list is None: # attempt 2 — unknown multi-affiliation case
         tmp_split = affiliation.split("/")
         for part in tmp_split:
             tmp_part = part
-            tmp_part = _cleanup_affiliation_academic(tmp_part)
-            tmp_part = _cleanup_affiliation_strip_chars(tmp_part)
-            tmp_part = _cleanup_affiliation_suffix(tmp_part)
+            tmp_part = cleanup_affiliation_str(tmp_part) 
             tmp_list = normalise(tmp_part)
             if tmp_list is not None:
                 affiliation_list.append(tmp_list)
     if affiliation_list is None: # if all else fails, leave after cleanse
         affiliation_list = [affiliation]
     return affiliation_list
-
 
