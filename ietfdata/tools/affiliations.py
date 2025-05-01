@@ -69,7 +69,7 @@ class Affiliation:
             # raise RuntimeError(f"Domain already set to {self._domain}, but add_domain({domain}) was called.")
    
     def __repr__(self):
-        return f"names:[\"{"\",\"".join(self._names).replace('"','\\"')}\"],preferred_name:\"{self._preferred_name.replace('"','\\"')}\", domain: \"{getattr(self,"_domain","")}\""
+        return f"\"names\":[\"{"\",\"".join(self._names).replace('"','\\"')}\"],\"preferred_name\":\"{self._preferred_name.replace('"','\\"')}\", \"domain\": \"{getattr(self,"_domain","")}\""
     
     
 # Class to hold a set of known affiliations
@@ -161,11 +161,13 @@ class Affiliations:
     
     def __repr__(self) -> str:
         repr_str = "{"
-        affil_keys = list(self._affiliations.keys()).sort()
+        affil_keys = list(self._affiliations.keys())
+        affil_keys.sort()
         for affil in affil_keys:
-            repr_str+=f"\"{affil}\":{repr(self._affiliations[affil])},"
+            repr_str+=f"\"{affil}\":{{{repr(self._affiliations[affil])}}},\n"
         repr_str+=repr_str.rstrip(',')
-        repr_str = "}"
+        repr_str += "}"
+        return repr_str
 
 # Todo: Class to go through datatracker to extract the information, clean up names, match two orgs etc.
 # Affiliation Entry Class 
@@ -403,7 +405,7 @@ if __name__ == "__main__":
             if affiliation_str == "Unknown":
                 print("Affiliation either None, empty, or unknown")
                 continue
-            if (person_email_address is None) | (person_email_address) == "":
+            if (person_email_address is None) | (person_email_address == ""):
                 print("missing email addr.")
                 continue
             if person_email_address.find("@") == -1:
@@ -415,4 +417,5 @@ if __name__ == "__main__":
                 affil_collection.affiliation_domain(affiliation_str,tmp_domain)
             
     with open(new_path,'w') as f:
-        print(repr(affil_collection),FILE=f)
+        print(f"*** exporting to {new_path}")
+        print(repr(affil_collection),file=f)
