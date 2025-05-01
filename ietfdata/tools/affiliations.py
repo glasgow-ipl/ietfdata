@@ -403,7 +403,7 @@ if __name__ == "__main__":
             if affiliation_str == "Unknown":
                 print("Affiliation either None, empty, or unknown")
                 continue
-            if person_email_address == "":
+            if (person_email_address is None) | (person_email_address) == "":
                 print("missing email addr.")
                 continue
             if person_email_address.find("@") == -1:
