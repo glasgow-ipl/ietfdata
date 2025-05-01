@@ -29,7 +29,7 @@ class Affiliation:
     _names : list[str]
     _domain : Optional[str]
     
-    def __init(self,name:str) -> None:
+    def __init__(self,name:str) -> None:
         self._preferred_name = name
         self._names = [name]
         self._domain = None
@@ -46,14 +46,13 @@ class Affiliation:
     def set_preferred_name(self,name: str) -> None:
         if name in self._names:
             if self._preferred_name is not None:
-                print(f"Preferred name already set to: {self._preferred_name},\
-                        overriding to {name}")
+                print(f"Preferred name already set to: {self._preferred_name}, overriding to {name}")
             self._preferred_name = name
         else:
             raise RuntimeError(f"{name} not in the Names.")
     
     def add_name(self,name:str)->None:
-        if (name is None) || (name == ""):
+        if (name is None) | (name == ""):
             raise RuntimeError("Name is None or empty.")
         elif name not in self._names:
             self._names.append(name) 
@@ -61,17 +60,16 @@ class Affiliation:
             print(f"{name} already present for {self._preferred_name}.")
     
     def add_domain(self, domain:str)->None:
-        if (domain is None) || (domain ==""):
+        if (domain is None) | (domain ==""):
             raise RuntimeError("Domain is None or empty.")
         if self._domain is None:
             self._domain = domain
         else:
-            raise RuntimeError(f"Domain already set to {self._domain}, \ 
-                                 but add_domain({domain}) was called.")
+            print(f"DEBUG: Domain already set to {self._domain}, but add_domain({domain}) was called.", file=sys.stderr)
+            # raise RuntimeError(f"Domain already set to {self._domain}, but add_domain({domain}) was called.")
    
     def __repr__(self):
-        return f"names:[{",".join(self._names)}],preferred_name:{self._preferred_name},\
-                domain: {self._domain}"
+        return f"names:[{",".join(self._names)}],preferred_name:{self._preferred_name}, domain: {getattr(self,"_domain","")}"
     
     
 # Class to hold a set of known affiliations
@@ -89,12 +87,11 @@ class Affiliations:
         return self._affiliations[name]
     
     def affiliation_exists(self, name: str) -> None:
-        if name not in self._affiliaitions:
+        if name not in self._affiliations:
             self._affiliations[name] = Affiliation(name)
             self._affiliations[name].set_preferred_name(name)
         else:
-            print(f"Affiliation \"{name}\" already exists with matching \
-                    preferred name.")
+            print(f"Affiliation \"{name}\" already exists with matching preferred name.")
         if name not in self._affiliations_by_name:
             self._affiliations_by_name[name] = self._affiliations[name]
             
@@ -106,9 +103,9 @@ class Affiliations:
             raise KeyError(f"{name_2} is not a known preferred name.")
         
         for name in self._affiliations[name_2].names():
-            if name not in self._affiliations[name_1]
+            if name not in self._affiliations[name_1]:
                 self._affiliations[name_1].add_name(name)
-            if name_2 is not in self._affiliations[name_1]:
+            if name_2 not in self._affiliations[name_1]:
                 self._affiliations[name_1].add_name(name_2)
         
         name_2_domain = self._affiliations[name_2].domain()
@@ -118,9 +115,7 @@ class Affiliations:
             elif self._affiliations[name_1].domain() == name_2_domain:
                 pass
             else:
-                raise RuntimeError(f"Mismatching domains for {name_1}\
-                                     ({self._affiliations[name_1].domain()})\
-                                     and {name_2}({name_2_domain})")
+                raise RuntimeError(f"Mismatching domains for {name_1} ({self._affiliations[name_1].domain()}) and {name_2}({name_2_domain})")
         
         self._affiliations_by_name[name_2] = self.affiliations[name_1]
         for name in self._affiliations[name_2].names():
@@ -135,8 +130,13 @@ class Affiliations:
             raise KeyError(f"Unknown affiliation: {name}")
         if self._affiliations[name].domain() is None:
             self._affiliations[name].add_domain(domain)
+        elif self._affiliations[name].domain() == domain:
+            print(f"Provided domain matches the existing domain:{domain}")
         else:
-            raise RuntimeError(f"Multiple domains for affiliation: {name}")
+            print(f"DEBUG: Multiple domains for affiliation: {name}, {self._affiliations[name].domain()} exists while {domain} was supplied.")
+            self._affiliations[name].add_domain(domain)
+            # raise RuntimeError(f"Multiple domains for affiliation: {name}, {self._affiliations[name].domain()} exists while {domain} was supplied.")
+
         
     def affiliation_update_preferred_name(self, name: str, new_name: str) -> None:
         # Indicates the preferred name for an affiliation
@@ -158,6 +158,13 @@ class Affiliations:
             return self._affiliations_by_name[tmp_name].preferred_name()
         return None
     
+    def __repr__(self) -> str:
+        repr_str = "{"
+        affil_keys = list(self._affiliations.keys()).sort()
+        for affil in affil_keys:
+            repr_str+=f"{affil}:{repr(self._affiliations[affil])},"
+        repr_str+=repr_str.rstrip(',')
+        repr_str = "}"
 
 # Todo: Class to go through datatracker to extract the information, clean up names, match two orgs etc.
 # Affiliation Entry Class 
@@ -247,7 +254,7 @@ class AffiliationsForPerson:
         returnstr += "]}"
         return returnstr
 
-
+# Auxiliary functions
     
 def _remove_suffix(input_string:str, suffix:str) -> str:
             if suffix and input_string.lower().endswith(suffix.lower()):
@@ -307,16 +314,104 @@ def cleanup_affiliation_str(affiliation:str)->str:
 def cleanup_affiliation(affiliation:str)->list[str]:
     affiliation = cleanup_affiliation_str(affiliation)
     affiliation_list = None
-    affiliation_list = normalise(affiliation)
+    # affiliation_list = normalise(affiliation)
     if affiliation_list is None: # attempt 2 — unknown multi-affiliation case
         tmp_split = affiliation.split("/")
         for part in tmp_split:
             tmp_part = part
             tmp_part = cleanup_affiliation_str(tmp_part) 
-            tmp_list = normalise(tmp_part)
-            if tmp_list is not None:
-                affiliation_list.append(tmp_list)
+            # tmp_list = normalise(tmp_part)
+            # if tmp_list is not None:
+            #     affiliation_list.append(tmp_list)
     if affiliation_list is None: # if all else fails, leave after cleanse
         affiliation_list = [affiliation]
     return affiliation_list
 
+## affiliation collection
+if __name__ == "__main__":
+    if len(sys.argv) == 2:
+        old_path = None
+        new_path = Path(sys.argv[1])
+    else:
+        print("Usage: python3 -m ietfdata.tools.affiliations [new.json]")
+        # print("   or: python3 -m ietfdata.tools.participants [old.json] [new.json]")
+        sys.exit(1)
+    
+    affil_collection = Affiliations()
+    
+    print(f"*** ietfdata.tools.affiliations")
+    print("*** Collecting affiliations from the datatracker")
+    dt  = DataTracker(cache_dir = "cache",cache_timeout = timedelta(hours=12))
+    
+    print("*** Published RFC")
+    ri = RFCIndex()
+    seen_addr_ietf = list()
+    for rfc in ri.rfcs():
+        year = rfc.date().year
+        if year < 2003:
+            print('pre 2003, skip')
+            continue
+        if year > 2024:
+            print('post 2024, skip')
+            continue
+        # setup additional attributes
+        stream = "stream_"
+        try:
+            stream += rfc.stream
+        except TypeError:
+            stream += "N/A"
+        if stream is None:
+            stream += "N/A"
+        if (stream != "stream_IETF" and stream != "stream_Legacy"): # only look at IETF and Legacy stream
+            continue
+        
+        status = "status_"  
+        try:
+            status += rfc.publ_status
+        except TypeError:
+            status += "N/A"
+        if status is None:
+            status += "N/A"
+        # end setup additional attributes
+        print(rfc.doc_id)
+        # fetch values for additional attributes
+        # Authors handling:  
+        document = dt.document_from_rfc(rfc.doc_id)
+        if document is None:
+            print(f"No document in data tracker from {rfc.doc_id}")
+            continue
+        authors = dt.document_authors(document)
+        if authors is None:
+            print(f"No authors in data tracker from {rfc.doc_id}")
+            continue
+        for author in authors:
+            person_uri = str(author.person)
+            if author.email is not None:
+                person_email_address = str(dt.email(author.email).address)
+            else:
+                person_email_address = None
+            tmp_ident_list = [person_uri,person_email_address]
+            
+            affiliation_str = None
+            if author.affiliation is None:
+                affiliation_str = "Unknown"
+            else:
+                affiliation_str = author.affiliation
+            if author.affiliation == "":
+                affiliation_str = "Unknown"
+            if affiliation_str == "Unknown":
+                print("Affiliation either None, empty, or unknown")
+                continue
+            if person_email_address == "":
+                print("missing email addr.")
+                continue
+            if person_email_address.find("@") == -1:
+                print("Not an email addr.")
+                continue
+            tmp_domain = person_email_address.split('@')[-1]
+            affil_collection.affiliation_exists(affiliation_str)
+            if tmp_domain != "":
+                affil_collection.affiliation_domain(affiliation_str,tmp_domain)
+            
+    with open(new_path,'w') as f:
+        print(repr(affil_collection),FILE=f)
