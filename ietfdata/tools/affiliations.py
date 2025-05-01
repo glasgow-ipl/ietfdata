@@ -69,7 +69,7 @@ class Affiliation:
             # raise RuntimeError(f"Domain already set to {self._domain}, but add_domain({domain}) was called.")
    
     def __repr__(self):
-        return f"names:[{",".join(self._names)}],preferred_name:{self._preferred_name}, domain: {getattr(self,"_domain","")}"
+        return f"names:[\"{"\",\"".join(self._names).replace('"','\\"')}\"],preferred_name:\"{self._preferred_name.replace('"','\\"')}\", domain: \"{getattr(self,"_domain","")\"}"
     
     
 # Class to hold a set of known affiliations
@@ -163,7 +163,7 @@ class Affiliations:
         repr_str = "{"
         affil_keys = list(self._affiliations.keys()).sort()
         for affil in affil_keys:
-            repr_str+=f"{affil}:{repr(self._affiliations[affil])},"
+            repr_str+=f"\"{affil}\":{repr(self._affiliations[affil])},"
         repr_str+=repr_str.rstrip(',')
         repr_str = "}"
 
