@@ -126,6 +126,7 @@ class Affiliations:
     def affiliation_domain(self, name:str, domain:str) -> None:
         # Indicates that `domain` is known to be used solely by the 
         # `affiliation`
+        domain = domain.lower()
         if name not in self._affiliations:
             raise KeyError(f"Unknown affiliation: {name}")
         if self._affiliations[name].domain() is None:
