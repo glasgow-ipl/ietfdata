@@ -359,7 +359,24 @@ if __name__ == "__main__":
     
     affil_collection = Affiliations()
     
-    print(f"*** ietfdata.tools.affiliations")
+    ignore = ["noreply@ietf.org",
+      "noreply@github.com",
+      "noreply=40github.com@dmarc.ietf.org",
+      "notifications@github.com",
+      "noreply@icloud.com",
+      "noname@noname.com",
+      "messenger@webex.com",
+      "tracker-forces@mip4.org", # FORCES issue tracker
+      "tracker-forces@MIP4.ORG", # FORCES issue tracker
+      "tracker-mip6@mip4.org",   # Mobile IPv6 issue tracker
+      "tracker-mip4@mip4.org",   # Mobile IPv4 issue tracker
+      "tracker-mip4@levkowetz.com",
+      "3761bis@frobbit.se",      # 3761bis issue tracker
+      "ietf-action@ietf.org",    # IETF issues tracker
+      "ctp_issues@danforsberg.info", # Seamoby CTP issue tracker
+     ]
+    
+    print("*** ietfdata.tools.affiliations")
     print("*** Collecting affiliations from the datatracker")
     dt  = DataTracker(cache_dir = "cache",cache_timeout = timedelta(hours=24))
     
@@ -432,9 +449,33 @@ if __name__ == "__main__":
             affil_collection.affiliation_exists(affiliation_str)
             if tmp_domain != "":
                 affil_collection.affiliation_domain(affiliation_str,tmp_domain)
-            
     with open(new_path,'w') as f:
         print(f"*** exporting to {new_path}")
         # print(repr(affil_collection),file=f,flush=True)
-        f.write(repr(affil_collection))
+        f.write(repr(affil_collection)) 
+    print("*** initial collection done, consolidating")
+    for affil in affil_collection:
+        clean_affil = cleanup_affiliation_str(affil)
+        if clean_affil == affil:
+            continue
+        try:
+            affil_obj = affil_collection.affiliation_by_name(clean_affil)
+        except KeyError:
+            print(f"{clean_affil} not present, update preferred name")
+            
+            continue
+            
+        print(f"merging {affil} to {clean_affil}")
+        try:
+            affil_collection.merge(clean_affil,affil)
+        except RuntimeError:
+            print(f"failed to merge {affil} to {clean_affil})")
+        
+    
+    with open(f"cleaned_{new_path}",'w') as f:
+        print(f"*** exporting to cleaned_{new_path}")
+        # print(repr(affil_collection),file=f,flush=True)
+        f.write(repr(affil_collection)) 
+
+
     
