@@ -67,9 +67,12 @@ class Affiliation:
         else:
             print(f"DEBUG: Domain already set to {self._domain}, but add_domain({domain}) was called.", file=sys.stderr)
             # raise RuntimeError(f"Domain already set to {self._domain}, but add_domain({domain}) was called.")
-   
+    def toJSON(self):
+        return f"\"names\":[\"{"\",\"".join(self._names).replace('"','\"').replace('\n','\\n')}\"],\"preferred_name\":\"{self._preferred_name.replace('"','\"').replace("\n","\\n")}\", \"domain\": \"{getattr(self,"_domain","")}\""
     def __repr__(self):
-        return f"\"names\":[\"{"\",\"".join(self._names).replace('"','\\"')}\"],\"preferred_name\":\"{self._preferred_name.replace('"','\\"')}\", \"domain\": \"{getattr(self,"_domain","")}\""
+        if "(deceased)" in self.preferred_name():
+            print(f"**** DEBUG: {self.toJSON()}")
+        return self.toJSON()
     
     
 # Class to hold a set of known affiliations
@@ -158,16 +161,30 @@ class Affiliations:
         if tmp_name in self._affiliations_by_name:
             return self._affiliations_by_name[tmp_name].preferred_name()
         return None
-    
-    def __repr__(self) -> str:
+    def toJSON(self) -> str:
+        print("**** Affiliations.toJSON()")
         repr_str = "{"
         affil_keys = list(self._affiliations.keys())
         affil_keys.sort()
         for affil in affil_keys:
-            repr_str+=f"\"{affil}\":{{{repr(self._affiliations[affil])}}},\n"
-        repr_str+=repr_str.rstrip(',')
-        repr_str += "}"
+            repr_str+=f"\"{affil.replace('\"','\"').replace("\n","\\n")}\":{{{repr(self._affiliations[affil]).replace('\"','\"').replace("\n","\\n")}}},\n"
+            if "(deceased)" in affil:
+                print(f"**** DEBUG affil: {affil}")
+                print(f"**** DEBUG repr_str: {repr_str}")
+        repr_str=repr_str.rstrip(',\n')
+        repr_str+="}"
+        print("**** Affiliations.toJSON() returning")
         return repr_str
+    def __repr__(self) -> str:
+        return self.toJSON()
+    
+    # def output_to_file(self,path:str):
+    #     with open(path,'w') as f:
+    #         f.writelines('{')
+    #         affil_keys = list(self._affiliations.keys())
+    #         affil_keys.sort()
+    #             for affil in affil_keys:
+    #         f.writelines('}')
 
 # Todo: Class to go through datatracker to extract the information, clean up names, match two orgs etc.
 # Affiliation Entry Class 
@@ -344,7 +361,7 @@ if __name__ == "__main__":
     
     print(f"*** ietfdata.tools.affiliations")
     print("*** Collecting affiliations from the datatracker")
-    dt  = DataTracker(cache_dir = "cache",cache_timeout = timedelta(hours=12))
+    dt  = DataTracker(cache_dir = "cache",cache_timeout = timedelta(hours=24))
     
     print("*** Published RFC")
     ri = RFCIndex()
@@ -418,4 +435,6 @@ if __name__ == "__main__":
             
     with open(new_path,'w') as f:
         print(f"*** exporting to {new_path}")
-        print(repr(affil_collection),file=f)
+        # print(repr(affil_collection),file=f,flush=True)
+        f.write(repr(affil_collection))
+    
