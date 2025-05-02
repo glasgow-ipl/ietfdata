@@ -89,6 +89,9 @@ class Affiliations:
             raise KeyError(f"{name} is not a known preferred name.")
         return self._affiliations[name]
     
+    def affiliations_preferred_names(self) -> list[str]:
+        return sorted(list(self._affiliations.keys()))
+    
     def affiliation_exists(self, name: str) -> None:
         if name not in self._affiliations:
             self._affiliations[name] = Affiliation(name)
@@ -106,9 +109,9 @@ class Affiliations:
             raise KeyError(f"{name_2} is not a known preferred name.")
         
         for name in self._affiliations[name_2].names():
-            if name not in self._affiliations[name_1]:
+            if name not in self._affiliations[name_1].names():
                 self._affiliations[name_1].add_name(name)
-            if name_2 not in self._affiliations[name_1]:
+            if name_2 not in self._affiliations[name_1].names():
                 self._affiliations[name_1].add_name(name_2)
         
         name_2_domain = self._affiliations[name_2].domain()
@@ -120,7 +123,7 @@ class Affiliations:
             else:
                 raise RuntimeError(f"Mismatching domains for {name_1} ({self._affiliations[name_1].domain()}) and {name_2}({name_2_domain})")
         
-        self._affiliations_by_name[name_2] = self.affiliations[name_1]
+        self._affiliations_by_name[name_2] = self._affiliations[name_1]
         for name in self._affiliations[name_2].names():
             self._affiliations_by_name[name] = self._affiliations[name_1]
             
@@ -291,9 +294,11 @@ def _cleanup_affiliation_strip_chars(affiliation:str) -> str:
     return affiliation
 
 def _cleanup_affiliation_suffix(affiliation:str) -> str:
-    affiliation_suffixes = [", Inc.", "Inc", "LLC", "Ltd", "Limited", "Incorporated", "GmbH", "Inc.", "Systems", "Corporation", "Co", "Co.","Corp", "Corp.", "Ltd.", "Technologies", "AG", "B.V.","s.r.o.","s.r.o","a.s"]
+    affiliation_suffixes = [", Inc.", "Inc", "LLC", "Ltd", "Limited", "Incorporated", "GmbH", "Inc.", "System", "Systems", "Corporation", "Co", "Co.","Corp", "Corp.", "Ltd.", "Technologies", "AG", "B.V.","s.r.o.","s.r.o","a.s"]
     for suffix in affiliation_suffixes:
-        affiliation = _remove_suffix(affiliation,suffix).strip()
+        # affiliation = _remove_suffix(affiliation,suffix).strip()
+        affiliation = affiliation.replace(suffix,"").strip()
+        affiliation = affiliation.replace(suffix.lower(),"").strip()
     return affiliation
 
 def _cleanup_affiliation_academic(affiliation:str) ->str:
@@ -434,6 +439,8 @@ if __name__ == "__main__":
                 affiliation_str = "Unknown"
             else:
                 affiliation_str = author.affiliation
+            if "/" in affiliation_str:
+                affiliation_str = "Unknown"
             if author.affiliation == "":
                 affiliation_str = "Unknown"
             if affiliation_str == "Unknown":
@@ -454,7 +461,8 @@ if __name__ == "__main__":
         # print(repr(affil_collection),file=f,flush=True)
         f.write(repr(affil_collection)) 
     print("*** initial collection done, consolidating")
-    for affil in affil_collection:
+    affiliations_preferred_names = affil_collection.affiliations_preferred_names()
+    for affil in affiliations_preferred_names:
         clean_affil = cleanup_affiliation_str(affil)
         if clean_affil == affil:
             continue
@@ -462,7 +470,6 @@ if __name__ == "__main__":
             affil_obj = affil_collection.affiliation_by_name(clean_affil)
         except KeyError:
             print(f"{clean_affil} not present, update preferred name")
-            
             continue
             
         print(f"merging {affil} to {clean_affil}")
@@ -470,10 +477,11 @@ if __name__ == "__main__":
             affil_collection.merge(clean_affil,affil)
         except RuntimeError:
             print(f"failed to merge {affil} to {clean_affil})")
+            continue
         
-    
-    with open(f"cleaned_{new_path}",'w') as f:
-        print(f"*** exporting to cleaned_{new_path}")
+    cleaned_path = Path(str(new_path).replace(".json","-cleaned.json"))
+    with open(f"{cleaned_path}",'w') as f:
+        print(f"*** exporting to {cleaned_path}")
         # print(repr(affil_collection),file=f,flush=True)
         f.write(repr(affil_collection)) 
 
