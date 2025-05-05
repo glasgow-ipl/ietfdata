@@ -486,10 +486,10 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_person_ext_resource(self) -> None:
-        r = self.dt.person_ext_resource(PersonExtResourceURI(uri="/api/v1/person/personextresource/177/"))
+        r = self.dt.person_ext_resource(PersonExtResourceURI(uri="/api/v1/person/personextresource/1300/"))
         if r is not None:
-            self.assertEqual(r.resource_uri, PersonExtResourceURI(uri="/api/v1/person/personextresource/177/"))
-            self.assertEqual(r.id,           177)
+            self.assertEqual(r.resource_uri, PersonExtResourceURI(uri="/api/v1/person/personextresource/1300/"))
+            self.assertEqual(r.id,           1300)
             self.assertEqual(r.display_name, "")
             self.assertEqual(r.person,       PersonURI(uri="/api/v1/person/person/20209/"))
             self.assertEqual(r.name,         ExtResourceNameURI(uri="/api/v1/name/extresourcename/github_username/"))
