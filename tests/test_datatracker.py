@@ -501,10 +501,11 @@ class TestDatatracker(unittest.TestCase):
     def test_person_ext_resources(self) -> None:
         p = self.dt.person_from_email("csp@csperkins.org")
         r = list(self.dt.person_ext_resources(p))
-        self.assertEqual(len(r), 3)
+        self.assertEqual(len(r), 4)
         self.assertEqual(r[0].value, "csperkins")
-        self.assertEqual(r[1].value, "https://csperkins.org/")
-        self.assertEqual(r[2].value, "https://www.gla.ac.uk/schools/computing/staff/colinperkins/")
+        self.assertEqual(r[1].value, "https://orcid.org/0000-0002-3404-8964")
+        self.assertEqual(r[2].value, "https://csperkins.org/")
+        self.assertEqual(r[3].value, "https://www.gla.ac.uk/schools/computing/staff/colinperkins/")
 
 
     def test_ext_resource_name(self) -> None:
