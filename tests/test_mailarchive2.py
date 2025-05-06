@@ -41,7 +41,7 @@ from ietfdata.mailarchive2 import *
 # =================================================================================================================================
 # Unit tests:
 
-class TestMailArchive(unittest.TestCase):
+class TestMailArchive2(unittest.TestCase):
     dt : DataTracker
     ma : MailArchive
 
@@ -54,7 +54,7 @@ class TestMailArchive(unittest.TestCase):
             raise unittest.SkipTest("Couldn't connect to MongoDB instance -- skipping MailArchive tests")
 
 
-    def test_mailarchive_mailing_list_names(self) -> None:
+    def test_mailarchive2_mailing_list_names(self) -> None:
         ml_names = list(self.ma.mailing_list_names())
         self.assertGreater(len(ml_names), 0)
         self.assertIn("ietf",          ml_names)
@@ -62,14 +62,14 @@ class TestMailArchive(unittest.TestCase):
         self.assertIn("irtf-announce", ml_names)
 
 
-    def test_mailarchive_mailing_list(self) -> None:
+    def test_mailarchive2_mailing_list(self) -> None:
         mlist = self.ma.mailing_list("100attendees")
-        mlist.update()
+        mlist.update(verbose=False)
         self.assertEqual(mlist.name(), "100attendees")
         self.assertEqual(mlist.num_messages(), 434)
 
 
-    def test_mailarchive_message(self) -> None:
+    def test_mailarchive2_message(self) -> None:
         # This assumes there is a local mailarchive containing data up to 2025-01-21 or later.
         msgs = self.ma.message("<0D393D01-F267-43BC-8F9C-1638B3E17EA5@csperkins.org>")
         self.assertEqual(len(msgs), 4)
@@ -98,8 +98,7 @@ class TestMailArchive(unittest.TestCase):
         self.assertEqual(msgs[3].header("from"),    ['Colin Perkins <csp@csperkins.org>'])
 
 
-
-    def test_mailarchive_messages_from_list(self) -> None:
+    def test_mailarchive2_messages_from_list(self) -> None:
         # From person to specific mailing list
         msgs = list(self.ma.messages(header_from="csp@csperkins.org", mailing_list_name="sip"))
         self.assertEqual(len(msgs), 8)
@@ -113,7 +112,7 @@ class TestMailArchive(unittest.TestCase):
         self.assertEqual(msgs[7].header("subject"), ['Re: [Sip] Maximum allowed value of Clock rate in SDP ???'])
 
 
-    def test_mailarchive_messages_from_to(self) -> None:
+    def test_mailarchive2_messages_from_to(self) -> None:
         # Between two people, irrespective of mailing list
         msgs = list(self.ma.messages(header_from="csp@csperkins.org", header_to="ladan@isi.edu"))
         self.assertEqual(len(msgs), 3)
@@ -133,7 +132,7 @@ class TestMailArchive(unittest.TestCase):
         self.assertEqual(msgs[2].uidvalidity(),     1455297825)
 
 
-    def test_mailarchive_messages_subject(self) -> None:
+    def test_mailarchive2_messages_subject(self) -> None:
         # With a particular subject
         msgs = list(self.ma.messages(header_subject="Secdir last call review of draft-ietf-anima-brski-cloud-11"))
         self.assertEqual(len(msgs), 3)
@@ -151,7 +150,6 @@ class TestMailArchive(unittest.TestCase):
         self.assertEqual(msgs[2].mailing_list().name(), "secdir")
         self.assertEqual(msgs[2].uid(),             12606)
         self.assertEqual(msgs[2].uidvalidity(),     1455297825)
-
 
 
 if __name__ == '__main__':

@@ -760,7 +760,7 @@ class MailArchive:
                                        ], unique=False)
         self._db.metadata.create_index([('message_id', ASCENDING)
                                        ], unique=False)
-        self._db.metadata.create_index([('in_reply_to', ASCENDING)
+        self._db.messages.create_index([('in_reply_to', ASCENDING)
                                        ], unique=False)
         self._fs = GridFS(self._db)
         # Create other state:
@@ -838,7 +838,7 @@ class MailArchive:
             query["headers.subject"] = { "$regex": f"{header_subject}"}
         if mailing_list_name is not None:
             query["list"] = mailing_list_name
-        messages = self._db.messages.find(query, no_cursor_timeout=True)
+        messages = self._db.messages.find(query)
         for message in messages:
             mailing_list = self.mailing_list(message["list"])
             uidvalidity  = message["uidvalidity"]
