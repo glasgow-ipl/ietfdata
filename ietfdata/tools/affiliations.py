@@ -65,19 +65,32 @@ class Organisation:
 
 
     def add_name(self, name:str) -> None:
-        if name not in self._names:
-            self._names.append(name)
-
+        if (name is None) or (name == ""):
+            raise RuntimeError("Name is None or empty.")
+        elif name not in self._names:
+            self._names.append(name) 
+        else:
+            print(f"{name} already present for {self._preferred_name}.")
 
     def set_domain(self, domain: str) -> None:
+        if (domain is None) or (domain ==""):
+            raise RuntimeError("Domain is None or empty.")
         if self._domain is None:
-            self._domain = domain
-        elif self._domain == domain:
+            self._domain = domain.lower()
+        elif self._domain == domain.lower():
             pass
         else:
             raise RuntimeError(f"Cannot set domain: {self._domain} -> {domain}")
-
-
+    
+    def toJSON(self):
+        tmp_dict=dict()
+        tmp_dict["names"]=self.names()
+        tmp_dict["preferred_name"]=getattr(self,"_preferred_name","")
+        tmp_dict["domain"]=getattr(self,"_domain","")
+        return json.JSONEncoder().encode(tmp_dict)
+    
+    def __repr__(self):
+        return self.toJSON()
 
 class OrganisationDB:
     _organisations : Dict[str,Organisation]
@@ -100,6 +113,8 @@ class OrganisationDB:
         """
         Indicate that an organisation with the specified `name` exists
         """
+        if (name is None) or (name == ""):
+            raise RuntimeError("Name is None or empty.")
         if name not in self._organisations:
             print(f"Organisation exists: \"{name}\"")
             self._organisations[name] = Organisation(name)
@@ -110,6 +125,8 @@ class OrganisationDB:
         Indicate that an organisation with the specified `name` has sole
         use of the `domain`
         """
+        if (domain is None) or (domain == ""):
+            raise RuntimeError("Domain is None or empty.")
         self.organisation_exists(name)
         if domain not in self._domains:
             print(f"Organisation has domain: \"{name}\" -> \"{domain}\"")
@@ -129,6 +146,8 @@ class OrganisationDB:
         """
         Indicates that `name` is the preferred name for an organisation.
         """
+        if (name is None) or (name == ""):
+            raise RuntimeError("Name is None or empty.")
         self.organisation_exists(name)
         print(f"Organisation has preferred name: \"{name}\"")
         self._organisations[name].set_preferred_name(name)
@@ -173,7 +192,7 @@ class OrganisationDB:
         for name, org in self._organisations.items():
             if name in org1.names():
                 self._organisations[name] = org2
-        # Change all references to org1 by dmomain to refer to org2:
+        # Change all references to org1 by domain to refer to org2:
         for domain, org in self._domains.items():
             if domain == org1.domain():
                 self._domains[domain] = org2
@@ -224,7 +243,7 @@ def fix_affiliation(name:str) -> str:
     return name
 
 
-def record_affiliation(orgs: OrganisationDB, name:str, email:str) -> Optional[Tuple[str,str]]:
+def record_affiliation(orgs: OrganisationDB, name:str, email:str) -> Optional[tuple[str,str]]:
     # Clean-up malformed organisation names:
     name = fix_affiliation(name)
 
