@@ -312,16 +312,16 @@ if __name__ == "__main__":
     else:
         print("Usage: python3 -m ietfdata.tools.affiliations [new.json]")
         sys.exit(1)
-
+        
     print("*** ietfdata.tools.affiliations")
-
+    
     orgs = OrganisationDB()
-
+    
     dt = DataTracker(cache_timeout = timedelta(days=7))
     ri = RFCIndex(cache_dir = "cache")
-
+    
     org_domains = []
-
+    
     # Record affiliations for RFC authors
     print("Fetching affiliations for RFC authors:")
     for rfc in ri.rfcs(stream="IETF", since="1995-01"):
@@ -335,9 +335,15 @@ if __name__ == "__main__":
                 org_domain = record_affiliation(orgs, dt_author.affiliation, email.address)
                 if org_domain is not None and org_domain not in org_domains:
                     org_domains.append(org_domain)
-
+                    
     # Record affiliations based on meeting registrations
     for reg in dt.meeting_registrations():
+        if reg.affiliation is None or reg.affiliation == "":
+            print("reg.affiliation is either None or empty.")
+            continue
+        # if reg.email is None or reg.email =="":
+        #     print("reg.email is either None or empty.")
+        #     continue
         org_domain = record_affiliation(orgs, reg.affiliation, reg.email)
         if org_domain is not None and org_domain not in org_domains:
             org_domains.append(org_domain)
@@ -349,7 +355,7 @@ if __name__ == "__main__":
         for name, domain in org_domains:
             if org_name.startswith(f"{name} "):
                 orgs.organisations_match(org_name, name)
-
-
+                
+                
     orgs.dump(path)
 
