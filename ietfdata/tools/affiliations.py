@@ -1,489 +1,336 @@
-# TODO: Add licensing
+# Copyright (C) 2025 University of Glasgow
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice,
+#    this list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
 
+import json
 import sys
-import csv
-import json 
-import copy
+import textwrap
 
-import datetime
-from datetime import timedelta
-from typing import Optional
+from pathlib import Path
+from typing  import List, Dict, Optional, Iterator
 
 from ietfdata.datatracker     import *
 from ietfdata.datatracker_ext import *
 from ietfdata.mailarchive2    import *
 
-# load affiliation_mappings
-# import affiliations_map #hugo
-import ietfdata.tools.affiliation_mapping_dictionary as afmap #yangjun
-# affiliations.py --- script to generate extract affiliations
-# Mappings generated:
-# 1. raw affiliation -> normalised affiliation mappings
-# 2. email_domain -> normalised affiliations mappings
-# 3. identity -> start year-month, end year-month, affiliation mapping
+class Organisation:
+    _preferred_name : Optional[str]
+    _names          : List[str]
+    _domain         : Optional[str]
 
-# Affiliation class
-class Affiliation:
-    
-    _preferred_name: Optional[str]
-    _names : list[str]
-    _domain : Optional[str]
-    
-    def __init__(self,name:str) -> None:
-        self._preferred_name = name
-        self._names = [name]
-        self._domain = None
-    
+    def __init__(self, name:str) -> None:
+        self._preferred_name = None
+        self._names          = [name]
+        self._domain         = None
+
+
     def preferred_name(self) -> Optional[str]:
         return self._preferred_name
-    
-    def names(self) -> list[str]:
+
+
+    def names(self) -> List[str]:
         return self._names
-    
+
+
     def domain(self) -> Optional[str]:
         return self._domain
-    
-    def set_preferred_name(self,name: str) -> None:
-        if name in self._names:
-            if self._preferred_name is not None:
-                print(f"Preferred name already set to: {self._preferred_name}, overriding to {name}")
+
+
+    def set_preferred_name(self, name: str) -> None:
+        if name in self._names and self._preferred_name is None:
             self._preferred_name = name
         else:
-            raise RuntimeError(f"{name} not in the Names.")
-    
-    def add_name(self,name:str)->None:
-        if (name is None) | (name == ""):
-            raise RuntimeError("Name is None or empty.")
-        elif name not in self._names:
-            self._names.append(name) 
-        else:
-            print(f"{name} already present for {self._preferred_name}.")
-    
-    def add_domain(self, domain:str)->None:
-        if (domain is None) | (domain ==""):
-            raise RuntimeError("Domain is None or empty.")
+            raise RuntimeError(f"Cannot set preferred name: {self._preferred_name} -> {name}")
+
+
+    def add_name(self, name:str) -> None:
+        if name not in self._names:
+            self._names.append(name)
+
+
+    def set_domain(self, domain: str) -> None:
         if self._domain is None:
             self._domain = domain
+        elif self._domain == domain:
+            pass
         else:
-            print(f"DEBUG: Domain already set to {self._domain}, but add_domain({domain}) was called.", file=sys.stderr)
-            # raise RuntimeError(f"Domain already set to {self._domain}, but add_domain({domain}) was called.")
-    def toJSON(self):
-        return f"\"names\":[\"{"\",\"".join(self._names).replace('"','\"').replace('\n','\\n')}\"],\"preferred_name\":\"{self._preferred_name.replace('"','\"').replace("\n","\\n")}\", \"domain\": \"{getattr(self,"_domain","")}\""
-    def __repr__(self):
-        if "(deceased)" in self.preferred_name():
-            print(f"**** DEBUG: {self.toJSON()}")
-        return self.toJSON()
-    
-    
-# Class to hold a set of known affiliations
-class Affiliations:
-    _affiliations : dict[str,Affiliation]
-    _affiliations_by_name : dict[str,Affiliation]
-    
+            raise RuntimeError(f"Cannot set domain: {self._domain} -> {domain}")
+
+
+
+class OrganisationDB:
+    _organisations : Dict[str,Organisation]
+    _domains       : Dict[str,Organisation]
+
     def __init__(self) -> None:
-        self._affiliations = dict()
-        self._affiliations_by_name = dict()
+        self._organisations = {}
+        self._domains       = {}
+
+
+    def get_domains(self) -> List[str]:
+        return sorted(list(self._domains.keys()))
+
     
-    def affiliation_by_name(self, name: str) -> Affiliation:
-        if name not in self._affiliations:
-            raise KeyError(f"{name} is not a known preferred name.")
-        return self._affiliations[name]
-    
-    def affiliations_preferred_names(self) -> list[str]:
-        return sorted(list(self._affiliations.keys()))
-    
-    def affiliation_exists(self, name: str) -> None:
-        if name not in self._affiliations:
-            self._affiliations[name] = Affiliation(name)
-            self._affiliations[name].set_preferred_name(name)
+    def get_organisations(self) -> List[str]:
+        return sorted(list(self._organisations.keys()))
+
+
+    def organisation_exists(self, name: str) -> None:
+        """
+        Indicate that an organisation with the specified `name` exists
+        """
+        if name not in self._organisations:
+            print(f"Organisation exists: \"{name}\"")
+            self._organisations[name] = Organisation(name)
+
+
+    def organisation_has_domain(self, name:str, domain:str) -> None:
+        """
+        Indicate that an organisation with the specified `name` has sole
+        use of the `domain`
+        """
+        self.organisation_exists(name)
+        if domain not in self._domains:
+            print(f"Organisation has domain: \"{name}\" -> \"{domain}\"")
+            self._organisations[name].set_domain(domain)
+            self._domains[domain] = self._organisations[name]
         else:
-            print(f"Affiliation \"{name}\" already exists with matching preferred name.")
-        if name not in self._affiliations_by_name:
-            self._affiliations_by_name[name] = self._affiliations[name]
-            
-    def merge(self, name_1: str, name_2: str) -> None:
-        # merge name_2 to name_1
-        if name_1 not in self._affiliations:
-            raise KeyError(f"{name_1} is not a known preferred name.")
-        if name_2 not in self._affiliations:
-            raise KeyError(f"{name_2} is not a known preferred name.")
-        
-        for name in self._affiliations[name_2].names():
-            if name not in self._affiliations[name_1].names():
-                self._affiliations[name_1].add_name(name)
-            if name_2 not in self._affiliations[name_1].names():
-                self._affiliations[name_1].add_name(name_2)
-        
-        name_2_domain = self._affiliations[name_2].domain()
-        if name_2_domain is not None:
-            if self._affiliations[name_1].domain() is None:
-                self._affiliations[name_1].add_domain(name_2_domain)
-            elif self._affiliations[name_1].domain() == name_2_domain:
+            if self._domains[domain] == self._organisations[name]:
+                # The domain has already been recorded as belonging to this organisation
                 pass
             else:
-                raise RuntimeError(f"Mismatching domains for {name_1} ({self._affiliations[name_1].domain()}) and {name_2}({name_2_domain})")
-        
-        self._affiliations_by_name[name_2] = self._affiliations[name_1]
-        for name in self._affiliations[name_2].names():
-            self._affiliations_by_name[name] = self._affiliations[name_1]
-            
-        del self._affiliations[name_2]
-    
-    def affiliation_domain(self, name:str, domain:str) -> None:
-        # Indicates that `domain` is known to be used solely by the 
-        # `affiliation`
-        domain = domain.lower()
-        if name not in self._affiliations:
-            raise KeyError(f"Unknown affiliation: {name}")
-        if self._affiliations[name].domain() is None:
-            self._affiliations[name].add_domain(domain)
-        elif self._affiliations[name].domain() == domain:
-            print(f"Provided domain matches the existing domain:{domain}")
-        else:
-            print(f"DEBUG: Multiple domains for affiliation: {name}, {self._affiliations[name].domain()} exists while {domain} was supplied.")
-            self._affiliations[name].add_domain(domain)
-            # raise RuntimeError(f"Multiple domains for affiliation: {name}, {self._affiliations[name].domain()} exists while {domain} was supplied.")
-
-        
-    def affiliation_update_preferred_name(self, name: str, new_name: str) -> None:
-        # Indicates the preferred name for an affiliation
-        if name not in self._affiliations:
-            raise KeyError(f"Unknown affiliation: {name}")
-        self._affiliations[new_name]=self._affiliations.pop(name)        
-        self._affiliations[new_name].set_preferred_name(new_name)
-        if name not in self._affiliations[new_name].names():
-            self._affiliations[new_name].add_name(name)
-        if name not in self._affiliations_by_name:
-            self._affiliations_by_name[name] = self._affiliations[new_name]
-    
-    def normalise_affiliation(self, name:str) -> str:
-        # normalise the given name
-        tmp_name = name
-        if tmp_name in self._affiliations: #this **is** the preferred name
-            return tmp_name
-        if tmp_name in self._affiliations_by_name:
-            return self._affiliations_by_name[tmp_name].preferred_name()
-        return None
-    def toJSON(self) -> str:
-        print("**** Affiliations.toJSON()")
-        repr_str = "{"
-        affil_keys = list(self._affiliations.keys())
-        affil_keys.sort()
-        for affil in affil_keys:
-            repr_str+=f"\"{affil.replace('\"','\"').replace("\n","\\n")}\":{{{repr(self._affiliations[affil]).replace('\"','\"').replace("\n","\\n")}}},\n"
-            if "(deceased)" in affil:
-                print(f"**** DEBUG affil: {affil}")
-                print(f"**** DEBUG repr_str: {repr_str}")
-        repr_str=repr_str.rstrip(',\n')
-        repr_str+="}"
-        print("**** Affiliations.toJSON() returning")
-        return repr_str
-    def __repr__(self) -> str:
-        return self.toJSON()
-    
-    # def output_to_file(self,path:str):
-    #     with open(path,'w') as f:
-    #         f.writelines('{')
-    #         affil_keys = list(self._affiliations.keys())
-    #         affil_keys.sort()
-    #             for affil in affil_keys:
-    #         f.writelines('}')
-
-# Todo: Class to go through datatracker to extract the information, clean up names, match two orgs etc.
-# Affiliation Entry Class 
-class AffiliationEntry:
-    start_date  : datetime.date
-    end_date    : Optional[datetime.date]
-    names : list[str]
-    def __init__(self, start_date:datetime.date, end_date:Optional[datetime.date],names:list[str]):
-        self.names=names
-        self.start_date = start_date
-        self.end_date = end_date
-    
-    def set_end_date(self, new_end_date:datetime.date):
-        self.end_date = new_end_date
-    
-    def set_affiliation_names(self, names:list[str]):
-        self.names=names
-    
-    def match_names(self, names:list[str]):
-        for name in names:
-            if name not in self.names:
-                return False
-        return True
-    
-    def __str__(self):
-        return_str = '{"names":['
-        return_str += ",".join(self.names)
-        return_str =  return_str.rstrip(',')
-        return_str += "],"
-        return_str += f'"start_date":"{self.start_date}","end_date":"{self.end_date}"}}'
-        return return_str
+                # There is another organisation with this domain. Merge the two, since
+                # domains are supposed to uniquely idenitify organisations.
+                self._merge(self._organisations[name], self._domains[domain])
 
 
-# Sets of Affiliation for Person class
-class AffiliationsForPerson:
-    identifiers : list[str]
-    affiliations: list[AffiliationEntry]
-    
-    def __init__(self,identifiers:list[str],affiliations:list[AffiliationEntry]):
-        self.identifiers = copy.deepcopy(identifiers)
-        self.affiliations = copy.deepcopy(affiliations)
-    
-    def add_identifier(self, identifier:str):
-        self.identifiers.append(identifier)
-    
-    def add_affiliation(self, aff_entry:AffiliationEntry):
-        # TODO: Go through the timeline, insert the entry 
-        new_date = aff_entry.start_date
-        for affil in self.affiliations:
-            i = self.affiliations.index(affil)
-            if new_date <= affil.start_date:
-                self.affiliations.insert(i,aff_entry)
-                return #inserted entry
-        self.affiliations.append(aff_entry)
-        return
-            
-    def consolidate(self):
-        # TODO: Go through the timeline, consolidate the history
-        # This should only be run if and only if everything has been scraped
-        tmp_head_affil = None # temporary first affil in the batch
-        consolidated_affil = list()
-        for affil in self.affiliations:
-            if tmp_head_affil is None:
-                tmp_head_affil = copy.deepcopy(affil)
-                continue
-            # set_head_affil_names = set(tmp_head_affil.names)
-            # diff_list = [item for item in affil.names not in set_head_affil_names]
-            if not tmp_head_affil.match_names(affil.names):
-                    tmp_head_affil.end_date = (datetime.strptime(affil.start_date,'%Y-%m-%d').date() - timedelta(days=1))
-                    consolidated_affil.append(tmp_head_affil)
-                    tmp_head_affil = copy.deepcopy(affil)
-            if(tmp_head_affil not in consolidated_affil):
-                consolidated_affil.append(tmp_head_affil)
-        self.affiliations = copy.deepcopy(consolidated_affil)
-    
-    def __str__(self):
-        returnstr = '{"identifiers":['
-        for ident in self.identifiers:
-            returnstr += f'"{ident}",'
-        returnstr = returnstr[:-1] # strip last comma
-        returnstr += "],"
-        returnstr += '"affiliations":['
-        for affil in self.affiliations:
-            returnstr+=str(affil)
-            returnstr+=","
-        returnstr = returnstr[:-1] # strip last comma
-        returnstr += "]}"
-        return returnstr
-
-# Auxiliary functions
-    
-def _remove_suffix(input_string:str, suffix:str) -> str:
-            if suffix and input_string.lower().endswith(suffix.lower()):
-                return input_string[:-len(suffix)]
-            return input_string
-        
-def _cleanup_affiliation_strip_chars(affiliation:str) -> str:
-    affiliation = affiliation.replace("\n","")
-    affiliation = " ".join(affiliation.split()) # clean up all white spaces and re-join
-    affiliation = affiliation.replace(",","")
-    affiliation = re.sub(r"^\.|\.$", "", affiliation)
-    affiliation = re.sub(' /', '/', affiliation)
-    affiliation = re.sub('/ ', '/', affiliation)
-    return affiliation
-
-def _cleanup_affiliation_suffix(affiliation:str) -> str:
-    affiliation_suffixes = [", Inc.", "Inc", "LLC", "Ltd", "Limited", "Incorporated", "GmbH", "Inc.", "System", "Systems", "Corporation", "Co", "Co.","Corp", "Corp.", "Ltd.", "Technologies", "AG", "B.V.","s.r.o.","s.r.o","a.s"]
-    for suffix in affiliation_suffixes:
-        # affiliation = _remove_suffix(affiliation,suffix).strip()
-        affiliation = affiliation.replace(suffix,"").strip()
-        affiliation = affiliation.replace(suffix.lower(),"").strip()
-    return affiliation
-
-def _cleanup_affiliation_academic(affiliation:str) ->str:
-    alt_university = ["Univ.","Universtaet","Universteit","Universitaet","Université"]
-    for alt in alt_university:
-        affiliation = affiliation.replace(alt, "University")
-    affiliation = affiliation.replace("TU","Technical University of")
-    affiliation = affiliation.replace("U. of", "University of")
-    return affiliation
-
-# def normalise(affiliation:str):
-#     # do the look_up and return list item
-#     for key in afmap:
-#         if affiliation.lower() is key.lower():
-#             return afmap.get(key)
+    def organisation_has_preferred_name(self, name: str) -> None:
+        """
+        Indicates that `name` is the preferred name for an organisation.
+        """
+        self.organisation_exists(name)
+        print(f"Organisation has preferred name: \"{name}\"")
+        self._organisations[name].set_preferred_name(name)
 
 
-def cleanup_affiliation_str(affiliation:str)->str:
-    affiliation = _cleanup_affiliation_academic(affiliation)
-    affiliation = _cleanup_affiliation_strip_chars(affiliation)
-    affiliation = _cleanup_affiliation_suffix(affiliation)
-    return affiliation
-    # affiliation_list = None
-    # affiliation_list = normalise(affiliation)
-    # if affiliation_list is None: # attempt 2 — unknown multi-affiliation case
-    #     tmp_split = affiliation.split("/")
-    #     for part in tmp_split:
-    #         tmp_part = part
-    #         tmp_part = _cleanup_affiliation_academic(tmp_part)
-    #         tmp_part = _cleanup_affiliation_strip_chars(tmp_part)
-    #         tmp_part = _cleanup_affiliation_suffix(tmp_part)
-    #         tmp_list = normalise(tmp_part)
-    #         if tmp_list is not None:
-    #             affiliation_list.append(tmp_list)
-    # if affiliation_list is None: # if all else fails, leave after cleanse
-    #     affiliation_list = [affiliation]
-    # return affiliation_list
-def cleanup_affiliation(affiliation:str)->list[str]:
-    affiliation = cleanup_affiliation_str(affiliation)
-    affiliation_list = None
-    # affiliation_list = normalise(affiliation)
-    if affiliation_list is None: # attempt 2 — unknown multi-affiliation case
-        tmp_split = affiliation.split("/")
-        for part in tmp_split:
-            tmp_part = part
-            tmp_part = cleanup_affiliation_str(tmp_part) 
-            # tmp_list = normalise(tmp_part)
-            # if tmp_list is not None:
-            #     affiliation_list.append(tmp_list)
-    if affiliation_list is None: # if all else fails, leave after cleanse
-        affiliation_list = [affiliation]
-    return affiliation_list
+    def organisations_match(self, name1: str, name2: str) -> None:
+        """
+        Indicate that `name1` and `name2` exist and are the same organisation
+        so should merge into one.
+        """
+        self.organisation_exists(name1)
+        self.organisation_exists(name2)
+        self._merge(self._organisations[name1], self._organisations[name2])
 
-## affiliation collection
+
+    def _merge(self, org1: Organisation, org2: Organisation) -> None:
+        if org1 == org2:
+            return
+        print(f"Merging organisations: {org1.names()} -> {org2.names()}")
+        # Merge names from org1 into org2:
+        for name in org1.names():
+            org2.add_name(name)
+        # Merge domain from org1 into org2:
+        domain = org1.domain()
+        if domain is not None:
+            if org2.domain() is None:
+                org2.set_domain(domain)
+            elif org2.domain() == domain:
+                pass
+            else:
+                raise RuntimeError(f"Cannot merge organisations with mismatched domains: {org1.domain()} != {org2.domain()}")
+        # Merge preferred name from org1 into org2:
+        preferred = org1.preferred_name()
+        if preferred is not None:
+            if org2.preferred_name() is None:
+                org2.set_preferred_name(preferred)
+            elif org2.preferred_name() == preferred:
+                pass
+            else:
+                raise RuntimeError("Cannot merge organisations with mismatched preferred name")
+        # Change all references to org1 by name to refer to org2:
+        for name, org in self._organisations.items():
+            if name in org1.names():
+                self._organisations[name] = org2
+        # Change all references to org1 by dmomain to refer to org2:
+        for domain, org in self._domains.items():
+            if domain == org1.domain():
+                self._domains[domain] = org2
+
+
+    # FIXME
+    def normalise(self, name: str, domain_hint: Optional[str]=None) -> str:
+        # Normalise the organisation name to a canonical form. Uses a
+        # combination of a rule-based approach and information given
+        # in calls to the other methods on this class to perform the
+        # normalisation.
+        #
+        # The `domain_hint`, if provided, is a hint that can be used
+        # to help the normalisation process. The `domain_hint` is not
+        # stored.
+        return name
+
+
+    def dump(self, json_path: Path) -> None:
+        found = []
+        items = {}
+        orgid = 0
+        for name, org in self._organisations.items():
+            if org not in found:
+                orgid += 1
+                item  = {"preferred_name": org.preferred_name(), "names": org.names(), "domain": org.domain()}
+                items[f"ORG:{orgid:06}"] = item
+                found.append(org)
+        with open(json_path, "w") as outf:
+            json.dump(items, outf, indent=3)
+
+
+    def debug_dump(self) -> None:
+        print("{")
+        for name, org in self._organisations.items():
+            print(f'  name {name} -> ("preferred_name": {org.preferred_name()}, "names": {org.names()}, "domain": {org.domain()})')
+        for domain, org in self._domains.items():
+            print(f'  domain {domain} -> ("preferred_name": {org.preferred_name()}, "names": {org.names()}, "domain": {org.domain()})')
+        print("}")
+
+
+
+# =============================================================================
+# Helper functions for extracting affiliations from the datatracker:
+
+def fix_affiliation(name:str) -> str:
+    name = name.replace("\n", " ")
+    return name
+
+
+def record_affiliation(orgs: OrganisationDB, name:str, email:str) -> Optional[Tuple[str,str]]:
+    # Clean-up malformed organisation names:
+    name = fix_affiliation(name)
+
+    # Record the organisation
+    orgs.organisation_exists(name)
+
+    # If the organisation name ends in a known company suffix, also record
+    # the variant without the suffix and mark them as matching:
+    for suffix in ["Ltd", "Inc", "Pty", "GmbH"]:
+        for variant in [f", {suffix}.", f", {suffix}", f" {suffix}.", f" {suffix}"]: 
+            if name.endswith(variant):
+                bare_name = name[:-len(variant)]
+                orgs.organisation_exists(bare_name)
+                orgs.organisations_match(bare_name, name)
+                break
+
+    # If the organisation name ends in a known abbreviation, also record
+    # the variant with the full name and mark them as matching:
+    for abbr, full in [("Corp", "Corporation"),
+                       ("Univ", "University")]:
+        for variant in [f", {abbr}.", f", {abbr}", f" {abbr}.", f" {abbr}"]: 
+            if name.endswith(variant):
+                full_name = f"{name[:-len(variant)]} {full}"
+                orgs.organisation_exists(full_name)
+                orgs.organisations_match(name, full_name)
+                break
+
+    # If the organisation name starts with a known abbreviation, also record
+    # the variant with the full name and mark them as matching:
+    for abbr, full in [("Univ", "University")]:
+        for variant in [f"{abbr}. ", f"{abbr} "]: 
+            if name.startswith(variant):
+                full_name = f"{full} {name[len(variant):]}"
+                orgs.organisation_exists(full_name)
+                orgs.organisations_match(name, full_name)
+                break
+
+    # If the organisation name matches the domain, record the domain as
+    # belonging to this organisation:
+    org_domain = None
+    if "@" in email:
+        parts  = email.split("@")[1].split(".")
+        for tld in ["com", "org", "edu"]:
+            if len(parts) >= 2 and parts[-1] == tld:
+                domain = f"{parts[-2]}.{parts[-1]}".lower()
+                if domain in ["iana.com"]:
+                    print(f"Domain in blocklist: {domain}")
+                else:
+                    if name.lower() == parts[-2].lower():
+                        # Organisation name directly matches domain
+                        orgs.organisation_has_domain(name, domain)
+                        org_domain = (name, domain)
+                    # elif name.replace(" ", "").lower() == parts[-2].lower():
+                    #     # Organisation name, with spaces removed, matches domain
+                    #     orgs.organisation_has_domain(name, domain)
+                    #     org_domain = (name, domain)
+    return org_domain
+
+
+# =============================================================================
+# Code to extract affiliations from the datatracker:
+
 if __name__ == "__main__":
     if len(sys.argv) == 2:
-        old_path = None
-        new_path = Path(sys.argv[1])
+        path = Path(sys.argv[1])
     else:
         print("Usage: python3 -m ietfdata.tools.affiliations [new.json]")
-        # print("   or: python3 -m ietfdata.tools.participants [old.json] [new.json]")
         sys.exit(1)
-    
-    affil_collection = Affiliations()
-    
-    ignore = ["noreply@ietf.org",
-      "noreply@github.com",
-      "noreply=40github.com@dmarc.ietf.org",
-      "notifications@github.com",
-      "noreply@icloud.com",
-      "noname@noname.com",
-      "messenger@webex.com",
-      "tracker-forces@mip4.org", # FORCES issue tracker
-      "tracker-forces@MIP4.ORG", # FORCES issue tracker
-      "tracker-mip6@mip4.org",   # Mobile IPv6 issue tracker
-      "tracker-mip4@mip4.org",   # Mobile IPv4 issue tracker
-      "tracker-mip4@levkowetz.com",
-      "3761bis@frobbit.se",      # 3761bis issue tracker
-      "ietf-action@ietf.org",    # IETF issues tracker
-      "ctp_issues@danforsberg.info", # Seamoby CTP issue tracker
-     ]
-    
+
     print("*** ietfdata.tools.affiliations")
-    print("*** Collecting affiliations from the datatracker")
-    dt  = DataTracker(cache_dir = "cache",cache_timeout = timedelta(hours=24))
+
+    orgs = OrganisationDB()
+
+    dt = DataTracker(cache_timeout = timedelta(days=7))
+    ri = RFCIndex(cache_dir = "cache")
+
+    org_domains = []
+
+    # Record affiliations for RFC authors
+    print("Fetching affiliations for RFC authors:")
+    for rfc in ri.rfcs(stream="IETF", since="1995-01"):
+        #print(f"   {rfc.doc_id}: {textwrap.shorten(rfc.title, width=80, placeholder='...')}")
+        dt_document = dt.document_from_rfc(rfc.doc_id)
+        if dt_document is not None:
+            for dt_author in dt.document_authors(dt_document):
+                if dt_author.affiliation == "" or dt_author.email is None:
+                    continue
+                email  = dt.email(dt_author.email)
+                org_domain = record_affiliation(orgs, dt_author.affiliation, email.address)
+                if org_domain is not None and org_domain not in org_domains:
+                    org_domains.append(org_domain)
+
+    # Record affiliations based on meeting registrations
+    for reg in dt.meeting_registrations():
+        org_domain = record_affiliation(orgs, reg.affiliation, reg.email)
+        if org_domain is not None and org_domain not in org_domains:
+            org_domains.append(org_domain)
     
-    print("*** Published RFC")
-    ri = RFCIndex()
-    seen_addr_ietf = list()
-    for rfc in ri.rfcs():
-        year = rfc.date().year
-        if year < 2003:
-            print('pre 2003, skip')
-            continue
-        if year > 2024:
-            print('post 2024, skip')
-            continue
-        # setup additional attributes
-        stream = "stream_"
-        try:
-            stream += rfc.stream
-        except TypeError:
-            stream += "N/A"
-        if stream is None:
-            stream += "N/A"
-        if (stream != "stream_IETF" and stream != "stream_Legacy"): # only look at IETF and Legacy stream
-            continue
-        
-        status = "status_"  
-        try:
-            status += rfc.publ_status
-        except TypeError:
-            status += "N/A"
-        if status is None:
-            status += "N/A"
-        # end setup additional attributes
-        print(rfc.doc_id)
-        # fetch values for additional attributes
-        # Authors handling:  
-        document = dt.document_from_rfc(rfc.doc_id)
-        if document is None:
-            print(f"No document in data tracker from {rfc.doc_id}")
-            continue
-        authors = dt.document_authors(document)
-        if authors is None:
-            print(f"No authors in data tracker from {rfc.doc_id}")
-            continue
-        for author in authors:
-            person_uri = str(author.person)
-            if author.email is not None:
-                person_email_address = str(dt.email(author.email).address)
-            else:
-                person_email_address = None
-            tmp_ident_list = [person_uri,person_email_address]
-            
-            affiliation_str = None
-            if author.affiliation is None:
-                affiliation_str = "Unknown"
-            else:
-                affiliation_str = author.affiliation
-            if "/" in affiliation_str:
-                affiliation_str = "Unknown"
-            if author.affiliation == "":
-                affiliation_str = "Unknown"
-            if affiliation_str == "Unknown":
-                print("Affiliation either None, empty, or unknown")
-                continue
-            if (person_email_address is None) | (person_email_address == ""):
-                print("missing email addr.")
-                continue
-            if person_email_address.find("@") == -1:
-                print("Not an email addr.")
-                continue
-            tmp_domain = person_email_address.split('@')[-1]
-            affil_collection.affiliation_exists(affiliation_str)
-            if tmp_domain != "":
-                affil_collection.affiliation_domain(affiliation_str,tmp_domain)
-    with open(new_path,'w') as f:
-        print(f"*** exporting to {new_path}")
-        # print(repr(affil_collection),file=f,flush=True)
-        f.write(repr(affil_collection)) 
-    print("*** initial collection done, consolidating")
-    affiliations_preferred_names = affil_collection.affiliations_preferred_names()
-    for affil in affiliations_preferred_names:
-        clean_affil = cleanup_affiliation_str(affil)
-        if clean_affil == affil:
-            continue
-        try:
-            affil_obj = affil_collection.affiliation_by_name(clean_affil)
-        except KeyError:
-            print(f"{clean_affil} not present, update preferred name")
-            continue
-            
-        print(f"merging {affil} to {clean_affil}")
-        try:
-            affil_collection.merge(clean_affil,affil)
-        except RuntimeError:
-            print(f"failed to merge {affil} to {clean_affil})")
-            continue
-        
-    cleaned_path = Path(str(new_path).replace(".json","-cleaned.json"))
-    with open(f"{cleaned_path}",'w') as f:
-        print(f"*** exporting to {cleaned_path}")
-        # print(repr(affil_collection),file=f,flush=True)
-        f.write(repr(affil_collection)) 
+    # Merge affiliations that start with an affiliation that matched its domain.
+    # e.g., "Cisco Belgique" starts with "Cisco", which matched "cisco.com", so
+    # should be merged with Cisco
+    for org_name in orgs.get_organisations():
+        for name, domain in org_domains:
+            if org_name.startswith(f"{name} "):
+                orgs.organisations_match(org_name, name)
 
 
-    
+    orgs.dump(path)
+
