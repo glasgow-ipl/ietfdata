@@ -19,12 +19,12 @@ class AffiliationEntry:
     _end_date    : datetime.date
     _OIDs : list[str]
     def __init__(self, start_date:datetime.date, end_date:Optional[datetime.date],OIDs:list[str]):
-        self.OIDs=copy.deepcopy(OIDs) # prevent unintended modification of list
-        self.start_date = start_date
+        self._OIDs=copy.deepcopy(OIDs) # prevent unintended modification of list
+        self._start_date = start_date
         if end_date is None:
-            self.end_date = start_date
+            self._end_date = start_date
         else:
-            self.end_date = end_date
+            self._end_date = end_date
 
     def get_start_date(self)->datetime.date:
         return self._start_date
@@ -59,10 +59,10 @@ class AffiliationEntry:
     
     def __str__(self):
         return_str = '{"OIDs":['
-        return_str += ",".join(self.OIDs)
+        return_str += ",".join(self._OIDs)
         return_str =  return_str.rstrip(',')
         return_str += "],"
-        return_str += f'"start_date":"{self.start_date}","end_date":"{self.end_date}"}}'
+        return_str += f'"start_date":"{self._start_date}","end_date":"{self._end_date}"}}'
         return return_str
 
 
@@ -74,7 +74,7 @@ class AffiliationsForPerson:
     
     def __init__(self,PID:str,affiliations:Optional[list[AffiliationEntry]]):
         self._PID = PID 
-        self._affiliations = None
+        self._affiliations = list()
         if affiliations is not None:
             self._affiliations = affiliations
     
@@ -91,6 +91,9 @@ class AffiliationsForPerson:
         new_date = date 
         new_end = new_date
         new_affil = AffiliationEntry(new_date,new_end,[new_oid])
+        if len(self._affiliations) == 0 :
+            self._affiliations.append(new_affil)
+            return
         for affil in self._affiliations:
             i = self._affiliations.index(affil)
             if affil.get_start_date()<=new_date and affil.get_end_date() >= new_end: 
@@ -167,9 +170,9 @@ class AffiliationsForPerson:
         return returnstr
         
 class ParticipantsAffiliations:
-    _pid_oid_map : dict[str,list[AffiliationsForPerson]]
+    _pid_oid_map : dict[str,AffiliationsForPerson]
     
-    def init(self) -> None:
+    def __init__(self) -> None:
         self._pid_oid_map = dict()
     
     def add_participants_affiliation_with_date(self, PID:str,OID:str,date:datetime.date)->None:
@@ -180,7 +183,7 @@ class ParticipantsAffiliations:
         if date is None:
             raise RuntimeError("date is None")
         if PID not in self._pid_oid_map:
-            self._pid_oid_map[PID]=list()
+            self._pid_oid_map[PID]=AffiliationsForPerson(PID,None)
         
         self._pid_oid_map[PID].add_affiliation_with_date(OID,date)
         
@@ -209,7 +212,7 @@ if __name__ == "__main__":
         participants = json.load(f)
     with open(sys.argv[2]) as f:
         organisations = json.load(f)
-    
+    print(f"Loading participants from: {sys.argv[1]} and organisations from: {sys.argv[2]}")
     count = 0
     for participant in participants:
         print(f"{participant}:{participants[participant]}")
@@ -225,3 +228,42 @@ if __name__ == "__main__":
            
     dt = DataTracker(cache_timeout = timedelta(days=7))
     ri = RFCIndex(cache_dir = "cache")
+    
+    print("Going through IETF stream RFCs")
+    for rfc in ri.rfcs(stream="IETF", since="1995-01"):
+        #print(f"   {rfc.doc_id}: {textwrap.shorten(rfc.title, width=80, placeholder='...')}")
+        date = rfc.date()
+        dt_document = dt.document_from_rfc(rfc.doc_id)
+        if dt_document is not None:
+            for dt_author in dt.document_authors(dt_document):
+                person_uri = str(dt_author.person)
+                if dt_author.affiliation == "" or dt_author.email is None:
+                    continue
+                email  = dt.email(dt_author.email)
+                
+                tmp_pid = None
+                
+                for pid in participants:
+                    participant = participants[pid]
+                    if person_uri in participant.get("dt_person_uri",[]):
+                        tmp_pid = pid
+                        break
+                    if email in participant.get("email",[]):
+                        tmp_pid = pid
+                        break
+                        
+                if tmp_pid is None:
+                    continue
+                
+                tmp_oid = None
+                
+                for oid in organisations:
+                    organisation = organisations[oid]
+                    for name in organisation.get("names",[]):
+                        if dt_author.affiliation.lower() == name.lower():
+                            tmp_oid = oid
+                participants_affiliations.add_participants_affiliation_with_date(tmp_pid,tmp_oid,date)
+    with open(sys.argv[3],'w') as f:
+        f.write(str(participants_affiliations))
+    
+    
