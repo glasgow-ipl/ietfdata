@@ -263,7 +263,7 @@ if __name__ == "__main__":
 
     # Add identifiers based on the IETF DataTracker:
     seen_addr = set()
-    dt  = DataTrackerExt(cache_timeout = timedelta(hours=12))
+    dt  = DataTrackerExt(cache_timeout = timedelta(hours=24))
     for msg in dt.emails():
         if msg.address in ignore:
             continue
