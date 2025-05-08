@@ -1,6 +1,11 @@
 Change Log -- ietfdata
 ======================
 
+## Version XXX
+
+ - Add `ietfdata.tools.organisations.py` as a tool to find
+   organisations with which IETF participants may be affiliated.
+
 ## Version 0.8.2
 
  - Require Python 3.13
