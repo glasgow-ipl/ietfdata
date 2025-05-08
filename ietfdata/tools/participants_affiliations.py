@@ -70,6 +70,7 @@ class AffiliationEntry:
 class AffiliationsForPerson:
 	_PID : str
 	_affiliations: Optional[list[AffiliationEntry]]
+	_affiliations_by_start_date: Optional[dict[date,AffiliationEntry]]
 	
 	def __init__(self,PID:str,affiliations:Optional[list[AffiliationEntry]]):
 		self._PID = PID 
