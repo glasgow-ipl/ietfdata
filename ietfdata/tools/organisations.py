@@ -58,7 +58,7 @@ class Organisation:
 
 
     def set_preferred_name(self, name: str) -> None:
-        if name in self._names and self._preferred_name is None:
+        if name in self._names and (self._preferred_name is None or self._preferred_name == name):
             self._preferred_name = name
         else:
             raise RuntimeError(f"Cannot set preferred name: {self._preferred_name} -> {name}")
@@ -272,6 +272,10 @@ def record_affiliation(orgs: OrganisationDB, name:str, email:str) -> Optional[Tu
                         # Organisation name directly matches domain
                         orgs.organisation_has_domain(name, domain)
                         org_domain = (name, domain)
+                        # If the organisation name has an initial upper case letter and
+                        # the remaining letters are lower case, set as preferred name.
+                        if name[0].upper() == name[0] and name[1:].lower() == name[1:]:
+                            orgs.organisation_has_preferred_name(name)
                     # elif name.replace(" ", "").lower() == parts[-2].lower():
                     #     # Organisation name, with spaces removed, matches domain
                     #     orgs.organisation_has_domain(name, domain)
