@@ -59,7 +59,7 @@ class AffiliationEntry:
     
     def __str__(self):
         return_str = '{"OIDs":['
-        return_str += ",".join(self._OIDs)
+        return_str += ",".join(f'"{oid}"' for oid in self._OIDs)
         return_str =  return_str.rstrip(',')
         return_str += "],"
         return_str += f'"start_date":"{self._start_date}","end_date":"{self._end_date}"}}'
@@ -161,10 +161,10 @@ class AffiliationsForPerson:
         self._affiliations = copy.deepcopy(consolidated_affil)
     
     def __str__(self):
-        returnstr = f"{{\"PID\":\"{self._PID}\""
-        returnstr += "\"affiliations\":["
-        for affil in self.affiliations:
-            returnstr+="f{str(affil)},"
+        returnstr = f"\"{self._PID}\":"
+        returnstr += "{\"affiliations\":["
+        for affil in self._affiliations:
+            returnstr+=f"{str(affil)},"
         returnstr = returnstr.rstrip(',') # strip last comma
         returnstr += "]}"
         return returnstr
