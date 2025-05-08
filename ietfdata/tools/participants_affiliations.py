@@ -100,10 +100,13 @@ class AffiliationsForPerson:
                     print(f"OIDs {new_affil.get_OIDs()} already within the date range in the existing entry.")
                     return
                 else:
+                    # non-matching OIDs, split
                     print(f"New OIDs {new_affil.get_OIDs()} do not match but falls within the date range for {affil.get_OIDs()}: split.")
+                    old_affil_end_date = affil.get_end_date()
+                    old_affil_oids = affil.get_OIDs()
                     self._affiliations[i].set_end_date(new_affil.get_end_date())
                     self._affiliations.insert(i+1,new_affil) # add just after
-                    split_aff = AffiliationEntry(new_affil.get_end_date(),aff.get_end_date(),new_affil.get_OIDs())
+                    split_aff = AffiliationEntry(new_affil.get_end_date(),old_affil_end_date,old_affil_oids)
                     self._affiliations.insert(i+2,split_aff)
                     return
             # new affil is NOT within this affil's period
@@ -120,18 +123,21 @@ class AffiliationsForPerson:
                         # one before affil matches oid, extend the one before
                         self._affiliations[i-1].set_end_date(new_date)
                         return
-                # no match found, insert
+                # no match found, insert, extend new affil's end date
+                new_affil.set_end_date(affil.get_end_date())
                 self._affiliations.insert(i,new_affil) 
                 return
             # new affil is NOT within this affil, not within prior affils period
             # AND new affil is after this affil's period 
-            if i = len(self._affiliations)-1 and affil.match_OIDs([new_oid]):
+            if i == len(self._affiliations)-1 and affil.match_OIDs([new_oid]):
                 # since this is last element with matching OID, extend
                 affil.set_end_date(new_date)
                 return
         # does not fit within the existing timeline, append to extend
-        print(f"Appending new affilition with ID: {OID}, with date: {date}")
-        self._affiliations.append(aff_entry)
+        print(f"Appending new affilition with ID: {OID}, with date: {new_date}")
+        print(f"Extending last affiliation with ID: {self._affiliations[-1].get_OIDs()}, with date: {new_date}")
+        self._affiliations[-1].set_end_date(new_date)
+        self._affiliations.append(new_affil)
         return
     
     def consolidate(self):
@@ -143,7 +149,6 @@ class AffiliationsForPerson:
             if tmp_head_affil is None:
                 tmp_head_affil = copy.deepcopy(affil)
                 continue
-
             if not tmp_head_affil.match_names(affil.OIDs):
                     tmp_head_affil.end_date = (datetime.strptime(affil.start_date,'%Y-%m-%d').date() - timedelta(days=1))
                     consolidated_affil.append(tmp_head_affil)
@@ -153,7 +158,7 @@ class AffiliationsForPerson:
         self._affiliations = copy.deepcopy(consolidated_affil)
     
     def __str__(self):
-        returnstr = f"{\"PID\":\"{self._PID}\""
+        returnstr = f"{{\"PID\":\"{self._PID}\""
         returnstr += "\"affiliations\":["
         for affil in self.affiliations:
             returnstr+="f{str(affil)},"
@@ -161,16 +166,62 @@ class AffiliationsForPerson:
         returnstr += "]}"
         return returnstr
         
-class ParticipantsAffiliationMapping:
+class ParticipantsAffiliations:
     _pid_oid_map : dict[str,list[AffiliationsForPerson]]
     
-    def init(self):
+    def init(self) -> None:
         self._pid_oid_map = dict()
     
-    
-    
-    
+    def add_participants_affiliation_with_date(self, PID:str,OID:str,date:datetime.date)->None:
+        if PID is None or PID == "":
+            raise RuntimeError("PID is None or Empty")
+        if OID is None or PID == "":
+            raise RuntimeError("OID is None or Empty")
+        if date is None:
+            raise RuntimeError("date is None")
+        if PID not in self._pid_oid_map:
+            self._pid_oid_map[PID]=list()
+        
+        self._pid_oid_map[PID].add_affiliation_with_date(OID,date)
+        
+    def __str__(self):
+        returnstr = "{"
+        for pid in self._pid_oid_map:
+            returnstr+=f"{str(self._pid_oid_map[pid])},"
+        returnstr = returnstr.rstrip(',')
+        returnstr += "}"
+        return returnstr
     
 # generate mapping for PID->[OID,start,end]
-if __name__ is "__main__":
+if __name__ == "__main__":
+    print("*** ietfdata.tools.participants_affiliations")
     
+    if len(sys.argv) == 4:
+        path = Path(sys.argv[3])
+    else:
+        print("Usage: python3 -m ietfdata.tools.participants_affiliations <participants.json> <organisations.json> <output.json>")
+        sys.exit(1)
+    
+    participants_affiliations = ParticipantsAffiliations()
+    participants = None
+    organisations = None
+    with open(sys.argv[1]) as f:
+        participants = json.load(f)
+    with open(sys.argv[2]) as f:
+        organisations = json.load(f)
+    
+    count = 0
+    for participant in participants:
+        print(f"{participant}:{participants[participant]}")
+        count+=1
+        if count > 10:
+            break
+    count = 0
+    for organisation in organisations:
+        print(f"{organisation}:{organisations[organisation]}")
+        count+=1
+        if count > 10:
+            break
+           
+    dt = DataTracker(cache_timeout = timedelta(days=7))
+    ri = RFCIndex(cache_dir = "cache")
