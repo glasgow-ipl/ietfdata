@@ -106,24 +106,24 @@ class AffiliationsForPerson:
                     split_aff = AffiliationEntry(new_affil.get_end_date(),aff.get_end_date(),new_affil.get_OIDs())
                     self._affiliations.insert(i+2,split_aff)
                     return
-                if new_date <= affil.get_start_date():
-                    # new affil is before start date
-                    if affil.match_OIDs([new_oid]):
-                        # same affil but newer, extend
-                        affil.set_start_date(new_date)
-                        return
-                    # not matching
-                    if i > 0 :
-                        if self._affiliations[i-1].match_OIDs([new_oid]):
-                            # one before matches oid, extend
-                            self._affiliations[i-1].set_end_date(new_date)
-                            return
-                    if i < len(self._affiliations)-1:
-                        if self._affiliations[i+1].match_OIDs([new_oid]):
-                            # one after matches oid, extend
-                            self._affiliations[i+1].set_start_date(new_date)
-                    self._affiliations.insert(i,new_affil) 
+            if new_date <= affil.get_start_date():
+                # new affil is before start date
+                if affil.match_OIDs([new_oid]):
+                    # same affil but newer, extend
+                    affil.set_start_date(new_date)
                     return
+                # not matching
+                if i > 0 :
+                    if self._affiliations[i-1].match_OIDs([new_oid]):
+                        # one before matches oid, extend
+                        self._affiliations[i-1].set_end_date(new_date)
+                        return
+                if i < len(self._affiliations)-1:
+                    if self._affiliations[i+1].match_OIDs([new_oid]):
+                        # one after matches oid, extend
+                        self._affiliations[i+1].set_start_date(new_date)
+                self._affiliations.insert(i,new_affil) 
+                return
         print(f"Appending new affilition with ID: {OID}")
         self._affiliations.append(aff_entry)
         return
