@@ -93,8 +93,8 @@ class AffiliationsForPerson:
         new_affil = AffiliationEntry(new_date,new_end,[new_oid])
         for affil in self._affiliations:
             i = self._affiliations.index(affil)
-            if affil.get_start_date()<=new_date && affil.get_end_date() >= new_end: 
-                # new affil is within another affil's period
+            if affil.get_start_date()<=new_date and affil.get_end_date() >= new_end: 
+                # new affil is within this affil's period
                 if affil.match_OIDs(new_affil.get_OIDs()): 
                     # matching OIDs, no action
                     print(f"OIDs {new_affil.get_OIDs()} already within the date range in the existing entry.")
@@ -106,6 +106,7 @@ class AffiliationsForPerson:
                     split_aff = AffiliationEntry(new_affil.get_end_date(),aff.get_end_date(),new_affil.get_OIDs())
                     self._affiliations.insert(i+2,split_aff)
                     return
+            # new affil is NOT within this affil's period
             if new_date <= affil.get_start_date():
                 # new affil is before start date
                 if affil.match_OIDs([new_oid]):
@@ -114,17 +115,22 @@ class AffiliationsForPerson:
                     return
                 # not matching
                 if i > 0 :
+                    # affil is not the first element, check the element before, extend if same
                     if self._affiliations[i-1].match_OIDs([new_oid]):
-                        # one before matches oid, extend
+                        # one before affil matches oid, extend the one before
                         self._affiliations[i-1].set_end_date(new_date)
                         return
-                if i < len(self._affiliations)-1:
-                    if self._affiliations[i+1].match_OIDs([new_oid]):
-                        # one after matches oid, extend
-                        self._affiliations[i+1].set_start_date(new_date)
+                # no match found, insert
                 self._affiliations.insert(i,new_affil) 
                 return
-        print(f"Appending new affilition with ID: {OID}")
+            # new affil is NOT within this affil, not within prior affils period
+            # AND new affil is after this affil's period 
+            if i = len(self._affiliations)-1 and affil.match_OIDs([new_oid]):
+                # since this is last element with matching OID, extend
+                affil.set_end_date(new_date)
+                return
+        # does not fit within the existing timeline, append to extend
+        print(f"Appending new affilition with ID: {OID}, with date: {date}")
         self._affiliations.append(aff_entry)
         return
     
@@ -146,19 +152,25 @@ class AffiliationsForPerson:
                 consolidated_affil.append(tmp_head_affil)
         self._affiliations = copy.deepcopy(consolidated_affil)
     
-    # def __str__(self):
-    #     returnstr = '{"PID":['
-    #     for ident in self.PID:
-    #         returnstr += f'"{ident}",'
-    #     returnstr = returnstr[:-1] # strip last comma
-    #     returnstr += "],"
-    #     returnstr += '"affiliations":['
-    #     for affil in self.affiliations:
-    #         returnstr+=str(affil)
-    #         returnstr+=","
-    #     returnstr = returnstr[:-1] # strip last comma
-    #     returnstr += "]}"
-    #     return returnstr
+    def __str__(self):
+        returnstr = f"{\"PID\":\"{self._PID}\""
+        returnstr += "\"affiliations\":["
+        for affil in self.affiliations:
+            returnstr+="f{str(affil)},"
+        returnstr = returnstr.rstrip(',') # strip last comma
+        returnstr += "]}"
+        return returnstr
+        
+class ParticipantsAffiliationMapping:
+    _pid_oid_map : dict[str,list[AffiliationsForPerson]]
+    
+    def init(self):
+        self._pid_oid_map = dict()
+    
+    
+    
+    
+    
 # generate mapping for PID->[OID,start,end]
 if __name__ is "__main__":
     
