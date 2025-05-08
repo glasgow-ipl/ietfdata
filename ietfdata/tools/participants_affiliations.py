@@ -252,7 +252,7 @@ if __name__ == "__main__":
                         tmp_pid = pid
                         break
                         
-                if tmp_pid is None:
+                if tmp_pid is None or tmp_pid == "":
                     continue
                 
                 tmp_oid = None
@@ -262,6 +262,8 @@ if __name__ == "__main__":
                     for name in organisation.get("names",[]):
                         if dt_author.affiliation.lower() == name.lower():
                             tmp_oid = oid
+                if tmp_oid is None or tmp_oid == "":
+                    continue
                 participants_affiliations.add_participants_affiliation_with_date(tmp_pid,tmp_oid,date)
     with open(sys.argv[3],'w') as f:
         f.write(str(participants_affiliations))
