@@ -290,11 +290,46 @@ if __name__ == "__main__":
                     for name in organisation.get("names",[]):
                         if dt_author.affiliation.lower() == name.lower():
                             tmp_oid = oid
+                            break
                 if tmp_oid is None or tmp_oid == "":
                     continue
                 participants_affiliations.add_participants_affiliation_with_date(tmp_pid,tmp_oid,date)
     
-    
+    print("Going through draft submissions:")
+    for submission in dt.submissions(date_since = "1995-01"):
+        print(f"{submission.name}-{submission.rev}")
+        date = submission.submission_date
+        for author in submission.parse_authors():
+            if author.person is not None:
+                person_uri = str(author.person)
+            if author['email'] is not None:
+                email = author['email']
+            if author['affiliation'] is not None:
+                affiliation = author['affiliation']
+            
+            tmp_pid = None
+            for pid in participants:
+                participant = participants[pid]
+                if person_uri in participant.get("dt_person_uri",[]):
+                    tmp_pid = pid
+                    break
+                if email.lower() in participant.get("email",[]):
+                    tmp_pid = pid
+                    break
+            if tmp_pid is None or tmp_pid == "":
+                continue
+            
+            tmp_oid = None
+            for oid in organisations:
+                organisation = organisations[oid]
+                for name in organisation.get("names",[]):
+                        if affiliation.lower() == name.lower():
+                            tmp_oid = oid
+                            break
+            if tmp_oid is None or tmp_oid == "":
+                continue
+            participants_affiliations.add_participants_affiliation_with_date(tmp_pid,tmp_oid,date)
+
     
     print("Going through Meeting Registration:")
     for reg in dt.meeting_registrations():
@@ -322,6 +357,7 @@ if __name__ == "__main__":
             for name in organisation.get("names",[]):
                 if affiliation.lower() == name.lower():
                     tmp_oid = oid
+                    break
         if tmp_oid is None or tmp_oid == "":
             continue
         participants_affiliations.add_participants_affiliation_with_date(tmp_pid,tmp_oid,date)
