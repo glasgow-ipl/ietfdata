@@ -43,7 +43,7 @@ class AffiliationEntry:
     def set_end_date(self, new_end_date:datetime.date):
         if new_end_date < self._start_date:
             raise RuntimeError(f"Cannot set the end date ({new_end_date}) to be earlier than the current start date {self._start_date}.")
-        self.end_date = new_end_date
+        self._end_date = new_end_date
 
     def set_start_end_dates(self, new_start_date:datetime.date, new_end_date:datetime.date) -> None:
         if new_start_date > new_end_date:
