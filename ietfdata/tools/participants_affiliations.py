@@ -11,6 +11,7 @@ from ietfdata.datatracker     import *
 from ietfdata.datatracker_ext import *
 from ietfdata.mailarchive2    import *
 
+# TODO: tests
 # A class representing an affiliation entry 
 class AffiliationEntry:
     _start_date  : datetime.date
