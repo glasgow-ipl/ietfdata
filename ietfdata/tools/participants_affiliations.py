@@ -15,14 +15,16 @@ from ietfdata.mailarchive2    import *
 class AffiliationEntry:
     _start_date  : datetime.date
     _end_date    : datetime.date
-    _OIDs : list[str]
-    def __init__(self, start_date:datetime.date, end_date:Optional[datetime.date],OIDs:list[str]):
-        self._OIDs=copy.deepcopy(OIDs) # prevent unintended modification of list
+    _OID : str
+    
+    ## initialise
+    def __init__(self, start_date:datetime.date, end_date:Optional[datetime.date],OID:str):
+        self._OID = OID
         self._start_date = start_date
-        if end_date is None:
+        if end_date is not None and start_date < end_date:
             self._end_date = start_date
         else:
-            self._end_date = end_date
+            self._end_date = start_date 
     
     ## Getters
     def get_start_date(self)->datetime.date:
@@ -31,8 +33,8 @@ class AffiliationEntry:
     def get_end_date(self)->datetime.date:
         return self._end_date
     
-    def get_OIDs(self) -> list[str]:
-        return self._OIDs
+    def get_OID(self) -> str:
+        return self._OID
     
     ## Setters
     def set_start_date(self,new_start_date:datetime.date)->None:
@@ -52,16 +54,20 @@ class AffiliationEntry:
         self._end_date = new_end_date
     
     ## Matches OIDs with given OIDs
-    def match_OIDs(self, OIDs:list[str])->bool:
-        for OID in OIDs:
-            if OID not in self._OIDs:
-                return False
-        return True
+    def match_OID(self, OID:str)->bool:
+        return (self._OID == OID)
+    
+    def get_dictionary(self) -> dict:
+        return_dict = dict()
+        return_dict['organisation'] = self._OID 
+        return_dict['start_date'] = self._start_date
+        return_dict['end_date'] = self._end_date
+        return return_dict
     
     # JSON Repl.
     def __str__(self):
-        return_str = '{"OIDs":['
-        return_str += ",".join(f'"{oid}"' for oid in self._OIDs)
+        return_str = '{"organisation":['
+        return_str += ",".join(f'"{oid}"' for oid in self._OID)
         return_str =  return_str.rstrip(',')
         return_str += "],"
         return_str += f'"start_date":"{self._start_date}","end_date":"{self._end_date}"}}'
@@ -103,31 +109,31 @@ class AffiliationsForPerson:
             i = self._affiliations.index(affil)
             if affil.get_start_date()<=new_date and affil.get_end_date() >= new_end: 
                 # new affil is within this affil's period
-                if affil.match_OIDs(new_affil.get_OIDs()): 
+                if affil.match_OID(new_affil.get_OID()): 
                     # matching OIDs, no action
-                    print(f"OIDs {new_affil.get_OIDs()} already within the date range in the existing entry.")
+                    print(f"OIDs {new_affil.get_OID()} already within the date range in the existing entry.")
                     return
                 else:
                     # non-matching OIDs, split
-                    print(f"New OIDs {new_affil.get_OIDs()} do not match but falls within the date range for {affil.get_OIDs()}: split.")
+                    print(f"New OIDs {new_affil.get_OID()} do not match but falls within the date range for {affil.get_OID()}: split.")
                     old_affil_end_date = affil.get_end_date()
-                    old_affil_oids = affil.get_OIDs()
+                    old_affil_OID = affil.get_OID()
                     self._affiliations[i].set_end_date(new_affil.get_end_date())
                     self._affiliations.insert(i+1,new_affil) # add just after
-                    split_aff = AffiliationEntry(new_affil.get_end_date(),old_affil_end_date,old_affil_oids)
+                    split_aff = AffiliationEntry(new_affil.get_end_date(),old_affil_end_date,old_affil_OID)
                     self._affiliations.insert(i+2,split_aff)
                     return
             # new affil is NOT within this affil's period
             if new_date <= affil.get_start_date():
                 # new affil is before start date
-                if affil.match_OIDs([new_oid]):
+                if affil.match_OID(new_oid):
                     # same affil but newer, extend
                     affil.set_start_date(new_date)
                     return
                 # not matching
                 if i > 0 :
                     # affil is not the first element, check the element before, extend if same
-                    if self._affiliations[i-1].match_OIDs([new_oid]):
+                    if self._affiliations[i-1].match_OID(new_oid):
                         # one before affil matches oid, extend the one before
                         self._affiliations[i-1].set_end_date(new_date)
                         return
@@ -137,16 +143,18 @@ class AffiliationsForPerson:
                 return
             # new affil is NOT within this affil, not within prior affils period
             # AND new affil is after this affil's period 
-            if i == len(self._affiliations)-1 and affil.match_OIDs([new_oid]):
+            if i == len(self._affiliations)-1 and affil.match_OID(new_oid):
                 # since this is last element with matching OID, extend
                 affil.set_end_date(new_date)
                 return
         # does not fit within the existing timeline, append to extend
         print(f"Appending new affilition with ID: {OID}, with date: {new_date}")
-        print(f"Extending last affiliation with ID: {self._affiliations[-1].get_OIDs()}, with date: {new_date}")
+        print(f"Extending last affiliation with ID: {self._affiliations[-1].get_OID()}, with date: {new_date}")
         self._affiliations[-1].set_end_date(new_date)
         self._affiliations.append(new_affil)
         return
+    
+    
     
     # def consolidate(self):
     #     # TODO: Go through the timeline, consolidate the history
@@ -164,6 +172,15 @@ class AffiliationsForPerson:
     #         if(tmp_head_affil not in consolidated_affil):
     #             consolidated_affil.append(tmp_head_affil)
     #     self._affiliations = copy.deepcopy(consolidated_affil)
+    
+    # dictionary 
+    def get_dictionary(self):
+        return_dict = dict()
+        return_dict['affiliations'] = list()
+        for affil in self._affiliations:
+            return_dict['affiliations'].append(affil.get_dictionary())
+            
+        return return_dict
     
     # JSON repl
     def __str__(self):
@@ -192,6 +209,12 @@ class ParticipantsAffiliations:
             self._pid_oid_map[PID]=AffiliationsForPerson(PID,None)
         
         self._pid_oid_map[PID].add_affiliation_with_date(OID,date)
+        
+    def toJSON(self) -> str:
+        return_dict = dict()
+        for pid, affil in self._pid_oid_map:
+            return_dict[pid] = affil.get_dictionary()
+        return json.dumps(return_dict)
         
     def __str__(self):
         returnstr = "{"
@@ -273,6 +296,6 @@ if __name__ == "__main__":
                 participants_affiliations.add_participants_affiliation_with_date(tmp_pid,tmp_oid,date)
     with open(sys.argv[3],'w') as f:
         print(f"About to write output to:{sys.argv[3]}")
-        f.write(str(participants_affiliations))
+        f.write(participants_affiliations.toJSON())
     
     
