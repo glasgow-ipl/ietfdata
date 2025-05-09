@@ -20,9 +20,13 @@ class AffiliationEntry:
     ## initialise
     def __init__(self, start_date:datetime.date, end_date:Optional[datetime.date],OID:str):
         self._OID = OID
+        if isinstance(start_date,datetime):
+            start_date = start_date.date()
+        if end_date is not None and isinstance(end_date,datetime):
+            end_date = end_date.date()
         self._start_date = start_date
         if end_date is not None and start_date < end_date:
-            self._end_date = start_date
+            self._end_date = end_date 
         else:
             self._end_date = start_date 
     
@@ -99,6 +103,8 @@ class AffiliationsForPerson:
         # Affil. C added within Affil. A's date range will split the 
         # Affil. A entry to two, inserting Affil. C between them.
         new_oid = OID
+        if isinstance(date, datetime):
+            date = date.date()
         new_date = date 
         new_end = new_date
         new_affil = AffiliationEntry(new_date,new_end,new_oid)
@@ -300,19 +306,17 @@ if __name__ == "__main__":
         print(f"{submission.name}-{submission.rev}")
         date = submission.submission_date
         for author in submission.parse_authors():
-            if author.person is not None:
-                person_uri = str(author.person)
             if author['email'] is not None:
                 email = author['email']
+            if 'affiliation' not in author:
+                print("** Missing affiliation in author dictionary.")
+                continue 
             if author['affiliation'] is not None:
                 affiliation = author['affiliation']
             
             tmp_pid = None
             for pid in participants:
                 participant = participants[pid]
-                if person_uri in participant.get("dt_person_uri",[]):
-                    tmp_pid = pid
-                    break
                 if email.lower() in participant.get("email",[]):
                     tmp_pid = pid
                     break
