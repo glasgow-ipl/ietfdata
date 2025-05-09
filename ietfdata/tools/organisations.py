@@ -30,6 +30,7 @@ import textwrap
 from pathlib import Path
 from typing  import List, Dict, Optional, Iterator
 
+from ietfdata.rfcindex        import *
 from ietfdata.datatracker     import *
 from ietfdata.datatracker_ext import *
 from ietfdata.mailarchive2    import *
@@ -58,7 +59,10 @@ class Organisation:
 
 
     def set_preferred_name(self, name: str) -> None:
-        if name in self._names and (self._preferred_name is None or self._preferred_name == name):
+        if name == self._preferred_name:
+            pass
+        elif name in self._names and self._preferred_name is None:
+            print(f"    Organisation has preferred name: \"{name}\"")
             self._preferred_name = name
         else:
             raise RuntimeError(f"Cannot set preferred name: {self._preferred_name} -> {name}")
@@ -101,7 +105,7 @@ class OrganisationDB:
         Indicate that an organisation with the specified `name` exists
         """
         if name not in self._organisations:
-            print(f"   Organisation exists: \"{name}\"")
+            print(f"    Organisation exists: \"{name}\"")
             self._organisations[name] = Organisation(name)
 
 
@@ -112,7 +116,7 @@ class OrganisationDB:
         """
         self.organisation_exists(name)
         if domain not in self._domains:
-            print(f"   Organisation has domain: \"{name}\" -> \"{domain}\"")
+            print(f"    Organisation has domain: \"{name}\" -> \"{domain}\"")
             self._organisations[name].set_domain(domain)
             self._domains[domain] = self._organisations[name]
         else:
@@ -130,7 +134,6 @@ class OrganisationDB:
         Indicates that `name` is the preferred name for an organisation.
         """
         self.organisation_exists(name)
-        print(f"   Organisation has preferred name: \"{name}\"")
         self._organisations[name].set_preferred_name(name)
 
 
@@ -147,7 +150,7 @@ class OrganisationDB:
     def _merge(self, org1: Organisation, org2: Organisation) -> None:
         if org1 == org2:
             return
-        print(f"   Merging organisations: {org1.names()} -> {org2.names()}")
+        print(f"    Merging organisations: {org1.names()} -> {org2.names()}")
         # Merge names from org1 into org2:
         for name in org1.names():
             org2.add_name(name)
@@ -265,8 +268,8 @@ def record_affiliation(orgs: OrganisationDB, name:str, email:str) -> Optional[Tu
         for tld in ["com", "org", "edu"]:
             if len(parts) >= 2 and parts[-1] == tld:
                 domain = f"{parts[-2]}.{parts[-1]}".lower()
-                if domain in ["iana.com"]:
-                    print(f"   Domain in blocklist: {domain}")
+                if domain in ["iana.com", "linaro.com", "mit.org"]:
+                    print(f"    Domain in blocklist: {domain}")
                 else:
                     if name.lower() == parts[-2].lower():
                         # Organisation name directly matches domain
@@ -284,13 +287,104 @@ def record_affiliation(orgs: OrganisationDB, name:str, email:str) -> Optional[Tu
 
 
 # =============================================================================
+# The OrganisationMatcher class extracts information from the IETF
+# datatacker then uses the OrganisationDB and Organisation classes
+# to organise that information and perform entity resolution.
+#
+# If you want to perform entity resolution across organisations, for
+# example to combine data from W3C with data from the IETF, create a
+# subclass of `OrganisationMatcher` with an additional method (e.g.,
+# `find_organisations_w3c()`) that extracts the data for that other
+# organisation and calls the `add()` method with that data. Use that
+# subclass as follows:
+#
+#    om = OrganisationMatcherExt()   <- instantiate subclass
+#    om.find_organisations_ietf()
+#    om.find_organisations_w3c()     <- call additional method
+#    om.consolidate_organisations()
+#    om.dump(output_path)
+#
+# If you create such a subclass, the `__init__()` method of the
+# subclass MUST call `super().__init__()` to correctly initialise
+# things.
+
+class OrganisationMatcher:
+    _org_db      : OrganisationDB
+    _org_domains : List[str]
+
+    def __init__(self):
+        self._org_db = OrganisationDB()
+        self._org_domains = []
+
+
+    def add(self, organisation:str, email:str):
+        org_domain = record_affiliation(self._org_db, organisation, email)
+        if org_domain is not None and org_domain not in self._org_domains:
+            self._org_domains.append(org_domain)
+
+
+    def find_organisations_ietf(self):
+        """
+        Search the IETF Datatracker to find organisations.
+
+        This methods uses the IETF datatracker to extract information about
+        organisations, then calls the `add()` method in this class to record
+        that information.
+        """
+        dt = DataTracker(cache_timeout = timedelta(days=7))
+        ri = RFCIndex(cache_dir = "cache")
+
+        print("Finding organisations in RFC author affiliations:")
+        for rfc in ri.rfcs(since="1995-01"):
+            print(f"  {rfc.doc_id}: {textwrap.shorten(rfc.title, width=80, placeholder='...')}")
+            dt_document = dt.document_from_rfc(rfc.doc_id)
+            if dt_document is not None:
+                for dt_author in dt.document_authors(dt_document):
+                    if dt_author.affiliation == "" or dt_author.email is None:
+                        continue
+                    email  = dt.email(dt_author.email)
+                    self.add(dt_author.affiliation, email.address)
+        print("")
+
+        print("Finding affiliations in internet-draft submissions:")
+        for submission in dt.submissions():
+            print(f"  {submission.name}-{submission.rev}")
+            for authors in submission.parse_authors():
+                if "affiliation" not in authors or authors["affiliation"] is None:
+                    continue
+                if "email"       not in authors or authors["email"]       is None:
+                    continue
+                self.add(authors["affiliation"], authors["email"])
+        print("")
+
+        print("Finding organisations in meeting registration records:")
+        for reg in dt.meeting_registrations():
+            self.add(reg.affiliation, reg.email)
+        print("")
+        
+
+    def consolidate_organisations(self):
+        # Merge organisations that start with an organisation that matched its domain.
+        # e.g., "Cisco Belgique" starts with "Cisco", which matched "cisco.com", so
+        # should be merged with "Cisco".
+        for org_name in self._org_db.get_organisations():
+            for name, domain in self._org_domains:
+                if org_name.startswith(f"{name} "):
+                    self._org_db.organisations_match(org_name, name)
+
+
+    def dump(self, path:Path):
+        self._org_db.dump(path)
+
+
+# =============================================================================
 # Code to extract affiliations from the datatracker:
 
 if __name__ == "__main__":
     print(f"*** ietfdata.tools.organisations")
 
     if len(sys.argv) == 2:
-        path = Path(sys.argv[1])
+        output_path = Path(sys.argv[1])
     else:
         print('')
         print('Usage: python3 -m ietfdata.tools.organisations <output.json>')
@@ -321,42 +415,8 @@ if __name__ == "__main__":
         print('')
         sys.exit(1)
 
-    orgs = OrganisationDB()
-
-    dt = DataTracker(cache_timeout = timedelta(days=7))
-    ri = RFCIndex(cache_dir = "cache")
-
-    org_domains = []
-
-    # Record organisations based on RFC author affiliations:
-    print("Finding organisations in RFC author affiliations:")
-    for rfc in ri.rfcs(stream="IETF", since="1995-01"):
-        #print(f"   {rfc.doc_id}: {textwrap.shorten(rfc.title, width=80, placeholder='...')}")
-        dt_document = dt.document_from_rfc(rfc.doc_id)
-        if dt_document is not None:
-            for dt_author in dt.document_authors(dt_document):
-                if dt_author.affiliation == "" or dt_author.email is None:
-                    continue
-                email  = dt.email(dt_author.email)
-                org_domain = record_affiliation(orgs, dt_author.affiliation, email.address)
-                if org_domain is not None and org_domain not in org_domains:
-                    org_domains.append(org_domain)
-
-    # Record organisations found in meeting registrations:
-    print("Finding organisations in meeting registration records:")
-    for reg in dt.meeting_registrations():
-        org_domain = record_affiliation(orgs, reg.affiliation, reg.email)
-        if org_domain is not None and org_domain not in org_domains:
-            org_domains.append(org_domain)
-    
-    # Merge organisations that start with an organisation that matched its domain.
-    # e.g., "Cisco Belgique" starts with "Cisco", which matched "cisco.com", so
-    # should be merged with "Cisco".
-    for org_name in orgs.get_organisations():
-        for name, domain in org_domains:
-            if org_name.startswith(f"{name} "):
-                orgs.organisations_match(org_name, name)
-
-    # Save results:
-    orgs.dump(path)
+    om = OrganisationMatcher()
+    om.find_organisations_ietf()
+    om.consolidate_organisations()
+    om.dump(output_path)
 

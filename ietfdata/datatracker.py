@@ -338,7 +338,7 @@ class Submission(Resource):
     authors         : str   # See the parse_authors() method
     checks          : List[SubmissionCheckURI]
     document_date   : Optional[date]
-    draft           : DocumentURI
+    draft           : Optional[DocumentURI]
     file_size       : Optional[int]
     file_types      : str   # e.g., ".txt,.xml"
     group           : Optional[GroupURI]
@@ -1613,7 +1613,7 @@ class DataTracker:
         logging.basicConfig(level=os.getenv("IETFDATA_LOGLEVEL", default="INFO"))
         self.log = logging.getLogger("ietfdata")
 
-        self.ua        = "glasgow-ietfdata/0.8.2"          # Update when making a new relaase
+        self.ua        = "glasgow-ietfdata/0.8.3"          # Update when making a new relaase
         self.base_url  = os.environ.get("IETFDATA_DT_URL", "https://datatracker.ietf.org")
         self.get_count = 0
 
