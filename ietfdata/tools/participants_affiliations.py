@@ -266,6 +266,7 @@ if __name__ == "__main__":
                     continue
                 participants_affiliations.add_participants_affiliation_with_date(tmp_pid,tmp_oid,date)
     with open(sys.argv[3],'w') as f:
+        print(f"About to write output to:{sys.argv[3]}")
         f.write(str(participants_affiliations))
     
     
