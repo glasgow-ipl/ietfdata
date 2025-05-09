@@ -338,7 +338,7 @@ class Submission(Resource):
     authors         : str   # See the parse_authors() method
     checks          : List[SubmissionCheckURI]
     document_date   : Optional[date]
-    draft           : DocumentURI
+    draft           : Optional[DocumentURI]
     file_size       : Optional[int]
     file_types      : str   # e.g., ".txt,.xml"
     group           : Optional[GroupURI]
