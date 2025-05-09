@@ -1613,7 +1613,7 @@ class DataTracker:
         logging.basicConfig(level=os.getenv("IETFDATA_LOGLEVEL", default="INFO"))
         self.log = logging.getLogger("ietfdata")
 
-        self.ua        = "glasgow-ietfdata/0.8.2"          # Update when making a new relaase
+        self.ua        = "glasgow-ietfdata/0.8.3"          # Update when making a new relaase
         self.base_url  = os.environ.get("IETFDATA_DT_URL", "https://datatracker.ietf.org")
         self.get_count = 0
 

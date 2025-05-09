@@ -1,10 +1,13 @@
 Change Log -- ietfdata
 ======================
 
-## Version XXX
+## Version 0.8.3
 
+ - Fix parsing of `Submission` objections that lack a draft
  - Add `ietfdata.tools.organisations.py` as a tool to find
    organisations with which IETF participants may be affiliated.
+ - Update tests and examples
+
 
 ## Version 0.8.2
 
