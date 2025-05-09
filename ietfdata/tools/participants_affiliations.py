@@ -301,7 +301,7 @@ if __name__ == "__main__":
                     continue
                 participants_affiliations.add_participants_affiliation_with_date(tmp_pid,tmp_oid,date)
     
-    print(f"Going through draft submissions from \"1995-01-01\" until {date.today().strftime('%Y-%m-%d')}:")
+    print(f"Going through draft submissions from \"1995-01-01\" until \"{date.today().strftime('%Y-%m-%d')}\":")
     for submission in dt.submissions(date_since = "1995-01-01", date_until = date.today().strftime('%Y-%m-%d')):
         print(f"{submission.name}-{submission.rev}")
         date = submission.submission_date
