@@ -59,7 +59,10 @@ class Organisation:
 
 
     def set_preferred_name(self, name: str) -> None:
-        if name in self._names and (self._preferred_name is None or self._preferred_name == name):
+        if name == self._preferred_name:
+            pass
+        elif name in self._names and self._preferred_name is None:
+            print(f"    Organisation has preferred name: \"{name}\"")
             self._preferred_name = name
         else:
             raise RuntimeError(f"Cannot set preferred name: {self._preferred_name} -> {name}")
