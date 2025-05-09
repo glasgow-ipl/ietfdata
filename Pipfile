@@ -15,7 +15,7 @@ types-six = "*"
 types-requests = "*"
 types-python-dateutil = "*"
 setuptools-pipfile = {file = "."}
-ietfdata = {file = ".", editable = true}
+ietfdata = {file = "."}
 
 [packages]
 bs4 = "*"
