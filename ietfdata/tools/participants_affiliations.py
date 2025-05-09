@@ -65,13 +65,13 @@ class AffiliationEntry:
         return return_dict
     
     # JSON Repl.
-    def __str__(self):
-        return_str = '{"organisation":['
-        return_str += ",".join(f'"{oid}"' for oid in self._OID)
-        return_str =  return_str.rstrip(',')
-        return_str += "],"
-        return_str += f'"start_date":"{self._start_date}","end_date":"{self._end_date}"}}'
-        return return_str
+    # def __str__(self):
+    #     return_str = '{"organisation":['
+    #     return_str += ",".join(f'"{oid}"' for oid in self._OID)
+    #     return_str =  return_str.rstrip(',')
+    #     return_str += "],"
+    #     return_str += f'"start_date":"{self._start_date}","end_date":"{self._end_date}"}}'
+    #     return return_str
 
 
 # Class representing a set of Affiliations for a Person, identified by PID from participants.py
@@ -101,7 +101,7 @@ class AffiliationsForPerson:
         new_oid = OID
         new_date = date 
         new_end = new_date
-        new_affil = AffiliationEntry(new_date,new_end,[new_oid])
+        new_affil = AffiliationEntry(new_date,new_end,new_oid)
         if len(self._affiliations) == 0 :
             self._affiliations.append(new_affil)
             return
@@ -179,7 +179,6 @@ class AffiliationsForPerson:
         return_dict['affiliations'] = list()
         for affil in self._affiliations:
             return_dict['affiliations'].append(affil.get_dictionary())
-            
         return return_dict
     
     # JSON repl
@@ -213,7 +212,7 @@ class ParticipantsAffiliations:
     def toJSON(self) -> str:
         return_dict = dict()
         for pid, affil in self._pid_oid_map.items():
-            return_dict[pid] = dict(affil.get_dictionary())
+            return_dict[pid] = affil.get_dictionary()
         return json.dumps(return_dict, indent=4)
         
     def __str__(self):
