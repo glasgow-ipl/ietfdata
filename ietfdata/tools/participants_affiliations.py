@@ -257,7 +257,7 @@ if __name__ == "__main__":
     dt = DataTracker(cache_timeout = timedelta(days=7))
     ri = RFCIndex(cache_dir = "cache")
     
-    print("Going through IETF stream RFCs")
+    print("Going through IETF stream RFCs:")
     for rfc in ri.rfcs(stream="IETF", since="1995-01"):
         #print(f"   {rfc.doc_id}: {textwrap.shorten(rfc.title, width=80, placeholder='...')}")
         date = rfc.date()
@@ -293,6 +293,40 @@ if __name__ == "__main__":
                 if tmp_oid is None or tmp_oid == "":
                     continue
                 participants_affiliations.add_participants_affiliation_with_date(tmp_pid,tmp_oid,date)
+    
+    
+    
+    print("Going through Meeting Registration:")
+    for reg in dt.meeting_registrations():
+        person = reg.person
+        affiliation = reg.affiliation
+        email = reg.email
+        tmp_pid = None
+        
+        for pid in participants:
+            participant = participants[pid]
+            if person in participant.get("dt_person_uri",[]):
+                tmp_pid = pid
+                break
+            if email in participant.get("email",[]):
+                tmp_pid = pid
+                break
+                
+        if tmp_pid is None or tmp_pid == "":
+            continue
+        
+        tmp_oid = None
+        
+        for oid in organisations:
+            organisation = organisations[oid]
+            for name in organisation.get("names",[]):
+                if affiliation.lower() == name.lower():
+                    tmp_oid = oid
+        if tmp_oid is None or tmp_oid == "":
+            continue
+        participants_affiliations.add_participants_affiliation_with_date(tmp_pid,tmp_oid,date)
+        
+        
     with open(sys.argv[3],'w') as f:
         print(f"About to write output to:{sys.argv[3]}")
         f.write(participants_affiliations.toJSON())
