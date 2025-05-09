@@ -11,9 +11,7 @@ from ietfdata.datatracker     import *
 from ietfdata.datatracker_ext import *
 from ietfdata.mailarchive2    import *
 
-
-# Todo: Class to go through datatracker to extract the information, clean up names, match two orgs etc.
-# Affiliation Entry Class 
+# A class representing an affiliation entry 
 class AffiliationEntry:
     _start_date  : datetime.date
     _end_date    : datetime.date
@@ -25,7 +23,8 @@ class AffiliationEntry:
             self._end_date = start_date
         else:
             self._end_date = end_date
-
+    
+    ## Getters
     def get_start_date(self)->datetime.date:
         return self._start_date
 
@@ -35,6 +34,7 @@ class AffiliationEntry:
     def get_OIDs(self) -> list[str]:
         return self._OIDs
     
+    ## Setters
     def set_start_date(self,new_start_date:datetime.date)->None:
         if new_start_date > self._end_date:
             raise RuntimeError(f"Cannot set the start date ({new_start_date}) to be past the current end date {self._end_date}.")
@@ -51,12 +51,14 @@ class AffiliationEntry:
         self._start_date = new_start_date
         self._end_date = new_end_date
     
+    ## Matches OIDs with given OIDs
     def match_OIDs(self, OIDs:list[str])->bool:
         for OID in OIDs:
             if OID not in self._OIDs:
                 return False
         return True
     
+    # JSON Repl.
     def __str__(self):
         return_str = '{"OIDs":['
         return_str += ",".join(f'"{oid}"' for oid in self._OIDs)
@@ -66,11 +68,10 @@ class AffiliationEntry:
         return return_str
 
 
-# Sets of Affiliation for Person class
+# Class representing a set of Affiliations for a Person, identified by PID from participants.py
 class AffiliationsForPerson:
     _PID : str
     _affiliations: Optional[list[AffiliationEntry]]
-    # _affiliations_by_start_date: Optional[dict[date,AffiliationEntry]]
     
     def __init__(self,PID:str,affiliations:Optional[list[AffiliationEntry]]):
         self._PID = PID 
@@ -78,15 +79,19 @@ class AffiliationsForPerson:
         if affiliations is not None:
             self._affiliations = affiliations
     
+    ## Getters
     def get_PID(self) -> str:
         return self._PID
         
     def get_affiliations(self) -> list[AffiliationEntry]:
         return self._affiliations
     
-    
+    ## Other func.
     def add_affiliation_with_date(self, OID:str, date:datetime.date) -> None:
-        # TODO: Go through the timeline, insert the entry 
+        # Adds affiliation by date, fills any gap in dates towards later date
+        # e.g. Affil. A, followed by another Affil. B with later date leads to Affil. A's end-date extended, and Affil. B entry added. 
+        # Affil. C added within Affil. A's date range will split the 
+        # Affil. A entry to two, inserting Affil. C between them.
         new_oid = OID
         new_date = date 
         new_end = new_date
@@ -143,23 +148,24 @@ class AffiliationsForPerson:
         self._affiliations.append(new_affil)
         return
     
-    def consolidate(self):
-        # TODO: Go through the timeline, consolidate the history
-        # This should only be run if and only if everything has been scraped
-        tmp_head_affil = None # temporary first affil in the batch
-        consolidated_affil = list()
-        for affil in self._affiliations:
-            if tmp_head_affil is None:
-                tmp_head_affil = copy.deepcopy(affil)
-                continue
-            if not tmp_head_affil.match_names(affil.OIDs):
-                    tmp_head_affil.end_date = (datetime.strptime(affil.start_date,'%Y-%m-%d').date() - timedelta(days=1))
-                    consolidated_affil.append(tmp_head_affil)
-                    tmp_head_affil = copy.deepcopy(affil)
-            if(tmp_head_affil not in consolidated_affil):
-                consolidated_affil.append(tmp_head_affil)
-        self._affiliations = copy.deepcopy(consolidated_affil)
+    # def consolidate(self):
+    #     # TODO: Go through the timeline, consolidate the history
+    #     # This should only be run if and only if everything has been scraped
+    #     tmp_head_affil = None # temporary first affil in the batch
+    #     consolidated_affil = list()
+    #     for affil in self._affiliations:
+    #         if tmp_head_affil is None:
+    #             tmp_head_affil = copy.deepcopy(affil)
+    #             continue
+    #         if not tmp_head_affil.match_names(affil.OIDs):
+    #                 tmp_head_affil.end_date = (datetime.strptime(affil.start_date,'%Y-%m-%d').date() - timedelta(days=1))
+    #                 consolidated_affil.append(tmp_head_affil)
+    #                 tmp_head_affil = copy.deepcopy(affil)
+    #         if(tmp_head_affil not in consolidated_affil):
+    #             consolidated_affil.append(tmp_head_affil)
+    #     self._affiliations = copy.deepcopy(consolidated_affil)
     
+    # JSON repl
     def __str__(self):
         returnstr = f"\"{self._PID}\":"
         returnstr += "{\"affiliations\":["
