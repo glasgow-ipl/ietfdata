@@ -367,8 +367,8 @@ if __name__ == "__main__":
         participants_affiliations.add_participants_affiliation_with_date(tmp_pid,tmp_oid,date)
         
         
-    with open(sys.argv[3],'w') as f:
-        print(f"About to write output to:{sys.argv[3]}")
+    with open(path,'w') as f:
+        print(f"About to write output to:{path}")
         f.write(participants_affiliations.toJSON())
     
     
