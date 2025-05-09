@@ -30,6 +30,7 @@ import textwrap
 from pathlib import Path
 from typing  import List, Dict, Optional, Iterator
 
+from ietfdata.rfcindex        import *
 from ietfdata.datatracker     import *
 from ietfdata.datatracker_ext import *
 from ietfdata.mailarchive2    import *
