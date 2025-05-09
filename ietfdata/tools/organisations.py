@@ -105,7 +105,7 @@ class OrganisationDB:
         Indicate that an organisation with the specified `name` exists
         """
         if name not in self._organisations:
-            print(f"   Organisation exists: \"{name}\"")
+            print(f"    Organisation exists: \"{name}\"")
             self._organisations[name] = Organisation(name)
 
 
@@ -116,7 +116,7 @@ class OrganisationDB:
         """
         self.organisation_exists(name)
         if domain not in self._domains:
-            print(f"   Organisation has domain: \"{name}\" -> \"{domain}\"")
+            print(f"    Organisation has domain: \"{name}\" -> \"{domain}\"")
             self._organisations[name].set_domain(domain)
             self._domains[domain] = self._organisations[name]
         else:
@@ -134,7 +134,6 @@ class OrganisationDB:
         Indicates that `name` is the preferred name for an organisation.
         """
         self.organisation_exists(name)
-        print(f"   Organisation has preferred name: \"{name}\"")
         self._organisations[name].set_preferred_name(name)
 
 
@@ -151,7 +150,7 @@ class OrganisationDB:
     def _merge(self, org1: Organisation, org2: Organisation) -> None:
         if org1 == org2:
             return
-        print(f"   Merging organisations: {org1.names()} -> {org2.names()}")
+        print(f"    Merging organisations: {org1.names()} -> {org2.names()}")
         # Merge names from org1 into org2:
         for name in org1.names():
             org2.add_name(name)
@@ -269,8 +268,8 @@ def record_affiliation(orgs: OrganisationDB, name:str, email:str) -> Optional[Tu
         for tld in ["com", "org", "edu"]:
             if len(parts) >= 2 and parts[-1] == tld:
                 domain = f"{parts[-2]}.{parts[-1]}".lower()
-                if domain in ["iana.com"]:
-                    print(f"   Domain in blocklist: {domain}")
+                if domain in ["iana.com", "linaro.com", "mit.org"]:
+                    print(f"    Domain in blocklist: {domain}")
                 else:
                     if name.lower() == parts[-2].lower():
                         # Organisation name directly matches domain
@@ -334,8 +333,8 @@ if __name__ == "__main__":
 
     # Record organisations based on RFC author affiliations:
     print("Finding organisations in RFC author affiliations:")
-    for rfc in ri.rfcs(stream="IETF", since="1995-01"):
-        #print(f"   {rfc.doc_id}: {textwrap.shorten(rfc.title, width=80, placeholder='...')}")
+    for rfc in ri.rfcs(since="1995-01"):
+        print(f"  {rfc.doc_id}: {textwrap.shorten(rfc.title, width=80, placeholder='...')}")
         dt_document = dt.document_from_rfc(rfc.doc_id)
         if dt_document is not None:
             for dt_author in dt.document_authors(dt_document):
@@ -345,6 +344,22 @@ if __name__ == "__main__":
                 org_domain = record_affiliation(orgs, dt_author.affiliation, email.address)
                 if org_domain is not None and org_domain not in org_domains:
                     org_domains.append(org_domain)
+    print("")
+
+    print("Finding affiliations in internet-draft submissions:")
+    for submission in dt.submissions():
+        print(f"  {submission.name}-{submission.rev}")
+        for authors in submission.parse_authors():
+            if "affiliation" not in authors:
+                continue
+            if "email" not in authors:
+                continue
+            if authors["affiliation"] is None or authors["email"] is None:
+                continue
+            org_domain = record_affiliation(orgs, authors["affiliation"], authors["email"])
+            if org_domain is not None and org_domain not in org_domains:
+                org_domains.append(org_domain)
+    print("")
 
     # Record organisations found in meeting registrations:
     print("Finding organisations in meeting registration records:")
@@ -352,6 +367,7 @@ if __name__ == "__main__":
         org_domain = record_affiliation(orgs, reg.affiliation, reg.email)
         if org_domain is not None and org_domain not in org_domains:
             org_domains.append(org_domain)
+    print("")
     
     # Merge organisations that start with an organisation that matched its domain.
     # e.g., "Cisco Belgique" starts with "Cisco", which matched "cisco.com", so
