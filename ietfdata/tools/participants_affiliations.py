@@ -60,8 +60,8 @@ class AffiliationEntry:
     def get_dictionary(self) -> dict:
         return_dict = dict()
         return_dict['organisation'] = self._OID 
-        return_dict['start_date'] = self._start_date
-        return_dict['end_date'] = self._end_date
+        return_dict['start_date'] = self._start_date.strftime("%Y-%m-%d")
+        return_dict['end_date'] = self._end_date.strftime("%Y-%m-%d")
         return return_dict
     
     # JSON Repl.
@@ -174,7 +174,7 @@ class AffiliationsForPerson:
     #     self._affiliations = copy.deepcopy(consolidated_affil)
     
     # dictionary 
-    def get_dictionary(self):
+    def get_dictionary(self) -> dict:
         return_dict = dict()
         return_dict['affiliations'] = list()
         for affil in self._affiliations:
@@ -212,9 +212,9 @@ class ParticipantsAffiliations:
         
     def toJSON(self) -> str:
         return_dict = dict()
-        for pid, affil in self._pid_oid_map:
-            return_dict[pid] = affil.get_dictionary()
-        return json.dumps(return_dict)
+        for pid, affil in self._pid_oid_map.items():
+            return_dict[pid] = dict(affil.get_dictionary())
+        return json.dumps(return_dict, indent=4)
         
     def __str__(self):
         returnstr = "{"
