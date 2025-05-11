@@ -197,12 +197,20 @@ class AffiliationsForPerson:
         returnstr = returnstr.rstrip(',') # strip last comma
         returnstr += "]}"
         return returnstr
-        
+
+# This class holds and populated participants to affiliation mappings. 
+# This needs participants and organisations information in dictionary from ietfdata.tools.participants and ietfdata.tools.organisations.
+# If you create a subclass for other sources, the `__init__()` method of the
+# subclass MUST call `super().__init__()` to correctly initialise the object.
 class ParticipantsAffiliations:
     _pid_oid_map : dict[str,AffiliationsForPerson]
+    _participants: dict
+    _organisations: dict
     
-    def __init__(self) -> None:
+    def __init__(self, participants:dict(), organisations:dict()) -> None:
         self._pid_oid_map = dict()
+        self._participants = participants
+        self._organisations = organisations
     
     def add_participants_affiliation_with_date(self, PID:str,OID:str,date:datetime.date)->None:
         if PID is None or PID == "":
@@ -216,12 +224,149 @@ class ParticipantsAffiliations:
         
         self._pid_oid_map[PID].add_affiliation_with_date(OID,date)
         
+    ## IETF specific code:
+    ### RFC
+    def _find_participants_affiliations_ietf_rfc(self, dt:DataTracker, ri:RFCIndex) -> None:
+        participants = self._participants
+        organisations = self._organisations
+        print("Going through IETF stream RFCs:")
+        for rfc in ri.rfcs(stream="IETF", since="1995-01"):
+            #print(f"   {rfc.doc_id}: {textwrap.shorten(rfc.title, width=80, placeholder='...')}")
+            rfc_date = rfc.date()
+            dt_document = dt.document_from_rfc(rfc.doc_id)
+            if dt_document is not None:
+                for dt_author in dt.document_authors(dt_document):
+                    person_uri = str(dt_author.person)
+                    if dt_author.affiliation == "" or dt_author.email is None:
+                        continue
+                    email  = dt.email(dt_author.email)
+                    
+                    tmp_pid = None
+                    
+                    for pid in participants:
+                        participant = participants[pid]
+                        if person_uri in participant.get("dt_person_uri",[]):
+                            tmp_pid = pid
+                            break
+                        if email in participant.get("email",[]):
+                            tmp_pid = pid
+                            break
+                            
+                    if tmp_pid is None or tmp_pid == "":
+                        continue
+                    
+                    tmp_oid = None
+                    
+                    for oid in organisations:
+                        organisation = organisations[oid]
+                        for name in organisation.get("names",[]):
+                            if dt_author.affiliation.lower() == name.lower():
+                                tmp_oid = oid
+                                break
+                    if tmp_oid is None or tmp_oid == "":
+                        continue
+                    self.add_participants_affiliation_with_date(tmp_pid,tmp_oid,rfc_date)
+    ### drafts
+    def _find_participants_affiliations_ietf_drafts(self, dt:DataTracker, ri:RFCIndex) -> None:
+        participants = self._participants
+        organisations = self._organisations
+        print(f"Going through draft submissions from \"1995-01-01\" until \"{date.today().strftime('%Y-%m-%d')}\":")
+        for submission in dt.submissions(date_since = "1995-01-01", date_until = date.today().strftime('%Y-%m-%d')):
+            print(f"{submission.name}-{submission.rev}")
+            tmp_date = submission.submission_date
+            for author in submission.parse_authors():
+                if author['email'] is not None:
+                    email = author['email']
+                if 'affiliation' not in author:
+                    print("** Missing affiliation in author dictionary.")
+                    continue 
+                if author['affiliation'] is not None:
+                    affiliation = author['affiliation']
+                
+                tmp_pid = None
+                for pid in participants:
+                    participant = participants[pid]
+                    if email.lower() in participant.get("email",[]):
+                        tmp_pid = pid
+                        break
+                if tmp_pid is None or tmp_pid == "":
+                    continue
+                
+                tmp_oid = None
+                for oid in organisations:
+                    organisation = organisations[oid]
+                    for name in organisation.get("names",[]):
+                            if affiliation.lower() == name.lower():
+                                tmp_oid = oid
+                                break
+                if tmp_oid is None or tmp_oid == "":
+                    continue
+                self.add_participants_affiliation_with_date(tmp_pid,tmp_oid,tmp_date)
+    
+    ### Meeting registration
+    def _find_participants_affiliations_ietf_meeting_reg(self, dt:DataTracker, ri:RFCIndex) -> None:
+        participants = self._participants
+        organisations = self._organisations
+        print("Going through Meeting Registration:")
+        for reg in dt.meeting_registrations():
+            tmp_person = reg.person
+            tmp_affiliation = reg.affiliation
+            tmp_email = reg.email
+            
+            tmp_meeting = dt.meeting(reg.meeting)
+            if tmp_meeting is None:
+                print("Meeting is None, continue.")
+                continue
+            tmp_date = tmp_meeting.date
+            if tmp_date is None:
+                print("Meeting date is None, continue.")
+                continue
+            tmp_pid = None
+            
+            for pid in participants:
+                participant = participants[pid]
+                if tmp_person in participant.get("dt_person_uri",[]):
+                    tmp_pid = pid
+                    break
+                if tmp_email in participant.get("email",[]):
+                    tmp_pid = pid
+                    break
+                    
+            if tmp_pid is None or tmp_pid == "":
+                continue
+            
+            tmp_oid = None
+            
+            for oid in organisations:
+                organisation = organisations[oid]
+                for name in organisation.get("names",[]):
+                    if tmp_affiliation.lower() == name.lower():
+                        tmp_oid = oid
+                        break
+            if tmp_oid is None or tmp_oid == "":
+                continue
+            self.add_participants_affiliation_with_date(tmp_pid,tmp_oid,tmp_date)
+    
+    ## gathers participants_affiliations mapping from ietf datatracker. 
+    ## Needs to instanciate DataTracker and RFCIndex objects
+    def find_participants_affiliations_ietf(self, dt:DataTracker, ri:RFCIndex) -> None:
+        self._find_participants_affiliations_ietf_rfc(dt,ri)
+        self._find_participants_affiliations_ietf_drafts(dt,ri)
+        self._find_participants_affiliations_ietf_meeting_reg(dt,ri)
+    
+    ## Output code
     def toJSON(self) -> str:
         return_dict = dict()
         for pid, affil in self._pid_oid_map.items():
             return_dict[pid] = affil.get_dictionary()
         return json.dumps(return_dict, indent=4)
-        
+    
+    def output(self,path) -> None:
+        with open(path,'w') as f:
+            print(f"About to write output to:{path}")
+            f.write(participants_affiliations.toJSON())
+    
+    ## String output for debugging
     def __str__(self):
         returnstr = "{"
         for pid in self._pid_oid_map:
@@ -240,136 +385,26 @@ if __name__ == "__main__":
         print("Usage: python3 -m ietfdata.tools.participants_affiliations <participants.json> <organisations.json> <output.json>")
         sys.exit(1)
     
-    participants_affiliations = ParticipantsAffiliations()
+    print(f"Loading participants from: {sys.argv[1]} and organisations from: {sys.argv[2]}")
     participants = None
     organisations = None
     with open(sys.argv[1]) as f:
         participants = json.load(f)
     with open(sys.argv[2]) as f:
         organisations = json.load(f)
-    print(f"Loading participants from: {sys.argv[1]} and organisations from: {sys.argv[2]}")
-    count = 0
-    for participant in participants:
-        print(f"{participant}:{participants[participant]}")
-        count+=1
-        if count > 10:
-            break
-    count = 0
-    for organisation in organisations:
-        print(f"{organisation}:{organisations[organisation]}")
-        count+=1
-        if count > 10:
-            break
-           
+    
+    participants_affiliations = ParticipantsAffiliations(participants,organisations)       
     dt = DataTracker(cache_timeout = timedelta(days=7))
     ri = RFCIndex(cache_dir = "cache")
+    participants_affiliations.find_participants_affiliations_ietf(dt,ri)
+    participants_affiliations.output(path)
     
-    print("Going through IETF stream RFCs:")
-    for rfc in ri.rfcs(stream="IETF", since="1995-01"):
-        #print(f"   {rfc.doc_id}: {textwrap.shorten(rfc.title, width=80, placeholder='...')}")
-        date = rfc.date()
-        dt_document = dt.document_from_rfc(rfc.doc_id)
-        if dt_document is not None:
-            for dt_author in dt.document_authors(dt_document):
-                person_uri = str(dt_author.person)
-                if dt_author.affiliation == "" or dt_author.email is None:
-                    continue
-                email  = dt.email(dt_author.email)
-                
-                tmp_pid = None
-                
-                for pid in participants:
-                    participant = participants[pid]
-                    if person_uri in participant.get("dt_person_uri",[]):
-                        tmp_pid = pid
-                        break
-                    if email in participant.get("email",[]):
-                        tmp_pid = pid
-                        break
-                        
-                if tmp_pid is None or tmp_pid == "":
-                    continue
-                
-                tmp_oid = None
-                
-                for oid in organisations:
-                    organisation = organisations[oid]
-                    for name in organisation.get("names",[]):
-                        if dt_author.affiliation.lower() == name.lower():
-                            tmp_oid = oid
-                            break
-                if tmp_oid is None or tmp_oid == "":
-                    continue
-                participants_affiliations.add_participants_affiliation_with_date(tmp_pid,tmp_oid,date)
     
-    print(f"Going through draft submissions from \"1995-01-01\" until \"{date.today().strftime('%Y-%m-%d')}\":")
-    for submission in dt.submissions(date_since = "1995-01-01", date_until = date.today().strftime('%Y-%m-%d')):
-        print(f"{submission.name}-{submission.rev}")
-        date = submission.submission_date
-        for author in submission.parse_authors():
-            if author['email'] is not None:
-                email = author['email']
-            if 'affiliation' not in author:
-                print("** Missing affiliation in author dictionary.")
-                continue 
-            if author['affiliation'] is not None:
-                affiliation = author['affiliation']
-            
-            tmp_pid = None
-            for pid in participants:
-                participant = participants[pid]
-                if email.lower() in participant.get("email",[]):
-                    tmp_pid = pid
-                    break
-            if tmp_pid is None or tmp_pid == "":
-                continue
-            
-            tmp_oid = None
-            for oid in organisations:
-                organisation = organisations[oid]
-                for name in organisation.get("names",[]):
-                        if affiliation.lower() == name.lower():
-                            tmp_oid = oid
-                            break
-            if tmp_oid is None or tmp_oid == "":
-                continue
-            participants_affiliations.add_participants_affiliation_with_date(tmp_pid,tmp_oid,date)
 
     
-    print("Going through Meeting Registration:")
-    for reg in dt.meeting_registrations():
-        person = reg.person
-        affiliation = reg.affiliation
-        email = reg.email
-        tmp_pid = None
-        
-        for pid in participants:
-            participant = participants[pid]
-            if person in participant.get("dt_person_uri",[]):
-                tmp_pid = pid
-                break
-            if email in participant.get("email",[]):
-                tmp_pid = pid
-                break
-                
-        if tmp_pid is None or tmp_pid == "":
-            continue
-        
-        tmp_oid = None
-        
-        for oid in organisations:
-            organisation = organisations[oid]
-            for name in organisation.get("names",[]):
-                if affiliation.lower() == name.lower():
-                    tmp_oid = oid
-                    break
-        if tmp_oid is None or tmp_oid == "":
-            continue
-        participants_affiliations.add_participants_affiliation_with_date(tmp_pid,tmp_oid,date)
+   
         
         
-    with open(path,'w') as f:
-        print(f"About to write output to:{path}")
-        f.write(participants_affiliations.toJSON())
+
     
     
