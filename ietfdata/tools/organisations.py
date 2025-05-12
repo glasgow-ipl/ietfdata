@@ -310,7 +310,7 @@ def record_affiliation(orgs: OrganisationDB, name:str, email:str) -> Optional[Tu
 
 class OrganisationMatcher:
     _org_db      : OrganisationDB
-    _org_domains : List[str]
+    _org_domains : List[Tuple[str,str]]
 
     def __init__(self):
         self._org_db = OrganisationDB()
@@ -342,7 +342,9 @@ class OrganisationMatcher:
                 for dt_author in dt.document_authors(dt_document):
                     if dt_author.affiliation == "" or dt_author.email is None:
                         continue
-                    email  = dt.email(dt_author.email)
+                    email = dt.email(dt_author.email)
+                    if email is None:
+                        continue
                     self.add(dt_author.affiliation, email.address)
         print("")
 
