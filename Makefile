@@ -28,7 +28,7 @@
 test: typecheck runtests
 
 typecheck:
-	mypy ietfdata/*.py
+	mypy ietfdata/*.py ietfdata/tools/*.py
 	mypy tests/*.py
 
 runtests:
