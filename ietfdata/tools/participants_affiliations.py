@@ -3,10 +3,8 @@ import csv
 import json 
 import copy
 
-import datetime
 from datetime import timedelta,date
 from typing import Optional
-
 from ietfdata.datatracker     import *
 from ietfdata.datatracker_ext import *
 from ietfdata.mailarchive2    import *
@@ -14,12 +12,12 @@ from ietfdata.mailarchive2    import *
 # TODO: tests
 # A class representing an affiliation entry 
 class AffiliationEntry:
-    _start_date  : datetime.date
-    _end_date    : datetime.date
+    _start_date  : date
+    _end_date    : date
     _OID : str
     
     ## initialise
-    def __init__(self, start_date:datetime.date, end_date:Optional[datetime.date],OID:str):
+    def __init__(self, start_date:date, end_date:Optional[date],OID:str):
         self._OID = OID
         if isinstance(start_date,datetime):
             start_date = start_date.date()
@@ -32,27 +30,27 @@ class AffiliationEntry:
             self._end_date = start_date 
     
     ## Getters
-    def get_start_date(self)->datetime.date:
+    def get_start_date(self)->date:
         return self._start_date
 
-    def get_end_date(self)->datetime.date:
+    def get_end_date(self)->date:
         return self._end_date
     
     def get_OID(self) -> str:
         return self._OID
     
     ## Setters
-    def set_start_date(self,new_start_date:datetime.date)->None:
+    def set_start_date(self,new_start_date:date)->None:
         if new_start_date > self._end_date:
             raise RuntimeError(f"Cannot set the start date ({new_start_date}) to be past the current end date {self._end_date}.")
         self._start_date = new_start_date
         
-    def set_end_date(self, new_end_date:datetime.date):
+    def set_end_date(self, new_end_date:date):
         if new_end_date < self._start_date:
             raise RuntimeError(f"Cannot set the end date ({new_end_date}) to be earlier than the current start date {self._start_date}.")
         self._end_date = new_end_date
 
-    def set_start_end_dates(self, new_start_date:datetime.date, new_end_date:datetime.date) -> None:
+    def set_start_end_dates(self, new_start_date:date, new_end_date:date) -> None:
         if new_start_date > new_end_date:
             raise RuntimeError(f"Cannot set the end date ({new_end_date}) to be earlier than the new start date {new_start_date}.")
         self._start_date = new_start_date
@@ -82,7 +80,7 @@ class AffiliationEntry:
 # Class representing a set of Affiliations for a Person, identified by PID from participants.py
 class AffiliationsForPerson:
     _PID : str
-    _affiliations: Optional[list[AffiliationEntry]]
+    _affiliations: list[AffiliationEntry]
     
     def __init__(self,PID:str,affiliations:Optional[list[AffiliationEntry]]):
         self._PID = PID 
@@ -98,7 +96,7 @@ class AffiliationsForPerson:
         return self._affiliations
     
     ## Other func.
-    def add_affiliation_with_date(self, OID:str, date:datetime.date) -> None:
+    def add_affiliation_with_date(self, OID:str, date:date) -> None:
         # Adds affiliation by date, fills any gap in dates towards later date
         # e.g. Affil. A, followed by another Affil. B with later date leads to Affil. A's end-date extended, and Affil. B entry added. 
         # Affil. C added within Affil. A's date range will split the 
@@ -181,8 +179,8 @@ class AffiliationsForPerson:
     #     self._affiliations = copy.deepcopy(consolidated_affil)
     
     # dictionary 
-    def get_dictionary(self) -> dict:
-        return_dict = dict()
+    def get_dictionary(self) -> dict[str,list]:
+        return_dict : dict[str,list] = dict()
         return_dict['affiliations'] = list()
         for affil in self._affiliations:
             return_dict['affiliations'].append(affil.get_dictionary())
@@ -207,12 +205,12 @@ class ParticipantsAffiliations:
     _participants: dict
     _organisations: dict
     
-    def __init__(self, participants:dict(), organisations:dict()) -> None:
+    def __init__(self, participants:dict, organisations:dict) -> None:
         self._pid_oid_map = dict()
         self._participants = participants
         self._organisations = organisations
     
-    def add_participants_affiliation_with_date(self, PID:str,OID:str,date:datetime.date)->None:
+    def add_participants_affiliation_with_date(self, PID:str,OID:str,date:date)->None:
         if PID is None or PID == "":
             raise RuntimeError("PID is None or Empty")
         if OID is None or PID == "":
@@ -318,9 +316,6 @@ class ParticipantsAffiliations:
                 print("Meeting is None, continue.")
                 continue
             tmp_date = tmp_meeting.date
-            if tmp_date is None:
-                print("Meeting date is None, continue.")
-                continue
             tmp_pid = None
             
             for pid in participants:
