@@ -1,6 +1,14 @@
 Change Log -- ietfdata
 ======================
 
+## Version ???
+
+- Introduce `mailarchive3.py`. This is intended to be an almost
+  drop-in replacement for `mailarchive2.py`, that uses a local
+  sqlite3 file as the database rather than MongoDB. Currently
+  work in progress.
+
+
 ## Version 0.8.3
 
  - Fix parsing of `Submission` objections that lack a draft
