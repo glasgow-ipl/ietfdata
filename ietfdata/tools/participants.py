@@ -1,4 +1,4 @@
-# Copyright (C) 2023 University of Glasgow
+# Copyright (C) 2023-2025 University of Glasgow
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -281,6 +281,8 @@ if __name__ == "__main__":
             pdb.identifies_same_person("dt_person_uri", str(resource.person), "github_username", resource.value)
         if str(resource.name) == "/api/v1/name/extresourcename/gitlab_username/":
             pdb.identifies_same_person("dt_person_uri", str(resource.person), "gitlab_username", resource.value)
+        if str(resource.name) == "/api/v1/name/extresourcename/orcid/":
+            pdb.identifies_same_person("dt_person_uri", str(resource.person), "orcid", resource.value)
 
     # Add identifiers based on the IETF mailing list archive:
     seen_full = set()
