@@ -359,7 +359,7 @@ class ParticipantsAffiliations:
     def output(self,path) -> None:
         with open(path,'w') as f:
             print(f"About to write output to:{path}")
-            f.write(participants_affiliations.toJSON())
+            f.write(self.toJSON())
     
     ## String output for debugging
     def __str__(self):
