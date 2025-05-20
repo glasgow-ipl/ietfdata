@@ -26,7 +26,7 @@
 import json
 import sys
 import textwrap
-
+import warnings
 from pathlib import Path
 from typing  import List, Dict, Optional, Iterator
 
@@ -318,6 +318,12 @@ class OrganisationMatcher:
 
 
     def add(self, organisation:str, email:str):
+        if organisation is None:
+            warnings.warn("organisation is None, ignored.")
+            return 
+        if organisation == "":
+            warnings.warn("organisation is an empty string, ignored.")
+            return
         org_domain = record_affiliation(self._org_db, organisation, email)
         if org_domain is not None and org_domain not in self._org_domains:
             self._org_domains.append(org_domain)
@@ -353,6 +359,8 @@ class OrganisationMatcher:
             print(f"  {submission.name}-{submission.rev}")
             for authors in submission.parse_authors():
                 if "affiliation" not in authors or authors["affiliation"] is None:
+                    continue
+                if authors["affiliation"] == "":
                     continue
                 if "email"       not in authors or authors["email"]       is None:
                     continue
