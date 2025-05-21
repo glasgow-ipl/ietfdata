@@ -587,32 +587,22 @@ class MailingList:
 
 
     def messages(self,
-                 received_after  : Optional[datetime] = None,
-                 received_before : Optional[datetime] = None) -> Iterator[Envelope]:
+                 received_after : str = "1970-01-01T00:00:00",
+                 received_before: str = "2038-01-19T03:14:07") -> Iterator[Envelope]:
         """
         Return the envelopes containing the specified messages from this mailing list.
         """
-        if received_before is not None:
-            rx_before = received_before.astimezone(UTC).isoformat()
-        else:
-            rx_before = "2038-01-19T03:14:07+00:00"
-
-        if received_after is not None:
-            rx_after = received_after.astimezone(UTC).isoformat()
-        else:
-            rx_after = "1970-01-01T00:00:00+00:00"
-
         dbc = self._archive._db.cursor()
         sql = "SELECT uid FROM ietf_ma_msg WHERE mailing_list = ? AND uidvalidity = ? AND date_received > ? AND date_received < ?;"
-        for uid in map(lambda x : x[0], dbc.execute(sql, (self.name(), self.uidvalidity(), rx_after, rx_before))):
+        for uid in map(lambda x : x[0], dbc.execute(sql, (self.name(), self.uidvalidity(), received_after, received_before))):
             msg = self.message(uid)
             assert msg is not None
             yield msg
 
 
     def messages_as_dataframe(self,
-                              received_after  : Optional[datetime] = None,
-                              received_before : Optional[datetime] = None) -> pd.DataFrame:
+                              received_after : str = "1970-01-01T00:00:00",
+                              received_before: str = "2038-01-19T03:14:07") -> pd.DataFrame:
         """
         Return a dataframe containing information about the specified messages from
         this mailing list.
@@ -1085,8 +1075,8 @@ class MailArchive:
 
 
     def messages(self,
-                 received_after    : datetime = datetime.fromisoformat("2038-01-19T03:14:07+00:00"),  # str in mailarchive2
-                 received_before   : datetime = datetime.fromisoformat("1970-01-01T00:00:00+00:00"),  # str in mailarchive2
+                 received_after    : str = "1970-01-01T00:00:00",
+                 received_before   : str = "2038-01-19T03:14:07",
                  header_from       : Optional[str] = None, # Regex match
                  header_to         : Optional[str] = None, # Regex match
                  header_subject    : Optional[str] = None, # Regex match
@@ -1119,8 +1109,7 @@ class MailArchive:
         #  in_reply_to
         dbc = self._db.cursor()
         query = "SELECT msg_num FROM ietf_ma_msg WHERE date_received > ? AND date_received < ?;"
-        param = (received_after.isoformat(),
-                 received_before.isoformat())
+        param = (received_after, received_before)
         for msg_num in map(lambda x : x[0], dbc.execute(query, param).fetchall()): 
             yield Envelope(self, msg_num)
 

@@ -225,8 +225,8 @@ class TestMailArchive3(unittest.TestCase):
         msgs  = list(mlist.messages())
         self.assertEqual(len(msgs), 434)
         # Test messages with received before/after constraints:
-        msgs  = list(mlist.messages(received_after  = datetime.fromisoformat("2017-10-01T00:00:00+00:00"), 
-                                    received_before = datetime.fromisoformat("2017-11-01T00:00:00+00:00")))
+        msgs  = list(mlist.messages(received_after  = "2017-10-01T00:00:00+00:00",
+                                    received_before = "2017-11-01T00:00:00+00:00"))
         self.assertEqual(len(msgs), 9)
 
 
@@ -237,8 +237,8 @@ class TestMailArchive3(unittest.TestCase):
         self.assertEqual(df.shape, (434, 7))
 
         # Test messages with received before/after constraints:
-        df  = mlist.messages_as_dataframe(received_after  = datetime.fromisoformat("2017-10-01T00:00:00+00:00"), 
-                                          received_before = datetime.fromisoformat("2017-11-01T00:00:00+00:00"))
+        df  = mlist.messages_as_dataframe(received_after  = "2017-10-01T00:00:00+00:00",
+                                          received_before = "2017-11-01T00:00:00+00:00")
         self.assertEqual(df.shape, (9, 7))
 
 
