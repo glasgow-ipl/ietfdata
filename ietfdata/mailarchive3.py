@@ -778,7 +778,7 @@ class MailingList:
                 if len(parents) == 0:
                     # This is the first message in the thread
                     if msg.message_id() not in threads:
-                        threads[msg.message_id()] = [msg]
+                        threads[msg.message_id()] = self._archive.message(msg.message_id())
                     self._archive._log.debug("      First in thread")
                 elif parents[0].message_id() in seen:
                     # This is part of a thread we've already seen

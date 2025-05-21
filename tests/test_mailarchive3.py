@@ -56,11 +56,12 @@ class TestMailArchive3(unittest.TestCase):
         self.ma.update_mailing_list("cfrg")
         self.ma.update_mailing_list("e-impact")
         self.ma.update_mailing_list("green")
+        self.ma.update_mailing_list("ietf")    # This is a large list that takes a long time to sync
         self.ma.update_mailing_list("irtf-announce")
         self.ma.update_mailing_list("irtf-discuss")
         
 
-    # =============================================================================================
+    # ==============================================================================================
     # Tests for the Envelope class follow:
 
     def test_mailarchive3_envelope_mailing_list(self) -> None:
@@ -169,6 +170,10 @@ class TestMailArchive3(unittest.TestCase):
         self.assertEqual(len(msgs[0].in_reply_to()), 1)
         self.assertEqual(msgs[0].in_reply_to()[0].message_id(), "<CAMr0u6mtvLBNnurVjw3rq5PmSF6okisAg5OVRzoqVvzpR7+r=A@mail.gmail.com>")
 
+        msgs = self.ma.message("<399B1F51-1C36-4F6D-B1ED-2F293707A6BF@gmail.com>")
+        self.assertEqual(len(msgs), 2)                  # This message has copies to both 100attendees@ and ietf@
+        self.assertEqual(len(msgs[0].in_reply_to()), 2) # ...as does the message to which it is a reply
+
 
     def test_mailarchive3_envelope_replies(self) -> None:
         msgs = self.ma.message("<CAMr0u6mtvLBNnurVjw3rq5PmSF6okisAg5OVRzoqVvzpR7+r=A@mail.gmail.com>")
@@ -243,7 +248,12 @@ class TestMailArchive3(unittest.TestCase):
 
 
     def test_mailarchive3_mailinglist_threads(self) -> None:
-        self.fail("Not Implemented")
+        mlist   = self.ma.mailing_list("100attendees")
+        threads = mlist.threads()
+        self.assertEqual(len(threads), 111)
+        # Message <9B50505D-A7E7-40E0-B789-419DA14C6021@gmail.com> is copied to both the
+        # 100attendees and ietf lists, so there will be two envolopes in the thread head..
+        self.assertEqual(len(threads["<9B50505D-A7E7-40E0-B789-419DA14C6021@gmail.com>"]), 2)
 
 
     def test_mailarchive3_mailinglist_metadata(self) -> None:
