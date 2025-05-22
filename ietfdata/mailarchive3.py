@@ -251,6 +251,7 @@ class Envelope:
         sql = """INSERT OR REPLACE INTO ietf_ma_msg_metadata
                  VALUES ((SELECT id FROM ietf_ma_msg_metadata WHERE message_num = ? and project = ? AND key_ = ?), ?, ?, ?, ?)"""
         dbc.execute(sql, (self._message_num, project, key, self._message_num, project, key, value))
+        self._archive._db.commit()
 
 
     def get_metadata(self, project:str, key:str) -> Optional[str]:
@@ -290,6 +291,7 @@ class Envelope:
         else:
             sql = "DELETE FROM ietf_ma_msg_metadata WHERE message_num = ? AND project = ? AND key_ = ?;"
             dbc.execute(sql, (self._message_num, project, key))
+        self._archive._db.commit()
 
 
 
@@ -831,7 +833,11 @@ class MailingList:
         exploratory work from individual members of the project might use
         their username as the basis for the `project` (e.g., "alice_test4").
         """
-        pass # FIXME
+        dbc = self._archive._db.cursor()
+        sql = """INSERT OR REPLACE INTO ietf_ma_list_metadata
+                 VALUES ((SELECT id FROM ietf_ma_list_metadata WHERE mailing_list = ? and project = ? AND key_ = ?), ?, ?, ?, ?)"""
+        dbc.execute(sql, (self._name, project, key, self._name, project, key, value))
+        self._archive._db.commit()
 
 
     def get_metadata(self, project:str, key:str) -> str:
@@ -842,7 +848,13 @@ class MailingList:
         - `project` -- the project or user to which this metadata relates
         - `key`     -- the key under which the metadata was scored
         """
-        return "" # FIXME
+        dbc = self._archive._db.cursor()
+        sql = "SELECT value FROM ietf_ma_list_metadata WHERE mailing_list = ? AND project = ? AND key_ = ?;"
+        res = dbc.execute(sql, (self._name, project, key)).fetchone()
+        if res is None:
+            return None
+        else:
+            return str(res[0])
 
 
     def clear_metadata(self, project:str, key:Optional[str] = None) -> None:
@@ -858,7 +870,14 @@ class MailingList:
         is not specified, then all metadata relating to `project` is
         removed from this envelope.
         """
-        pass # FIXME
+        dbc = self._archive._db.cursor()
+        if key is None:
+            sql = "DELETE FROM ietf_ma_list_metadata WHERE mailing_list = ? AND project = ?;"
+            dbc.execute(sql, (self._name, project))
+        else:
+            sql = "DELETE FROM ietf_ma_list_metadata WHERE mailing_list = ? AND project = ? AND key_ = ?;"
+            dbc.execute(sql, (self._name, project, key))
+        self._archive._db.commit()
 
 
 # =================================================================================================
@@ -908,12 +927,13 @@ class MailArchive:
         self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_lists ON ietf_ma_lists (name);""")
 
         self._db.execute("""CREATE TABLE IF NOT EXISTS ietf_ma_list_metadata (
-                                id      INTEGER PRIMARY KEY AUTOINCREMENT,
-                                list    TEXT NOT NULL,
-                                project TEXT,
-                                key_    TEXT,
-                                value   TEXT);""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_list_metadata ON ietf_ma_list_metadata (list, project, key_);""")
+                                id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                                mailing_list TEXT NOT NULL,
+                                project      TEXT,
+                                key_         TEXT,
+                                value        TEXT);""")
+        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_list_metadata
+                                                    ON ietf_ma_list_metadata (mailing_list, project, key_);""")
 
         self._db.execute("""CREATE TABLE IF NOT EXISTS ietf_ma_msg (
                                 message_num   INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -257,7 +257,12 @@ class TestMailArchive3(unittest.TestCase):
 
 
     def test_mailarchive3_mailinglist_metadata(self) -> None:
-        self.fail("Not Implemented")
+        mlist = self.ma.mailing_list("100attendees")
+        self.assertEqual(mlist.get_metadata("test_mailarchive3", "testing"), None)
+        mlist.add_metadata("test_mailarchive3", "testing", "1... 2... 3...")
+        self.assertEqual(mlist.get_metadata("test_mailarchive3", "testing"), "1... 2... 3...")
+        mlist.clear_metadata("test_mailarchive3", "testing")
+        self.assertEqual(mlist.get_metadata("test_mailarchive3", "testing"), None)
 
 
     # =============================================================================================
