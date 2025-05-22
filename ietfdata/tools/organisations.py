@@ -318,9 +318,6 @@ class OrganisationMatcher:
 
 
     def add(self, organisation:str, email:str):
-        if organisation is None:
-            warnings.warn("organisation is None, ignored.")
-            return 
         if organisation == "":
             warnings.warn("organisation is an empty string, ignored.")
             return
