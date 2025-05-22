@@ -1122,7 +1122,9 @@ class MailArchive:
         WARNING: This is a destructive operation that should not normally
         be needed. Use with care.
         """
-        pass # FIXME
+        for ml_name in self.mailing_list_names():
+            ml = self.mailing_list(ml_name)
+            ml.clear_metadata(project)
 
 
 # =================================================================================================
