@@ -333,8 +333,6 @@ class TestMailArchive3(unittest.TestCase):
     def test_mailarchive3_mailarchive_messages_from_to(self) -> None:
         # Messages between two people, irrespective of mailing list
         msgs = list(self.ma.messages(from_addr="csp@csperkins.org", to_addr="ladan@isi.edu"))
-        for msg in msgs:
-            print(msg.uid(), msg.from_(), msg.subject())
         self.assertEqual(len(msgs), 3)
         self.assertEqual(msgs[0].subject(),             "Re: [AVT] Header formats for RTP profile for TFRC")
         self.assertEqual(msgs[0].mailing_list().name(), "avt")
