@@ -1102,34 +1102,51 @@ class MailArchive:
                  header_subject    : Optional[str] = None, # Regex match
                  mailing_list_name : Optional[str] = None, # Exact match
                  # The following are new for mailarchive3:
-                 sent_after        : Optional[datetime] = None,
-                 sent_before       : Optional[datetime] = None,
+                 sent_after        : str = "1970-01-01T00:00:00",
+                 sent_before       : str = "2038-01-19T03:14:07",
                  from_addr         : Optional[str] = None,
                  to_addr           : Optional[str] = None,
                  cc_addr           : Optional[str] = None,
-                 subject_contains  : Optional[str] = None,
+                 subject           : Optional[str] = None, # Matches when subject contains this value
                  message_id        : Optional[str] = None,
                  in_reply_to       : Optional[str] = None,
                 ) -> Iterator[Envelope]:
         """
         Return the envelopes of all specified messages in the archive.
         """
-        # FIXME: doesn't yet handle:
-        #  header_from
-        #  header_to
-        #  header_subject
-        #  mailing_list_name
-        #  sent_after
-        #  sent_before
-        #  from_addr
-        #  to_addr
-        #  cc_addr
-        #  subject_contains
-        #  message_id
-        #  in_reply_to
         dbc = self._db.cursor()
-        query = "SELECT msg_num FROM ietf_ma_msg WHERE date_received > ? AND date_received < ?;"
-        param = (received_after, received_before)
+        query = """SELECT DISTINCT ietf_ma_msg.message_num 
+                   FROM ietf_ma_msg
+                   JOIN ietf_ma_hdr    ON ietf_ma_msg.message_num = ietf_ma_hdr.message_num
+                   JOIN ietf_ma_hdr_to ON ietf_ma_msg.message_num = ietf_ma_hdr_to.message_num
+                   JOIN ietf_ma_hdr_cc ON ietf_ma_msg.message_num = ietf_ma_hdr_cc.message_num
+                   WHERE date_received > ? AND date_received < ? AND date > ? AND date < ? """
+        param = [received_after, received_before, sent_after, sent_before]
+        #  FIXME: header_from
+        #  FIXME: header_to
+        #  FIXME: header_subject
+        if mailing_list_name is not None:
+            query += "AND mailing_list == ? "
+            param.append(mailing_list_name)
+        if from_addr is not None:
+            query += "AND from_addr == ? "
+            param.append(from_addr)
+        if to_addr is not None:
+            query += "AND to_addr == ? "
+            param.append(to_addr)
+        if cc_addr is not None:
+            query += "AND cc_addr == ? "
+            param.append(cc_addr)
+        if subject is not None:
+            query += "AND subject LIKE ? "
+            param.append(f'%{subject}%')
+        if message_id is not None:
+            query += "AND message_id == ? "
+            param.append(message_id)
+        if in_reply_to is not None:
+            query += "AND in_reply_to == ? "
+            param.append(in_reply_to)
+        query += ";"
         for msg_num in map(lambda x : x[0], dbc.execute(query, param).fetchall()): 
             yield Envelope(self, msg_num)
 

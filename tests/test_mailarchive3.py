@@ -53,13 +53,18 @@ class TestMailArchive3(unittest.TestCase):
         # Fetch the mailing lists used in these tests:
         self.ma.update_mailing_list_names()
         self.ma.update_mailing_list("100attendees")
+        self.ma.update_mailing_list("avt")
+        self.ma.update_mailing_list("anima")
         self.ma.update_mailing_list("cfrg")
         self.ma.update_mailing_list("e-impact")
         self.ma.update_mailing_list("green")
-        self.ma.update_mailing_list("ietf")    # This is a large list that takes a long time to sync
+        self.ma.update_mailing_list("ietf")
         self.ma.update_mailing_list("irtf-announce")
         self.ma.update_mailing_list("irtf-discuss")
-        
+        self.ma.update_mailing_list("last-call")
+        self.ma.update_mailing_list("secdir")
+        self.ma.update_mailing_list("sip")
+
 
     # ==============================================================================================
     # Tests for the Envelope class follow:
@@ -287,85 +292,84 @@ class TestMailArchive3(unittest.TestCase):
         msgs = self.ma.message("<0D393D01-F267-43BC-8F9C-1638B3E17EA5@csperkins.org>")
         self.assertEqual(len(msgs), 4)
         self.assertEqual(msgs[0].mailing_list().name(), "e-impact")
-        self.assertEqual(msgs[0].uid(),             1591)
-        self.assertEqual(msgs[0].uidvalidity(),     1674241031)
-        self.assertEqual(msgs[0].header("subject"), ['[E-impact] Sustainability and the Internet Research Group chartered'])
-        self.assertEqual(msgs[0].header("from"),    ['Colin Perkins <csp@csperkins.org>'])
+        self.assertEqual(msgs[0].uid(),         1591)
+        self.assertEqual(msgs[0].uidvalidity(), 1674241031)
+        self.assertEqual(msgs[0].subject(),     '[E-impact] Sustainability and the Internet Research Group chartered')
+        self.assertEqual(msgs[0].from_(),       Address(display_name="Colin Perkins", addr_spec="csp@csperkins.org"))
 
         self.assertEqual(msgs[1].mailing_list().name(), "green")
-        self.assertEqual(msgs[1].uid(),             159)
-        self.assertEqual(msgs[1].uidvalidity(),     1728069020)
-        self.assertEqual(msgs[1].header("subject"), ['[Green] Sustainability and the Internet Research Group chartered'])
-        self.assertEqual(msgs[1].header("from"),    ['Colin Perkins <csp@csperkins.org>'])
+        self.assertEqual(msgs[1].uid(),         159)
+        self.assertEqual(msgs[1].uidvalidity(), 1728069020)
+        self.assertEqual(msgs[1].subject(),     '[Green] Sustainability and the Internet Research Group chartered')
+        self.assertEqual(msgs[1].from_(),       Address(display_name="Colin Perkins", addr_spec="csp@csperkins.org"))
 
         self.assertEqual(msgs[2].mailing_list().name(), "irtf-announce")
-        self.assertEqual(msgs[2].uid(),             613)
-        self.assertEqual(msgs[2].uidvalidity(),     1455297825)
-        self.assertEqual(msgs[2].header("subject"), ['[IRTF-Announce] Sustainability and the Internet Research Group chartered'])
-        self.assertEqual(msgs[2].header("from"),    ['Colin Perkins <csp@csperkins.org>'])
+        self.assertEqual(msgs[2].uid(),         613)
+        self.assertEqual(msgs[2].uidvalidity(), 1455297825)
+        self.assertEqual(msgs[2].subject(),     '[IRTF-Announce] Sustainability and the Internet Research Group chartered')
+        self.assertEqual(msgs[2].from_(),       Address(display_name="Colin Perkins", addr_spec="csp@csperkins.org"))
 
         self.assertEqual(msgs[3].mailing_list().name(), "irtf-discuss")
-        self.assertEqual(msgs[3].uid(),             819)
-        self.assertEqual(msgs[3].uidvalidity(),     1455297825)
-        self.assertEqual(msgs[3].header("subject"), ['[irtf-discuss] Sustainability and the Internet Research Group chartered'])
-        self.assertEqual(msgs[3].header("from"),    ['Colin Perkins <csp@csperkins.org>'])
+        self.assertEqual(msgs[3].uid(),         819)
+        self.assertEqual(msgs[3].uidvalidity(), 1455297825)
+        self.assertEqual(msgs[3].subject(),     '[irtf-discuss] Sustainability and the Internet Research Group chartered')
+        self.assertEqual(msgs[3].from_(),       Address(display_name="Colin Perkins", addr_spec="csp@csperkins.org"))
 
 
     def test_mailarchive3_mailarchive_messages_from_list(self) -> None:
-        # From person to specific mailing list
-        #msgs = list(self.ma.messages(header_from="csp@csperkins.org", mailing_list_name="sip"))
-        #self.assertEqual(len(msgs), 8)
-        #self.assertEqual(msgs[0].header("subject"), ['[Sip] Review request: draft-ietf-mmusic-connection-precon-00.txt'])
-        #self.assertEqual(msgs[1].header("subject"), ['Re: [Sip] SDP Query'])
-        #self.assertEqual(msgs[2].header("subject"), ['Re: [Sip] SDP Query'])
-        #self.assertEqual(msgs[3].header("subject"), ['Re: [Sip] Changing SSRC/sequence numbers during a call'])
-        #self.assertEqual(msgs[4].header("subject"), ['[Sip] Progressing ICE'])
-        #self.assertEqual(msgs[5].header("subject"), ['Re: [Sip] SIP IPv6 ABNF: Essential correction to RFC3261'])
-        #self.assertEqual(msgs[6].header("subject"), ['Re: [Sip] SIP IPv6 ABNF: Essential correction to RFC3261'])
-        #self.assertEqual(msgs[7].header("subject"), ['Re: [Sip] Maximum allowed value of Clock rate in SDP ???'])
-        pass
+        # Messages from a person to specific mailing list
+        msgs = list(self.ma.messages(from_addr="csp@csperkins.org", mailing_list_name="sip"))
+        self.assertEqual(len(msgs), 8)
+        self.assertEqual(msgs[0].subject(), "[Sip] Review request: draft-ietf-mmusic-connection-precon-00.txt")
+        self.assertEqual(msgs[1].subject(), "Re: [Sip] SDP Query")
+        self.assertEqual(msgs[2].subject(), "Re: [Sip] SDP Query")
+        self.assertEqual(msgs[3].subject(), "Re: [Sip] Changing SSRC/sequence numbers during a call")
+        self.assertEqual(msgs[4].subject(), "[Sip] Progressing ICE")
+        self.assertEqual(msgs[5].subject(), "Re: [Sip] SIP IPv6 ABNF: Essential correction to RFC3261")
+        self.assertEqual(msgs[6].subject(), "Re: [Sip] SIP IPv6 ABNF: Essential correction to RFC3261")
+        self.assertEqual(msgs[7].subject(), "Re: [Sip] Maximum allowed value of Clock rate in SDP ???")
 
 
     def test_mailarchive3_mailarchive_messages_from_to(self) -> None:
-        # Between two people, irrespective of mailing list
-        #msgs = list(self.ma.messages(header_from="csp@csperkins.org", header_to="ladan@isi.edu"))
-        #self.assertEqual(len(msgs), 3)
-        #self.assertEqual(msgs[0].header("subject"), ['Re: [AVT] Header formats for RTP profile for TFRC'])
-        #self.assertEqual(msgs[0].mailing_list().name(), "avt")
-        #self.assertEqual(msgs[0].uid(),             4969)
-        #self.assertEqual(msgs[0].uidvalidity(),     1455297825)
+        # Messages between two people, irrespective of mailing list
+        msgs = list(self.ma.messages(from_addr="csp@csperkins.org", to_addr="ladan@isi.edu"))
+        for msg in msgs:
+            print(msg.uid(), msg.from_(), msg.subject())
+        self.assertEqual(len(msgs), 3)
+        self.assertEqual(msgs[0].subject(),             "Re: [AVT] Header formats for RTP profile for TFRC")
+        self.assertEqual(msgs[0].mailing_list().name(), "avt")
+        self.assertEqual(msgs[0].uid(),                 4969)
+        self.assertEqual(msgs[0].uidvalidity(),         1455297825)
 
-        #self.assertEqual(msgs[1].header("subject"), ['Re: [AVT] I-D ACTION:draft-ietf-avt-tfrc-profile-06.txt'])
-        #self.assertEqual(msgs[1].mailing_list().name(), "avt")
-        #self.assertEqual(msgs[1].uid(),             6312)
-        #self.assertEqual(msgs[1].uidvalidity(),     1455297825)
+        self.assertEqual(msgs[1].subject(),             "Re: [AVT] I-D ACTION:draft-ietf-avt-tfrc-profile-06.txt")
+        self.assertEqual(msgs[1].mailing_list().name(), "avt")
+        self.assertEqual(msgs[1].uid(),                 6312)
+        self.assertEqual(msgs[1].uidvalidity(),         1455297825)
 
-        #self.assertEqual(msgs[2].header("subject"), ['Re: [AVT] I-D ACTION:draft-ietf-avt-tfrc-profile-09.txt '])
-        #self.assertEqual(msgs[2].mailing_list().name(), "avt")
-        #self.assertEqual(msgs[2].uid(),             7549)
-        #self.assertEqual(msgs[2].uidvalidity(),     1455297825)
-        pass
+        self.assertEqual(msgs[2].subject(),             "Re: [AVT] I-D ACTION:draft-ietf-avt-tfrc-profile-09.txt")
+        self.assertEqual(msgs[2].mailing_list().name(), "avt")
+        self.assertEqual(msgs[2].uid(),                 7549)
+        self.assertEqual(msgs[2].uidvalidity(),         1455297825)
 
 
     def test_mailarchive3_mailarchive_messages_subject(self) -> None:
-        # With a particular subject
-        #msgs = list(self.ma.messages(header_subject="Secdir last call review of draft-ietf-anima-brski-cloud-11"))
-        #self.assertEqual(len(msgs), 3)
-        #self.assertEqual(msgs[0].header("subject"), ['[Anima] Secdir last call review of draft-ietf-anima-brski-cloud-11'])
-        #self.assertEqual(msgs[0].mailing_list().name(), "anima")
-        #self.assertEqual(msgs[0].uid(),             7522)
-        #self.assertEqual(msgs[0].uidvalidity(),     1455297825)
+        # Messages with a particular subject
+        msgs = list(self.ma.messages(subject="Secdir last call review of draft-ietf-anima-brski-cloud-11"))
+        self.assertEqual(len(msgs), 3)
+        self.assertEqual(msgs[0].subject(),             "[Anima] Secdir last call review of draft-ietf-anima-brski-cloud-11")
+        self.assertEqual(msgs[0].mailing_list().name(), "anima")
+        self.assertEqual(msgs[0].uid(),                 7522)
+        self.assertEqual(msgs[0].uidvalidity(),         1455297825)
 
-        #self.assertEqual(msgs[1].header("subject"), ['[Last-Call] Secdir last call review of draft-ietf-anima-brski-cloud-11'])
-        #self.assertEqual(msgs[1].mailing_list().name(), "last-call")
-        #self.assertEqual(msgs[1].uid(),             12409)
-        #self.assertEqual(msgs[1].uidvalidity(),     1571671002)
+        self.assertEqual(msgs[1].subject(),             "[Last-Call] Secdir last call review of draft-ietf-anima-brski-cloud-11")
+        self.assertEqual(msgs[1].mailing_list().name(), "last-call")
+        self.assertEqual(msgs[1].uid(),                 12409)
+        self.assertEqual(msgs[1].uidvalidity(),         1571671002)
 
-        #self.assertEqual(msgs[2].header("subject"), ['[secdir] Secdir last call review of draft-ietf-anima-brski-cloud-11'])
-        #self.assertEqual(msgs[2].mailing_list().name(), "secdir")
-        #self.assertEqual(msgs[2].uid(),             12606)
-        #self.assertEqual(msgs[2].uidvalidity(),     1455297825)
-        pass
+        self.assertEqual(msgs[2].subject(),             "[secdir] Secdir last call review of draft-ietf-anima-brski-cloud-11")
+        self.assertEqual(msgs[2].mailing_list().name(), "secdir")
+        self.assertEqual(msgs[2].uid(),                 12606)
+        self.assertEqual(msgs[2].uidvalidity(),         1455297825)
 
 
 if __name__ == '__main__':
