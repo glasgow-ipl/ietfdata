@@ -840,7 +840,7 @@ class MailingList:
         self._archive._db.commit()
 
 
-    def get_metadata(self, project:str, key:str) -> str:
+    def get_metadata(self, project:str, key:str) -> Optional[str]:
         """
         Get metadata relating to the list.
 
