@@ -2409,31 +2409,31 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(types[1].slug, "interim")
 
 
-    @patch.object(ietfdata.datatracker, 'datetime', Mock(wraps=datetime))
+    @patch.object(ietfdata.datatracker_types, 'date', Mock(wraps=date))
     def test_meeting_status_future(self) -> None:
         meeting = self.dt.meeting(MeetingURI(uri="/api/v1/meeting/meeting/365/"))
         if meeting is not None:
-            ietfdata.datatracker.datetime.now.return_value = date(2014, 1, 1) # type: ignore
+            ietfdata.datatracker_types.date.today.return_value = date(2014, 1, 1) # type: ignore
             self.assertEqual(meeting.status(), MeetingStatus.FUTURE)
         else:
             self.fail("Cannot find meeting")
 
 
-    @patch.object(ietfdata.datatracker, 'datetime', Mock(wraps=datetime))
+    @patch.object(ietfdata.datatracker_types, 'date', Mock(wraps=date))
     def test_meeting_status_completed(self) -> None:
         meeting = self.dt.meeting(MeetingURI(uri="/api/v1/meeting/meeting/365/"))
         if meeting is not None:
-            ietfdata.datatracker.datetime.now.return_value = date(2014, 12, 1) # type: ignore
+            ietfdata.datatracker_types.date.today.return_value = date(2014, 12, 1) # type: ignore
             self.assertEqual(meeting.status(), MeetingStatus.COMPLETED)
         else:
             self.fail("Cannot find meeting")
 
 
-    @patch.object(ietfdata.datatracker, 'datetime', Mock(wraps=datetime))
+    @patch.object(ietfdata.datatracker_types, 'date', Mock(wraps=date))
     def test_meeting_status_ongoing(self) -> None:
         meeting = self.dt.meeting(MeetingURI(uri="/api/v1/meeting/meeting/365/"))
         if meeting is not None:
-            ietfdata.datatracker.datetime.now.return_value = date(2014, 7, 20) # type: ignore
+            ietfdata.datatracker_types.date.today.return_value = date(2014, 7, 20) # type: ignore
             self.assertEqual(meeting.status(), MeetingStatus.ONGOING)
         else:
             self.fail("Cannot find meeting")
