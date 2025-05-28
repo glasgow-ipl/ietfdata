@@ -183,11 +183,15 @@ class Envelope:
         there are some messages with two addresses in the "From:" line.
         """
         msg = message_from_bytes(self._message, policy=policy.default)
-        res = msg.get_all(header_name)
-        if res is None:
+        try:
+            res = msg.get_all(header_name)
+            if res is None:
+                return []
+            else:
+                return res
+        except:
+            self._archive._log.warning(f"mailarchive3:envelope:header: cannot parse \"{header_name}\" header")
             return []
-        else:
-            return res
 
 
     def contents(self) -> Message:
@@ -595,7 +599,7 @@ class MailingList:
         Return the envelopes containing the specified messages from this mailing list.
         """
         dbc = self._archive._db.cursor()
-        sql = "SELECT uid FROM ietf_ma_msg WHERE mailing_list = ? AND uidvalidity = ? AND date_received > ? AND date_received < ?;"
+        sql = "SELECT uid FROM ietf_ma_msg WHERE mailing_list = ? AND uidvalidity = ? AND date_received >= ? AND date_received < ?;"
         for uid in map(lambda x : x[0], dbc.execute(sql, (self.name(), self.uidvalidity(), received_after, received_before))):
             msg = self.message(uid)
             assert msg is not None
@@ -1097,17 +1101,18 @@ class MailArchive:
     def messages(self,
                  received_after    : str = "1970-01-01T00:00:00",
                  received_before   : str = "2038-01-19T03:14:07",
-                 header_from       : Optional[str] = None, # Regex match
-                 header_to         : Optional[str] = None, # Regex match
-                 header_subject    : Optional[str] = None, # Regex match
-                 mailing_list_name : Optional[str] = None, # Exact match
+                 header_from       : Optional[str] = None, # Regex match - deprecated, use from_addr or from_name instead
+                 header_to         : Optional[str] = None, # Regex match - deprecated, use to_addr instead
+                 header_subject    : Optional[str] = None, # Regex match - deprecated, use subject instead
+                 mailing_list_name : Optional[str] = None, # Exact match
                  # The following are new for mailarchive3:
                  sent_after        : str = "1970-01-01T00:00:00",
                  sent_before       : str = "2038-01-19T03:14:07",
+                 from_name         : Optional[str] = None, # Substring match
                  from_addr         : Optional[str] = None,
                  to_addr           : Optional[str] = None,
                  cc_addr           : Optional[str] = None,
-                 subject           : Optional[str] = None, # Matches when subject contains this value
+                 subject           : Optional[str] = None, # Substring match
                  message_id        : Optional[str] = None,
                  in_reply_to       : Optional[str] = None,
                 ) -> Iterator[Envelope]:
@@ -1120,14 +1125,14 @@ class MailArchive:
                    JOIN ietf_ma_hdr    ON ietf_ma_msg.message_num = ietf_ma_hdr.message_num
                    JOIN ietf_ma_hdr_to ON ietf_ma_msg.message_num = ietf_ma_hdr_to.message_num
                    JOIN ietf_ma_hdr_cc ON ietf_ma_msg.message_num = ietf_ma_hdr_cc.message_num
-                   WHERE date_received > ? AND date_received < ? AND date > ? AND date < ? """
+                   WHERE date_received >= ? AND date_received < ? AND date >= ? AND date < ? """
         param = [received_after, received_before, sent_after, sent_before]
-        #  FIXME: header_from
-        #  FIXME: header_to
-        #  FIXME: header_subject
         if mailing_list_name is not None:
             query += "AND mailing_list == ? "
             param.append(mailing_list_name)
+        if from_name is not None:
+            query += "AND from_name LIKE ? "
+            param.append(from_name)
         if from_addr is not None:
             query += "AND from_addr == ? "
             param.append(from_addr)
@@ -1147,9 +1152,18 @@ class MailArchive:
             query += "AND in_reply_to == ? "
             param.append(in_reply_to)
         query += ";"
-        for msg_num in map(lambda x : x[0], dbc.execute(query, param).fetchall()): 
-            yield Envelope(self, msg_num)
-
+        if header_from is None and header_to is None and header_subject is None:
+            for msg_num in map(lambda x : x[0], dbc.execute(query, param).fetchall()): 
+                yield Envelope(self, msg_num)
+        else:
+            # Handle deprecated queries that do a regexp match on the raw headers.
+            # This is very slow.
+            for msg_num in map(lambda x : x[0], dbc.execute(query, param).fetchall()): 
+                msg = Envelope(self, msg_num)
+                if (header_from    is None or re.search(header_from,    str(msg.header("from")))) and \
+                   (header_to      is None or re.search(header_to,      str(msg.header("to"))))   and \
+                   (header_subject is None or re.search(header_subject, str(msg.header("subject")))):
+                    yield msg
 
     def clear_metadata(self, project: str):
         """
