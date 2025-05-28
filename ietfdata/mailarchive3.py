@@ -45,6 +45,10 @@ from imapclient           import IMAPClient
 from pathlib              import Path
 from typing               import Dict, Iterator, List, Optional, Tuple, Union, Any
 
+# The mailarchive3 package is intended to be a drop-in replacement for the
+# mailarchive2 package, storing messages in a local sqlite3 database rather
+# than a MongoDB instance.
+
 # =================================================================================================
 
 class Envelope:
@@ -57,8 +61,10 @@ class Envelope:
     _size          : int
     _date_received : str
 
-    # Differs from mailarchive2
     def __init__(self, mail_archive: MailArchive, message_num : int) -> None:
+        """
+        This differs from mailarchive2 but should not be called by user code.
+        """
         self._archive = mail_archive
         self._message_num = message_num
 
@@ -110,7 +116,13 @@ class Envelope:
 
     def from_(self) -> Address:
         """
-        New in mailarchive3
+        Retrieve the parsed "From:" address from the message.
+
+        The mailarchive3 library uses a number of heuristics to correct
+        malformed headers, so the value returned might differ from the
+        uncorrected value returned by calling `header("from")`.
+
+        New in mailarchive3.
         """
         dbc = self._archive._db.cursor()
         sql = "SELECT from_name, from_addr FROM ietf_ma_hdr WHERE message_num = ?;"
@@ -120,6 +132,12 @@ class Envelope:
 
     def to(self) -> List[Address]:
         """
+        Retrieve the parsed "To:" address from the message.
+
+        The mailarchive3 library uses a number of heuristics to correct
+        malformed headers, so the value returned might differ from the
+        uncorrected value returned by calling `header("to")`.
+
         New in mailarchive3
         """
         dbc = self._archive._db.cursor()
@@ -132,6 +150,12 @@ class Envelope:
 
     def cc(self) -> List[Address]:
         """
+        Retrieve the parsed "Cc:" address from the message.
+
+        The mailarchive3 library uses a number of heuristics to correct
+        malformed headers, so the value returned might differ from the
+        uncorrected value returned by calling `header("cc")`.
+
         New in mailarchive3
         """
         dbc = self._archive._db.cursor()
@@ -144,6 +168,12 @@ class Envelope:
 
     def subject(self) -> str:
         """
+        Retrieve the parsed "Subject:" header from the message.
+
+        The mailarchive3 library uses a number of heuristics to correct
+        malformed headers, so the value returned might differ from the
+        uncorrected value returned by calling `header("subject")`.
+
         New in mailarchive3
         """
         dbc = self._archive._db.cursor()
@@ -154,14 +184,16 @@ class Envelope:
 
     def date(self) -> Optional[datetime]:
         """
-        The "Date:" header from the Message within this Envelope, parsed into a
-        `DateTime` object.
+        Retrieve the "Date:" header from the message, parsed into a `DateTime`
+        object.
 
         This will return `None` if the "Date:" header is not present or cannot
         be parsed.
 
         The `header("date")` method can be used to return the unparsed "Date:"
-        header as a `str`.
+        header as a `str`. The mailarchive3 library uses a number of heuristics
+        to correct malformed headers so the value returned by this method might
+        differ from the uncorrected value returned by calling `header("date")`.
         """
         dbc = self._archive._db.cursor()
         sql = "SELECT date FROM ietf_ma_hdr WHERE message_num = ?;"
@@ -171,7 +203,13 @@ class Envelope:
 
     def header(self, header_name:str) -> List[str]:
         """
-        Accessor for the headers of the message in this Envelope.
+        Retrieve unparsed headers from the message.
+
+        Do not use this method in you can avoid it: use the `from_()`, `to()`,
+        `cc()`, `subject()`, `date()`, and `message_id()` methods instead. The
+        mailarchive3 library uses a number of heuristics to correct malformed
+        headers, but those heuristics are not applied to the values returned by
+        this method. 
 
         Some headers, e.g., "Received:" are expected to occur multiple times
         within a message and will return a list containing multiple items.
@@ -302,8 +340,10 @@ class Envelope:
 
 # =================================================================================================
 
-# Private helper class, do not use
 class EmailPolicyCustom(EmailPolicy):
+    """
+    This is a private helper class - do not use.
+    """
     def __init__(self, **kw):
         super().__init__(**kw)
 
@@ -370,8 +410,10 @@ class EmailPolicyCustom(EmailPolicy):
 
 
 
-# Private helper function, do not use
 def _parse_hdr_from(uid, msg):
+    """
+    This is a private helper function - do not use.
+    """
     hdr = msg["from"]
     if hdr is None:
         # The "From:" header is missing
@@ -413,8 +455,10 @@ def _parse_hdr_from(uid, msg):
         return (from_name, from_addr)
 
 
-# Private helper function, do not use
 def _parse_hdr_to_cc(uid, msg, to_cc):
+    """
+    This is a private helper function - do not use.
+    """
     try:
         hdr = msg[to_cc]
         if hdr is None:
@@ -436,8 +480,10 @@ def _parse_hdr_to_cc(uid, msg, to_cc):
         return []
 
 
-# Private helper function, do not use
 def _parse_hdr_subject(uid, msg):
+    """
+    This is a private helper function - do not use.
+    """
     hdr = msg["subject"]
     if hdr is None:
         return None
@@ -445,8 +491,10 @@ def _parse_hdr_subject(uid, msg):
         return hdr.strip()
 
 
-# Private helper function, do not use
 def _parse_hdr_date(uid, msg):
+    """
+    This is a private helper function - do not use.
+    """
     if msg["date"] is None:
         return None
     hdr = msg["date"].strip()
@@ -502,8 +550,10 @@ def _parse_hdr_date(uid, msg):
                             return None
 
 
-# Private helper function, do not use
 def _parse_hdr_message_id(uid, msg):
+    """
+    This is a private helper function - do not use.
+    """
     hdr = msg["message-id"]
     if hdr is None:
         return None
@@ -511,8 +561,10 @@ def _parse_hdr_message_id(uid, msg):
         return hdr.strip()
 
 
-# Private helper function, do not use
 def _parse_hdr_in_reply_to(uid, msg):
+    """
+    This is a private helper function - do not use.
+    """
     hdr = msg["in-reply-to"]
     if hdr is not None and hdr != "":
         return hdr.strip()
@@ -522,8 +574,10 @@ def _parse_hdr_in_reply_to(uid, msg):
     return None
 
 
-# Private helper function, do not use
 def _parse_message(uid, raw):
+    """
+    This is a private helper function - do not use.
+    """
     parsing_policy = EmailPolicyCustom()
 
     msg = BytesHeaderParser(policy=parsing_policy).parsebytes(raw)
@@ -547,6 +601,10 @@ def _parse_message(uid, raw):
 
 
 class MailingList:
+    """
+    A class representing a mailing list in the IETF email archive.
+    """
+
     _archive : MailArchive
     _name    : str
 
@@ -900,9 +958,9 @@ class MailArchive:
         """
         Initialise the MailArchive.
 
-        If it doesn't exist, an sqlite3 database, `ietfdata.aqlite`, is
-        created to hold a local copy of the mail archive. That database
-        will initially be empty and must be populated before it can be
+        If it doesn't exist, an sqlite3 database, specified by the `sqlite_file`
+        argument, is created to hold a local copy of the IETF mail archive. The
+        database will initially be empty and must be populated before it can be
         used. There are two ways to populate the database:
 
         1. Call the `update()` method to populate the database with a
@@ -916,6 +974,12 @@ class MailArchive:
 
         In normal operation, calling `update()` to fetch the complete mail
         archive is the right thing to do.
+
+        Previous versions of this library used MongoDB to store the archived
+        email messages. This version uses an sqlite3 database file instead.
+        The following arguments are no longer accepted and should be removed
+        from code that use this library: `mongodb_hostname`, `mongodb_port`,
+        `mongodb_username`, and `mongodb_password`.
         """
         logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
 
@@ -998,6 +1062,15 @@ class MailArchive:
 
     def update_mailing_list_names(self) -> None:
         """
+        Contact the IETF mail server and update the local copy of the list of
+        mailing lists that are available.
+
+        In normal operation you do not need to call this method. It should only
+        be used if you plan to download only a subset of the IETF mailing lists,
+        in which case you should call this method, then `mailing_list_names()`
+        to query what lists exist, then `update_mailing_list()` to populate the
+        local database with the messages from the lists of interest.
+
         New in mailarchive3
         """
         with IMAPClient(host=self._imap_server, ssl=True, use_uid=True) as imap:
@@ -1019,6 +1092,13 @@ class MailArchive:
 
     def update_mailing_list(self, mailing_list_name: str) -> None:
         """
+        Contact the IETF mail serer to update the local copy of the specified
+        mailing list.
+
+        In normal operation you do not need to call this method. It's only used
+        when working with a partial copy of the IETF mail archive, as discussed
+        in the documentation for `update_mailing_list_names()`.
+
         New in mailarchive3
         """
         ml = self.mailing_list(mailing_list_name)
@@ -1027,11 +1107,12 @@ class MailArchive:
 
     def update(self, verbose=True) -> None:
         """
-        Update the local copy of the IETF mailing list archive.
+        Contact the IETF mail server to update the local copy of the IETF
+        mailing list archive.
 
         This method should be called when working with a complete copy of
         the mail archive to synchronise the local copy of the archive with
-        the IETF IMAP server.
+        the IETF mail server.
 
         WARNING: The first time this method is called, it will download the
         entire mail archive. This will take several hours and download tens
@@ -1052,6 +1133,10 @@ class MailArchive:
         messages. It's recommended to run this after updating this library
         since improvements to the heading parsing code may result in more
         accurate indexes.
+
+        Calling `update()` or `update_mailing_list()` will automatically
+        reindex any mailing lists that are updated, so there is no need
+        to call this method after those operations.
 
         This nmethod operates locally based on the previously downloaded
         messages.
@@ -1099,8 +1184,8 @@ class MailArchive:
 
 
     def messages(self,
-                 received_after    : str = "1970-01-01T00:00:00",
-                 received_before   : str = "2038-01-19T03:14:07",
+                 received_after    : str = "1970-01-01T00:00:00", # Deprecated, use sent_after instead
+                 received_before   : str = "2038-01-19T03:14:07", # Deprecated, use sent_before instead
                  header_from       : Optional[str] = None, # Regex match - deprecated, use from_addr or from_name instead
                  header_to         : Optional[str] = None, # Regex match - deprecated, use to_addr instead
                  header_subject    : Optional[str] = None, # Regex match - deprecated, use subject instead
@@ -1117,7 +1202,24 @@ class MailArchive:
                  in_reply_to       : Optional[str] = None,
                 ) -> Iterator[Envelope]:
         """
-        Return the envelopes of all specified messages in the archive.
+        Search the local copy of the IETF mail archive, returning the envelopes
+        of the messages that match all of the specified criteria.
+
+        The `received_after` and `received_before` arguments are deprecated and
+        should not be used. These arguments can be used to find messages based
+        on the date when they were added to the mail archive, but for a number
+        of mailing lists the archive was back-filled after the fact so the date
+        when the messages were added to the mail archive bears no relation to
+        the date when the messages were sent. In normal use, the `sent_after`
+        and `sent_before` arguments should be used instead to find messages
+        based on the parsed "Date:" headers.
+
+        The `header_from`, `header_to`, and `header_subject` arguments are
+        deprecated and should not be used. The mailarchive3 library uses a
+        number of heuristics to correct malformed headers, but these methods
+        search only the uncorrected headers. In normal use, the `from_name`,
+        `from_addr`, `to_addr`, and `subject` arguments should be used instead
+        since they search the corrected data and are much faster.
         """
         dbc = self._db.cursor()
         query = """SELECT DISTINCT ietf_ma_msg.message_num 
