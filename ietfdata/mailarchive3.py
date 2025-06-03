@@ -1224,9 +1224,9 @@ class MailArchive:
         dbc = self._db.cursor()
         query = """SELECT DISTINCT ietf_ma_msg.message_num 
                    FROM ietf_ma_msg
-                   JOIN ietf_ma_hdr    ON ietf_ma_msg.message_num = ietf_ma_hdr.message_num
-                   JOIN ietf_ma_hdr_to ON ietf_ma_msg.message_num = ietf_ma_hdr_to.message_num
-                   JOIN ietf_ma_hdr_cc ON ietf_ma_msg.message_num = ietf_ma_hdr_cc.message_num
+                   LEFT JOIN ietf_ma_hdr    ON ietf_ma_msg.message_num = ietf_ma_hdr.message_num
+                   LEFT JOIN ietf_ma_hdr_to ON ietf_ma_msg.message_num = ietf_ma_hdr_to.message_num
+                   LEFT JOIN ietf_ma_hdr_cc ON ietf_ma_msg.message_num = ietf_ma_hdr_cc.message_num
                    WHERE date_received >= ? AND date_received < ? AND date >= ? AND date < ? """
         param = [received_after, received_before, sent_after, sent_before]
         if mailing_list_name is not None:
@@ -1255,6 +1255,7 @@ class MailArchive:
             param.append(in_reply_to)
         query += ";"
         if header_from is None and header_to is None and header_subject is None:
+            # FIXME: performance of this query is poor because there are no useful indexes
             for msg_num in map(lambda x : x[0], dbc.execute(query, param).fetchall()): 
                 yield Envelope(self, msg_num)
         else:
@@ -1266,6 +1267,7 @@ class MailArchive:
                    (header_to      is None or re.search(header_to,      str(msg.header("to"))))   and \
                    (header_subject is None or re.search(header_subject, str(msg.header("subject")))):
                     yield msg
+
 
     def clear_metadata(self, project: str):
         """

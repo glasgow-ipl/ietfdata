@@ -369,6 +369,13 @@ class TestMailArchive3(unittest.TestCase):
         self.assertEqual(msgs[2].uid(),                 12606)
         self.assertEqual(msgs[2].uidvalidity(),         1455297825)
 
+        # This should find three messages sent to ietf@ietf.org with dates:
+        #   1994-11-07T14:06:35+00:00
+        #   1994-11-07T16:16:39+00:00
+        #   1994-11-10T01:47:30+00:00
+        msgs = list(self.ma.messages(subject="Chair's contest for an IETF Logo"))
+        self.assertEqual(len(msgs), 3)
+
 
 if __name__ == '__main__':
     unittest.main()
