@@ -45,8 +45,8 @@ class TestDatatracker(unittest.TestCase):
 
     @classmethod
     def setUpClass(self) -> None:
-        #self.dt = DataTracker(DTBackendLive())
-        self.dt = DataTracker(DTBackendArchive("ietfdata.sqlite"))
+        self.dt = DataTracker(DTBackendLive())
+        #self.dt = DataTracker(DTBackendArchive("ietfdata.sqlite"))
 
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to email addresses:
