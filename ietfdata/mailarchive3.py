@@ -1012,7 +1012,7 @@ class MailArchive:
                                 size          INTEGER,
                                 date_received TEXT
                             );""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_msg ON ietf_ma_msg (mailing_list, uidvalidity, uid);""")
+        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_msg_list_date_uid  ON ietf_ma_msg (mailing_list, date_received, uidvalidity, uid);""")
 
         self._db.execute("""CREATE TABLE IF NOT EXISTS ietf_ma_hdr (
                                 id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1025,9 +1025,12 @@ class MailArchive:
                                 in_reply_to  TEXT,
                                 FOREIGN KEY (message_num)  REFERENCES ietf_ma_msg (message_num)
                             );""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_message_num ON ietf_ma_hdr (message_num);""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_message_id  ON ietf_ma_hdr (message_id);""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_in_reply_to ON ietf_ma_hdr (in_reply_to);""")
+        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_message_num    ON ietf_ma_hdr (message_num);""")
+        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_message_id     ON ietf_ma_hdr (message_id);""")
+        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_in_reply_to    ON ietf_ma_hdr (in_reply_to);""")
+        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_from_addr_date ON ietf_ma_hdr (from_addr, date);""")
+        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_from_name_date ON ietf_ma_hdr (from_name, date);""")
+        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_date_subject   ON ietf_ma_hdr (date, subject);""")
 
         self._db.execute("""CREATE TABLE IF NOT EXISTS ietf_ma_hdr_to (
                                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1227,11 +1230,16 @@ class MailArchive:
                    LEFT JOIN ietf_ma_hdr    ON ietf_ma_msg.message_num = ietf_ma_hdr.message_num
                    LEFT JOIN ietf_ma_hdr_to ON ietf_ma_msg.message_num = ietf_ma_hdr_to.message_num
                    LEFT JOIN ietf_ma_hdr_cc ON ietf_ma_msg.message_num = ietf_ma_hdr_cc.message_num
-                   WHERE date_received >= ? AND date_received < ? AND date >= ? AND date < ? """
-        param = [received_after, received_before, sent_after, sent_before]
+                   WHERE date_received >= ? AND date_received < ? """
+        param = [received_after, received_before]
         if mailing_list_name is not None:
             query += "AND mailing_list == ? "
             param.append(mailing_list_name)
+
+        query += " AND date >= ? AND date < ? "
+        param.append(sent_after)
+        param.append(sent_before)
+
         if from_name is not None:
             query += "AND from_name LIKE ? "
             param.append(from_name)
@@ -1255,7 +1263,10 @@ class MailArchive:
             param.append(in_reply_to)
         query += ";"
         if header_from is None and header_to is None and header_subject is None:
-            # FIXME: performance of this query is poor because there are no useful indexes
+            qplan  = dbc.execute("EXPLAIN QUERY PLAN " + query, param).fetchone()
+            self._log.debug(query)
+            self._log.debug(qplan)
+
             for msg_num in map(lambda x : x[0], dbc.execute(query, param).fetchall()): 
                 yield Envelope(self, msg_num)
         else:
