@@ -48,7 +48,7 @@ class TestMailArchive3(unittest.TestCase):
 
     @classmethod
     def setUpClass(self) -> None:
-        self.dt = DataTracker(cache_dir = "cache", cache_timeout = timedelta(minutes = 15))
+        self.dt = DataTracker(DTBackendLive())
         self.ma = MailArchive(sqlite_file = "cache/ietfdata.sqlite")
         # Fetch the mailing lists used in these tests:
         self.ma.update_mailing_list_names()

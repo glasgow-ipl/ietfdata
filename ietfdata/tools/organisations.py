@@ -326,7 +326,7 @@ class OrganisationMatcher:
             self._org_domains.append(org_domain)
 
 
-    def find_organisations_ietf(self):
+    def find_organisations_ietf(self, sqlite_file:str):
         """
         Search the IETF Datatracker to find organisations.
 
@@ -334,7 +334,7 @@ class OrganisationMatcher:
         organisations, then calls the `add()` method in this class to record
         that information.
         """
-        dt = DataTracker(cache_timeout = timedelta(days=7))
+        dt = DataTracker(DTBackendArchive(sqlite_file=sqlite_file))
         ri = RFCIndex(cache_dir = "cache")
 
         print("Finding organisations in RFC author affiliations:")
@@ -391,10 +391,10 @@ if __name__ == "__main__":
     print(f"*** ietfdata.tools.organisations")
 
     if len(sys.argv) == 2:
-        output_path = Path(sys.argv[1])
+        output_path = Path(sys.argv[2])
     else:
         print('')
-        print('Usage: python3 -m ietfdata.tools.organisations <output.json>')
+        print('Usage: python3 -m ietfdata.tools.organisations <ietfdata.sqlite> <output.json>')
         print('')
         print('This tools find canonical names for the organisations with')
         print('which IETF participants are affiliated and identifies when')
@@ -423,7 +423,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     om = OrganisationMatcher()
-    om.find_organisations_ietf()
+    om.find_organisations_ietf(sys.argv[1])
     om.consolidate_organisations()
     om.dump(output_path)
 

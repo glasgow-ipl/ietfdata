@@ -25,6 +25,7 @@
 
 import unittest
 import os
+import requests
 import sys
 
 from pathlib       import Path
@@ -40,20 +41,19 @@ from ietfdata.datatracker import *
 
 class TestDatatrackerCoverage(unittest.TestCase):
     dt : DataTracker
+    session: requests.Session
     endpoint_uris : Dict[str, List[str]]
 
     @classmethod
     def fetch_api_schema(self) -> None:
-        req_headers = {'User-Agent': self.dt.ua}
-        r = self.dt.session.get("https://datatracker.ietf.org/api/v1", headers = req_headers, verify = True, stream = False)
-        self.dt.get_count += 1
+        req_headers = {'User-Agent': "glasgow-ietfdata/coverage-test"}
+        r = self.session.get("https://datatracker.ietf.org/api/v1", headers = req_headers, verify = True, stream = False)
         self.endpoint_uris = {}
         if r.status_code == 200:
             top_level_endpoints = r.json()
             for endpoint in top_level_endpoints:
                 u = f"https://datatracker.ietf.org{top_level_endpoints[endpoint]['list_endpoint']}"
-                r = self.dt.session.get(u, params = {"fullschema" : "true" }, headers = req_headers, verify = True, stream = False)
-                self.dt.get_count += 1
+                r = self.session.get(u, params = {"fullschema" : "true" }, headers = req_headers, verify = True, stream = False)
                 if r.status_code == 200:
                     second_level_endpoints = r.json()
                     for endpoint in second_level_endpoints:
@@ -62,7 +62,8 @@ class TestDatatrackerCoverage(unittest.TestCase):
 
     @classmethod
     def setUpClass(self) -> None:
-        self.dt = DataTracker(cache_dir = "cache", cache_timeout = timedelta(minutes = 15))
+        self.session = requests.Session()
+        self.dt = DataTracker(DTBackendLive())
         self.fetch_api_schema()
 
 

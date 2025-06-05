@@ -220,11 +220,11 @@ if __name__ == "__main__":
 
     if len(sys.argv) != 4:
         print('')
-        print('Usage: python3 -m ietfdata.tools.affiliations <participants.json> <organisation.json> <affiliations.json>')
+        print('Usage: python3 -m ietfdata.tools.affiliations <ietfdata.sqlite> <participants.json> <organisation.json> <affiliations.json>')
         sys.exit(1)
 
-    print(f"Loading {sys.argv[1]}")
-    with open(sys.argv[1], "r") as inf:
+    print(f"Loading {sys.argv[2]}")
+    with open(sys.argv[2], "r") as inf:
         participants = json.load(inf)
         print(f"  {len(participants):5} participants")
         emails = {}
@@ -237,8 +237,8 @@ if __name__ == "__main__":
         print(f"  {len(emails):5} email addresses")
 
 
-    print(f"Loading {sys.argv[2]}")
-    with open(sys.argv[2], "r") as inf:
+    print(f"Loading {sys.argv[3]}")
+    with open(sys.argv[3], "r") as inf:
         organisations = json.load(inf)
         print(f"  {len(organisations):5} organisations")
         org_names = {}
@@ -248,7 +248,7 @@ if __name__ == "__main__":
         print(f"  {len(org_names):5} organisation names")
 
 
-    dt = DataTracker(cache_timeout = timedelta(days=7))
+    dt = DataTracker(DTBackendArchive(sqlite_file=sys.argv[1]))
     ri = RFCIndex(cache_dir = "cache")
     af = Affiliations()
 
@@ -303,5 +303,5 @@ if __name__ == "__main__":
         af.add(date_, pid, oid)
     print("")
 
-    af.save(sys.argv[3])
+    af.save(sys.argv[4])
 

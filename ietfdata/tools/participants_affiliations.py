@@ -375,21 +375,21 @@ if __name__ == "__main__":
     print("*** ietfdata.tools.participants_affiliations")
     
     if len(sys.argv) == 4:
-        path = Path(sys.argv[3])
+        path = Path(sys.argv[4])
     else:
-        print("Usage: python3 -m ietfdata.tools.participants_affiliations <participants.json> <organisations.json> <output.json>")
+        print("Usage: python3 -m ietfdata.tools.participants_affiliations <ietfdata.sqlite> <participants.json> <organisations.json> <output.json>")
         sys.exit(1)
     
-    print(f"Loading participants from: {sys.argv[1]} and organisations from: {sys.argv[2]}")
+    print(f"Loading participants from: {sys.argv[2]} and organisations from: {sys.argv[3]}")
     participants = None
     organisations = None
-    with open(sys.argv[1]) as f:
-        participants = json.load(f)
     with open(sys.argv[2]) as f:
+        participants = json.load(f)
+    with open(sys.argv[3]) as f:
         organisations = json.load(f)
     
     participants_affiliations = ParticipantsAffiliations(participants,organisations)       
-    dt = DataTracker(cache_timeout = timedelta(days=7))
+    dt = DataTracker(DTBackendArchive(sqlite_file=sys.argv[1]))
     ri = RFCIndex(cache_dir = "cache")
     participants_affiliations.find_participants_affiliations_ietf(dt,ri)
     participants_affiliations.output(path)

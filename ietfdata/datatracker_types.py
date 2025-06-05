@@ -44,6 +44,8 @@ class URI(BaseModel):
     uri    : Optional[str]
     root   : str = ""
     params : Dict[str, Any] = field(default_factory=dict)
+    # params_alt is used by DTBackendArchive only
+    params_alt : Dict[str, Any] = field(default_factory=dict)
 
     def __str__(self) -> str:
         if len(self.params) > 0:

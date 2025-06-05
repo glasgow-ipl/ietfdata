@@ -101,10 +101,8 @@ class DataTrackerExt(DataTracker):
     perform complex queries across multiple API endpoints.
     """
 
-    def __init__(self,
-                 cache_dir : Optional[str] = ".",
-                 cache_timeout : Optional[timedelta] = None):
-        super().__init__(cache_dir, cache_timeout)
+    def __init__(self, backend: DTBackend):
+        super().__init__(backend)
 
 
     def draft_history(self, draft: Document, drafts_seen: List[Document] = []) -> List[DraftHistory]:

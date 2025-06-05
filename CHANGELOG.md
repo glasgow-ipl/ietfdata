@@ -1,12 +1,17 @@
 Change Log -- ietfdata
 ======================
 
-## Version ???
+## Version 0.9.0
 
 - Introduce `mailarchive3.py`. This is intended to be an almost
   drop-in replacement for `mailarchive2.py`, that uses a local
   sqlite3 file as the database rather than MongoDB. Currently
   work in progress.
+- Update the DataTracker class to support different back ends.
+  The `DTBackendLive` class is intended for interactive use, while
+  `DTBackendArchive` is intended to support offline use, backed by
+  an sqlite file, when preparing a paper, dissertation, or student
+  project.
 
 
 ## Version 0.8.3

@@ -223,14 +223,16 @@ class ParticipantDB:
 
 if __name__ == "__main__":
     if len(sys.argv) == 2:
-        old_path = None
-        new_path = Path(sys.argv[1])
+        sqlite_file = sys.argv[1]
+        old_path    = None
+        new_path    = Path(sys.argv[2])
     elif len(sys.argv) == 3:
-        old_path = Path(sys.argv[1])
-        new_path = Path(sys.argv[2])
+        sqlite_file = sys.argv[1]
+        old_path    = Path(sys.argv[2])
+        new_path    = Path(sys.argv[3])
     else:
-        print("Usage: python3 -m ietfdata.tools.participants [new.json]")
-        print("   or: python3 -m ietfdata.tools.participants [old.json] [new.json]")
+        print("Usage: python3 -m ietfdata.tools.participants <ietfdata.sqlite> <new.json>")
+        print("   or: python3 -m ietfdata.tools.participants <ietfdata.sqlite> <old.json> <new.json>")
         sys.exit(1)
 
     print(f"*** ietfdata.tools.participants")
@@ -263,7 +265,7 @@ if __name__ == "__main__":
 
     # Add identifiers based on the IETF DataTracker:
     seen_addr = set()
-    dt  = DataTrackerExt(cache_timeout = timedelta(days=7))
+    dt  = DataTrackerExt(DTBackendArchive(sqlite_file=sqlite_file))
     for msg in dt.emails():
         if msg.address in ignore:
             continue

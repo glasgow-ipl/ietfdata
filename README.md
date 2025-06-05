@@ -56,7 +56,8 @@ Release Process
 - Edit CHANGELOG.md and ensure up-to-date
 - Edit setup.py to ensure the correct version number is present
 - Edit pyproject.toml to ensure the correct version number is present
-- Edit ietfdata/datatracker.py to fix version number in DataTracker::ua
+- Edit ietfdata/dtbackend.py to ensure the correct version number if
+  present (there is one copy in each back-end)
 - Run `make test` to run the test suite. If any tests fail, fix then
   restart the release process
 - Commit changes and push to GitHub

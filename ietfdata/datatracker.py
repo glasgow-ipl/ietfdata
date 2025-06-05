@@ -44,8 +44,6 @@
 #   RFC 6359 "Datatracker Extensions to Include IANA and RFC Editor Processing Information"
 #   RFC 7760 "Statement of Work for Extensions to the IETF Datatracker for Author Statistics"
 
-#import ast
-import copy
 import dateutil.tz
 import glob
 import json
@@ -68,6 +66,7 @@ from pydantic          import ValidationError
 # =================================================================================================================================
 # Import the types representing the datatracker API endpoints:
 
+from ietfdata.dtbackend         import *
 from ietfdata.datatracker_types import *
 
 # =================================================================================================================================
@@ -81,35 +80,55 @@ class Hints(Generic[T]):
 
 class DataTracker:
     """
-    A class for interacting with the IETF DataTracker.
+    A class for interacting with the IETF Datatracker.
+
+    There are two ways to instantiate this class, depending on how it is to
+    be used. If the intention is to perform live queries of the datatracker,
+    for example as part of a tool that provides an interactive dashboard or
+    status report, then it should be instatiated using the DTBackendLive
+    backend, as follows:
+
+        dt = DataTracker(DTBackendLive())
+
+    In this case, the DataTracker class will directly query the online IETF
+    datatracker for every request you make.
+
+    Alternatively, if the intent is to perform analysis of a snapshot of the
+    data, for example if writing a research paper, a dissertation, or as part
+    of a student project, then the DTBackendArchive should be used:
+
+        dt = DataTracker(DTBackendArchive(sqlite_file="ietfdata.sqlite"))
+
+    In this case, the DataTracker class will create the specified sqlite file
+    if it doesn't exist and download a complete copy of the data from the IETF
+    datatracker (this will take around 24 hours, and will generate an sqlite
+    file that is around 1.5GB in size; if the download is interrupted, it is
+    safe to rerun the above operation and the download should resume where it
+    left-off). Once the sqlite file is downloaded, future instantiations of the
+    DataTracker will read from it directly and will not access the online IETF
+    datatracker, making them much faster and avoiding overloading the IETF's
+    servers.
+
+    If you are working on a paper, project, or dissertation with a group of
+    people, one person should create the ietfdata.sqlite file, then share a
+    copy with the others. This avoids overloading the IETF's servers, and
+    ensures that everyone working in the group generates the same results.
+
+    If you are using the MailArchive3 class to work with the IETF email
+    archive, it is safe to use the same sqlite file for the mail archive
+    and the datatracker.
     """
-    backend : Optional[requests_cache.SQLiteCache]
+    backend : DTBackend
 
-    def __init__(self,
-                 cache_dir     : Optional[str] = ".",
-                 cache_timeout : Optional[timedelta] = None):
-
+    def __init__(self, backend : DTBackend):
         logging.getLogger('requests').setLevel('ERROR')
         logging.getLogger('requests_cache').setLevel('ERROR')
         logging.getLogger("urllib3").setLevel('ERROR')
-
         logging.basicConfig(level=os.getenv("IETFDATA_LOGLEVEL", default="INFO"))
         self.log = logging.getLogger("ietfdata")
 
-        self.ua        = "glasgow-ietfdata/0.8.3"          # Update when making a new relaase
-        self.base_url  = os.environ.get("IETFDATA_DT_URL", "https://datatracker.ietf.org")
-        self.get_count = 0
-
-        cache_dir = os.getenv("IETFDATA_CACHEDIR", default=cache_dir)
-        self.backend = requests_cache.SQLiteCache(f"{cache_dir}/ietf-dt-cache.sqlite")
-        if cache_timeout is not None:
-            self.log.info(f"cache enabled: sqlite dir={cache_dir} timeout={cache_timeout}")
-            self.session = requests_cache.CachedSession(backend=self.backend, expire_after=cache_timeout)
-        else:
-            self.log.info(f"cache enabled: sqlite dir={cache_dir} timeout=(auto)")
-            self.session = requests_cache.CachedSession(backend=self.backend, cache_control=True)
-
-        self.log.info(f"datatracker at {self.base_url}")
+        self.backend = backend
+        self.backend.update()
 
         self._hints = {} # type: Dict[str, Hints]
         self._hints["/api/v1/doc/ballotdocevent/"]                 = Hints(BallotDocumentEvent,         "id")
@@ -193,148 +212,12 @@ class DataTracker:
         self._hints["/api/v1/submit/submissionevent/"]             = Hints(SubmissionEvent,             "id")
 
 
-    def __del__(self):
-        #self.session.close()
-        pass
-
-
-    # ----------------------------------------------------------------------------------------------------------------------------
-    # Private methods to access the datatracker.
-    #
-    # The _datatracker_get_single() and _datatracker_get_multi() functions
-    # retrieve data from the IETF datatracker. 
-
-    def _datatracker_get_single(self, obj_uri: URI) -> Optional[Dict[str, Any]]:
-        assert obj_uri.uri is not None
-        retry_delay  = 1.875
-        while True:
-            try:
-                req_url     = self.base_url + obj_uri.uri
-                req_headers = {'User-Agent': self.ua}
-                req_params  = obj_uri.params
-                self.get_count += 1
-                r = self.session.get(req_url, params = req_params, headers = req_headers, verify = True, stream = False)
-                self.log.debug(f"_datatracker_get_single in_cache={r.from_cache} cached={r.created_at} expires={r.expires} {req_url}")
-                if r.status_code == 200:
-                    self.log.debug(F"_datatracker_get_single: ({r.status_code}) {obj_uri}")
-                    url_obj = r.json() # type: Dict[str, Any]
-                    return url_obj
-                elif r.status_code == 404:
-                    self.log.debug(F"_datatracker_get_single: ({r.status_code}) {obj_uri}")
-                    return None
-                elif r.status_code == 429:
-                    # Some versions of the datatracker incorrectly send 429 with "Retry-After: 0".
-                    # Handle this with an exponential backoff as-if we got a 500 error.
-                    retry_after = int(r.headers['Retry-After']) 
-                    if retry_after != 0:
-                        self.log.warning(F"_datatracker_get_single: {r.status_code} {obj_uri} - retry in {retry_after}")
-                        time.sleep(retry_after)
-                    else:
-                        self.log.warning(F"_datatracker_get_single: {r.status_code} {obj_uri} - retry in {retry_delay}")
-                        self.log.debug(r.headers)
-                        if retry_delay > 60:
-                            self.log.error(F"_datatracker_get_single: retry limit exceeded")
-                            sys.exit(1)
-                        time.sleep(retry_delay)
-                        retry_delay *= 2
-                else:
-                    self.log.warning(F"_datatracker_get_single: {r.status_code} {obj_uri} - retry in {retry_delay}")
-                    if retry_delay > 60:
-                        self.log.error(F"_datatracker_get_single: retry limit exceeded")
-                        sys.exit(1)
-                    time.sleep(retry_delay)
-                    retry_delay *= 2
-            except requests.exceptions.ConnectionError:
-                self.log.warning(F"_datatracker_get_single: connection error - retry in {retry_delay}")
-                if retry_delay > 60:
-                    self.log.error(F"_datatracker_get_single: retry limit exceeded")
-                    sys.exit(1)
-                time.sleep(retry_delay)
-                retry_delay *= 2
-
-
-    def _datatracker_get_multi(self, get_uri: URI, order_by: Optional[str] = None) -> Iterator[Dict[Any, Any]]:
-        obj_uri = copy.deepcopy(get_uri)
-
-        assert "order_by" not in obj_uri.params
-        assert "limit"    not in obj_uri.params
-
-        if order_by != None:
-            obj_uri.params["order_by"] = order_by
-        obj_uri.params[   "limit"] = 100
-
-        total_count  = -1
-        fetched_objs = {} # type: Dict[str, Dict[Any, Any]]
-        while obj_uri.uri is not None:
-            retry = True
-            retry_delay = 1.875
-            while retry:
-                retry = False
-                req_url     = self.base_url + obj_uri.uri
-                req_params  = obj_uri.params
-                req_headers = {'User-Agent': self.ua}
-                try:
-                    self.get_count += 1
-                    r = self.session.get(url = req_url, params = req_params, headers = req_headers, verify = True, stream = False)
-                    self.log.debug(f"_datatracker_get_multi  in_cache={r.from_cache} cached={r.created_at} expires={r.expires} {obj_uri}")
-                    if r.status_code == 200:
-                        self.log.debug(F"_datatracker_get_multi ({r.status_code}) {obj_uri}")
-                        meta = r.json()['meta']
-                        objs = r.json()['objects']
-                        obj_uri  = URI(uri=meta['next'])
-                        for obj in objs:
-                            # API requests returning lists should never return duplicate
-                            # objects, but due to datatracker bugs this sometimes happens.
-                            # Check for and log such problems, but pass the duplicates up
-                            # to the higher layers for reconcilition.
-                            if obj["resource_uri"] in fetched_objs:
-                                self.log.warning(F"_datatracker_get_multi duplicate object {obj['resource_uri']}")
-                            else:
-                                fetched_objs[obj["resource_uri"]] = obj
-                            yield obj
-                        total_count = meta["total_count"]
-                    elif r.status_code == 429:
-                        # Some versions of the datatracker incorrectly send 429 with "Retry-After: 0".
-                        # Handle this with an exponential backoff as-if we got a 500 error.
-                        retry_after = int(r.headers['Retry-After']) 
-                        if retry_after != 0:
-                            self.log.warning(F"_datatracker_get_multi: {r.status_code} {obj_uri} - retry in {retry_after}")
-                            time.sleep(retry_after)
-                        else:
-                            self.log.warning(F"_datatracker_get_multi: {r.status_code} {obj_uri} - retry in {retry_delay}")
-                            self.log.debug(r.headers)
-                            if retry_delay > 60:
-                                self.log.error(F"_datatracker_get_multi: retry limit exceeded")
-                                sys.exit(1)
-                            time.sleep(retry_delay)
-                            retry_delay *= 2
-                        retry = True
-                    elif r.status_code == 500:
-                        self.log.warning(F"_datatracker_get_multi ({r.status_code}) {obj_uri}")
-                        if retry_delay > 60:
-                            self.log.info(F"_datatracker_get_multi retry time exceeded")
-                            sys.exit(1)
-                        time.sleep(retry_delay)
-                        retry_delay *= 2
-                        retry = True
-                    else:
-                        self.log.error(F"_datatracker_get_multi ({r.status_code}) {obj_uri}")
-                        sys.exit(1)
-                except requests.exceptions.ConnectionError:
-                    self.log.warning(F"_datatracker_get_multi: connection error - will retry in {retry_delay}")
-                    time.sleep(retry_delay)
-                    retry_delay *= 2
-                    retry = True
-        if total_count != len(fetched_objs):
-            self.log.warning(F"_datatracker_get_multi: expected {total_count} objects but got {len(fetched_objs)}")
-
-
     # ----------------------------------------------------------------------------------------------------------------------------
     # Private methods to retrieve objects from the datatracker:
 
     def _retrieve(self, obj_uri: URI, obj_type: Type[T]) -> Optional[T]:
         self.log.debug(F"_retrieve {obj_uri}")
-        obj_json = self._datatracker_get_single(obj_uri)
+        obj_json = self.backend.datatracker_get_single(obj_uri)
         if obj_json is not None:
             #print(obj_json)
             #print(obj_type)
@@ -358,7 +241,7 @@ class DataTracker:
         assert obj_uri.uri      is not None
         assert obj_type_uri.uri is not None
         obj_jsons = [] # type: List[Dict[str, Any]]
-        for obj_json in self._datatracker_get_multi(obj_uri):
+        for obj_json in self.backend.datatracker_get_multi(obj_uri):
             obj_jsons.append(obj_json)
         sort_by = self._hints[obj_type_uri.uri].sort_by
         for obj_json in sorted(obj_jsons, key=lambda k: k[sort_by]):
@@ -753,6 +636,7 @@ class DataTracker:
         url.params["time__lt"] = until
         if doc is not None:
             url.params["doc"]  = doc.id
+            url.params_alt["doc"] = doc.name
         if by is not None:
             url.params["by"]   = by.id
         if event_type is not None:
@@ -797,8 +681,10 @@ class DataTracker:
         url = RelatedDocumentURI(uri="/api/v1/doc/relateddocument/")
         if source is not None:
             url.params["source"] = source.id
+            url.params_alt["source"] = source.name
         if target is not None:
             url.params["target"] = target.id
+            url.params_alt["target"] = target.name
         if relationship_type is not None:
             url.params["relationship"] = relationship_type.slug
         if relationship_type_slug is not None:
@@ -928,6 +814,7 @@ class DataTracker:
             url.params["by"] = by.id
         if doc is not None:
             url.params["doc"] = doc.id
+            url.params["doc"] = doc.name
         if event_type is not None:
             url.params["type"] = event_type
         yield from self._retrieve_multi(url, BallotDocumentEvent)
@@ -999,6 +886,7 @@ class DataTracker:
         url = DocumentUrlURI(uri="/api/v1/doc/documenturl/")
         if doc is not None:
             url.params["doc"] = doc.id
+            url.params_alt["doc"] = doc.name
         yield from self._retrieve_multi(url, DocumentUrl)
 
 
@@ -1745,6 +1633,7 @@ class DataTracker:
         url.params["time__lt"]  = until
         if doc is not None:
             url.params["doc"] = doc.id
+            url.params_alt["doc"] = doc.name
         if requested_by is not None:
             url.params["requested_by"] = requested_by.id
         if state is not None:
@@ -1800,6 +1689,7 @@ class DataTracker:
         url.params["time__lt"]       = until
         if doc is not None:
             url.params["doc"] = doc.id
+            url.params_alt["doc"] = doc.name
         if person is not None:
             url.params["person"] = person.id
         if team is not None:
@@ -1851,6 +1741,7 @@ class DataTracker:
         url.params["history_date__lt"] = history_until
         if doc is not None:
             url.params["doc"] = doc.id
+            url.params_alt["doc"] = doc.name
         if requested_by is not None:
             url.params["requested_by"] = requested_by.id
         if state is not None:

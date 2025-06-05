@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name    = "ietfdata"
-version = "0.8.3"
+version = "0.9.0"
 authors = [
   {name = "Colin Perkins", email = "csp@csperkins.org"}
 ]
