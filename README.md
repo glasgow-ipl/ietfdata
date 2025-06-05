@@ -1,15 +1,27 @@
-[ietfdata](https://github.com/glasgow-ipl/ietfdata) - Access the IETF Datatracker and related resources
-=============================================================
+# The ietfdata library - Access the IETF Datatracker and related resources
 
 This project contains Python 3 libraries to interact with, and
 access, the [IETF datatracker](https://datatracker.ietf.org), 
 [RFC index](https://www.rfc-editor.org), and related resources.
 
 
-Getting started
----------------
+## Installation
 
-The project uses Pipenv for dependency management. To begin, run:
+The `ietfdata` library is distributed as a Python package. You
+should be able to install via `pip` in the usual manner:
+
+```~~~~~~~~
+pip install ietfdata
+```
+
+### Development
+
+To modify the `ietfdata` library, clone from GitHub then follow the
+following instructions to install dependencies and test the results.
+If you just intend to use the library to support writing a paper or 
+to perform some other analysis, you can skip this section.
+
+The project uses `pipenv` for dependency management. To begin, run:
 ```~~~~~~~~
 pipenv install --dev -e .
 ```
@@ -31,27 +43,84 @@ python3 tests/test_rfcindex.py
 Will test the rfcindex module.
 
 
-Caching
--------
+## Accessing the IETF Datatracker
 
-The ietfdata library can use a
-[MongoDB](https://docs.mongodb.com/manual/administration/install-community/)
-instance as a cache. Using a cache reduces the number of requests that are made
-directly to the Datatracker, improving performance, and reducing the impact on
-the IETF's infrastructure. While using a cache is optional when accessing the
-Datatracker, it is required when accessing the mail archive.
+The `DataTracker` class provides an interface to the IETF Datatracker,
+providing metadata about the IETF standards process.
 
-The hostname, port, username, and password for the MongoDB instance that is to
-be used as the cache can be set when instantiated the `DataTracker` or
-`MailArchive` objects. Alternatively, the following environment variables can be
-set:
-- `IETFDATA_CACHE_HOST` (defaults to `localhost` when accessing the mail archive)
-- `IETFDATA_CACHE_PORT` (defaults to `27017`)
-- `IETFDATA_CACHE_USER` (optional)
-- `IETFDATA_CACHE_PORT` (optional)
+### Instantiation
 
-Release Process
----------------
+There are two ways to instantiate this class, depending on how it is to be
+used. If the intention is to perform live queries of the Datatracker, for
+example as part of a tool that provides an interactive dashboard or status
+report, then it should be instantiated using the `DTBackendLive` back end,
+as follows:
+
+```~~~~~~~~
+dt = DataTracker(DTBackendLive())
+```
+
+In this case, the `DataTracker` class will directly query the online IETF
+Datatracker for every request you make.
+
+Alternatively, if the intent is to perform analysis of a snapshot of the
+data, for example if writing a research paper, a dissertation, or as part
+of a student project, then the `DTBackendArchive` should be used:
+
+```~~~~~~~~
+dt = DataTracker(DTBackendArchive(sqlite_file="ietfdata.sqlite"))
+```
+
+In this case, the `DataTracker` class will create the specified sqlite file
+if it doesn't exist and download a complete copy of the data from the IETF
+Datatracker (this will take around 24 hours, and will generate an sqlite
+file that is around 1.5GB in size; if the download is interrupted, it is
+safe to rerun the above operation and the download should resume where it
+left-off). Once the sqlite file is downloaded, future instantiations of the
+`DataTracker` will read from it directly and will not access the online IETF
+Datatracker, making them much faster and avoiding overloading the IETF's
+servers.
+
+If you are working on a paper, project, or dissertation with a group of
+people, one person should create the `ietfdata.sqlite` file, then share
+a copy with the others. This avoids overloading the IETF's servers, and
+ensures that everyone working in the group generates the same results.
+
+It is safe to use the same sqlite file with both the `DataTracker` and
+`MailArchive3` classes.
+
+### Usage
+
+(tbd)
+
+
+## Accessing the IETF Mail Archive
+
+The `MailArchive3` class provides an interface to accessing the IETF
+email archive.
+
+### Instantiation
+
+(tbd)
+
+
+It is safe to use the same sqlite file with both the `DataTracker` and
+`MailArchive3` classes.
+
+
+### Usage
+
+(tbd)
+
+
+## Accessing the RFC Index
+
+(tbd)
+
+
+
+
+## Release Process
 
 - Edit CHANGELOG.md and ensure up-to-date
 - Edit setup.py to ensure the correct version number is present
@@ -68,3 +137,4 @@ Release Process
 - Run `python3 -m twine upload dist/*` to upload the package
 - Commit the packages files in `dist/*` push to GitHub
 - Tag the release in GitHub
+
