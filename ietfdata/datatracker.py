@@ -814,7 +814,7 @@ class DataTracker:
             url.params["by"] = by.id
         if doc is not None:
             url.params["doc"] = doc.id
-            url.params["doc"] = doc.name
+            url.params_alt["doc"] = doc.name
         if event_type is not None:
             url.params["type"] = event_type
         yield from self._retrieve_multi(url, BallotDocumentEvent)
