@@ -162,9 +162,6 @@ class DataTracker:
         self._hints["/api/v1/meeting/schedulingevent/"]            = Hints(SchedulingEvent,             "id")
         self._hints["/api/v1/meeting/session/"]                    = Hints(Session,                     "id")
         self._hints["/api/v1/meeting/timeslot/"]                   = Hints(Timeslot,                    "id")
-        self._hints["/api/v1/message/announcementfrom/"]           = Hints(AnnouncementFrom,            "id")
-        self._hints["/api/v1/message/message/"]                    = Hints(DTMessage,                   "id")
-        self._hints["/api/v1/message/sendqueue/"]                  = Hints(SendQueueEntry,              "id")
         self._hints["/api/v1/name/ballotpositionname/"]            = Hints(BallotPositionName,          "slug")
         self._hints["/api/v1/name/docrelationshipname/"]           = Hints(RelationshipType,            "slug")
         self._hints["/api/v1/name/doctagname/"]                    = Hints(DocumentTag,                 "slug")
@@ -2024,79 +2021,6 @@ class DataTracker:
         if ticket_type is not None:
             url.params["ticket_type"] = ticket_type
         yield from self._retrieve_multi(url, MeetingRegistration)
-
-
-    # ----------------------------------------------------------------------------------------------------------------------------
-    # Datatracker API endpoints returning information about messages:
-    #
-    # * https://datatracker.ietf.org/api/v1/message/announcementfrom/
-    # * https://datatracker.ietf.org/api/v1/message/message/
-    # - https://datatracker.ietf.org/api/v1/message/messageattachment/ [not used]
-    # * https://datatracker.ietf.org/api/v1/message/sendqueue/
-
-    def announcement_from(self, announcement_from_uri: AnnouncementFromURI) -> Optional[AnnouncementFrom]:
-        return self._retrieve(announcement_from_uri, AnnouncementFrom)
-
-
-    def announcements_from(self,
-                address : Optional[str]          = None,
-                group   : Optional[Group]        = None,
-                name    : Optional[RoleName]     = None) -> Iterator[AnnouncementFrom]:
-        url = AnnouncementFromURI(uri="/api/v1/message/announcementfrom/")
-        if address is not None:
-            url.params["address"] = address
-        if group is not None:
-            url.params["group"] = group.id
-        if name is not None:
-            url.params["name"] = name.slug
-        yield from self._retrieve_multi(url, AnnouncementFrom)
-
-
-    #def message(self, message_uri: DTMessageURI) -> Optional[DTMessage]:
-    #    return self._retrieve(message_uri, DTMessage)
-
-
-    #def messages(self,
-    #            since : str                           = "1970-01-01T00:00:00",
-    #            until : str                           = "2038-01-19T03:14:07",
-    #            by               : Optional[Person]   = None,
-    #            frm              : Optional[str]      = None,
-    #            related_doc      : Optional[Document] = None,
-    #            subject_contains : Optional[str]      = None,
-    #            body_contains    : Optional[str]      = None) -> Iterator[DTMessage]:
-    #    url = DTMessageURI(uri="/api/v1/message/message/")
-    #    url.params["time__gte"]       = since
-    #    url.params["time__lt"]       = until
-    #    if by is not None:
-    #        url.params["by"] = by.id
-    #    if frm is not None:
-    #        url.params["frm"] = frm
-    #    if related_doc is not None:
-    #        url.params["related_docs__contains"] = related_doc.id
-    #    if subject_contains is not None:
-    #        url.params["subject__contains"] = subject_contains
-    #    if body_contains is not None:
-    #        url.params["body__contains"] = body_contains
-    #    yield from self._retrieve_multi(url, DTMessage)
-
-
-    def send_queue_entry(self, send_queue_uri: SendQueueURI) -> Optional[SendQueueEntry]:
-        return self._retrieve(send_queue_uri, SendQueueEntry)
-
-
-    def send_queue(self,
-                since   : str                = "1970-01-01T00:00:00",
-                until   : str                = "2038-01-19T03:14:07",
-                by      : Optional[Person]   = None,
-                message : Optional[DTMessage]  = None) -> Iterator[SendQueueEntry]:
-        url = SendQueueURI(uri="/api/v1/message/sendqueue/")
-        url.params["time__gte"] = since
-        url.params["time__lt"]  = until
-        if by is not None:
-            url.params["by"] = by.id
-        if message is not None:
-            url.params["message"] = message.id
-        yield from self._retrieve_multi(url, SendQueueEntry)
 
 
 # =================================================================================================================================

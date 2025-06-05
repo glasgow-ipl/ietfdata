@@ -1501,59 +1501,5 @@ class MeetingRegistration(Resource):
     checkedin    : bool
 
 
-# ---------------------------------------------------------------------------------------------------------------------------------
-# Types relating to messages:
-
-
-class AnnouncementFromURI(URI):
-    root : str = "/api/v1/message/announcementfrom/"
-
-
-class AnnouncementFrom(Resource):
-    address      : str
-    group        : GroupURI
-    id           : int
-    name         : RoleNameURI
-    resource_uri : AnnouncementFromURI
-
-
-class DTMessageURI(URI):
-    root : str = "/api/v1/message/message/"
-
-
-class DTMessage(Resource):
-    bcc            : str
-    body           : str
-    by             : PersonURI
-    cc             : str
-    content_type   : str
-    frm            : str
-    id             : int
-    msgid          : str
-    related_docs   : List[DocumentURI]
-    related_groups : List[GroupURI]
-    reply_to       : str
-    resource_uri   : DTMessageURI
-    sent           : datetime
-    subject        : str
-    time           : datetime
-    to             : str
-
-
-class SendQueueURI(URI):
-    root : str = "/api/v1/message/sendqueue/"
-
-
-class SendQueueEntry(Resource):
-    by             : PersonURI
-    id             : int
-    message        : DTMessageURI
-    note           : str
-    resource_uri   : SendQueueURI
-    send_at        : Optional[datetime]
-    sent_at        : Optional[datetime]
-    time           : datetime
-
-
 # =================================================================================================================================
 # vim: set tw=0 ai:
