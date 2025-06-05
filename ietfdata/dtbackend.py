@@ -66,7 +66,7 @@ class DTBackend(ABC):
 # Backend for live access to the datatracker:
 
 class DTBackendLive(DTBackend):
-    def __init__(self, sqlite_file : str = "ietf-dt-cache.sqlite") -> None:
+    def __init__(self, sqlite_file : str = "ietfdata-dt-cache.sqlite") -> None:
         logging.getLogger('requests').setLevel('ERROR')
         logging.getLogger('requests_cache').setLevel('ERROR')
         logging.getLogger("urllib3").setLevel('ERROR')
@@ -83,9 +83,7 @@ class DTBackendLive(DTBackend):
 
 
     def update(self) -> None:
-        # This backend contacts the datatracker directly each time, and
-        # doesn't need to be updated.
-        pass
+        self.cache.delete(expired=True)
 
 
     def datatracker_get_single(self, obj_uri: URI) -> Optional[Dict[str, Any]]:
