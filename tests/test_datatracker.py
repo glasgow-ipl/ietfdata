@@ -2077,6 +2077,25 @@ class TestDatatracker(unittest.TestCase):
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to meetings:
 
+    def test_meeting_attended(self) -> None:
+        attended = self.dt.meeting_attended(MeetingAttendedURI(uri="/api/v1/meeting/attended/4696/"))
+        if attended is not None:
+            self.assertEqual(attended.id,           4696)
+            self.assertEqual(attended.origin,       "datatracker")
+            self.assertEqual(attended.person,       PersonURI(uri="/api/v1/person/person/20209/"))
+            self.assertEqual(attended.resource_uri, MeetingAttendedURI(uri="/api/v1/meeting/attended/4696/"))
+            self.assertEqual(attended.session,      SessionURI(uri="/api/v1/meeting/session/28228/"))
+            self.assertEqual(attended.time,         datetime.fromisoformat("2024-03-12T18:35:43Z"))
+        else:
+            self.fail("cannot find meeting attendance")
+
+
+    def test_meeting_attendance(self) -> None:
+        person   = self.dt.person(PersonURI(uri="/api/v1/person/person/125662/"))
+        attended = list(self.dt.meeting_attendance(person = person))
+        self.assertEqual(len(attended), 81)
+
+
     def test_meeting_session_assignment(self) -> None:
         assignment = self.dt.meeting_session_assignment(SessionAssignmentURI(uri="/api/v1/meeting/schedtimesessassignment/61212/"))
         if assignment is not None:

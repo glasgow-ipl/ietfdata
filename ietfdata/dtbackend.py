@@ -527,6 +527,7 @@ class DTBackendArchive(DTBackend):
             "/api/v1/ipr/holderiprdisclosure/",
             "/api/v1/ipr/iprdisclosurebase/",
             "/api/v1/ipr/thirdpartyiprdisclosure/",
+            "/api/v1/meeting/attended/",
             "/api/v1/meeting/meeting/",
             "/api/v1/meeting/schedtimesessassignment/",
             "/api/v1/meeting/schedule/",

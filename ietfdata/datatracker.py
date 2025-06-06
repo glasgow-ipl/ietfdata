@@ -156,6 +156,7 @@ class DataTracker:
         self._hints["/api/v1/ipr/thirdpartyiprdisclosure/"]        = Hints(ThirdPartyIPRDisclosure,     "id")
         self._hints["/api/v1/mailinglists/list/"]                  = Hints(EmailList,                   "id")
         self._hints["/api/v1/mailinglists/subscribed/"]            = Hints(EmailListSubscriptions,      "id")
+        self._hints["/api/v1/meeting/attended/"]                   = Hints(MeetingAttended,             "id")
         self._hints["/api/v1/meeting/meeting/"]                    = Hints(Meeting,                     "id")
         self._hints["/api/v1/meeting/schedtimesessassignment/"]    = Hints(SessionAssignment,           "id")
         self._hints["/api/v1/meeting/schedule/"]                   = Hints(Schedule,                    "id")
@@ -1224,6 +1225,19 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/name/roomresourcename/
     # * https://datatracker.ietf.org/api/v1/name/meetingtypename/
     #   https://datatracker.ietf.org/api/v1/name/importantdatename/
+
+    def meeting_attended(self, meeting_attended_uri: MeetingAttendedURI) -> Optional[MeetingAttended]:
+        return self._retrieve(meeting_attended_uri, MeetingAttended)
+
+
+    def meeting_attendance(self, session: Optional[Session]=None, person: Optional[Person]=None) -> Iterator[MeetingAttended]:
+        url = SessionURI(uri="/api/v1/meeting/attended/")
+        if session is not None:
+            url.params["session"] = session.id
+        if person is not None:
+            url.params["person"] = person.id
+        yield from self._retrieve_multi(url, MeetingAttended)
+
 
     def meeting_session_assignment(self, assignment_uri : SessionAssignmentURI) -> Optional[SessionAssignment]:
         return self._retrieve(assignment_uri, SessionAssignment)
