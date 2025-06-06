@@ -1372,13 +1372,6 @@ class DataTracker:
         yield from self._retrieve_multi(MeetingTypeURI(uri="/api/v1/name/meetingtypename/"), MeetingType)
 
 
-    def meeting_attendance(self,
-            person       : Optional[Person] = None) -> Iterator[MeetingAttended]:
-        url = MeetingAttendedURI(uri="/api/v1/meeting/attended/")
-        if person is not None:
-            url.params["person"] = person.id
-        yield from self._retrieve_multi(url, MeetingAttended)
-
     # ----------------------------------------------------------------------------------------------------------------------------
     # Datatracker API endpoints returning information about IPR disclosures:
     #
