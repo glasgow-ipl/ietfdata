@@ -879,7 +879,7 @@ class Meeting(Resource):
     proceedings_final                : bool
     show_important_dates             : bool
     attendees                        : Optional[int]
-    updated                          : datetime     # Time this record was modified
+    updated                          : Optional[datetime]     # Time this record was modified
 
     def status(self) -> MeetingStatus:
         now = date.today()
