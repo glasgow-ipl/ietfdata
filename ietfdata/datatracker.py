@@ -1238,10 +1238,9 @@ class DataTracker:
 
         `meeting_registration()` and `meeting_registration_old()` provide
         information about people who have registered for meetings. These
-        two functions provide the same type of information, but they use
-        different datatracker API endpoints and each provides information
-        about a different subset of the meetings. Call both functions and
-        combine the results.
+        two functions provide the same information, although the
+        `meeting_registration()` call provides more detail on registrations
+        for ANRW and the hackathon.
 
         `meeting_attendance()` provides information about the people that
         attended a particular session of the meeting. This information is
@@ -1422,10 +1421,9 @@ class DataTracker:
 
         `meeting_registration()` and `meeting_registration_old()` provide
         information about people who have registered for meetings. These
-        two functions provide the same type of information, but they use
-        different datatracker API endpoints and each provides information
-        about a different subset of the meetings. Call both functions and
-        combine the results.
+        two functions provide the same information, although the
+        `meeting_registration()` call provides more detail on registrations
+        for ANRW and the hackathon.
 
         `meeting_attendance()` provides information about the people that
         attended a particular session of the meeting. This information is
@@ -2109,10 +2107,9 @@ class DataTracker:
 
         `meeting_registration()` and `meeting_registration_old()` provide
         information about people who have registered for meetings. These
-        two functions provide the same type of information, but they use
-        different datatracker API endpoints and each provides information
-        about a different subset of the meetings. Call both functions and
-        combine the results.
+        two functions provide the same information, although the
+        `meeting_registration()` call provides more detail on registrations
+        for ANRW and the hackathon.
 
         `meeting_attendance()` provides information about the people that
         attended a particular session of the meeting. This information is
