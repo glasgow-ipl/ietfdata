@@ -1008,6 +1008,19 @@ class SchedulingEvent(Resource):
     time         : datetime
 
 
+class MeetingAttendedURI(URI):
+    root : str = "/api/v1/meeting/attended/"
+
+
+class MeetingAttended(Resource):
+    id           : int
+    origin       : str
+    person       : PersonURI
+    resource_uri : MeetingAttendedURI
+    session      : SessionURI
+    time         : datetime
+
+
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to IPR disclosures:
 

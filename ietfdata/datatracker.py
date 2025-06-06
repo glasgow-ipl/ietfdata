@@ -156,6 +156,7 @@ class DataTracker:
         self._hints["/api/v1/ipr/thirdpartyiprdisclosure/"]        = Hints(ThirdPartyIPRDisclosure,     "id")
         self._hints["/api/v1/mailinglists/list/"]                  = Hints(EmailList,                   "id")
         self._hints["/api/v1/mailinglists/subscribed/"]            = Hints(EmailListSubscriptions,      "id")
+        self._hints["/api/v1/meeting/attended/"]                   = Hints(MeetingAttended,             "id")
         self._hints["/api/v1/meeting/meeting/"]                    = Hints(Meeting,                     "id")
         self._hints["/api/v1/meeting/schedtimesessassignment/"]    = Hints(SessionAssignment,           "id")
         self._hints["/api/v1/meeting/schedule/"]                   = Hints(Schedule,                    "id")
@@ -1357,6 +1358,13 @@ class DataTracker:
         """
         yield from self._retrieve_multi(MeetingTypeURI(uri="/api/v1/name/meetingtypename/"), MeetingType)
 
+
+    def meeting_attendance(self,
+            person       : Optional[Person] = None) -> Iterator[MeetingAttended]:
+        url = MeetingAttendedURI(uri="/api/v1/meeting/attended/")
+        if person is not None:
+            url.params["person"] = person.id
+        yield from self._retrieve_multi(url, MeetingAttended)
 
     # ----------------------------------------------------------------------------------------------------------------------------
     # Datatracker API endpoints returning information about IPR disclosures:
