@@ -529,6 +529,7 @@ class DTBackendArchive(DTBackend):
             "/api/v1/ipr/thirdpartyiprdisclosure/",
             "/api/v1/meeting/attended/",
             "/api/v1/meeting/meeting/",
+            "/api/v1/meeting/registration/",
             "/api/v1/meeting/schedtimesessassignment/",
             "/api/v1/meeting/schedule/",
             "/api/v1/meeting/schedulingevent/",

@@ -2424,6 +2424,24 @@ class TestDatatracker(unittest.TestCase):
             self.fail("Cannot find meeting")
 
 
+    def test_meeting_registration_old(self) -> None:
+        reg = self.dt.meeting_registration_old(MeetingRegistrationOldURI(uri="/api/v1/meeting/registration/29329/"))
+        if reg is not None:
+            self.assertEqual(reg.affiliation,  "University of Glasgow")
+            self.assertEqual(reg.attended,     True)
+            self.assertEqual(reg.checkedin,    True)
+            self.assertEqual(reg.country_code, "GB")
+            self.assertEqual(reg.email,        "csp@csperkins.org")
+            self.assertEqual(reg.first_name,   "Colin")
+            self.assertEqual(reg.id,           29329)
+            self.assertEqual(reg.last_name,    "Perkins")
+            self.assertEqual(reg.meeting,      MeetingURI(uri="/api/v1/meeting/meeting/805/"))
+            self.assertEqual(reg.person,       PersonURI(uri="/api/v1/person/person/20209/"))
+            self.assertEqual(reg.resource_uri, MeetingRegistrationOldURI(uri="/api/v1/meeting/registration/29329/"))
+        else:
+            self.fail("Cannot find meeting registration")
+
+
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to related documents:
 

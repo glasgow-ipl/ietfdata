@@ -158,6 +158,7 @@ class DataTracker:
         self._hints["/api/v1/mailinglists/subscribed/"]            = Hints(EmailListSubscriptions,      "id")
         self._hints["/api/v1/meeting/attended/"]                   = Hints(MeetingAttended,             "id")
         self._hints["/api/v1/meeting/meeting/"]                    = Hints(Meeting,                     "id")
+        self._hints["/api/v1/meeting/registration/"]               = Hints(MeetingRegistrationOld,      "id")
         self._hints["/api/v1/meeting/schedtimesessassignment/"]    = Hints(SessionAssignment,           "id")
         self._hints["/api/v1/meeting/schedule/"]                   = Hints(Schedule,                    "id")
         self._hints["/api/v1/meeting/schedulingevent/"]            = Hints(SchedulingEvent,             "id")
@@ -1231,6 +1232,28 @@ class DataTracker:
 
 
     def meeting_attendance(self, session: Optional[Session]=None, person: Optional[Person]=None) -> Iterator[MeetingAttended]:
+        """
+        There are four ways to access meeting registration data from the 
+        datatracker:
+
+        `meeting_registration()` and `meeting_registration_old()` provide
+        information about people who have registered for meetings. These
+        two functions provide the same type of information, but they use
+        different datatracker API endpoints and each provides information
+        about a different subset of the meetings. Call both functions and
+        combine the results.
+
+        `meeting_attendance()` provides information about the people that
+        attended a particular session of the meeting. This information is
+        not available for older meetings, where attendance was taken using
+        hand-written blue sheets.
+
+        `meeting()` provides a count of the number of attendees at the
+        meeting as part of the result.  The way in which the number of
+        attendees given here is derived has varied over time, and is
+        not always a straightforward match with the values returned
+        from the other functions.
+        """
         url = SessionURI(uri="/api/v1/meeting/attended/")
         if session is not None:
             url.params["session"] = session.id
@@ -1341,6 +1364,12 @@ class DataTracker:
             meeting_type : Optional[MeetingType] = None) -> Iterator[Meeting]:
         """
         Return information about meetings taking place within a particular date range.
+
+        `meeting()` provides a count of the number of attendees at the
+        meeting as part of the result.  The way in which the number of
+        attendees given here is derived has varied over time. See also
+        the `meeting_registration()`, `meeting_registration_old()`, and
+        `meeting_attendance()` functions.
         """
         url = MeetingURI(uri="/api/v1/meeting/meeting/")
         url.params["date__gte"] = start_date
@@ -1370,6 +1399,67 @@ class DataTracker:
             An iterator of MeetingType objects
         """
         yield from self._retrieve_multi(MeetingTypeURI(uri="/api/v1/name/meetingtypename/"), MeetingType)
+
+
+    def meeting_registration_old(self, meeting_registration_old_uri: MeetingRegistrationOldURI) -> Optional[MeetingRegistrationOld]:
+        return self._retrieve(meeting_registration_old_uri, MeetingRegistrationOld)
+
+
+    def meeting_registrations_old(self,
+                affiliation   : Optional[str]             = None,
+                attended      : Optional[bool]            = None,
+                country_code  : Optional[str]             = None,
+                email         : Optional[str]             = None,
+                first_name    : Optional[str]             = None,
+                last_name     : Optional[str]             = None,
+                meeting       : Optional[Meeting]         = None,
+                person        : Optional[Person]          = None,
+                reg_type      : Optional[str]             = None,
+                ticket_type   : Optional[str]             = None) -> Iterator[MeetingRegistrationOld]:
+        """
+        There are four ways to access meeting registration data from the 
+        datatracker:
+
+        `meeting_registration()` and `meeting_registration_old()` provide
+        information about people who have registered for meetings. These
+        two functions provide the same type of information, but they use
+        different datatracker API endpoints and each provides information
+        about a different subset of the meetings. Call both functions and
+        combine the results.
+
+        `meeting_attendance()` provides information about the people that
+        attended a particular session of the meeting. This information is
+        not available for older meetings, where attendance was taken using
+        hand-written blue sheets.
+
+        `meeting()` provides a count of the number of attendees at the
+        meeting as part of the result.  The way in which the number of
+        attendees given here is derived has varied over time, and is
+        not always a straightforward match with the values returned
+        from the other functions.
+        """
+        url = MeetingRegistrationOldURI(uri="/api/v1/meeting/registration/")
+        if affiliation is not None:
+            url.params["affiliation"] = affiliation
+        if attended is not None:
+            url.params["attended"] = attended
+        if country_code is not None:
+            url.params["country_code"] = country_code
+        if email is not None:
+            url.params["email"] = email
+        if first_name is not None:
+            url.params["first_name"] = first_name
+        if last_name is not None:
+            url.params["last_name"] = last_name
+        if meeting is not None:
+            url.params["meeting"] = meeting.id
+        if person is not None:
+            url.params["person"] = person.id
+        if reg_type is not None:
+            url.params["reg_type"] = reg_type
+        if ticket_type is not None:
+            url.params["ticket_type"] = ticket_type
+        yield from self._retrieve_multi(url, MeetingRegistrationOld)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -2013,6 +2103,28 @@ class DataTracker:
                 person        : Optional[Person]          = None,
                 reg_type      : Optional[str]             = None,
                 ticket_type   : Optional[str]             = None) -> Iterator[MeetingRegistration]:
+        """
+        There are four ways to access meeting registration data from the 
+        datatracker:
+
+        `meeting_registration()` and `meeting_registration_old()` provide
+        information about people who have registered for meetings. These
+        two functions provide the same type of information, but they use
+        different datatracker API endpoints and each provides information
+        about a different subset of the meetings. Call both functions and
+        combine the results.
+
+        `meeting_attendance()` provides information about the people that
+        attended a particular session of the meeting. This information is
+        not available for older meetings, where attendance was taken using
+        hand-written blue sheets.
+
+        `meeting()` provides a count of the number of attendees at the
+        meeting as part of the result.  The way in which the number of
+        attendees given here is derived has varied over time, and is
+        not always a straightforward match with the values returned
+        from the other functions.
+        """
         url = MeetingRegistrationURI(uri="/api/v1/stats/meetingregistration/")
         if affiliation is not None:
             url.params["affiliation"] = affiliation

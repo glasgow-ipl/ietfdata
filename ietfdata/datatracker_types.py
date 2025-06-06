@@ -1021,6 +1021,26 @@ class MeetingAttended(Resource):
     time         : datetime
 
 
+# See also MeetingRegistrationURI
+class MeetingRegistrationOldURI(URI):
+    root : str = "/api/v1/stats/meetingregistration/"
+
+
+# See also MeetingRegistration
+class MeetingRegistrationOld(Resource):
+    affiliation  : str
+    attended     : bool
+    country_code : str
+    email        : str
+    first_name   : str
+    id           : int
+    last_name    : str
+    meeting      : MeetingURI
+    person       : Optional[PersonURI]
+    resource_uri : MeetingRegistrationOldURI
+    checkedin    : bool
+
+
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to IPR disclosures:
 
@@ -1494,10 +1514,12 @@ class CountryAlias(Resource):
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to statistics:
 
+# See also MeetingRegistrationOldURI
 class MeetingRegistrationURI(URI):
     root : str = "/api/v1/stats/meetingregistration/"
 
 
+# See also MeetingRegistrationOld
 class MeetingRegistration(Resource):
     affiliation  : str
     attended     : bool
