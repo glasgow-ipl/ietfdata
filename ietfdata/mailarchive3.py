@@ -957,8 +957,8 @@ class MailArchive:
 
     # Differs from mailarchiv2
     def __init__(self,
-                 imap_server : str = "imap.ietf.org",
-                 sqlite_file : str = "ietfdata.sqlite") -> None:
+                 sqlite_file : str = "ietfdata.sqlite",
+                 imap_server : str = "imap.ietf.org") -> None:
         """
         Initialise the MailArchive.
 
