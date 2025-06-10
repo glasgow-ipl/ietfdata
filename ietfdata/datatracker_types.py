@@ -846,7 +846,7 @@ class Schedule(Resource):
     meeting      : MeetingURI
     visible      : bool
     public       : bool
-    badness      : Optional[str]
+    badness      : Optional[int]
 
 
 class Meeting(Resource):
@@ -932,7 +932,7 @@ class SessionAssignment(Resource):
     modified     : datetime
     pinned       : bool
     extendedfrom : Optional[str]
-    badness      : int
+    badness      : Optional[int]
 
 
 class SessionPurposeURI(URI):
