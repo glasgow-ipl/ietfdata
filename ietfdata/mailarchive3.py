@@ -421,14 +421,21 @@ def _parse_hdr_from(uid, msg):
     else:
         addr_list = getaddresses([hdr])
         if len(addr_list) == 0:
-            # The "From:" header is present but empty
+            # The "From:" header is present but empty:
             from_name = None
             from_addr = None
         elif len(addr_list) == 1:
-            # The "From:" header contains a single well-formed address.
+            # The "From:" header contains a single address:
             from_name, from_addr = addr_list[0]
+            if not "@" in from_addr:
+                if " at " in from_addr:
+                    # Rewrite, e.g., "lear at cisco.com" -> "lear@cisco.com"
+                    from_addr = from_addr.replace(" at ", "@")
+                else:
+                    print(f"failed: _parse_hdr_from - no @ in 'From:' header (uid: {uid}) {hdr}")
+                    from_addr = None
         elif len(addr_list) > 1:
-            # The "From:" header contains multiple well-formed addresses; use the first one with a valid domain.
+            # The "From:" header contains multiple addresses; use the first one with a valid domain:
             from_name = None
             from_addr = None
             for group in hdr.groups:
@@ -472,10 +479,10 @@ def _parse_hdr_to_cc(uid, msg, to_cc):
                     index += 1
                 return headers
             except:
-                print(f"failed: parse_hdr_to_cc (uid: {uid}) {hdr}")
+                print(f"failed: _parse_hdr_to_cc (uid: {uid}) {hdr}")
                 return []
     except Exception as e: 
-        print(f"failed: parse_hdr_to_cc (uid: {uid}) cannot extract {to_cc} header")
+        print(f"failed: _parse_hdr_to_cc (uid: {uid}) cannot extract {to_cc} header")
         print(f"  {e}")
         return []
 
@@ -546,7 +553,7 @@ def _parse_hdr_date(uid, msg):
                             return date
 
                         except:
-                            print(f"failed: parse_hdr_date (uid: {uid}) {hdr}")
+                            print(f"failed: _parse_hdr_date (uid: {uid}) {hdr}")
                             return None
 
 
