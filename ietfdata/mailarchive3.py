@@ -764,7 +764,11 @@ class MailingList:
 
         New in mailarchive3
         """
-        self._archive._log.info(f"mailarchive3:reindex: {self._name}")
+        if self.num_messages() == 0:
+            self._archive._log.info(f"mailarchive3:reindex: {self._name} has no messages")
+            return
+        else:
+            self._archive._log.info(f"mailarchive3:reindex: {self._name}")
 
         dbc = self._archive._db.cursor()
         sql = "SELECT message_num, uid, message FROM ietf_ma_msg WHERE mailing_list = ? and uidvalidity = ?;"
