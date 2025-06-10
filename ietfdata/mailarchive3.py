@@ -1017,6 +1017,7 @@ class MailArchive:
                                 date_received TEXT
                             );""")
         self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_msg_list_date_uid  ON ietf_ma_msg (mailing_list, date_received, uidvalidity, uid);""")
+        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_msg_date ON ietf_ma_msg (message_num, date_received);""")
 
         self._db.execute("""CREATE TABLE IF NOT EXISTS ietf_ma_hdr (
                                 id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1035,6 +1036,7 @@ class MailArchive:
         self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_from_addr_date ON ietf_ma_hdr (from_addr, date);""")
         self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_from_name_date ON ietf_ma_hdr (from_name, date);""")
         self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_date_subject   ON ietf_ma_hdr (date, subject);""")
+        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_message_num_date   ON ietf_ma_hdr (message_num, date);""")
 
         self._db.execute("""CREATE TABLE IF NOT EXISTS ietf_ma_hdr_to (
                                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1270,7 +1272,6 @@ class MailArchive:
             qplan  = dbc.execute("EXPLAIN QUERY PLAN " + query, param).fetchone()
             self._log.debug(query)
             self._log.debug(qplan)
-
             for msg_num in map(lambda x : x[0], dbc.execute(query, param).fetchall()): 
                 yield Envelope(self, msg_num)
         else:
