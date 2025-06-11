@@ -427,13 +427,32 @@ def _parse_hdr_from(uid, msg):
         elif len(addr_list) == 1:
             # The "From:" header contains a single address:
             from_name, from_addr = addr_list[0]
-            if not "@" in from_addr:
+            if from_addr is not None and from_addr.count("@") == 0:
                 if " at " in from_addr:
                     # Rewrite, e.g., "lear at cisco.com" -> "lear@cisco.com"
                     from_addr = from_addr.replace(" at ", "@")
                 else:
                     print(f"failed: _parse_hdr_from - no @ in 'From:' header (uid: {uid}) {hdr}")
                     from_addr = None
+            if from_addr is not None and from_addr.count("@") == 2:
+                # The parsed messages contain a small number of mangled addresses with multiple @ signs; rewrite them:
+                replacements = [('"CN=David Hemsath/OU=Endicott/O=IBM@IBMLMS01"@US.IBM.COM',        'hemsath@us.ibm.com'),
+                                ('"IAOC Chair <bob.hinden@gmail.com>"@core3.amsl.com',              'bob.hinden@gmail.com'),
+                                ('"Jürgen Schönwälder <j.schoenwaelder@jac"@ietfa.amsl.com',        'j.schoenwaelder@jacobs-university.de'),
+                                ('"maruyama@IBMUS"@US.IBM.COM',                                     'maruyama@us.ibm.com'),
+                                ('"maz1@miavx1.muohio.edu"@stream.mcs.muohio.edu',                  'maz1@miavx1.muohio.edu'),
+                                ('"Michael Tüxen <tuexen@fh-muenster.de>"@ietfa.amsl.com',          'tuexen@fh-muenster.de'),
+                                ('"postmaster@africaonline.co.ci"@pop1.africaonline.co.ci',         'postmaster@africaonline.co.ci'),
+                                ('"us4rmc::bajan@bunyip.com"@boco.enet.dec.com',                    'bajan@bunyip.com'),
+                                ('"us4rmc::raisch@internet.com"@boco.enet.dec.com',                 'raisch@internet.com'),
+                                ('"Xiaodong(Sheldon) Lee <lee@cnnic.cn>"@NeuStar.com',              'lee@cnnic.cn'),
+                                ('"Michelle Claudé <Michelle.Claude@prism.uvsq.fr>"@prism.uvsq.fr', 'Michelle.Claude@prism.uvsq.fr'),
+                                ('"kaufman@zk3.dec.com"@minsrv.enet.dec.com',                       'kaufman@zk3.dec.com'),
+                                ('"ietf-ipr@ietf.org"@ietfa.amsl.com',                              'ietf-ipr@ietf.org')]
+                for orig, repl in replacements:
+                    if from_addr == orig:
+                        from_addr = repl
+                        print(f"_parse_hdr_from: {orig} -> {repl}")
         elif len(addr_list) > 1:
             # The "From:" header contains multiple addresses; use the first one with a valid domain:
             from_name = None
