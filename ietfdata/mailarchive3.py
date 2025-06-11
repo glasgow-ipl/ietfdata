@@ -360,7 +360,7 @@ class EmailPolicyCustom(EmailPolicy):
                 # some of which are so corrupt that they make the Python email package throw
                 # an exception ('Group' object has no attribute 'local_part').  Rewrite such
                 # headers to use the canonical ietf-announce@ietf.org list address.
-                (r'("IETF-Announce:; ; ; ; ; @tis.com"@tis.com[; ]+ , )(.*)', r'ietf-announce@ietf.org, \2'), 
+                (r'("IETF-Announce:; ; ; ; ; @tis.com"@tis.com[; ]+ , )(.*)', r'ietf-announce@ietf.org, \2'),
                 (r'(.*)(IETF-Announce:[ ;,]+[a-zA-Z\.@:;-]+$)', r'\1ietf-announce@ietf.org'),
                 (r'(.*)(IETF-Announce:(; )+[; a-z\.@\r\n]+)',   r'\1ietf-announce@ietf.org'),
                 (r'(.*)(<"?IETF-Announce:"?)([a-z0-9\.@;"]+)?(>)(, @tislabs.com@tislabs.com)?(.*)',  r'\1<ietf-announce@ietf.org>\6'),
@@ -406,7 +406,6 @@ class EmailPolicyCustom(EmailPolicy):
                     break
 
         return (name, value)
-
 
 
 
