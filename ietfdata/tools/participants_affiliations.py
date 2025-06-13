@@ -7,7 +7,6 @@ from datetime import timedelta,date
 from typing import Optional
 from ietfdata.datatracker     import *
 from ietfdata.datatracker_ext import *
-from ietfdata.mailarchive3    import *
 
 # TODO: tests
 # A class representing an affiliation entry 
