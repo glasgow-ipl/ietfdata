@@ -7,7 +7,6 @@ from datetime import timedelta,date
 from typing import Optional
 from ietfdata.datatracker     import *
 from ietfdata.datatracker_ext import *
-from ietfdata.mailarchive2    import *
 
 # TODO: tests
 # A class representing an affiliation entry 
@@ -374,7 +373,7 @@ class ParticipantsAffiliations:
 if __name__ == "__main__":
     print("*** ietfdata.tools.participants_affiliations")
     
-    if len(sys.argv) == 4:
+    if len(sys.argv) == 5:
         path = Path(sys.argv[4])
     else:
         print("Usage: python3 -m ietfdata.tools.participants_affiliations <ietfdata.sqlite> <participants.json> <organisations.json> <output.json>")
