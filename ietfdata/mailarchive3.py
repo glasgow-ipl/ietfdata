@@ -360,7 +360,7 @@ class EmailPolicyCustom(EmailPolicy):
                 # some of which are so corrupt that they make the Python email package throw
                 # an exception ('Group' object has no attribute 'local_part').  Rewrite such
                 # headers to use the canonical ietf-announce@ietf.org list address.
-                (r'("IETF-Announce:; ; ; ; ; @tis.com"@tis.com[; ]+ , )(.*)', r'ietf-announce@ietf.org, \2'), 
+                (r'("IETF-Announce:; ; ; ; ; @tis.com"@tis.com[; ]+ , )(.*)', r'ietf-announce@ietf.org, \2'),
                 (r'(.*)(IETF-Announce:[ ;,]+[a-zA-Z\.@:;-]+$)', r'\1ietf-announce@ietf.org'),
                 (r'(.*)(IETF-Announce:(; )+[; a-z\.@\r\n]+)',   r'\1ietf-announce@ietf.org'),
                 (r'(.*)(<"?IETF-Announce:"?)([a-z0-9\.@;"]+)?(>)(, @tislabs.com@tislabs.com)?(.*)',  r'\1<ietf-announce@ietf.org>\6'),
@@ -409,7 +409,6 @@ class EmailPolicyCustom(EmailPolicy):
 
 
 
-
 def _parse_hdr_from(uid, msg):
     """
     This is a private helper function - do not use.
@@ -421,14 +420,40 @@ def _parse_hdr_from(uid, msg):
     else:
         addr_list = getaddresses([hdr])
         if len(addr_list) == 0:
-            # The "From:" header is present but empty
+            # The "From:" header is present but empty:
             from_name = None
             from_addr = None
         elif len(addr_list) == 1:
-            # The "From:" header contains a single well-formed address.
+            # The "From:" header contains a single address:
             from_name, from_addr = addr_list[0]
+            if from_addr is not None and from_addr.count("@") == 0:
+                if " at " in from_addr:
+                    # Rewrite, e.g., "lear at cisco.com" -> "lear@cisco.com"
+                    from_addr = from_addr.replace(" at ", "@")
+                else:
+                    print(f"failed: _parse_hdr_from - no @ in 'From:' header (uid: {uid}) {hdr}")
+                    from_addr = None
+            if from_addr is not None and from_addr.count("@") == 2:
+                # The parsed messages contain a small number of mangled addresses with multiple @ signs; rewrite them:
+                replacements = [('"CN=David Hemsath/OU=Endicott/O=IBM@IBMLMS01"@US.IBM.COM',        'hemsath@us.ibm.com'),
+                                ('"IAOC Chair <bob.hinden@gmail.com>"@core3.amsl.com',              'bob.hinden@gmail.com'),
+                                ('"Jürgen Schönwälder <j.schoenwaelder@jac"@ietfa.amsl.com',        'j.schoenwaelder@jacobs-university.de'),
+                                ('"maruyama@IBMUS"@US.IBM.COM',                                     'maruyama@us.ibm.com'),
+                                ('"maz1@miavx1.muohio.edu"@stream.mcs.muohio.edu',                  'maz1@miavx1.muohio.edu'),
+                                ('"Michael Tüxen <tuexen@fh-muenster.de>"@ietfa.amsl.com',          'tuexen@fh-muenster.de'),
+                                ('"postmaster@africaonline.co.ci"@pop1.africaonline.co.ci',         'postmaster@africaonline.co.ci'),
+                                ('"us4rmc::bajan@bunyip.com"@boco.enet.dec.com',                    'bajan@bunyip.com'),
+                                ('"us4rmc::raisch@internet.com"@boco.enet.dec.com',                 'raisch@internet.com'),
+                                ('"Xiaodong(Sheldon) Lee <lee@cnnic.cn>"@NeuStar.com',              'lee@cnnic.cn'),
+                                ('"Michelle Claudé <Michelle.Claude@prism.uvsq.fr>"@prism.uvsq.fr', 'Michelle.Claude@prism.uvsq.fr'),
+                                ('"kaufman@zk3.dec.com"@minsrv.enet.dec.com',                       'kaufman@zk3.dec.com'),
+                                ('"ietf-ipr@ietf.org"@ietfa.amsl.com',                              'ietf-ipr@ietf.org')]
+                for orig, repl in replacements:
+                    if from_addr == orig:
+                        from_addr = repl
+                        print(f"_parse_hdr_from: {orig} -> {repl}")
         elif len(addr_list) > 1:
-            # The "From:" header contains multiple well-formed addresses; use the first one with a valid domain.
+            # The "From:" header contains multiple addresses; use the first one with a valid domain:
             from_name = None
             from_addr = None
             for group in hdr.groups:
@@ -472,10 +497,10 @@ def _parse_hdr_to_cc(uid, msg, to_cc):
                     index += 1
                 return headers
             except:
-                print(f"failed: parse_hdr_to_cc (uid: {uid}) {hdr}")
+                print(f"failed: _parse_hdr_to_cc (uid: {uid}) {hdr}")
                 return []
     except Exception as e: 
-        print(f"failed: parse_hdr_to_cc (uid: {uid}) cannot extract {to_cc} header")
+        print(f"failed: _parse_hdr_to_cc (uid: {uid}) cannot extract {to_cc} header")
         print(f"  {e}")
         return []
 
@@ -546,7 +571,7 @@ def _parse_hdr_date(uid, msg):
                             return date
 
                         except:
-                            print(f"failed: parse_hdr_date (uid: {uid}) {hdr}")
+                            print(f"failed: _parse_hdr_date (uid: {uid}) {hdr}")
                             return None
 
 
@@ -764,7 +789,11 @@ class MailingList:
 
         New in mailarchive3
         """
-        self._archive._log.info(f"mailarchive3:reindex: {self._name}")
+        if self.num_messages() == 0:
+            self._archive._log.info(f"mailarchive3:reindex: {self._name} has no messages")
+            return
+        else:
+            self._archive._log.info(f"mailarchive3:reindex: {self._name}")
 
         dbc = self._archive._db.cursor()
         sql = "SELECT message_num, uid, message FROM ietf_ma_msg WHERE mailing_list = ? and uidvalidity = ?;"
@@ -953,8 +982,8 @@ class MailArchive:
 
     # Differs from mailarchiv2
     def __init__(self,
-                 imap_server : str = "imap.ietf.org",
-                 sqlite_file : str = "ietfdata.sqlite") -> None:
+                 sqlite_file : str = "ietfdata.sqlite",
+                 imap_server : str = "imap.ietf.org") -> None:
         """
         Initialise the MailArchive.
 
@@ -1013,6 +1042,7 @@ class MailArchive:
                                 date_received TEXT
                             );""")
         self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_msg_list_date_uid  ON ietf_ma_msg (mailing_list, date_received, uidvalidity, uid);""")
+        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_msg_date ON ietf_ma_msg (message_num, date_received);""")
 
         self._db.execute("""CREATE TABLE IF NOT EXISTS ietf_ma_hdr (
                                 id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1031,6 +1061,7 @@ class MailArchive:
         self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_from_addr_date ON ietf_ma_hdr (from_addr, date);""")
         self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_from_name_date ON ietf_ma_hdr (from_name, date);""")
         self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_date_subject   ON ietf_ma_hdr (date, subject);""")
+        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_message_num_date   ON ietf_ma_hdr (message_num, date);""")
 
         self._db.execute("""CREATE TABLE IF NOT EXISTS ietf_ma_hdr_to (
                                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1266,7 +1297,6 @@ class MailArchive:
             qplan  = dbc.execute("EXPLAIN QUERY PLAN " + query, param).fetchone()
             self._log.debug(query)
             self._log.debug(qplan)
-
             for msg_num in map(lambda x : x[0], dbc.execute(query, param).fetchall()): 
                 yield Envelope(self, msg_num)
         else:

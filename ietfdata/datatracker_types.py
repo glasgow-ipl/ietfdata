@@ -846,7 +846,7 @@ class Schedule(Resource):
     meeting      : MeetingURI
     visible      : bool
     public       : bool
-    badness      : Optional[str]
+    badness      : Optional[int]
 
 
 class Meeting(Resource):
@@ -932,7 +932,7 @@ class SessionAssignment(Resource):
     modified     : datetime
     pinned       : bool
     extendedfrom : Optional[str]
-    badness      : int
+    badness      : Optional[int]
 
 
 class SessionPurposeURI(URI):
@@ -1006,6 +1006,39 @@ class SchedulingEvent(Resource):
     by           : PersonURI
     resource_uri : SchedulingEventURI
     time         : datetime
+
+
+class MeetingAttendedURI(URI):
+    root : str = "/api/v1/meeting/attended/"
+
+
+class MeetingAttended(Resource):
+    id           : int
+    origin       : str
+    person       : PersonURI
+    resource_uri : MeetingAttendedURI
+    session      : SessionURI
+    time         : datetime
+
+
+# See also MeetingRegistrationURI
+class MeetingRegistrationOldURI(URI):
+    root : str = "/api/v1/stats/meetingregistration/"
+
+
+# See also MeetingRegistration
+class MeetingRegistrationOld(Resource):
+    affiliation  : str
+    attended     : bool
+    country_code : str
+    email        : str
+    first_name   : str
+    id           : int
+    last_name    : str
+    meeting      : MeetingURI
+    person       : Optional[PersonURI]
+    resource_uri : MeetingRegistrationOldURI
+    checkedin    : bool
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------
@@ -1481,10 +1514,12 @@ class CountryAlias(Resource):
 # ---------------------------------------------------------------------------------------------------------------------------------
 # Types relating to statistics:
 
+# See also MeetingRegistrationOldURI
 class MeetingRegistrationURI(URI):
     root : str = "/api/v1/stats/meetingregistration/"
 
 
+# See also MeetingRegistrationOld
 class MeetingRegistration(Resource):
     affiliation  : str
     attended     : bool
