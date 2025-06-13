@@ -36,6 +36,9 @@ if __name__ == "__main__":
 
     ma  = MailArchive(sqlite_file)
     ml  = ma.mailing_list(mailing_list)
-    msg = ml.message(uid)
-    print(msg.contents())
+    msg = ml.message(int(uid))
+    if msg is not None:
+        print(msg.contents())
+    else:
+        print("ERROR: cannot fetch {mailing_list}/{uid}")
 
