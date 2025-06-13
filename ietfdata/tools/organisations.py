@@ -33,7 +33,6 @@ from typing  import List, Dict, Optional, Iterator
 from ietfdata.rfcindex        import *
 from ietfdata.datatracker     import *
 from ietfdata.datatracker_ext import *
-from ietfdata.mailarchive2    import *
 
 class Organisation:
     _preferred_name : Optional[str]
@@ -390,7 +389,7 @@ class OrganisationMatcher:
 if __name__ == "__main__":
     print(f"*** ietfdata.tools.organisations")
 
-    if len(sys.argv) == 2:
+    if len(sys.argv) == 3:
         output_path = Path(sys.argv[2])
     else:
         print('')
