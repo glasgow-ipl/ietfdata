@@ -354,12 +354,12 @@ class EmailPolicyCustom(EmailPolicy):
         value = value.rstrip('\r\n')
 
         if name.lower() == "to" or name.lower() == "cc":
+            # Many messages sent to ietf-announce have malformed "To:" and "Cc:" headers,
+            # some of which are so corrupt that they make the Python email package throw
+            # an exception ('Group' object has no attribute 'local_part').  Rewrite such
+            # headers to use the canonical ietf-announce@ietf.org list address.
             value = value.replace("\r\n", "")
             patterns_to_replace = [
-                # Many messages sent to ietf-announce have malformed "To:" and "Cc:" headers,
-                # some of which are so corrupt that they make the Python email package throw
-                # an exception ('Group' object has no attribute 'local_part').  Rewrite such
-                # headers to use the canonical ietf-announce@ietf.org list address.
                 (r'("IETF-Announce:; ; ; ; ; @tis.com"@tis.com[; ]+ , )(.*)', r'ietf-announce@ietf.org, \2'),
                 (r'(.*)(IETF-Announce:[ ;,]+[a-zA-Z\.@:;-]+$)', r'\1ietf-announce@ietf.org'),
                 (r'(.*)(IETF-Announce:(; )+[; a-z\.@\r\n]+)',   r'\1ietf-announce@ietf.org'),
@@ -397,11 +397,61 @@ class EmailPolicyCustom(EmailPolicy):
                 (r'(RFC 3023 authors: ;)',                                 r'mmurata@trl.ibm.co.jp, simonstl@simonstl.com, dan@dankohn.com'),
                 (r'=\?ISO-8859-1\?B\?QWJhcmJhbmVsLA0KICAgIEJlbmphbWlu\?=', r'Benjamin Abarbanel'),
                 (r'=\?ISO-8859-15\?B\?UGV0ZXJzb24sDQogICAgSm9u\?=',        r'Jon Peterson'),
+                (r'=?gb2312?q?=D1=F9_<1@21cn.com>?=',                      r'1@21cn.com'),
             ]
             for (pattern, replacement) in patterns_to_replace:
                 new_value = re.sub(pattern, replacement, value)
+                new_value = new_value.rstrip(",")
                 if new_value != value:
-                    # print(f"header_reader: [{value}] -> [{new_value}]")
+                    try:
+                        print(f"header_source_parse: rewrite {name}: [{value}] -> [{new_value}]")
+                    except:
+                        print(f"header_source_parse: rewrite {name}: (?unprintable?) -> [{new_value}]")
+                    value = new_value
+                    break
+
+        if name.lower() == "from":
+            # There are also some messages with unparsable "From:" headers that need to
+            # be written into something that Python can handle:
+            value = value.replace("\r\n", "")
+            patterns_to_replace = [
+                (r'(.*)(<1@21cn.com>(..))',                                            r'\1?= \2'),
+                (r'(.)(Stock Survey )(<info@internetstocksurvey.freeserve.co.uk>)(.)', r'\2\3'),
+                (r'(.D. J. Bernstein.)(.*)(@cr.yp.to>)',                               r'\1 <djb@cr.yp.to>'),
+                (r'(.*)(kisroom@yahoo.co.kr)(.*)',                                     r'<kisroom@yahoo.co.kr>'),
+                (r'(.*)(<phj234@yahoo.co.kr>)(.*)',                                    r'<phj234@yahoo.co.kr>'),
+                (r'(........<)(.*)(@yahoo.co.kr>)',                                    r'unkown@yahoo.co.kr'),
+                (r'(.*)(<gp@postmaster.com>)(.*)',                                     r'\2'),
+                (r'(.*)(money@sina.com)',                                              r'\2'),
+                (r'M.I Marshall . Ilsley Bank.*',                                      r'<MIBankAlerts.040105.126597740@mibank.com>'),
+                (r'LaSalle Bank.*security@lasallebank.com .LaSalle Bank.',             r'LaSalle Bank <security@lasallebank.com>'),
+                (r'.*@kizonline.com',                                                  r'unknown@kizonline.com'),
+                (r'(.*)(sss@sss.com>)(.*)',                                            r'<sss@sss.com>'),
+                (r'(.*)(PayPal@yahoo.com)(.*)',                                        r'<PayPal@yahoo.com>'),
+                (r'(.*)(shenzhenlzh@126.com)',                                         r'\2'),
+                (r'(.*)(<zzyo04.0.0..00@126.com>)',                                    r'<zzyo04.0.0.00@126.com>'),
+                (r'(.*)(asssss0)(.*)(sss@126.com)(.*)',                                r'<\2\4>'),
+                (r'(")(Derek Atkins <derek@ihtfp.com>)(" <derek@MIT.EDU>)',            r'\2'),
+                (r'(.*)(<info@gooh.net>)(.*)',                                         r'\2'),
+                (r'(.*)(<alissaana@yahoo.com>)(.*)',                                   r'\2'),
+                (r'(.*)(<evinces@fatroop.eu>)(.*)',                                    r'\2'),
+                (r'.SENATE HOUSE. <..com.@truemail.co.th>',                            r'<mrslindahill789@yahoo.it>'),
+                (r'(Protect Your Children)(.*)(Kids Live Safe)(.*)(<americanised@wretchedness.red>)', r'\1 \3 \5'),
+                (r'(.*)(\.nospam at gmail.com)',                                       r'\1@gmail.com'),
+                (r'(.*) at (.*) on behalf of (.*)',                                    r'\3 <\1@\2>'),
+                (r'(.*)(<giftcards0721@amzdl1322.us>)(.*)',                            r'\2'),
+                (r'(.*)(<[A-Za-z]+)(\.\.)([A-Za-z]+)(@.*>)',                           r'\1\2.\4\5'),
+                (r'([A-Za-z ]+)("?)( <[A-Za-z0-9-]+@[^ ]+)( .*)',                      r'\1\3'),
+            ]
+            #    (r'(.*)(spencer@mcsr-labs.org)(.*)',                                   r'Spencer Dawkins <\2>'),
+            for (pattern, replacement) in patterns_to_replace:
+                new_value = re.sub(pattern, replacement, value)
+                new_value = new_value.rstrip(",")
+                if new_value != value:
+                    try:
+                        print(f"header_source_parse: rewrite {name}: [{value}] -> [{new_value}]")
+                    except:
+                        print(f"header_source_parse: rewrite {name}: (?unprintable?) -> [{new_value}]")
                     value = new_value
                     break
 
