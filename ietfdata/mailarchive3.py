@@ -713,7 +713,6 @@ class MailingList:
         return df
 
 
-    # FIXME: verbose is ignored
     def update(self, verbose=True) -> List[int]:
         """
         Update the local copy of this mailing list from the IMAP server.
@@ -724,7 +723,10 @@ class MailingList:
         from the list. Subsequent calls to `update()` only fetch the new
         messages and so are much faster.
         """
-        self._archive._log.info(f"mailarchive3:update: {self._name}")
+        if verbose:
+            print(f"Downloading {self._name}")
+        else:
+            self._archive._log.info(f"mailarchive3:update: {self._name}")
         with IMAPClient(self._archive._imap_server, ssl=True, use_uid=True) as imap:
             self._archive._log.debug(f"mailarchive3:update: connected")
             imap.login("anonymous", "anonymous")
@@ -764,12 +766,12 @@ class MailingList:
                 self._archive._db.commit()
             if len(msg_to_fetch) > 0:
                 # If we downloaded any messages, rebuild the dependent tables
-                self.reindex()
+                self.reindex(verbose)
         return msg_to_fetch
 
 
 
-    def reindex(self) -> None:
+    def reindex(self, verbose=True) -> None:
         """
         Rebuild the database tables indexing this mailing list.
 
@@ -790,10 +792,16 @@ class MailingList:
         New in mailarchive3
         """
         if self.num_messages() == 0:
-            self._archive._log.info(f"mailarchive3:reindex: {self._name} has no messages")
+            if verbose:
+                print(f"Re-indexing {self._name} (no messages)")
+            else:
+                self._archive._log.info(f"mailarchive3:reindex: {self._name} has no messages")
             return
         else:
-            self._archive._log.info(f"mailarchive3:reindex: {self._name}")
+            if verbose:
+                print(f"Re-indexing {self._name}")
+            else:
+                self._archive._log.info(f"mailarchive3:reindex: {self._name}")
 
         dbc = self._archive._db.cursor()
         sql = "SELECT message_num, uid, message FROM ietf_ma_msg WHERE mailing_list = ? and uidvalidity = ?;"
@@ -1156,10 +1164,10 @@ class MailArchive:
         self.update_mailing_list_names()
         for ml_name in self.mailing_list_names():
             ml = self.mailing_list(ml_name)
-            ml.update()
+            ml.update(verbose)
 
 
-    def reindex(self) -> None:
+    def reindex(self, verbose=True) -> None:
         """
         Rebuild the header indexes.
 
@@ -1179,7 +1187,7 @@ class MailArchive:
         """
         for ml_name in self.mailing_list_names():
             ml = self.mailing_list(ml_name)
-            ml.reindex()
+            ml.reindex(verbose)
 
 
     def mailing_list_names(self) -> Iterator[str]:
