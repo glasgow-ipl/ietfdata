@@ -459,7 +459,7 @@ class EmailPolicyCustom(EmailPolicy):
 
 
 
-def _parse_hdr_from(uid, msg):
+def _parse_header_from(uid, msg):
     """
     This is a private helper function - do not use.
     """
@@ -481,7 +481,7 @@ def _parse_hdr_from(uid, msg):
                     # Rewrite, e.g., "lear at cisco.com" -> "lear@cisco.com"
                     from_addr = from_addr.replace(" at ", "@")
                 else:
-                    print(f"failed: _parse_hdr_from - no @ in 'From:' header (uid: {uid}) {hdr}")
+                    print(f"failed: _parse_header_from - no @ in 'From:' header (uid: {uid}) {hdr}")
                     from_addr = None
             if from_addr is not None and from_addr.count("@") == 2:
                 # The parsed messages contain a small number of mangled addresses with multiple @ signs; rewrite them:
@@ -501,7 +501,7 @@ def _parse_hdr_from(uid, msg):
                 for orig, repl in replacements:
                     if from_addr == orig:
                         from_addr = repl
-                        print(f"_parse_hdr_from: {orig} -> {repl}")
+                        print(f"_parse_header_from: rewrite From: [{orig}] -> [{repl}]")
         elif len(addr_list) > 1:
             # The "From:" header contains multiple addresses; use the first one with a valid domain:
             from_name = None
@@ -516,7 +516,7 @@ def _parse_hdr_from(uid, msg):
                         break
                 else:
                     raise RuntimeError(f"Cannot parse \"From:\" header: uid={uid} - multiple addresses in group")
-            # print(f"parse_hdr_from: ({uid}) multiple addresses [{hdr}] -> [{from_name}],[{from_addr}]")
+            # print(f"parse_header_from: ({uid}) multiple addresses [{hdr}] -> [{from_name}],[{from_addr}]")
         else:
             raise RuntimeError(f"Cannot parse \"From:\" header: uid={uid} cannot happen")
             sys.exit(1)
@@ -530,7 +530,7 @@ def _parse_hdr_from(uid, msg):
         return (from_name, from_addr)
 
 
-def _parse_hdr_to_cc(uid, msg, to_cc):
+def _parse_header_to_cc(uid, msg, to_cc):
     """
     This is a private helper function - do not use.
     """
@@ -547,15 +547,15 @@ def _parse_hdr_to_cc(uid, msg, to_cc):
                     index += 1
                 return headers
             except:
-                print(f"failed: _parse_hdr_to_cc (uid: {uid}) {hdr}")
+                print(f"failed: _parse_header_to_cc (uid: {uid}) {hdr}")
                 return []
     except Exception as e: 
-        print(f"failed: _parse_hdr_to_cc (uid: {uid}) cannot extract {to_cc} header")
+        print(f"failed: _parse_header_to_cc (uid: {uid}) cannot extract {to_cc} header")
         print(f"  {e}")
         return []
 
 
-def _parse_hdr_subject(uid, msg):
+def _parse_header_subject(uid, msg):
     """
     This is a private helper function - do not use.
     """
@@ -566,7 +566,7 @@ def _parse_hdr_subject(uid, msg):
         return hdr.strip()
 
 
-def _parse_hdr_date(uid, msg):
+def _parse_header_date(uid, msg):
     """
     This is a private helper function - do not use.
     """
@@ -578,7 +578,7 @@ def _parse_hdr_date(uid, msg):
         # Standard date format:
         temp = parsedate_to_datetime(hdr)
         date = temp.astimezone(UTC).isoformat()
-        # print(f"parse_hdr_date: okay (0): {date} | {hdr}")
+        # print(f"_parse_header_date: okay (0): {date} | {hdr}")
         return date
     except:
         try:
@@ -588,28 +588,28 @@ def _parse_hdr_date(uid, msg):
             split.append("+0000")
             joined = " ".join(split)
             date = parsedate_to_datetime(joined).astimezone(UTC).isoformat()
-            # print(f"parse_hdr_date: okay (1): {date} | {hdr}")
+            # print(f"_parse_header_date: okay (1): {date} | {hdr}")
             return date
         except:
             try:
                 # Non-standard date format: 04-Jan-93 13:22:13 (assume UTC timezone)
                 temp = datetime.strptime(hdr, "%d-%b-%y %H:%M:%S")
                 date = temp.astimezone(UTC).isoformat()
-                # print(f"parse_hdr_date: okay (2): {date} | {hdr}")
+                # print(f"_parse_header_date: okay (2): {date} | {hdr}")
                 return date
             except:
                 try:
                     # Non-standard date format: 30-Nov-93 17:23 (assume UTC timezone)
                     temp = datetime.strptime(hdr, "%d-%b-%y %H:%M")
                     date = temp.astimezone(UTC).isoformat()
-                    # print(f"parse_hdr_date: okay (3): {date} | {hdr}")
+                    # print(f"_parse_header_date: okay (3): {date} | {hdr}")
                     return date
                 except:
                     try:
                         # Non-standard date format: 2006-07-29 00:55:01 (assume UTC timezone)
                         temp = datetime.strptime(hdr, "%Y-%m-%d %H:%M:%S")
                         date = temp.astimezone(UTC).isoformat()
-                        # print(f"parse_hdr_date: okay (4): {date} | {hdr}")
+                        # print(f"_parse_header_date: okay (4): {date} | {hdr}")
                         return date
                     except:
                         try:
@@ -617,15 +617,15 @@ def _parse_hdr_date(uid, msg):
                             tmp1 = hdr.replace(": ", ":0").replace("  ", " 0")
                             tmp2 = parsedate_to_datetime(tmp1)
                             date = tmp2.astimezone(UTC).isoformat()
-                            # print(f"parse_hdr_date: okay (5): {date} | {hdr}")
+                            # print(f"_parse_header_date: okay (5): {date} | {hdr}")
                             return date
 
                         except:
-                            print(f"failed: _parse_hdr_date (uid: {uid}) {hdr}")
+                            print(f"_parse_header_date: invalid Date: {hdr} (uid: {uid})")
                             return None
 
 
-def _parse_hdr_message_id(uid, msg):
+def _parse_header_message_id(uid, msg):
     """
     This is a private helper function - do not use.
     """
@@ -636,7 +636,7 @@ def _parse_hdr_message_id(uid, msg):
         return hdr.strip()
 
 
-def _parse_hdr_in_reply_to(uid, msg):
+def _parse_header_in_reply_to(uid, msg):
     """
     This is a private helper function - do not use.
     """
@@ -657,18 +657,18 @@ def _parse_message(uid, raw):
 
     msg = BytesHeaderParser(policy=parsing_policy).parsebytes(raw)
 
-    from_name, from_addr = _parse_hdr_from(uid, msg)
+    from_name, from_addr = _parse_header_from(uid, msg)
 
     res = {
             "uid"         : uid,
             "from_name"   : from_name,
             "from_addr"   : from_addr,
-            "to"          : _parse_hdr_to_cc(uid, msg, "to"),
-            "cc"          : _parse_hdr_to_cc(uid, msg, "cc"),
-            "subject"     : _parse_hdr_subject(uid, msg),
-            "date"        : _parse_hdr_date(uid, msg),
-            "message_id"  : _parse_hdr_message_id(uid, msg),
-            "in_reply_to" : _parse_hdr_in_reply_to(uid, msg),
+            "to"          : _parse_header_to_cc(uid, msg, "to"),
+            "cc"          : _parse_header_to_cc(uid, msg, "cc"),
+            "subject"     : _parse_header_subject(uid, msg),
+            "date"        : _parse_header_date(uid, msg),
+            "message_id"  : _parse_header_message_id(uid, msg),
+            "in_reply_to" : _parse_header_in_reply_to(uid, msg),
             "raw_data"    : raw
           }
 
