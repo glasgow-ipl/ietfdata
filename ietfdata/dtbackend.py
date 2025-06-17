@@ -595,8 +595,7 @@ class DTBackendArchive(DTBackend):
         assert obj_uri.params == {}
 
         # Find the endpoint to fetch:
-        split = obj_uri.uri.rfind("/", 0, -1) + 1
-        endpoint = obj_uri.uri[:split]
+        endpoint = f"{"/".join(obj_uri.uri.split("/")[:5])}/"
 
         self._log.debug(f"datatracker_get_single: {endpoint}")
 
@@ -604,7 +603,11 @@ class DTBackendArchive(DTBackend):
         dbc = self._db.cursor()
         sql = "SELECT table_name FROM ietf_dt_schema WHERE endpoint = ?;"
         val = (endpoint, )
-        table_name = dbc.execute(sql, val).fetchone()[0]
+        res = dbc.execute(sql, val).fetchone()
+        if res is None:
+            self._log.warn(f"datatracket_get_single: cannot find database table for {endpoint}")
+            return None
+        table_name = res[0]
 
         # Find the colums to extract and whether single or to_many
         columns = []
@@ -626,7 +629,7 @@ class DTBackendArchive(DTBackend):
         sql   += f" FROM {table_name} WHERE resource_uri = ?;"
         res1   = dbc.execute(sql, (obj_uri.uri, )).fetchone()
         if res1 is None:
-            self._log.warn(f"datatracker_get_single: cannot find {obj_uri.uri} in database")
+            self._log.info(f"datatracker_get_single: cannot find {obj_uri.uri} in database")
             return None
         for column_name, column_val in zip(columns, res1):
             result[column_name] = column_val
