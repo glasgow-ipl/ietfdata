@@ -418,10 +418,12 @@ class EmailPolicyCustom(EmailPolicy):
                 (r'(.*)(<1@21cn.com>(..))',                                            r'\1?= \2'),
                 (r'(.)(Stock Survey )(<info@internetstocksurvey.freeserve.co.uk>)(.)', r'\2\3'),
                 (r'(.D. J. Bernstein.)(.*)(@cr.yp.to>)',                               r'\1 <djb@cr.yp.to>'),
+                (r'(kim hyun jung)(<hjin23@yahoo.co.kr>)(.*)',                         r'\1 \2'),
                 (r'(.*)(kisroom@yahoo.co.kr)(.*)',                                     r'<kisroom@yahoo.co.kr>'),
                 (r'(.*)(<phj234@yahoo.co.kr>)(.*)',                                    r'<phj234@yahoo.co.kr>'),
-                (r'(........<)(.*)(@yahoo.co.kr>)',                                    r'unkown@yahoo.co.kr'),
+                (r'(........<)(.*)(@yahoo.co.kr>)',                                    r'unknown@yahoo.co.kr'),
                 (r'(.*)(<gp@postmaster.com>)(.*)',                                     r'\2'),
+                (r'(.*)(System Manager and Postmaster <Postmaster@Ulcc>)(.*)',         r'Postmaster <SYSTEM@ulcc.ac.uk>'),
                 (r'(.*)(money@sina.com)',                                              r'\2'),
                 (r'M.I Marshall . Ilsley Bank.*',                                      r'<MIBankAlerts.040105.126597740@mibank.com>'),
                 (r'LaSalle Bank.*security@lasallebank.com .LaSalle Bank.',             r'LaSalle Bank <security@lasallebank.com>'),
@@ -435,6 +437,9 @@ class EmailPolicyCustom(EmailPolicy):
                 (r'(.*)(<info@gooh.net>)(.*)',                                         r'\2'),
                 (r'(.*)(<alissaana@yahoo.com>)(.*)',                                   r'\2'),
                 (r'(.*)(<evinces@fatroop.eu>)(.*)',                                    r'\2'),
+                (r'(.*)(<lbabb@wpdis11.hq.aflc.af.mil>)(.*)',                          r'\2'),
+                (r'(.*)(Jose J. Hoard)(.*@.*vnet.ibm.com>)(.*)',                       r'Jose J. Hoard <HOARD@vnet.ibm.com>'),
+                (r'(")(.*)(" )(<devetzis@bellcore.com>)(.*)',                          r'\2 \4'),
                 (r'.SENATE HOUSE. <..com.@truemail.co.th>',                            r'<mrslindahill789@yahoo.it>'),
                 (r'(Protect Your Children)(.*)(Kids Live Safe)(.*)(<americanised@wretchedness.red>)', r'\1 \3 \5'),
                 (r'(.*)(\.nospam at gmail.com)',                                       r'\1@gmail.com'),
@@ -443,7 +448,6 @@ class EmailPolicyCustom(EmailPolicy):
                 (r'(.*)(<[A-Za-z]+)(\.\.)([A-Za-z]+)(@.*>)',                           r'\1\2.\4\5'),
                 (r'([A-Za-z ]+)("?)( <[A-Za-z0-9-]+@[^ ]+)( .*)',                      r'\1\3'),
             ]
-            #    (r'(.*)(spencer@mcsr-labs.org)(.*)',                                   r'Spencer Dawkins <\2>'),
             for (pattern, replacement) in patterns_to_replace:
                 new_value = re.sub(pattern, replacement, value)
                 new_value = new_value.rstrip(",")
