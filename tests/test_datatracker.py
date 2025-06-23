@@ -3174,11 +3174,12 @@ class TestDatatracker(unittest.TestCase):
 
     def test_review_wishes_team(self) -> None:
         review_wishes = list(self.dt.review_wishes(team=self.dt.group(GroupURI(uri="/api/v1/group/group/1972/")))) # GenART
-        self.assertEqual(len(review_wishes),  4)
+        self.assertEqual(len(review_wishes),  5)
         self.assertEqual(review_wishes[0].id, 24)
         self.assertEqual(review_wishes[1].id, 140)
         self.assertEqual(review_wishes[2].id, 142)
         self.assertEqual(review_wishes[3].id, 155)
+        self.assertEqual(review_wishes[4].id, 157)
 
 
     def test_reviewer_settings(self) -> None:
