@@ -114,20 +114,33 @@ class Envelope:
         return str(res[0])
 
 
-    def from_(self) -> Address:
+    def from_(self) -> Optional[Address]:
         """
         Retrieve the parsed "From:" address from the message.
 
         The mailarchive3 library uses a number of heuristics to correct
         malformed headers, so the value returned might differ from the
-        uncorrected value returned by calling `header("from")`.
+        uncorrected value returned by calling `header("from")`. If the
+        address is missing or unparsable, None is returned.
 
         New in mailarchive3.
         """
         dbc = self._archive._db.cursor()
         sql = "SELECT from_name, from_addr FROM ietf_ma_hdr WHERE message_num = ?;"
-        res = dbc.execute(sql, (self._message_num, )).fetchone()
-        return Address(display_name = res[0], addr_spec = res[1])
+        name, addr = dbc.execute(sql, (self._message_num, )).fetchone()
+
+        # Check the name is valid:
+        if name is None:
+            name = ""
+
+        # Check the addr is valid:
+        if addr is None or addr == "":
+            return None
+        if addr.count("@") != 1:
+            raise RuntimeError(f"Invalid From: addr in {self._message_num}: {addr}")
+
+        print(f"name=[{name}], addr=[{addr}]")
+        return Address(display_name = name, addr_spec = addr)
 
 
     def to(self) -> List[Address]:
