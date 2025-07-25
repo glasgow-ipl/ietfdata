@@ -49,20 +49,7 @@ class TestMailArchive3(unittest.TestCase):
     @classmethod
     def setUpClass(self) -> None:
         self.ma = MailArchive(sqlite_file = "cache/ietfdata.sqlite")
-        # Fetch the mailing lists used in these tests:
-        self.ma.update_mailing_list_names()
-        self.ma.update_mailing_list("100attendees")
-        self.ma.update_mailing_list("avt")
-        self.ma.update_mailing_list("anima")
-        self.ma.update_mailing_list("cfrg")
-        self.ma.update_mailing_list("e-impact")
-        self.ma.update_mailing_list("green")
-        self.ma.update_mailing_list("ietf")
-        self.ma.update_mailing_list("irtf-announce")
-        self.ma.update_mailing_list("irtf-discuss")
-        self.ma.update_mailing_list("last-call")
-        self.ma.update_mailing_list("secdir")
-        self.ma.update_mailing_list("sip")
+        self.ma.update()
 
 
     # ==============================================================================================
