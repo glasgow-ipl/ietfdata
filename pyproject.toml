@@ -29,6 +29,7 @@ dependencies = [
   "requests",
   "requests-cache",
   "mypy",
+  "setuptools",
   "wheel",
   "twine",
   "keyring",
@@ -37,5 +38,6 @@ dependencies = [
   "types-six",
   "types-requests",
   "types-python-dateutil",
+  "setuptools-pipfile",
 ]
 
