@@ -417,10 +417,7 @@ class EmailPolicyCustom(EmailPolicy):
                 new_value = re.sub(pattern, replacement, value)
                 new_value = new_value.rstrip(",")
                 if new_value != value:
-                    # try:
-                    #     print(f"header_source_parse: rewrite {name}: [{value}] -> [{new_value}]")
-                    # except:
-                    #     print(f"header_source_parse: rewrite {name}: (?unprintable?) -> [{new_value}]")
+                    # print(f"header_source_parse: rewrite {name}: [{value}] -> [{new_value}]")
                     value = new_value
                     break
 
@@ -435,10 +432,7 @@ class EmailPolicyCustom(EmailPolicy):
                 new_value = re.sub(pattern, replacement, value)
                 new_value = new_value.rstrip(",")
                 if new_value != value:
-                    try:
-                        print(f"header_source_parse: rewrite {name}: [{value}] -> [{new_value}]")
-                    except:
-                        print(f"header_source_parse: rewrite {name}: (?unprintable?) -> [{new_value}]")
+                    print(f"header_source_parse: rewrite {name}: [{value}] -> [{new_value}]")
                     value = new_value
                     break
 
@@ -446,22 +440,22 @@ class EmailPolicyCustom(EmailPolicy):
 
 
 def _fixup_from_addr_0at(uidvalidity:int, uid:int, from_name:str, from_addr:str):
-    # Fix From: header where the from_addr does not conain an @
+    # Fix From: header when the from_addr does not conain an @
     if " at " in from_addr:
         repl_addr = from_addr.replace(" at ", "@")
-        print(f"_fixup_from_addr_0at: rewrite From: [{from_addr}] -> [{repl_addr}]")
+        print(f"_fixup_from_addr_0at: rewrite From: \"{from_addr}\" -> \"{repl_addr}\"")
         return from_name, repl_addr
 
     if from_name == "":
-        print(f"_fixup_from_addr_0at: returned [{from_addr}] as name with no address (uid={uid})")
+        print(f"_fixup_from_addr_0at: returned \"{from_addr}\" as name with no address (uid={uid})")
         return from_addr, None
     else:
-        print(f"_fixup_from_addr_0at: cannot rewrite From: [{from_addr}] (uid={uid})")
+        print(f"_fixup_from_addr_0at: cannot rewrite From: \"{from_addr}\" (uid={uid})")
         return from_name, from_addr
 
 
 def _fixup_from_addr_2at(uidvalidity:int, uid:int, from_name:str, from_addr:str):
-    # Fix From: header where the from_addr contains two @ signs
+    # Fix From: header when the from_addr contains two @ signs
     replacements = [('"CN=David Hemsath/OU=Endicott/O=IBM@IBMLMS01"@US.IBM.COM',        'hemsath@us.ibm.com'),
                     ('"IAOC Chair <bob.hinden@gmail.com>"@core3.amsl.com',              'bob.hinden@gmail.com'),
                     ('"Jürgen Schönwälder <j.schoenwaelder@jac"@ietfa.amsl.com',        'j.schoenwaelder@jacobs-university.de'),
@@ -477,7 +471,7 @@ def _fixup_from_addr_2at(uidvalidity:int, uid:int, from_name:str, from_addr:str)
                     ('"ietf-ipr@ietf.org"@ietfa.amsl.com',                              'ietf-ipr@ietf.org')]
     for orig_addr, repl_addr in replacements:
         if from_addr == orig_addr:
-            print(f"_fixup_from_addr_2at: rewrite From: [{orig_addr}] -> [{repl_addr}]")
+            print(f"_fixup_from_addr_2at: rewrite From: \"{orig_addr}\" -> \"{repl_addr}\"")
             return from_name, repl_addr
     raise RuntimeError(f"Cannot fix from_addr containing two @ signs: (uidvalidity={uidvalidity} uid={uid}) {from_addr}")
 
@@ -490,21 +484,20 @@ def _parse_header_from(uidvalidity:int, uid:int, msg) -> Tuple[Optional[str],Opt
     if from_hdr is None:
         # The "From:" header is missing
         return (None, None)
+
+    parts = decode_header(from_hdr)
+    init_hdr, init_charset = parts[0]
+    if isinstance(init_hdr, str):
+        hdr, charset = parts[0]
+        assert charset is None
     else:
         hdr = ""
-        parts = decode_header(from_hdr)
-        init_hdr, init_charset = parts[0]
-        if isinstance(init_hdr, str):
-            hdr, charset = parts[0]
-            assert charset is None
-        else:
-            hdr = ""
-            for part_bytes, charset in parts:
-                if charset is None or charset == "unknown-8bit":
-                    part_text = part_bytes.decode(errors="backslashreplace")
-                else:
-                    part_text = part_bytes.decode(charset, errors="backslashreplacereplace")
-                hdr = hdr + part_text
+        for part_bytes, charset in parts:
+            if charset is None or charset == "unknown-8bit":
+                part_text = part_bytes.decode(errors="backslashreplace")
+            else:
+                part_text = part_bytes.decode(charset, errors="backslashreplacereplace")
+            hdr = hdr + part_text
 
     addr_list = getaddresses([hdr])
     if len(addr_list) == 0:
@@ -532,7 +525,7 @@ def _parse_header_from(uidvalidity:int, uid:int, msg) -> Tuple[Optional[str],Opt
                     break
             else:
                 raise RuntimeError(f"Cannot parse \"From:\" header: uid={uid} - multiple addresses in group")
-        print(f"parse_header_from: ({uid}) multiple addresses [{hdr}] -> [{from_name}],[{from_addr}]")
+        print(f"parse_header_from: ({uid}) multiple addresses \"{hdr}\" -> \"{from_name} <{from_addr}>\"")
     else:
         raise RuntimeError(f"Cannot parse \"From:\" header: uid={uid} cannot happen")
         sys.exit(1)
