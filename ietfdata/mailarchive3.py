@@ -35,6 +35,7 @@ import time
 
 from datetime             import date, datetime, timedelta, timezone, UTC
 from email                import policy, message_from_bytes
+from email.header         import decode_header
 from email.headerregistry import Address
 from email.message        import Message
 from email.parser         import BytesHeaderParser
@@ -416,10 +417,10 @@ class EmailPolicyCustom(EmailPolicy):
                 new_value = re.sub(pattern, replacement, value)
                 new_value = new_value.rstrip(",")
                 if new_value != value:
-                    try:
-                        print(f"header_source_parse: rewrite {name}: [{value}] -> [{new_value}]")
-                    except:
-                        print(f"header_source_parse: rewrite {name}: (?unprintable?) -> [{new_value}]")
+                    # try:
+                    #     print(f"header_source_parse: rewrite {name}: [{value}] -> [{new_value}]")
+                    # except:
+                    #     print(f"header_source_parse: rewrite {name}: (?unprintable?) -> [{new_value}]")
                     value = new_value
                     break
 
@@ -428,38 +429,7 @@ class EmailPolicyCustom(EmailPolicy):
             # be written into something that Python can handle:
             value = value.replace("\r\n", "")
             patterns_to_replace = [
-                (r'(.*)(<1@21cn.com>(..))',                                            r'\1?= \2'),
-                (r'(.)(Stock Survey )(<info@internetstocksurvey.freeserve.co.uk>)(.)', r'\2\3'),
-                (r'(.D. J. Bernstein.)(.*)(@cr.yp.to>)',                               r'\1 <djb@cr.yp.to>'),
-                (r'(kim hyun jung)(<hjin23@yahoo.co.kr>)(.*)',                         r'\1 \2'),
-                (r'(.*)(kisroom@yahoo.co.kr)(.*)',                                     r'<kisroom@yahoo.co.kr>'),
-                (r'(.*)(<phj234@yahoo.co.kr>)(.*)',                                    r'<phj234@yahoo.co.kr>'),
-                (r'(........<)(.*)(@yahoo.co.kr>)',                                    r'unknown@yahoo.co.kr'),
-                (r'(.*)(<gp@postmaster.com>)(.*)',                                     r'\2'),
-                (r'(.*)(System Manager and Postmaster <Postmaster@Ulcc>)(.*)',         r'Postmaster <SYSTEM@ulcc.ac.uk>'),
-                (r'(.*)(money@sina.com)',                                              r'\2'),
-                (r'M.I Marshall . Ilsley Bank.*',                                      r'<MIBankAlerts.040105.126597740@mibank.com>'),
-                (r'LaSalle Bank.*security@lasallebank.com .LaSalle Bank.',             r'LaSalle Bank <security@lasallebank.com>'),
-                (r'.*@kizonline.com',                                                  r'unknown@kizonline.com'),
-                (r'(.*)(sss@sss.com>)(.*)',                                            r'<sss@sss.com>'),
-                (r'(.*)(PayPal@yahoo.com)(.*)',                                        r'<PayPal@yahoo.com>'),
-                (r'(.*)(shenzhenlzh@126.com)',                                         r'\2'),
-                (r'(.*)(<zzyo04.0.0..00@126.com>)',                                    r'<zzyo04.0.0.00@126.com>'),
-                (r'(.*)(asssss0)(.*)(sss@126.com)(.*)',                                r'<\2\4>'),
-                (r'(")(Derek Atkins <derek@ihtfp.com>)(" <derek@MIT.EDU>)',            r'\2'),
-                (r'(.*)(<info@gooh.net>)(.*)',                                         r'\2'),
-                (r'(.*)(<alissaana@yahoo.com>)(.*)',                                   r'\2'),
-                (r'(.*)(<evinces@fatroop.eu>)(.*)',                                    r'\2'),
-                (r'(.*)(<lbabb@wpdis11.hq.aflc.af.mil>)(.*)',                          r'\2'),
-                (r'(.*)(Jose J. Hoard)(.*@.*vnet.ibm.com>)(.*)',                       r'Jose J. Hoard <HOARD@vnet.ibm.com>'),
-                (r'(")(.*)(" )(<devetzis@bellcore.com>)(.*)',                          r'\2 \4'),
-                (r'.SENATE HOUSE. <..com.@truemail.co.th>',                            r'<mrslindahill789@yahoo.it>'),
-                (r'(Protect Your Children)(.*)(Kids Live Safe)(.*)(<americanised@wretchedness.red>)', r'\1 \3 \5'),
-                (r'(.*)(\.nospam at gmail.com)',                                       r'\1@gmail.com'),
-                (r'(.*) at (.*) on behalf of (.*)',                                    r'\3 <\1@\2>'),
-                (r'(.*)(<giftcards0721@amzdl1322.us>)(.*)',                            r'\2'),
-                (r'(.*)(<[A-Za-z]+)(\.\.)([A-Za-z]+)(@.*>)',                           r'\1\2.\4\5'),
-                (r'([A-Za-z ]+)("?)( <[A-Za-z0-9-]+@[^ ]+)( .*)',                      r'\1\3'),
+                (r'(.D. J. Bernstein.)(.*)(@cr.yp.to>)', r'\1 <djb@cr.yp.to>'),
             ]
             for (pattern, replacement) in patterns_to_replace:
                 new_value = re.sub(pattern, replacement, value)
@@ -475,16 +445,22 @@ class EmailPolicyCustom(EmailPolicy):
         return (name, value)
 
 
-def _fixup_from_addr_0at(uid:int, from_addr:str):
+def _fixup_from_addr_0at(uidvalidity:int, uid:int, from_name:str, from_addr:str):
     # Fix From: header where the from_addr does not conain an @
     if " at " in from_addr:
         repl_addr = from_addr.replace(" at ", "@")
         print(f"_fixup_from_addr_0at: rewrite From: [{from_addr}] -> [{repl_addr}]")
-        return repl_addr
-    raise RuntimeError(f"Cannot fix from_addr that does not contain @: (uid={uid}) {from_addr}")
+        return from_name, repl_addr
+
+    if from_name == "":
+        print(f"_fixup_from_addr_0at: returned [{from_addr}] as name with no address (uid={uid})")
+        return from_addr, None
+    else:
+        print(f"_fixup_from_addr_0at: cannot rewrite From: [{from_addr}] (uid={uid})")
+        return from_name, from_addr
 
 
-def _fixup_from_addr_2at(uid:int, from_addr:str):
+def _fixup_from_addr_2at(uidvalidity:int, uid:int, from_name:str, from_addr:str):
     # Fix From: header where the from_addr contains two @ signs
     replacements = [('"CN=David Hemsath/OU=Endicott/O=IBM@IBMLMS01"@US.IBM.COM',        'hemsath@us.ibm.com'),
                     ('"IAOC Chair <bob.hinden@gmail.com>"@core3.amsl.com',              'bob.hinden@gmail.com'),
@@ -499,60 +475,75 @@ def _fixup_from_addr_2at(uid:int, from_addr:str):
                     ('"Michelle Claudé <Michelle.Claude@prism.uvsq.fr>"@prism.uvsq.fr', 'Michelle.Claude@prism.uvsq.fr'),
                     ('"kaufman@zk3.dec.com"@minsrv.enet.dec.com',                       'kaufman@zk3.dec.com'),
                     ('"ietf-ipr@ietf.org"@ietfa.amsl.com',                              'ietf-ipr@ietf.org')]
-    for orig, repl in replacements:
-        if from_addr == orig:
-            print(f"_fixup_from_addr_2at: rewrite From: [{orig}] -> [{repl}]")
-            return repl
-    raise RuntimeError(f"Cannot fix from_addr containing two @ signs: (uid={uid}) {from_addr}")
+    for orig_addr, repl_addr in replacements:
+        if from_addr == orig_addr:
+            print(f"_fixup_from_addr_2at: rewrite From: [{orig_addr}] -> [{repl_addr}]")
+            return from_name, repl_addr
+    raise RuntimeError(f"Cannot fix from_addr containing two @ signs: (uidvalidity={uidvalidity} uid={uid}) {from_addr}")
 
 
-def _parse_header_from(uid:int, msg) -> Tuple[Optional[str],Optional[str]]:
+def _parse_header_from(uidvalidity:int, uid:int, msg) -> Tuple[Optional[str],Optional[str]]:
     """
     This is a private helper function - do not use.
     """
-    hdr = msg["from"]
-    if hdr is None:
+    from_hdr = msg["from"]
+    if from_hdr is None:
         # The "From:" header is missing
         return (None, None)
     else:
-        addr_list = getaddresses([hdr])
-        if len(addr_list) == 0:
-            # The "From:" header is present but empty:
-            from_name = None
-            from_addr = None
-        elif len(addr_list) == 1:
-            # The "From:" header contains a single address:
-            from_name, from_addr = addr_list[0]
-            if from_addr is not None and from_addr.count("@") == 0:
-                from_addr = _fixup_from_addr_0at(uid, from_addr)
-            if from_addr is not None and from_addr.count("@") == 2:
-                from_addr = _fixup_from_addr_2at(uid, from_addr)
-        elif len(addr_list) > 1:
-            # The "From:" header contains multiple addresses; use the first one with a valid domain:
-            from_name = None
-            from_addr = None
-            for group in hdr.groups:
-                if   len(group.addresses) == 0:
-                    pass
-                elif len(group.addresses) == 1:
-                    if "." in group.addresses[0].domain: # We consider the domain to be valid if it contains a "."
-                        from_name = group.addresses[0].display_name
-                        from_addr = group.addresses[0].addr_spec
-                        break
-                else:
-                    raise RuntimeError(f"Cannot parse \"From:\" header: uid={uid} - multiple addresses in group")
-            # print(f"parse_header_from: ({uid}) multiple addresses [{hdr}] -> [{from_name}],[{from_addr}]")
+        hdr = ""
+        parts = decode_header(from_hdr)
+        init_hdr, init_charset = parts[0]
+        if isinstance(init_hdr, str):
+            hdr, charset = parts[0]
+            assert charset is None
         else:
-            raise RuntimeError(f"Cannot parse \"From:\" header: uid={uid} cannot happen")
-            sys.exit(1)
+            hdr = ""
+            for part_bytes, charset in parts:
+                if charset is None or charset == "unknown-8bit":
+                    part_text = part_bytes.decode(errors="backslashreplace")
+                else:
+                    part_text = part_bytes.decode(charset, errors="backslashreplacereplace")
+                hdr = hdr + part_text
 
-        if from_addr == "":
-           from_addr = None
+    addr_list = getaddresses([hdr])
+    if len(addr_list) == 0:
+        # The "From:" header is present but empty:
+        from_name = None
+        from_addr = None
+    elif len(addr_list) == 1:
+        # The "From:" header contains a single address:
+        from_name, from_addr = addr_list[0]
+        if from_addr is not None and from_addr.count("@") == 0:
+            from_name, from_addr = _fixup_from_addr_0at(uidvalidity, uid, from_name, from_addr)
+        if from_addr is not None and from_addr.count("@") == 2:
+            from_name, from_addr = _fixup_from_addr_2at(uidvalidity, uid, from_name, from_addr)
+    elif len(addr_list) > 1:
+        # The "From:" header contains multiple addresses; use the first one with a valid domain:
+        from_name = None
+        from_addr = None
+        for group in from_hdr.groups:
+            if   len(group.addresses) == 0:
+                pass
+            elif len(group.addresses) == 1:
+                if "." in group.addresses[0].domain: # We consider the domain to be valid if it contains a "."
+                    from_name = group.addresses[0].display_name
+                    from_addr = group.addresses[0].addr_spec
+                    break
+            else:
+                raise RuntimeError(f"Cannot parse \"From:\" header: uid={uid} - multiple addresses in group")
+        print(f"parse_header_from: ({uid}) multiple addresses [{hdr}] -> [{from_name}],[{from_addr}]")
+    else:
+        raise RuntimeError(f"Cannot parse \"From:\" header: uid={uid} cannot happen")
+        sys.exit(1)
 
-        if from_name == "":
-            from_name = None
+    if from_addr == "":
+       from_addr = None
 
-        return (from_name, from_addr)
+    if from_name == "":
+        from_name = None
+
+    return (from_name, from_addr)
 
 
 def _parse_header_to_cc(uid, msg, to_cc):
@@ -674,7 +665,7 @@ def _parse_header_in_reply_to(uid, msg):
     return None
 
 
-def _parse_message(uid, raw):
+def _parse_message(uidvalidity:int, uid:int, raw):
     """
     This is a private helper function - do not use.
     """
@@ -682,7 +673,7 @@ def _parse_message(uid, raw):
 
     msg = BytesHeaderParser(policy=parsing_policy).parsebytes(raw)
 
-    from_name, from_addr = _parse_header_from(uid, msg)
+    from_name, from_addr = _parse_header_from(uidvalidity, uid, msg)
 
     res = {
             "uid"         : uid,
@@ -717,10 +708,14 @@ class MailingList:
         return self._name
 
 
-    def uidvalidity(self) -> int:
+    def uidvalidity(self) -> Optional[int]:
         dbc = self._archive._db.cursor()
         sql = "SELECT uidvalidity FROM ietf_ma_lists WHERE name = (?);"
-        return int(dbc.execute(sql, (self._name, )).fetchone()[0])
+        res = dbc.execute(sql, (self._name, )).fetchone()[0]
+        if res is None:
+            return None
+        else:
+            return int(res)
 
 
     def num_messages(self) -> int:
@@ -885,7 +880,10 @@ class MailingList:
         for message_num, uid, message in res:
             self._archive._log.debug(f"mailarchive3:reindex: {self._name}/{uid}")
 
-            parsed_msg = _parse_message(uid, message)
+            uidvalidity = self.uidvalidity()
+            assert uidvalidity is not None
+
+            parsed_msg  = _parse_message(uidvalidity, uid, message)
             val = (message_num,
                    message_num,
                    parsed_msg["from_name"],
