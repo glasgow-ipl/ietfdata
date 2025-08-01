@@ -417,7 +417,10 @@ class EmailPolicyCustom(EmailPolicy):
                 new_value = re.sub(pattern, replacement, value)
                 new_value = new_value.rstrip(",")
                 if new_value != value:
-                    # print(f"header_source_parse: rewrite {name}: [{value}] -> [{new_value}]")
+                    #try:
+                    #    print(f"header_source_parse: rewrite {name}: {value} -> {new_value}")
+                    #except:
+                    #    print(f"header_source_parse: rewrite {name}: ?unprintable? -> {new_value}")
                     value = new_value
                     break
 
@@ -432,7 +435,10 @@ class EmailPolicyCustom(EmailPolicy):
                 new_value = re.sub(pattern, replacement, value)
                 new_value = new_value.rstrip(",")
                 if new_value != value:
-                    print(f"header_source_parse: rewrite {name}: [{value}] -> [{new_value}]")
+                    try:
+                        print(f"header_source_parse: rewrite {name}: {value} -> {new_value}")
+                    except:
+                        print(f"header_source_parse: rewrite {name}: ?unprintable? -> {new_value}")
                     value = new_value
                     break
 
