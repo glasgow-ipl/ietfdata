@@ -460,6 +460,25 @@ def _fixup_from_addr_0at(uidvalidity:int, uid:int, from_name:str, from_addr:str)
         return from_name, from_addr
 
 
+def _fixup_from_addr_1at(uidvalidity:int, uid:int, from_name:str, from_addr:str):
+    # Fix From: header when the from_addr contains one @ sign
+    patterns = [(r'(.*)( <)([^ ]+)( \()(.*)(\))', r'\5', r'\3'), # e.g., Spencer Dawkins <spencer@mcsr-labs.org (Spencer Dawkins)
+                (r'(.*)( on behalf of )(.*)',     r'\3', r'\1'), # e.g., netext-bounces@mail.mobileip.jp on behalf of Domagoj Premec
+                (r'(")([^"]+ [^"]+)("@)([A-Za-z0-9\.]+)', r'\2', None), # e.g., "Paul Barajas"@core3.amsl.com
+                ]
+    for pattern, name_sub, addr_sub in patterns:
+        if re.fullmatch(pattern, from_addr):
+            repl_name = re.sub(pattern, name_sub, from_addr)
+            if addr_sub is not None:
+                repl_addr = re.sub(pattern, addr_sub, from_addr)
+            else:
+                repl_addr = ""
+            print(f"_fixup_from_addr_1at: rewrite [{from_name}] [{from_addr}] -> [{repl_name}] [{repl_addr}] (uid={uid})")
+            return repl_name, repl_addr
+
+    return from_name, from_addr
+
+
 def _fixup_from_addr_2at(uidvalidity:int, uid:int, from_name:str, from_addr:str):
     # Fix From: header when the from_addr contains two @ signs
     replacements = [('"CN=David Hemsath/OU=Endicott/O=IBM@IBMLMS01"@US.IBM.COM',        'hemsath@us.ibm.com'),
@@ -508,19 +527,23 @@ def _parse_header_from(uidvalidity:int, uid:int, msg) -> Tuple[Optional[str],Opt
     addr_list = getaddresses([hdr])
     if len(addr_list) == 0:
         # The "From:" header is present but empty:
-        from_name = None
-        from_addr = None
+        from_name = ""
+        from_addr = ""
     elif len(addr_list) == 1:
         # The "From:" header contains a single address:
         from_name, from_addr = addr_list[0]
         if from_addr is not None and from_addr.count("@") == 0:
             from_name, from_addr = _fixup_from_addr_0at(uidvalidity, uid, from_name, from_addr)
+        if from_addr is not None and from_addr.count("@") == 1:
+            from_name, from_addr = _fixup_from_addr_1at(uidvalidity, uid, from_name, from_addr)
         if from_addr is not None and from_addr.count("@") == 2:
             from_name, from_addr = _fixup_from_addr_2at(uidvalidity, uid, from_name, from_addr)
+        if from_addr is not None and from_addr.count("@") >= 2:
+            raise RuntimeError("Cannot fix from address with more than two @ signs")
     elif len(addr_list) > 1:
         # The "From:" header contains multiple addresses; use the first one with a valid domain:
-        from_name = None
-        from_addr = None
+        from_name = ""
+        from_addr = ""
         for group in from_hdr.groups:
             if   len(group.addresses) == 0:
                 pass
@@ -531,18 +554,40 @@ def _parse_header_from(uidvalidity:int, uid:int, msg) -> Tuple[Optional[str],Opt
                     break
             else:
                 raise RuntimeError(f"Cannot parse \"From:\" header: uid={uid} - multiple addresses in group")
-        print(f"parse_header_from: ({uid}) multiple addresses \"{hdr}\" -> \"{from_name} <{from_addr}>\"")
+        if from_addr is not None and from_addr.count("@") == 0:
+            from_name, from_addr = _fixup_from_addr_0at(uidvalidity, uid, from_name, from_addr)
+        if from_addr is not None and from_addr.count("@") == 1:
+            from_name, from_addr = _fixup_from_addr_1at(uidvalidity, uid, from_name, from_addr)
+        if from_addr is not None and from_addr.count("@") == 2:
+            from_name, from_addr = _fixup_from_addr_2at(uidvalidity, uid, from_name, from_addr)
+        if from_addr is not None and from_addr.count("@") >= 2:
+            raise RuntimeError("Cannot fix from address with more than two @ signs")
+        print(f"parse_header_from: ({uid}) multiple addresses [{hdr}] -> [{from_name}] [{from_addr}]")
     else:
         raise RuntimeError(f"Cannot parse \"From:\" header: uid={uid} cannot happen")
         sys.exit(1)
 
-    if from_addr == "":
-       from_addr = None
+    # The result returned here is stored in the database and later
+    # returned an an Address object. Check if from_name, from_addr
+    # are parsable into such an object and return them if so, If
+    # not, return (None, None) to indicate a failure.
+    try:
+        discarded = Address(display_name = from_name, addr_spec = from_addr)
+        if from_name == "":
+            return_from = None
+        else:
+            return_from = from_name
+        if from_addr == None:
+            return_addr = None
+        else:
+            return_addr = from_addr
+        return (return_from, return_addr)
+    except:
+        print(f"_parse_header_from: XXXXXX cannot parse {hdr}")
+        print(f"   from_name: {from_name}")
+        print(f"   from_addr: {from_addr}")
+        return (None, None)
 
-    if from_name == "":
-        from_name = None
-
-    return (from_name, from_addr)
 
 
 def _parse_header_to_cc(uid, msg, to_cc):
