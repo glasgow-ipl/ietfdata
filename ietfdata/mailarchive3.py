@@ -562,10 +562,9 @@ def _parse_header_from(uidvalidity:int, uid:int, msg) -> Tuple[Optional[str],Opt
             from_name, from_addr = _fixup_from_addr_2at(uidvalidity, uid, from_name, from_addr)
         if from_addr is not None and from_addr.count("@") >= 2:
             raise RuntimeError("Cannot fix from address with more than two @ signs")
-        print(f"parse_header_from: ({uid}) multiple addresses [{hdr}] -> [{from_name}] [{from_addr}]")
+        print(f"_parse_header_from: (uid={uid}) multiple addresses [{hdr}] -> [{from_name}] [{from_addr}]")
     else:
         raise RuntimeError(f"Cannot parse \"From:\" header: uid={uid} cannot happen")
-        sys.exit(1)
 
     # The result returned here is stored in the database and later
     # returned an an Address object. Check if from_name, from_addr
@@ -583,9 +582,9 @@ def _parse_header_from(uidvalidity:int, uid:int, msg) -> Tuple[Optional[str],Opt
             return_addr = from_addr
         return (return_from, return_addr)
     except:
-        print(f"_parse_header_from: XXXXXX cannot parse {hdr}")
-        print(f"   from_name: {from_name}")
-        print(f"   from_addr: {from_addr}")
+        print(f"_parse_header_from: (uid={uid}) cannot parse {hdr}")
+        #print(f"   from_name: {from_name}")
+        #print(f"   from_addr: {from_addr}")
         return (None, None)
 
 
@@ -602,7 +601,7 @@ def _parse_header_to_cc(uid, msg, to_cc):
             try:
                 headers = []
                 index = 0
-                for name, addr in getaddresses([hdr]):
+                for name, addr in getaddresses([hdr]):   # Should use 'strict=False'?
                     headers.append((index, name, addr))
                     index += 1
                 return headers
