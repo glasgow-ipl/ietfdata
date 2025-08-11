@@ -582,9 +582,10 @@ def _parse_header_from(uidvalidity:int, uid:int, msg) -> Tuple[Optional[str],Opt
             return_addr = from_addr
         return (return_from, return_addr)
     except:
-        print(f"_parse_header_from: (uid={uid}) cannot parse {hdr}")
-        #print(f"   from_name: {from_name}")
-        #print(f"   from_addr: {from_addr}")
+        print(f"_parse_header_from: cannot convert to Address (uid={uid}):")
+        print(f"   from header: {hdr}")
+        print(f"   parsed name: {from_name}")
+        print(f"   parsed addr: {from_addr}")
         return (None, None)
 
 
