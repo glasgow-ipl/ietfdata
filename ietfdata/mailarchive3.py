@@ -372,7 +372,7 @@ class EmailPolicyCustom(EmailPolicy):
             # some of which are so corrupt that they make the Python email package throw
             # an exception ('Group' object has no attribute 'local_part').  Rewrite such
             # headers to use the canonical ietf-announce@ietf.org list address.
-            value = value.replace("\r\n", "")
+            value = value.replace("\r\n", " ")
             patterns_to_replace = [
                 (r'("IETF-Announce:; ; ; ; ; @tis.com"@tis.com[; ]+ , )(.*)', r'ietf-announce@ietf.org, \2'),
                 (r'(.*)(IETF-Announce:[ ;,]+[a-zA-Z\.@:;-]+$)', r'\1ietf-announce@ietf.org'),
