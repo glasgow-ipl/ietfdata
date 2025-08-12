@@ -623,7 +623,23 @@ def _parse_header_to_cc(uid, msg, to_cc):
                                 charset = "utf-8"
                             part_text = part_bytes.decode(charset, errors="backslashreplace")
                         decoded_name = decoded_name + part_text
-                headers.append((index, decoded_name, addr))
+
+                # The headers extracted here are stored in the database and later
+                # returned an Address objects. Check if decoded_name, addr can be
+                # converted into such an object discard unusable values.
+                try:
+                    if decoded_name == "" and addr == "":
+                        # print(f"_parse_header_to_cc: skipped empty {to_cc} header (uid={uid}):")
+                        pass
+                    else:
+                        discarded = Address(display_name = decoded_name, addr_spec = addr)
+                        headers.append((index, decoded_name, addr))
+                except:
+                    print(f"_parse_header_to_cc: cannot convert {to_cc} Address (uid={uid}):")
+                    print(f"     {to_cc} header: [{to_cc_hdr}]")
+                    print(f"   parsed name: [{decoded_name}]")
+                    print(f"   parsed addr: [{addr}]")
+
                 index += 1
             return headers
         else:
