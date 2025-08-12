@@ -596,25 +596,38 @@ def _parse_header_to_cc(uid, msg, to_cc):
     """
     This is a private helper function - do not use.
     """
-    try:
-        hdr = msg[to_cc]
-        if hdr is None:
-            return []
-        else:
-            try:
-                headers = []
-                index = 0
-                for name, addr in getaddresses([hdr]):   # Should use 'strict=False'?
-                    headers.append((index, name, addr))
-                    index += 1
-                return headers
-            except:
-                print(f"failed: _parse_header_to_cc (uid: {uid}) {hdr}")
-                return []
-    except Exception as e: 
-        print(f"failed: _parse_header_to_cc (uid: {uid}) cannot extract {to_cc} header")
-        print(f"  {e}")
+    to_cc_hdr = msg[to_cc]
+    if to_cc_hdr is None:
         return []
+    else:
+        addr_list = getaddresses([to_cc_hdr])   # Should use 'strict=False'?
+        if len(addr_list) == 0:
+            raise RuntimeError(f"_parse_header_to_cc: empty or unparseable {to_cc} header: uid={uid}, hdr={to_cc_hdr}")
+        elif len(addr_list) > 0:
+            headers = []
+            index   = 0
+            for name, addr in addr_list:
+                parts = decode_header(name)
+                init_name, init_charset = parts[0]
+                if isinstance(init_name, str):
+                    decoded_name, charset = parts[0]
+                    assert charset is None
+                else:
+                    decoded_name = ""
+                    for part_bytes, charset in parts:
+                        if charset is None or charset == "unknown-8bit":
+                            part_text = part_bytes.decode(errors="backslashreplace")
+                        else:
+                            # The "To:" header for ipv6/41694 has a malformed charset that crashes part_bytes.decode()
+                            if charset == "ut f-8":
+                                charset = "utf-8"
+                            part_text = part_bytes.decode(charset, errors="backslashreplace")
+                        decoded_name = decoded_name + part_text
+                headers.append((index, decoded_name, addr))
+                index += 1
+            return headers
+        else:
+            raise RuntimeError(f"_parse_header_to_cc: cannot parse {to_cc} header: uid={uid}, hdr={to_cc_hdr}")
 
 
 def _parse_header_subject(uid, msg):
