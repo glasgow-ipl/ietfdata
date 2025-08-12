@@ -406,28 +406,30 @@ class EmailPolicyCustom(EmailPolicy):
                 (r'(.*)(random-recipients:;;;@cs.utk.edu; \(info-mime and ietf-822 lists\))(.*)', r'\1undisclosed-recipients: ;\3'),
                 (r'(.*)("[A-Za-z\.]+":;+@tislabs.com;;;)(.*)',                                    r'\1undisclosed-recipients: ;\3'),
                 (r'undisclosed-recipients:;;:;',                                                  r'undisclosed-recipients: ;'),
+                # Rewrite MIME encoded headers that decode to values containing \r\n
+                (r'=\?ISO-8859-1\?B\?QWJhcmJhbmVsLA0KICAgIEJlbmphbWlu\?=',  r'Benjamin Abarbanel'),
+                (r'=\?ISO-8859-15\?B\?V2lqbmVuLA0KICAgIEJlcnQgKEJlcnQp\?=', r'Bert Wijnen'),
+                (r'=\?ISO-8859-15\?B\?UGV0ZXJzb24sDQogICAgSm9u\?=',         r'Jon Peterson'),
                 # Rewrite other problematic headers:
-                (r'(moore@cs.utk.edu)?(, )?(authors:;+@cs.utk.edu;+)(.*)', r'\1\4'),
-                (r'(RFC 3023 authors: ;)',                                 r'mmurata@trl.ibm.co.jp, simonstl@simonstl.com, dan@dankohn.com'),
-                (r'=\?ISO-8859-1\?B\?QWJhcmJhbmVsLA0KICAgIEJlbmphbWlu\?=', r'Benjamin Abarbanel'),
-                (r'=\?ISO-8859-15\?B\?UGV0ZXJzb24sDQogICAgSm9u\?=',        r'Jon Peterson'),
-                (r'=?gb2312?q?=D1=F9_<1@21cn.com>?=',                      r'1@21cn.com'),
+                (r'(moore@cs.utk.edu)?(, )?(authors:;+@cs.utk.edu;+)(.*)',  r'\1\4'),
+                (r'(RFC 3023 authors: ;)',                                  r'mmurata@trl.ibm.co.jp, simonstl@simonstl.com, dan@dankohn.com'),
+                (r'=\?gb2312\?q\?=D1=F9_<1@21cn.com>\?=',                   r'1@21cn.com'),
+                (r'(.*Denny Vrande)(.*)(<denny.vrandecic@wikimedia.de>.*)', r'\1 \3'),
             ]
             for (pattern, replacement) in patterns_to_replace:
                 new_value = re.sub(pattern, replacement, value)
-                new_value = new_value.rstrip(",")
                 if new_value != value:
-                    #try:
-                    #    print(f"header_source_parse: rewrite {name}: {value} -> {new_value}")
-                    #except:
-                    #    print(f"header_source_parse: rewrite {name}: ?unprintable? -> {new_value}")
+                    try:
+                        print(f"header_source_parse: rewrite {name}: {value} -> {new_value}")
+                    except:
+                        print(f"header_source_parse: rewrite {name}: ?unprintable? -> {new_value}")
                     value = new_value
-                    break
+            value = value.rstrip(",")
 
         if name.lower() == "from":
             # There are also some messages with unparsable "From:" headers that need to
             # be written into something that Python can handle:
-            value = value.replace("\r\n", "")
+            value = value.replace("\r\n", " ")
             patterns_to_replace = [
                 (r'(.D. J. Bernstein.)(.*)(@cr.yp.to>)', r'\1 <djb@cr.yp.to>'),
             ]
@@ -521,7 +523,7 @@ def _parse_header_from(uidvalidity:int, uid:int, msg) -> Tuple[Optional[str],Opt
             if charset is None or charset == "unknown-8bit":
                 part_text = part_bytes.decode(errors="backslashreplace")
             else:
-                part_text = part_bytes.decode(charset, errors="backslashreplacereplace")
+                part_text = part_bytes.decode(charset, errors="backslashreplace")
             hdr = hdr + part_text
 
     addr_list = getaddresses([hdr])
