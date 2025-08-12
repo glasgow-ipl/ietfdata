@@ -416,6 +416,7 @@ class EmailPolicyCustom(EmailPolicy):
                 (r'(RFC 3023 authors: ;)',                                  r'mmurata@trl.ibm.co.jp, simonstl@simonstl.com, dan@dankohn.com'),
                 (r'=\?gb2312\?q\?=D1=F9_<1@21cn.com>\?=',                   r'1@21cn.com'),
                 (r'(.*Denny Vrande)(.*)(<denny.vrandecic@wikimedia.de>.*)', r'\1 \3'),
+                (r'(.*)("Martin J. =\?utf-8\?Q\?D=C3=BCrst"\?=)(.*)',       r'\1Martin J. Dürst\3'),
             ]
             for (pattern, replacement) in patterns_to_replace:
                 new_value = re.sub(pattern, replacement, value)
