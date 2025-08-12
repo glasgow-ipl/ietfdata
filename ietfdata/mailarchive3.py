@@ -635,6 +635,13 @@ def _parse_header_to_cc(uid, msg, to_cc):
                     #print(f"_parse_header_to_cc: undo DMARC {to_cc} processing (uid={uid}): {addr} -> {fixed_addr}")
                     addr = fixed_addr
 
+                if " at " in addr and addr.count("@") == 0:
+                    fixed_addr = addr.replace(" at ", "@")
+                    if fixed_addr.startswith('"') and fixed_addr.endswith('"'):
+                        fixed_addr = fixed_addr[1:-1]
+                    print(f"_parse_header_to_cc: undo anti-spam {to_cc} processing (uid={uid}): {addr} -> {fixed_addr}")
+                    addr = fixed_addr
+
                 # Discard malfored addresses:
                 if addr != "" and addr.count("@") == 0:
                     print(f"_parse_header_to_cc: discarded malformed {to_cc} address (1) (uid={uid}): [{decoded_name}] [{addr}]")
