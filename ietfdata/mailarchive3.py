@@ -569,6 +569,8 @@ def _parse_header_from(uidvalidity:int, uid:int, msg) -> Tuple[Optional[str],Opt
     else:
         raise RuntimeError(f"Cannot parse \"From:\" header: uid={uid} cannot happen")
 
+    # FIXME: do we need to undo IETF DMARC processing here?
+
     # The result returned here is stored in the database and later
     # returned an an Address object. Check if from_name, from_addr
     # are parsable into such an object and return them if so, If
@@ -628,6 +630,11 @@ def _parse_header_to_cc(uid, msg, to_cc):
 
                 # Fix-up addresses:
                 addr = addr.strip()
+
+                if addr.endswith("@dmarc.ietf.org"):
+                    fixed_addr = addr[:-15].replace("=40", "@")
+                    #print(f"_parse_header_to_cc: undo DMARC {to_cc} processing (uid={uid}): {addr} -> {fixed_addr}")
+                    addr = fixed_addr
 
                 # Discard malfored addresses:
                 if addr != "" and addr.count("@") == 0:
