@@ -569,8 +569,6 @@ def _parse_header_from(uidvalidity:int, uid:int, msg) -> Tuple[Optional[str],Opt
     else:
         raise RuntimeError(f"Cannot parse \"From:\" header: uid={uid} cannot happen")
 
-    # FIXME: do we need to undo IETF DMARC processing here?
-
     # The result returned here is stored in the database and later
     # returned an an Address object. Check if from_name, from_addr
     # are parsable into such an object and return them if so, If
