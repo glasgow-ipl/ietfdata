@@ -608,6 +608,7 @@ def _parse_header_to_cc(uid, msg, to_cc):
             headers = []
             index   = 0
             for name, addr in addr_list:
+                # Decode MIME-encoded internationalised names:
                 parts = decode_header(name)
                 init_name, init_charset = parts[0]
                 if isinstance(init_name, str):
@@ -625,9 +626,20 @@ def _parse_header_to_cc(uid, msg, to_cc):
                             part_text = part_bytes.decode(charset, errors="backslashreplace")
                         decoded_name = decoded_name + part_text
 
+                # Fix-up addresses:
+                addr = addr.strip()
+
+                # Discard malfored addresses:
+                if addr != "" and addr.count("@") == 0:
+                    print(f"_parse_header_to_cc: discarded malformed {to_cc} address (1) (uid={uid}): [{decoded_name}] [{addr}]")
+                    continue
+                if addr != "" and addr.count("@") >= 2:
+                    print(f"_parse_header_to_cc: discarded malformed {to_cc} address (2) (uid={uid}): [{decoded_name}] [{addr}]")
+                    continue
+
                 # The headers extracted here are stored in the database and later
                 # returned an Address objects. Check if decoded_name, addr can be
-                # converted into such an object discard unusable values.
+                # converted into such an object, discarding unusable values.
                 try:
                     if decoded_name == "" and addr == "":
                         # print(f"_parse_header_to_cc: skipped empty {to_cc} header (uid={uid}):")
@@ -636,10 +648,7 @@ def _parse_header_to_cc(uid, msg, to_cc):
                         discarded = Address(display_name = decoded_name, addr_spec = addr)
                         headers.append((index, decoded_name, addr))
                 except:
-                    print(f"_parse_header_to_cc: cannot convert {to_cc} Address (uid={uid}):")
-                    print(f"     {to_cc} header: [{to_cc_hdr}]")
-                    print(f"   parsed name: [{decoded_name}]")
-                    print(f"   parsed addr: [{addr}]")
+                    print(f"_parse_header_to_cc: discarded malformed {to_cc} address (3) (uid={uid}): [{decoded_name}] [{addr}]")
 
                 index += 1
             return headers
