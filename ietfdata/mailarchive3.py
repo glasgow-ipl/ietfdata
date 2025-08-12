@@ -400,6 +400,7 @@ class EmailPolicyCustom(EmailPolicy):
                 (r'IETF-Announce: ;',                        r'ietf-announce@ietf.org'),
                 (r'IETF-Announce:;',                         r'ietf-announce@ietf.org'),
                 (r'IETF-Announce:',                          r'ietf-announce@ietf.org'),
+                (r'^IETF-Announce$',                         r'ietf-announce@ietf.org'),
                 # Rewrite variants of "undisclosed-recipients; ;" into a consistent form:
                 (r'("?[Uu]ndisclosed.recipients"?: ;+)(, @[a-z\.]+)?(.*)',                        r'undisclosed-recipients: ;\3'),
                 (r'(.*)(unlisted-recipients:; \(no To-header on input\))(.*)',                    r'\1undisclosed-recipients: ;\3'),
