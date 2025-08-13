@@ -140,7 +140,6 @@ class Envelope:
         if addr.count("@") != 1:
             raise RuntimeError(f"Invalid From: addr in {self._message_num}: {addr}")
 
-        print(f"name=[{name}], addr=[{addr}]")
         return Address(display_name = name, addr_spec = addr)
 
 
@@ -836,7 +835,8 @@ class MailingList:
         """
         dbc = self._archive._db.cursor()
         sql = "SELECT message_num FROM ietf_ma_msg WHERE mailing_list = ? and uidvalidity = ? and uid = ?;"
-        res = dbc.execute(sql, (self._name, self.uidvalidity(), uid)).fetchone()
+        arg = (self._name, self.uidvalidity(), uid)
+        res = dbc.execute(sql, arg).fetchone()
         if res is None:
             return None
         else:
@@ -850,11 +850,11 @@ class MailingList:
         Return the envelopes containing the specified messages from this mailing list.
         """
         dbc = self._archive._db.cursor()
-        sql = "SELECT uid FROM ietf_ma_msg WHERE mailing_list = ? AND uidvalidity = ? AND date_received >= ? AND date_received < ?;"
-        for uid in map(lambda x : x[0], dbc.execute(sql, (self.name(), self.uidvalidity(), received_after, received_before))):
-            msg = self.message(uid)
-            assert msg is not None
-            yield msg
+        sql = "SELECT message_num FROM ietf_ma_msg WHERE mailing_list = ? AND uidvalidity = ? AND date_received >= ? AND date_received < ?;"
+        arg = (self.name(), self.uidvalidity(), received_after, received_before)
+        for res in map(lambda x : x[0], dbc.execute(sql, arg).fetchall()):
+            assert res is not None
+            yield Envelope(self._archive, res)
 
 
     def messages_as_dataframe(self,
