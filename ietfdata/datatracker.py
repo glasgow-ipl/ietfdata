@@ -443,19 +443,12 @@ class DataTracker:
         return self._retrieve(document_uri, Document)
 
 
-    # WARNING: the `since` and `until` parameters refer to the dates when the document metadata
-    # was last modified, not the dates when the document was last updated. Use `submissions()`
-    # with `date_since` and `date_until` to find documents updated in a particular time window.
     def documents(self,
-            since   : str = "1970-01-01T00:00:00",
-            until   : str = "2038-01-19T03:14:07",
             doctype : Optional[DocumentType] = None,
             state   : Optional[DocumentState] = None,
             stream  : Optional[Stream]       = None,
             group   : Optional[Group]        = None) -> Iterator[Document]:
         url = DocumentURI(uri="/api/v1/doc/document/")
-        url.params["time__gte"] = since
-        url.params["time__lt"] = until
         if doctype is not None:
             url.params["type"] = doctype.slug
         if state is not None:
