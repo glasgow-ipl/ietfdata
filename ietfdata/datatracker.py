@@ -1863,7 +1863,6 @@ class DataTracker:
             assigned_until         : str                             = "2038-01-19T03:14:07",
             completed_since        : str                             = "1970-01-01T00:00:00",
             completed_until        : str                             = "2038-01-19T03:14:07",
-            id                     : Optional[int]                   = None,
             result                 : Optional[ReviewResultType]      = None,
             review_request         : Optional[ReviewRequest]         = None,
             reviewer               : Optional[Email]                 = None,
@@ -1873,8 +1872,6 @@ class DataTracker:
         url.params["assigned_on__lt"]       = assigned_until
         url.params["completed_on__gt"]      = completed_since
         url.params["completed_on__lt"]      = completed_until
-        if id is not None:
-            url.params["id"] = id
         if result is not None:
             url.params["result"] = result.slug
         if review_request is not None:
