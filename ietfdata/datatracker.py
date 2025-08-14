@@ -1844,16 +1844,9 @@ class DataTracker:
 
 
     def historical_reviewer_settings_all(self,
-            history_since : str                          = "1970-01-01T00:00:00",
-            history_until : str                          = "2038-01-19T03:14:07",
-            id            : Optional[int]                = None,
             person        : Optional[Person]             = None,
             team          : Optional[Group]              = None) -> Iterator[HistoricalReviewerSettings]:
         url = HistoricalReviewerSettingsURI(uri="/api/v1/review/historicalreviewersettings/")
-        url.params["history_date__gt"]       = history_since
-        url.params["history_date__lt"]       = history_until
-        if id is not None:
-            url.params["id"] = id
         if person is not None:
             url.params["person"] = person.id
         if team is not None:
