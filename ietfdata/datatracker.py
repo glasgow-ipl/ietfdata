@@ -1114,14 +1114,10 @@ class DataTracker:
 
 
     def group_state_change_events(self,
-            since         : str                        = "1970-01-01T00:00:00",
-            until         : str                        = "2038-01-19T03:14:07",
             by            : Optional[Person]           = None,
             group         : Optional[Group]            = None,
             state         : Optional[GroupState]       = None) -> Iterator[GroupStateChangeEvent]:
         url = GroupStateChangeEventURI(uri="/api/v1/group/changestategroupevent/")
-        url.params["time__gte"]       = since
-        url.params["time__lt"]       = until
         if by is not None:
             url.params["by"] = by.id
         if group is not None:
