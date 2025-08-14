@@ -1671,16 +1671,12 @@ class DataTracker:
 
 
     def review_requests(self,
-            since         : str                          = "1970-01-01T00:00:00",
-            until         : str                          = "2038-01-19T03:14:07",
             doc           : Optional[Document]           = None,
             requested_by  : Optional[Person]             = None,
             state         : Optional[ReviewRequestState] = None,
             team          : Optional[Group]              = None,
-            type          : Optional[ReviewType]         = None) -> Iterator[ReviewRequest]:
+            request_type  : Optional[ReviewType]         = None) -> Iterator[ReviewRequest]:
         url = ReviewRequestURI(uri="/api/v1/review/reviewrequest/")
-        url.params["time__gte"] = since
-        url.params["time__lt"]  = until
         if doc is not None:
             url.params["doc"] = doc.id
             url.params_alt["doc"] = doc.name
@@ -1690,8 +1686,8 @@ class DataTracker:
             url.params["state"] = state.slug
         if team is not None:
             url.params["team"] = team.id
-        if type is not None:
-            url.params["type"] = type.slug
+        if request_type is not None:
+            url.params["type"] = request_type.slug
         yield from self._retrieve_multi(url, ReviewRequest)
 
 
