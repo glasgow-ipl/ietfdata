@@ -1765,22 +1765,12 @@ class DataTracker:
 
 
     def historical_review_requests(self,
-            since         : str                          = "1970-01-01T00:00:00",
-            until         : str                          = "2038-01-19T03:14:07",
-            history_since : str                          = "1970-01-01T00:00:00",
-            history_until : str                          = "2038-01-19T03:14:07",
-            history_type  : Optional[str]                = None,
-            id            : Optional[int]                = None,
             doc           : Optional[Document]           = None,
             requested_by  : Optional[Person]             = None,
             state         : Optional[ReviewRequestState] = None,
             team          : Optional[Group]              = None,
-            type          : Optional[ReviewType]         = None) -> Iterator[HistoricalReviewRequest]:
+            request_type  : Optional[ReviewType]         = None) -> Iterator[HistoricalReviewRequest]:
         url = HistoricalReviewRequestURI(uri="/api/v1/review/historicalreviewrequest/")
-        url.params["time__gte"]         = since
-        url.params["time__lt"]         = until
-        url.params["history_date__gt"] = history_since
-        url.params["history_date__lt"] = history_until
         if doc is not None:
             url.params["doc"] = doc.id
             url.params_alt["doc"] = doc.name
@@ -1790,8 +1780,8 @@ class DataTracker:
             url.params["state"] = state.slug
         if team is not None:
             url.params["team"] = team.id
-        if type is not None:
-            url.params["type"] = type.slug
+        if request_type is not None:
+            url.params["type"] = request_type.slug
         yield from self._retrieve_multi(url, HistoricalReviewRequest)
 
 
