@@ -969,20 +969,16 @@ class DataTracker:
 
 
     def group_events(self,
-            since         : str                  = "1970-01-01T00:00:00",
-            until         : str                  = "2038-01-19T03:14:07",
             by            : Optional[Person]     = None,
             group         : Optional[Group]      = None,
-            type          : Optional[str]        = None) -> Iterator[GroupEvent]:
+            event_type    : Optional[str]        = None) -> Iterator[GroupEvent]:
         url = GroupEventURI(uri="/api/v1/group/groupevent/")
-        url.params["time__gte"] = since
-        url.params["time__lt"]  = until
         if by is not None:
             url.params["by"] = by.id
         if group is not None:
             url.params["group"] = group.id
-        if type is not None:
-            url.params["type"]  = type
+        if event_type is not None:
+            url.params["type"]  = event_type
         yield from self._retrieve_multi(url, GroupEvent)
 
 
