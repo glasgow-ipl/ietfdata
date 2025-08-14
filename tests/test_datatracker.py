@@ -1616,7 +1616,7 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_group_events_type(self) -> None:
-        group_events_type = self.dt.group_events(type="changed_state")
+        group_events_type = self.dt.group_events(event_type="changed_state")
         self.assertIsNot(group_events_type, None)
 
 
@@ -1904,7 +1904,7 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_group_milestone_events_type(self) -> None:
-        group_milestone_events = self.dt.group_milestone_events(type="changed_milestone")
+        group_milestone_events = self.dt.group_milestone_events(event_type="changed_milestone")
         self.assertIsNot(group_milestone_events, None)
 
 
@@ -1982,7 +1982,7 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_groups_state(self) -> None:
-        groups = list(self.dt.groups(state=self.dt.group_state(GroupStateURI(uri="/api/v1/name/groupstatename/abandon/"))))
+        groups = list(self.dt.groups(group_state=self.dt.group_state(GroupStateURI(uri="/api/v1/name/groupstatename/abandon/"))))
         self.assertEqual(len(groups), 15)
         self.assertEqual(groups[ 0].id, 1949)
         self.assertEqual(groups[ 1].id, 2009)
@@ -3120,7 +3120,7 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_review_requests_type(self) -> None:
-        review_requests = self.dt.review_requests(type=self.dt.review_type(ReviewTypeURI(uri="/api/v1/name/reviewtypename/telechat/")))
+        review_requests = self.dt.review_requests(request_type=self.dt.review_type(ReviewTypeURI(uri="/api/v1/name/reviewtypename/telechat/")))
         self.assertIsNot(review_requests, None)
 
 
@@ -3330,16 +3330,6 @@ class TestDatatracker(unittest.TestCase):
         self.assertIsNot(historical_review_requests, None)
 
 
-    def test_historical_review_requests_history_type(self) -> None:
-        historical_review_requests = self.dt.historical_review_requests(history_type="+")
-        self.assertIsNot(historical_review_requests, None)
-
-
-    def test_historical_review_requests_id(self) -> None:
-        historical_review_requests = self.dt.historical_review_requests(id=13428)
-        self.assertIsNot(historical_review_requests, None)
-
-
     def test_historical_review_requests_doc(self) -> None:
         historical_review_requests = self.dt.historical_review_requests(doc=self.dt.document(DocumentURI(uri="/api/v1/doc/document/draft-ietf-capport-rfc7710bis/")))
         self.assertIsNot(historical_review_requests, None)
@@ -3361,7 +3351,7 @@ class TestDatatracker(unittest.TestCase):
 
 
     def test_historical_review_requests_type(self) -> None:
-        historical_review_requests = self.dt.historical_review_requests(type=self.dt.review_type(ReviewTypeURI(uri="/api/v1/name/reviewtypename/telechat/")))
+        historical_review_requests = self.dt.historical_review_requests(request_type=self.dt.review_type(ReviewTypeURI(uri="/api/v1/name/reviewtypename/telechat/")))
         self.assertIsNot(historical_review_requests, None)
 
 
@@ -3471,11 +3461,6 @@ class TestDatatracker(unittest.TestCase):
         self.assertIsNot(historical_reviewer_settings, None)
 
 
-    def test_historical_reviewer_settings_all_id(self) -> None:
-        historical_reviewer_settings = self.dt.historical_reviewer_settings_all(id=97)
-        self.assertIsNot(historical_reviewer_settings, None)
-
-
     def test_historical_reviewer_settings_all_person(self) -> None:
         historical_reviewer_settings = self.dt.historical_reviewer_settings_all(person=self.dt.person(PersonURI(uri="/api/v1/person/person/110404/")))
         self.assertIsNot(historical_reviewer_settings, None)
@@ -3510,11 +3495,6 @@ class TestDatatracker(unittest.TestCase):
 
     def test_historical_review_assignments(self) -> None:
         historical_review_assignments = self.dt.historical_review_assignments()
-        self.assertIsNot(historical_review_assignments, None)
-
-
-    def test_historical_review_assignments_id(self) -> None:
-        historical_review_assignments = self.dt.historical_review_assignments(id=11544)
         self.assertIsNot(historical_review_assignments, None)
 
 

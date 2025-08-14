@@ -12,6 +12,17 @@ Change Log -- ietfdata
   `DTBackendArchive` is intended to support offline use, backed by
   an sqlite file, when preparing a paper, dissertation, or student
   project.
+- Remove ability to search by metadata modification time from:
+  `people()`, `emails()`, `documents()`, `document_events()`,
+  `ballot_document_events()`, `submission_events()`, `groups()`,
+  `group_histories()`, `group_events()`, `group_milestones()`,
+  `group_milestone_histories()`, `group_milestone_events()`,
+  `group_state_change_events()`, `review_requests()`,
+  `review_wishes()`, `historical_review_requests()`,
+  `historical_reviewer_settings_all()`
+  This was frequently confused with the time the person created an
+  account, the date the document was updated, etc.
+
 
 
 ## Version 0.8.3

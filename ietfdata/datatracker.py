@@ -786,8 +786,6 @@ class DataTracker:
            A sequence of BallotDocumentEvent objects
         """
         url = BallotDocumentEventURI(uri="/api/v1/doc/ballotdocevent/")
-        url.params["time__gte"] = since
-        url.params["time__lt"] = until
         if ballot_type is not None:
             url.params["ballot_type"] = ballot_type.id
         if by is not None:
@@ -839,8 +837,6 @@ class DataTracker:
            A sequence of SubmissionEvent objects
         """
         url = SubmissionEventURI(uri="/api/v1/submit/submissionevent/")
-        url.params["time__gte"] = since
-        url.params["time__lt"] = until
         if by is not None:
             url.params["by"] = by.id
         if submission is not None:
