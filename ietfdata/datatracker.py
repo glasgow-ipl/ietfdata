@@ -1093,23 +1093,19 @@ class DataTracker:
 
 
     def group_milestone_events(self,
-            since         : str                        = "1970-01-01T00:00:00",
-            until         : str                        = "2038-01-19T03:14:07",
             by            : Optional[Person]           = None,
             group         : Optional[Group]            = None,
             milestone     : Optional[GroupMilestone]   = None,
-            type          : Optional[str]              = None) -> Iterator[GroupMilestoneEvent]:
+            event_type    : Optional[str]              = None) -> Iterator[GroupMilestoneEvent]:
         url = GroupMilestoneEventURI(uri="/api/v1/group/milestonegroupevent/")
-        url.params["time__gte"] = since
-        url.params["time__lt"]  = until
         if by is not None:
             url.params["by"] = by.id
         if group is not None:
             url.params["group"] = group.id
         if milestone is not None:
             url.params["milestone"] = milestone.id
-        if type is not None:
-            url.params["type"] = type
+        if event_type is not None:
+            url.params["type"] = event_type
         yield from self._retrieve_multi(url, GroupMilestoneEvent)
 
 
