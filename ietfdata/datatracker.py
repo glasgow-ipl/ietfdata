@@ -1696,10 +1696,10 @@ class DataTracker:
 
 
     def review_assignments(self,
-            assigned_since         : str                             = "1970-01-01T00:00:00",
-            assigned_until         : str                             = "2038-01-19T03:14:07",
-            completed_since        : str                             = "1970-01-01T00:00:00",
-            completed_until        : str                             = "2038-01-19T03:14:07",
+            assigned_since         : str                             = "1970-01-01T00:00:00Z",
+            assigned_until         : str                             = "2038-01-19T03:14:07Z",
+            completed_since        : str                             = "1970-01-01T00:00:00Z",
+            completed_until        : str                             = "2038-01-19T03:14:07Z",
             result                 : Optional[ReviewResultType]      = None,
             review_request         : Optional[ReviewRequest]         = None,
             reviewer               : Optional[Email]                 = None,
