@@ -1444,8 +1444,8 @@ class DataTracker:
 
 
     def ipr_disclosure_bases(self,
-            since              : str                             = "1970-01-01T00:00:00",
-            until              : str                             = "2038-01-19T03:14:07",
+            since              : str                             = "1970-01-01T00:00:00Z",
+            until              : str                             = "2038-01-19T03:14:07Z",
             by                 : Optional[Person]                = None,
             holder_legal_name  : Optional[str]                   = None,
             state              : Optional[IPRDisclosureState]    = None,
@@ -1472,8 +1472,8 @@ class DataTracker:
 
 
     def generic_ipr_disclosures(self,
-            since               : str                             = "1970-01-01T00:00:00",
-            until               : str                             = "2038-01-19T03:14:07",
+            since               : str                             = "1970-01-01T00:00:00Z",
+            until               : str                             = "2038-01-19T03:14:07Z",
             by                  : Optional[Person]                = None,
             holder_legal_name   : Optional[str]                   = None,
             holder_contact_name : Optional[str]                   = None,
@@ -1511,8 +1511,8 @@ class DataTracker:
 
 
     def holder_ipr_disclosures(self,
-            since                : str                             = "1970-01-01T00:00:00",
-            until                : str                             = "2038-01-19T03:14:07",
+            since                : str                             = "1970-01-01T00:00:00Z",
+            until                : str                             = "2038-01-19T03:14:07Z",
             by                   : Optional[Person]                = None,
             holder_legal_name    : Optional[str]                   = None,
             holder_contact_name  : Optional[str]                   = None,
@@ -1551,8 +1551,8 @@ class DataTracker:
 
 
     def thirdparty_ipr_disclosures(self,
-            since                : str                             = "1970-01-01T00:00:00",
-            until                : str                             = "2038-01-19T03:14:07",
+            since                : str                             = "1970-01-01T00:00:00Z",
+            until                : str                             = "2038-01-19T03:14:07Z",
             by                   : Optional[Person]                = None,
             holder_legal_name    : Optional[str]                   = None,
             ietfer_contact_email : Optional[str]                   = None,
