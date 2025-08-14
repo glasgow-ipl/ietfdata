@@ -1725,14 +1725,10 @@ class DataTracker:
 
 
     def review_wishes(self,
-            since         : str                          = "1970-01-01T00:00:00",
-            until         : str                          = "2038-01-19T03:14:07",
             doc           : Optional[Document]           = None,
             person        : Optional[Person]             = None,
             team          : Optional[Group]              = None) -> Iterator[ReviewWish]:
         url = ReviewWishURI(uri="/api/v1/review/reviewwish/")
-        url.params["time__gte"]       = since
-        url.params["time__lt"]       = until
         if doc is not None:
             url.params["doc"] = doc.id
             url.params_alt["doc"] = doc.name
