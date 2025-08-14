@@ -925,19 +925,16 @@ class DataTracker:
             raise RuntimeError("group_from_acronym: multiple groups returned, expected 0 or 1")
 
 
+    # FIXME: add `acronym`, `list_email` parameters
     def groups(self,
-            since         : str                  = "1970-01-01T00:00:00",
-            until         : str                  = "2038-01-19T03:14:07",
             name_contains : Optional[str]        = None,
-            state         : Optional[GroupState] = None,
+            group_state   : Optional[GroupState] = None,
             parent        : Optional[Group]      = None) -> Iterator[Group]:
         url = GroupURI(uri="/api/v1/group/group/")
-        url.params["time__gte"]       = since
-        url.params["time__lt"]       = until
         if name_contains is not None:
             url.params["name__contains"] = name_contains
-        if state is not None:
-            url.params["state"] = state.slug
+        if group_state is not None:
+            url.params["state"] = group_state.slug
         if parent is not None:
             url.params["parent"] = parent.id
         yield from self._retrieve_multi(url, Group)
