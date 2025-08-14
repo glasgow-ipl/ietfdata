@@ -416,24 +416,19 @@ class DataTracker:
         yield from self._retrieve_multi(uri, HistoricalEmail)
 
 
+    # FIXME: add `addr` and `person` parameters
     def emails(self,
-               since : str ="1970-01-01T00:00:00",
-               until : str ="2038-01-19T03:14:07",
                addr_contains : Optional[str] = None) -> Iterator[Email]:
         """
         A generator that returns email addresses recorded in the datatracker.
 
         Parameters:
-            since         -- Only return email addresses with timestamp after this
-            until         -- Only return email addresses with timestamp before this
             addr_contains -- Only return email addresses containing this substring
 
         Returns:
             An iterator, where each element is an Email object
         """
         url = EmailURI(uri="/api/v1/person/email/")
-        url.params["time__gte"] = since
-        url.params["time__lt"]   = until
         if addr_contains is not None:
             url.params["address__contains"] = addr_contains
         yield from self._retrieve_multi(url, Email)
