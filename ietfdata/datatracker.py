@@ -811,6 +811,7 @@ class DataTracker:
         return self._retrieve(submission_uri, Submission)
 
 
+    # FIXME: add `group`, `name`, `rev`, `title_contains` parameters
     def submissions(self,
             date_since           : str = "1970-01-01",
             date_until           : str = "2038-01-19") -> Iterator[Submission]:
@@ -825,16 +826,12 @@ class DataTracker:
 
 
     def submission_events(self,
-                        since      : str = "1970-01-01T00:00:00",
-                        until      : str = "2038-01-19T03:14:07",
                         by         : Optional[Person]     = None,
                         submission : Optional[Submission] = None) -> Iterator[SubmissionEvent]:
         """
         A generator returning information about submission events.
 
         Parameters:
-            since      -- Only return submission events with timestamp after this
-            until      -- Only return submission events with timestamp after this
             by         -- Only return submission events by this person
             submission -- Only return submission events about this submission
 
