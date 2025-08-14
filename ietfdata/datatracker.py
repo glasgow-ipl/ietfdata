@@ -598,9 +598,8 @@ class DataTracker:
         return self._retrieve(event_uri, DocumentEvent)
 
 
+    # FIXME: add `rev` parameter
     def document_events(self,
-                        since      : str = "1970-01-01T00:00:00",
-                        until      : str = "2038-01-19T03:14:07",
                         doc        : Optional[Document] = None,
                         by         : Optional[Person]   = None,
                         event_type : Optional[str]      = None) -> Iterator[DocumentEvent]:
@@ -618,8 +617,6 @@ class DataTracker:
            A sequence of DocumentEvent objects
         """
         url = DocumentEventURI(uri="/api/v1/doc/docevent/")
-        url.params["time__gte"] = since
-        url.params["time__lt"] = until
         if doc is not None:
             url.params["doc"]  = doc.id
             url.params_alt["doc"] = doc.name
