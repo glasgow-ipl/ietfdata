@@ -767,9 +767,8 @@ class DataTracker:
         return self._retrieve(ballot_event_uri, BallotDocumentEvent)
 
 
+    # FIXME: add `rev` parameter
     def ballot_document_events(self,
-                        since       : str = "1970-01-01T00:00:00",
-                        until       : str = "2038-01-19T03:14:07",
                         ballot_type : Optional[BallotType]    = None,
                         event_type  : Optional[str]           = None,
                         by          : Optional[Person]        = None,
@@ -778,8 +777,6 @@ class DataTracker:
         A generator returning information about ballot document events.
 
         Parameters:
-            since        -- Only return ballot document events with timestamp after this
-            until        -- Only return ballot document events with timestamp after this
             ballot_type  -- Only return ballot document events of this ballot type
             event_type   -- Only return ballot document events with this type
             by           -- Only return ballot document events by this person
