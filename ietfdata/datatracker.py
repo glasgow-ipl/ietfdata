@@ -951,14 +951,10 @@ class DataTracker:
 
 
     def group_histories(self,
-            since         : str                  = "1970-01-01T00:00:00",
-            until         : str                  = "2038-01-19T03:14:07",
             group         : Optional[Group]      = None,
             state         : Optional[GroupState] = None,
             parent        : Optional[Group]      = None) -> Iterator[GroupHistory]:
         url = GroupHistoryURI(uri="/api/v1/group/grouphistory/")
-        url.params["time__gte"]  = since
-        url.params["time__lt"]  = until
         if group is not None:
             url.params["group"] = group.id
         if state is not None:
