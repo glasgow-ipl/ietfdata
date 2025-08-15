@@ -629,7 +629,7 @@ class DTBackendArchive(DTBackend):
         sql   += f" FROM {table_name} WHERE resource_uri = ?;"
         res1   = dbc.execute(sql, (obj_uri.uri, )).fetchone()
         if res1 is None:
-            self._log.info(f"datatracker_get_single: cannot find {obj_uri.uri} in database")
+            self._log.debug(f"datatracker_get_single: cannot find {obj_uri.uri} in database")
             return None
         for column_name, column_val in zip(columns, res1):
             result[column_name] = column_val
