@@ -23,13 +23,13 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from ietfdata.datatracker     import *
+from ietfdata.datatracker  import *
 
 if __name__ == "__main__":
     if len(sys.argv) == 2:
         sqlite_file = sys.argv[1]
     else:
-        print("Usage: python3 -m ietfdata.tools.download_dt <ietfdata.sqlite>")
+        print("Usage: python3 -m ietfdata.tools.download_dt <ietfdata-dt.sqlite>")
         sys.exit(1)
 
     dt = DataTracker(DTBackendArchive(sqlite_file))
