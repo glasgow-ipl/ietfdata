@@ -51,9 +51,8 @@ class TestMailArchive3(unittest.TestCase):
 
     @classmethod
     def setUpClass(self) -> None:
-        sqlite_file = "cache/ietfdata.sqlite"
+        sqlite_file = "data/ietfdata-ma.sqlite"
         self.ma = MailArchive(sqlite_file)
-        self.ma.update()
         self.db = sqlite3.connect(sqlite_file)
 
     # ==============================================================================================
