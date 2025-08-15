@@ -23,6 +23,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+import sys
+
 from ietfdata.mailarchive3 import *
 
 if __name__ == "__main__":
@@ -32,6 +34,6 @@ if __name__ == "__main__":
         print("Usage: python3 -m ietfdata.tools.download_ma <ietfdata-ma.sqlite>")
         sys.exit(1)
 
-    ma = MailArchive(DTBackendArchive(sqlite_file))
+    ma = MailArchive(sqlite_file)
     ma.update()
 
