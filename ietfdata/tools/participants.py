@@ -24,6 +24,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import email.utils
+import logging
 import json
 import sys
 
@@ -33,29 +34,32 @@ from typing      import List, Dict, Optional, Iterator
 
 from ietfdata.datatracker     import *
 from ietfdata.datatracker_ext import *
-from ietfdata.mailarchive2    import *
+from ietfdata.mailarchive3    import *
 
 class Participant:
+    log         : logging.Logger
     person_id   : Optional[str]
     identifiers : Dict[str,List[str]]
 
 
     def __init__(self, person_id: Optional[str] = None):
+        logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
+        self.log         = logging.getLogger("ietfdata")
         self.person_id   = person_id
         self.identifiers = {}
-        print(f"Participant({id(self)}) created ({self.person_id})")
+        self.log.debug(f"Participant({id(self)}) created ({self.person_id})")
 
 
     def add_identifier(self, ident_type:str, ident_value:str):
         if ident_type not in self.identifiers:
             self.identifiers[ident_type] = [ident_value]
-            print(f"Participant({id(self)}) add_identifier: {ident_type} -> {ident_value}")
+            self.log.debug(f"Participant({id(self)}) add_identifier: {ident_type} -> {ident_value}")
         else:
             if ident_value not in self.identifiers[ident_type]:
                 self.identifiers[ident_type].append(ident_value)
-                print(f"Participant({id(self)}) add_identifier: {ident_type} -> {ident_value}")
+                self.log.debug(f"Participant({id(self)}) add_identifier: {ident_type} -> {ident_value}")
             else:
-                print(f"Participant({id(self)}) has_identifier: {ident_type} -> {ident_value}")
+                self.log.debug(f"Participant({id(self)}) has_identifier: {ident_type} -> {ident_value}")
 
 
     def num_idents(self) -> int:
@@ -66,7 +70,7 @@ class Participant:
 
 
     def merge_into(self, other):
-        print(f"Participant({id(self)}) merge data into Participant({id(other)})")
+        self.log.debug(f"Participant({id(self)}) merge data into Participant({id(other)})")
         for ident_type in self.identifiers:
             for ident_value in self.identifiers[ident_type]:
                 other.add_identifier(ident_type, ident_value)
@@ -79,11 +83,14 @@ class Participant:
 
 
 class ParticipantDB:
+    log: logging.Logger
     pid: int
     idents: Dict[str,Dict[str,Participant]]
     people: set[Participant]
 
     def __init__(self, path:Optional[Path] = None):
+        logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
+        self.log = logging.getLogger("ietfdata")
         self.pid = 0
         self.idents = {}
         self.people = set()
@@ -136,7 +143,7 @@ class ParticipantDB:
                 self.idents[ident_type][ident_value] = person
             else:
                 person = self.idents[ident_type][ident_value]
-                print(f"Participant({id(person)}) already_exists: {ident_type} -> {ident_value}")
+                self.log.debug(f"Participant({id(person)}) already_exists: {ident_type} -> {ident_value}")
         return person
 
 
@@ -212,27 +219,30 @@ class ParticipantDB:
         """
         Private helper method: do not use.
         """
-        print(f"Participant({id(from_person)}) -> Participant({id(to_person)})")
+        self.log.debug(f"Participant({id(from_person)}) -> Participant({id(to_person)})")
         for ident_type in self.idents:
             for ident_value in self.idents[ident_type]:
                 if self.idents[ident_type][ident_value] == from_person:
                     self.idents[ident_type][ident_value] = to_person
-                    print(f"    {ident_type} -> {ident_value}")
+                    self.log.debug(f"    {ident_type} -> {ident_value}")
 
 
 
 if __name__ == "__main__":
-    if len(sys.argv) == 2:
-        sqlite_file = sys.argv[1]
-        old_path    = None
-        new_path    = Path(sys.argv[2])
-    elif len(sys.argv) == 3:
-        sqlite_file = sys.argv[1]
-        old_path    = Path(sys.argv[2])
-        new_path    = Path(sys.argv[3])
+    if len(sys.argv) == 4:
+        dt_sqlite_file = sys.argv[1]
+        ma_sqlite_file = sys.argv[2]
+        old_path       = None
+        new_path       = Path(sys.argv[3])
     else:
-        print("Usage: python3 -m ietfdata.tools.participants <ietfdata.sqlite> <new.json>")
-        print("   or: python3 -m ietfdata.tools.participants <ietfdata.sqlite> <old.json> <new.json>")
+        print("")
+        print("This script performs entity resolution on IETF participants. It reads")
+        print("from the datatracker and mailarchive to associate the many different")
+        print("identifiers used by each participant with a 'PID' number that can be")
+        print("used to uniquely idenitify that participant.")
+        print("")
+        print(f"Usage: python3 -m ietfdata.tools.participants <ietfdata-dt.sqlite> <ietfdata-ma.sqlite> <participants.json>")
+        print("")
         sys.exit(1)
 
     print(f"*** ietfdata.tools.participants")
@@ -265,7 +275,9 @@ if __name__ == "__main__":
 
     # Add identifiers based on the IETF DataTracker:
     seen_addr = set()
-    dt  = DataTrackerExt(DTBackendArchive(sqlite_file=sqlite_file))
+    dt  = DataTrackerExt(DTBackendArchive(dt_sqlite_file))
+
+    print("Finding participant identifiers in IETF datatracker")
     for msg in dt.emails():
         if msg.address in ignore:
             continue
@@ -287,8 +299,9 @@ if __name__ == "__main__":
             pdb.identifies_same_person("dt_person_uri", str(resource.person), "orcid", resource.value)
 
     # Add identifiers based on the IETF mailing list archive:
+    print("Finding participant identifiers in IETF mailarchive")
     seen_full = set()
-    ma   = MailArchive()
+    ma   = MailArchive(ma_sqlite_file)
 
     # Add the mailing list addresses, and their -admin, -archive, and -request 
     # addresses, to the ignore list. These will never appear in the legitimate
@@ -301,33 +314,36 @@ if __name__ == "__main__":
         ignore.append(f"{n}-archive@megatron.ietf.org")
         ignore.append(f"{n}-request@ietf.org")
 
-    for n in ma.mailing_list_names():
-        ml = ma.mailing_list(n)
-        print(f"*** ")
-        print(f"*** {ml.name()}")
-        print(f"*** ")
+    for ml_name in ma.mailing_list_names():
+        ml = ma.mailing_list(ml_name)
+        print(f"    {ml.name()}")
         for envelope in ml.messages():
-            print(f"{ml.name()}/{envelope.uid()}")
-            for email_name, email_addr in email.utils.getaddresses(envelope.header("from")):
-                email_full = f"{email_name} <{email_addr}>"
-                if email_addr == "":
-                    continue
-                if email_addr in ignore:
-                    continue
-                if email_addr in seen_addr:
-                    # This address is already associated with a datatracker uri
-                    continue
-                if email_name.endswith(" via RT") or email_name.endswith(" via Datatracker"):
-                    # Discard automated emails
-                    continue
-                if email_full not in seen_full:
-                    pdb.person_with_identifier("email", email_addr)
-                    person = dt.person_from_name_email(email_name, email_addr)
-                    if person is not None and envelope.header("X-Spam-Flag") != "YES":
-                        pdb.identifies_same_person("email", email_addr, "dt_person_uri", str(person.resource_uri))
-                    seen_full.add(email_full)
+            from_addr = envelope.from_()
+            if from_addr is None:
+                continue
 
-    print(f"Saving: {new_path}")
+            email_name = from_addr.display_name
+            email_addr = from_addr.addr_spec
+            email_full = f"{email_name} <{email_addr}>"
+
+            if email_addr == "":
+                continue
+            if email_addr in ignore:
+                continue
+            if email_addr in seen_addr:
+                # This address is already associated with a datatracker uri
+                continue
+            if email_name.endswith(" via RT") or email_name.endswith(" via Datatracker"):
+                # Discard automated emails
+                continue
+            if email_full not in seen_full:
+                pdb.person_with_identifier("email", email_addr)
+                person = dt.person_from_name_email(email_name, email_addr)
+                if person is not None and envelope.header("X-Spam-Flag") != "YES":
+                    pdb.identifies_same_person("email", email_addr, "dt_person_uri", str(person.resource_uri))
+                seen_full.add(email_full)
+
+    print(f"Saving {new_path}")
     pdb.save(new_path)
 
 
