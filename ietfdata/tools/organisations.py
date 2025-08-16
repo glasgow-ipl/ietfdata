@@ -321,7 +321,6 @@ class OrganisationMatcher:
 
     def add(self, organisation:str, email:str):
         if organisation == "":
-            warnings.warn("organisation is an empty string, ignored.")
             return
         org_domain = record_affiliation(self._org_db, organisation, email)
         if org_domain is not None and org_domain not in self._org_domains:
