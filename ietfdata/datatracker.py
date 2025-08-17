@@ -635,6 +635,7 @@ class DataTracker:
     def document_authors(self, document : Document) -> Iterator[DocumentAuthor]:
         url = DocumentAuthorURI(uri="/api/v1/doc/documentauthor/")
         url.params["document"] = document.id
+        url.params_alt["document"] = document.name
         yield from self._retrieve_multi(url, DocumentAuthor)
 
 
