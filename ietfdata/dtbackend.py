@@ -228,7 +228,6 @@ class DTBackendArchive(DTBackend):
         self._session     = requests.Session()
         self._db          = sqlite3.connect(sqlite_file)
         self._db.execute('PRAGMA synchronous = OFF;')
-        self._db.execute('PRAGMA case_sensitive_like = OFF;')
         self._log.info(f"DTBackendArchive at {self._base_url} (multi_delay={self._multi_delay}s)")
 
 
