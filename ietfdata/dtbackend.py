@@ -651,7 +651,7 @@ class DTBackendArchive(DTBackend):
         # Find the endpoint from which to fetch items:
         endpoint = obj_uri.uri
 
-        self._log.debug(f"_datatracker_get_multi: {endpoint}")
+        self._log.debug(f"_datatracker_get_multi: {obj_uri} order_by={order_by}")
 
         # Find the table from which they will be fetched:
         dbc = self._db.cursor()
