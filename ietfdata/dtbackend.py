@@ -365,6 +365,9 @@ class DTBackendArchive(DTBackend):
                                 column_type TEXT,
                                 FOREIGN KEY (endpoint) REFERENCES ietf_dt_schema (endpoint));""")
 
+        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_dt_schema ON ietf_dt_schema (endpoint)""")
+        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_dt_schema_columns ON ietf_dt_schema_columns (endpoint)""")
+
         for endpoint in endpoints:
             dbc = self._db.cursor()
             dbc.execute("SELECT COUNT(endpoint) FROM ietf_dt_schema WHERE endpoint = ?;", (endpoint, ))
