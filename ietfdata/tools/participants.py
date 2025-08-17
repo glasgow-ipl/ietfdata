@@ -88,27 +88,12 @@ class ParticipantDB:
     idents: Dict[str,Dict[str,Participant]]
     people: set[Participant]
 
-    def __init__(self, path:Optional[Path] = None):
+    def __init__(self):
         logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
         self.log = logging.getLogger("ietfdata")
         self.pid = 0
         self.idents = {}
         self.people = set()
-        if path is not None:
-            with open(path, "r") as inf:
-                saved_data = json.load(inf)
-                for pid in saved_data:
-                    person = Participant(pid)
-                    self.people.add(person)
-                    for ident_type in saved_data[pid]:
-                        for ident_value in saved_data[pid][ident_type]:
-                            person.add_identifier(ident_type, ident_value)
-                            if not ident_type in self.idents:
-                                self.idents[ident_type] = {}
-                            self.idents[ident_type][ident_value] = person
-                    pid_int = int(pid[4:])
-                    if pid_int > self.pid:
-                        self.pid = pid_int
 
 
     def save(self, path:Path):
@@ -232,7 +217,6 @@ if __name__ == "__main__":
     if len(sys.argv) == 4:
         dt_sqlite_file = sys.argv[1]
         ma_sqlite_file = sys.argv[2]
-        old_path       = None
         new_path       = Path(sys.argv[3])
     else:
         print("")
@@ -246,15 +230,8 @@ if __name__ == "__main__":
         sys.exit(1)
 
     print(f"*** ietfdata.tools.participants")
-    if old_path is not None:
-        print(f"Loading: {old_path}")
 
-    if old_path == new_path:
-        print("")
-        print("ERROR: refusing to overwrite input file")
-        sys.exit(2)
-
-    pdb  = ParticipantDB(old_path)
+    pdb  = ParticipantDB()
 
     ignore = ["noreply@ietf.org",
               "noreply@github.com",
