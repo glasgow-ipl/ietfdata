@@ -228,6 +228,7 @@ class DTBackendArchive(DTBackend):
         self._session     = requests.Session()
         self._db          = sqlite3.connect(sqlite_file)
         self._db.execute('PRAGMA synchronous = OFF;')
+        self._db.execute('PRAGMA case_sensitive_like = OFF;')
         self._log.info(f"DTBackendArchive at {self._base_url} (multi_delay={self._multi_delay}s)")
 
 
@@ -630,6 +631,8 @@ class DTBackendArchive(DTBackend):
         sql    = f"SELECT "
         sql   += ", ".join(map(lambda x : f"\"{x}\"", columns))
         sql   += f" FROM {table_name} WHERE resource_uri = ?;"
+        #qplan = dbc.execute("EXPLAIN QUERY PLAN " + sql, (obj_uri.uri, )).fetchone()
+        #print(qplan)
         res1   = dbc.execute(sql, (obj_uri.uri, )).fetchone()
         if res1 is None:
             self._log.debug(f"datatracker_get_single: cannot find {obj_uri.uri} in database")
@@ -639,8 +642,14 @@ class DTBackendArchive(DTBackend):
 
         # Reconstruct to_many fields in JSON
         for column in to_many:
+            # Ensure an appropriate index exists before executing the query
+            index_sql = f"CREATE INDEX IF NOT EXISTS index_{table_name}_{column} ON {table_name}_{column} (_parent)"
+            self._db.execute(index_sql)
+
             result[column] = []
             sql = f"SELECT {column} FROM {table_name}_{column} WHERE _parent = ?;"
+            #qplan = dbc.execute("EXPLAIN QUERY PLAN " + sql, (obj_uri.uri, )).fetchone()
+            #print(qplan)
             for res2 in dbc.execute(sql, (obj_uri.uri, )).fetchall():
                 result[column].append(res2[0])
 
@@ -662,8 +671,6 @@ class DTBackendArchive(DTBackend):
         val = (endpoint, )
         table_name = dbc.execute(sql, val).fetchone()[0]
 
-        # FIXME: This should built an appropriate index on the table if one does not exist
-
         # Find the colums to extract and whether they are single or to_many:
         columns = []
         to_one  = []
@@ -681,30 +688,39 @@ class DTBackendArchive(DTBackend):
         sql  = f"SELECT "
         sql += ", ".join(map(lambda x : f"\"{x}\"", columns + to_one))
         sql += f" FROM {table_name}"
+        index_names  = []
         param_names  = []
         param_values = []
         if len(obj_uri.params) > 0:
             sql += f" WHERE "
             for param_name, param_value in obj_uri.params.items():
                 if param_name in columns:
+                    index_names.append(f"\"{param_name}\"")
                     param_names.append(f"\"{param_name}\" = ?")
                     param_values.append(param_value)
                 elif param_name.endswith("__contains") and param_name[:-10] in columns:
+                    index_names.append(f"\"{param_name[:-10]}\"")
                     param_names.append(f"\"{param_name[:-10]}\" LIKE ?")
                     param_values.append(f"%{param_value}%")
                 elif param_name.endswith("__gt") and param_name[:-4] in columns:
+                    index_names.append(f"\"{param_name[:-4]}\"")
                     param_names.append(f"\"{param_name[:-4]}\" > ?")
                     param_values.append(param_value)
                 elif param_name.endswith("__gte") and param_name[:-5] in columns:
+                    index_names.append(f"\"{param_name[:-5]}\"")
                     param_names.append(f"\"{param_name[:-5]}\" >= ?")
                     param_values.append(param_value)
                 elif param_name.endswith("__lt") and param_name[:-4] in columns:
+                    index_names.append(f"\"{param_name[:-4]}\"")
                     param_names.append(f"\"{param_name[:-4]}\" < ?")
                     param_values.append(param_value)
                 elif param_name.endswith("__lte") and param_name[:-5] in columns:
+                    index_names.append(f"\"{param_name[:-5]}\"")
                     param_names.append(f"\"{param_name[:-5]}\" <= ?")
                     param_values.append(param_value)
                 elif param_name in to_one:
+                    # FIXME: the use of LIKE forces sqlite to scan rather than use the index
+                    index_names.append(f"\"{param_name}\"")
                     param_names.append(f"\"{param_name}\" LIKE ?")
                     # Several datatracker API endpoints allow querying documents, but
                     # take a document ID rather than a document name as their parameter.
@@ -721,6 +737,17 @@ class DTBackendArchive(DTBackend):
                     raise RuntimeError(f"Parameter references unknown column: {param_name}")
             sql += " AND ".join(param_names)
         sql += ";"
+
+        # Ensure an appropriate index exists before executing the query
+        if len(index_names) > 0:
+            index_sql = f"CREATE INDEX IF NOT EXISTS index_{table_name} ON {table_name} ({", ".join(index_names)});"
+            self._log.debug(index_sql)
+            self._db.execute(index_sql)
+
+        #print(sql)
+        #print(param_values)
+        #qplan = dbc.execute("EXPLAIN QUERY PLAN " + sql, param_values).fetchone()
+        #print(qplan)
 
         # Reconstruct the JSON object
         for items in dbc.execute(sql, param_values).fetchall():
