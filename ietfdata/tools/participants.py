@@ -40,6 +40,7 @@ class Participant:
     log         : logging.Logger
     person_id   : Optional[str]
     identifiers : Dict[str,List[str]]
+    names       : List[str]
 
 
     def __init__(self, person_id: Optional[str] = None):
@@ -47,10 +48,18 @@ class Participant:
         self.log         = logging.getLogger("ietfdata")
         self.person_id   = person_id
         self.identifiers = {}
+        self.names       = []
         self.log.debug(f"Participant({id(self)}) created ({self.person_id})")
 
 
+    def add_name(self, name:str):
+        if name not in self.names:
+            self.log.debug(f"Participant({id(self)}) add_name: {name}")
+            self.names.append(name)
+
+
     def add_identifier(self, ident_type:str, ident_value:str):
+        assert ident_type != "names"
         if ident_type not in self.identifiers:
             self.identifiers[ident_type] = [ident_value]
             self.log.debug(f"Participant({id(self)}) add_identifier: {ident_type} -> {ident_value}")
@@ -71,6 +80,9 @@ class Participant:
 
     def merge_into(self, other):
         self.log.debug(f"Participant({id(self)}) merge data into Participant({id(other)})")
+        for name in self.names:
+            other.add_name(name)
+        self.names = []
         for ident_type in self.identifiers:
             for ident_value in self.identifiers[ident_type]:
                 other.add_identifier(ident_type, ident_value)
@@ -103,8 +115,16 @@ class ParticipantDB:
                 self.pid += 1
                 person.person_id = f"PID:{self.pid:06}"
             people[person.person_id] = person.identifiers
+            people[person.person_id]["names"] = person.names
         with open(path, "w") as outf:
             json.dump(people, outf, indent=3, sort_keys=True)
+
+
+    def person_with_name(self, ident_type: str, ident_value: str, name:str) -> None:
+        if ident_type in self.idents:
+            if ident_value in self.idents[ident_type]:
+                person = self.idents[ident_type][ident_value]
+                person.add_name(name)
 
 
     def person_with_identifier(self, ident_type: str, ident_value: str) -> Participant:
@@ -254,17 +274,32 @@ if __name__ == "__main__":
     seen_addr = set()
     dt  = DataTrackerExt(DTBackendArchive(dt_sqlite_file))
 
-    print("Finding participant identifiers in IETF datatracker")
+    print("Finding participants in IETF datatracker: names")
+    for dt_person in dt.people():
+        pdb.person_with_identifier("dt_person_uri", str(dt_person.resource_uri))
+        # Add names:
+        if dt_person.name != "":
+            pdb.person_with_name("dt_person_uri", str(dt_person.resource_uri), dt_person.name)
+        if dt_person.name_from_draft is not None and dt_person.name_from_draft != "":
+            pdb.person_with_name("dt_person_uri", str(dt_person.resource_uri), dt_person.name_from_draft)
+        if dt_person.ascii != "":
+            pdb.person_with_name("dt_person_uri", str(dt_person.resource_uri), dt_person.ascii)
+        if dt_person.ascii_short is not None and dt_person.ascii_short != "":
+            pdb.person_with_name("dt_person_uri", str(dt_person.resource_uri), dt_person.ascii_short)
+        if dt_person.plain != "":
+            pdb.person_with_name("dt_person_uri", str(dt_person.resource_uri), dt_person.plain)
+
+
+    print("Finding participants in IETF datatracker: emails")
     for msg in dt.emails():
         if msg.address in ignore:
             continue
         pdb.person_with_identifier("email", msg.address)
         pdb.identifies_same_person("email", msg.address, "dt_person_uri", str(msg.person))
         seen_addr.add(msg.address)
-        # We don't need to add names here. The call to dt.person_by_name_email()
-        # below handles name matching.
 
 
+    print("Finding participants in IETF datatracker: external resources")
     for resource in dt.person_ext_resources():
         if str(resource.name) == "/api/v1/name/extresourcename/webpage/":
             pdb.identifies_same_person("dt_person_uri", str(resource.person), "webpage", resource.value)
@@ -275,8 +310,9 @@ if __name__ == "__main__":
         if str(resource.name) == "/api/v1/name/extresourcename/orcid/":
             pdb.identifies_same_person("dt_person_uri", str(resource.person), "orcid", resource.value)
 
+
     # Add identifiers based on the IETF mailing list archive:
-    print("Finding participant identifiers in IETF mailarchive")
+    print("Finding participants in IETF mailarchive")
     seen_full = set()
     ma   = MailArchive(ma_sqlite_file)
 
@@ -313,11 +349,18 @@ if __name__ == "__main__":
             if email_name.endswith(" via RT") or email_name.endswith(" via Datatracker"):
                 # Discard automated emails
                 continue
+            if email_name.startswith("Datatracker on behalf of"):
+                # Discard automated emails
+                continue
             if email_full not in seen_full:
                 pdb.person_with_identifier("email", email_addr)
                 person = dt.person_from_name_email(email_name, email_addr)
                 if person is not None and envelope.header("X-Spam-Flag") != "YES":
                     pdb.identifies_same_person("email", email_addr, "dt_person_uri", str(person.resource_uri))
+                    if email_name is not None and email_name != "":
+                        pdb.person_with_name("dt_person_uri", str(person.resource_uri), email_name)
+                if email_name is not None and email_name != "" and envelope.header("X-Spam-Flag") != "YES":
+                    pdb.person_with_name("email", email_addr, email_name)
                 seen_full.add(email_full)
 
     print(f"Saving {new_path}")
