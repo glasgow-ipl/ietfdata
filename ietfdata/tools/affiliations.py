@@ -24,6 +24,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import json
+import logging
 import sys
 import textwrap
 
@@ -35,10 +36,13 @@ from ietfdata.datatracker import *
 from ietfdata.rfcindex    import *
 
 class AffiliationsForPerson:
+    _log: logging.Logger
     _pid: str
     _aff: List[Dict[str,str]]
 
     def __init__(self, pid:str) -> None:
+        logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
+        self._log = logging.getLogger("ietfdata")
         self._pid = pid
         self._aff = []
 
@@ -49,10 +53,10 @@ class AffiliationsForPerson:
         list of known affiliations.
         """
         if org_id == self._aff[0]["org"]:
-            print(f"    {self._pid} extend first affiliation {org_id} {self._aff[0]['start']} -> {date_}")
+            self._log.debug(f"    {self._pid} extend first affiliation {org_id} {self._aff[0]['start']} -> {date_}")
             self._aff[0]["start"] = date_.isoformat()
         else:
-            print(f"    {self._pid} add first affiliation {org_id} {self._aff[0]['start']} -> {date_}")
+            self._log.debug(f"    {self._pid} add first affiliation {org_id} {self._aff[0]['start']} -> {date_}")
             self._aff.insert(0, {"org"  : org_id,
                                  "start": date_.isoformat(), 
                                  "end"  : self._aff[0]["start"]})
@@ -64,12 +68,12 @@ class AffiliationsForPerson:
         list of known affiliations.
         """
         if org_id == self._aff[-1]["org"]:
-            print(f"    {self._pid} extend final affiliation {self._aff[-1]['org']} {self._aff[-1]['end']} -> {date_}")
+            self._log.debug(f"    {self._pid} extend final affiliation {self._aff[-1]['org']} {self._aff[-1]['end']} -> {date_}")
             self._aff[-1]["end"] = date_.isoformat()
         else:
-            print(f"    {self._pid} extend final affiliation {self._aff[-1]['org']} {self._aff[-1]['end']} -> {date_}")
+            self._log.debug(f"    {self._pid} extend final affiliation {self._aff[-1]['org']} {self._aff[-1]['end']} -> {date_}")
             self._aff[-1]["end"] = date_.isoformat()
-            print(f"   {self._pid} add final affiliation {org_id} on {date_}")
+            self._log.debug(f"   {self._pid} add final affiliation {org_id} on {date_}")
             self._aff.append({"org"  : org_id,
                               "start": date_.isoformat(),
                               "end"  : date_.isoformat()})
@@ -86,14 +90,14 @@ class AffiliationsForPerson:
             if date_.isoformat() == old_aff["start"] and date_.isoformat() == old_aff["end"]:
                 found = True
                 if org_id == old_aff["org"]:
-                    print(f"    {self._pid} duplicate affiliation {old_aff['org']} on {date_}")
+                    self._log.debug(f"    {self._pid} duplicate affiliation {old_aff['org']} on {date_}")
                     new_aff.append(old_aff)
                 else:
-                    print(f"    {self._pid} conflicting affiliation: {org_id} != {old_aff['org']} on {date_}")
+                    self._log.info(f"    {self._pid} conflicting affiliation: {org_id} != {old_aff['org']} on {date_}")
             elif date_.isoformat() == old_aff["start"] and date_.isoformat() < old_aff["end"]:
                 found = True
                 if org_id != old_aff["org"]:
-                    print(f"    {self._pid} add before: {org_id} on {date_}")
+                    self._log.debug(f"    {self._pid} add before: {org_id} on {date_}")
                     new_aff.append({"org"  : org_id,
                                     "start": date_.isoformat(),
                                     "end"  : date_.isoformat()})
@@ -102,7 +106,7 @@ class AffiliationsForPerson:
                 found = True
                 new_aff.append(old_aff)
                 if org_id != old_aff["org"]:
-                    print(f"    {self._pid} add after: {org_id} on {date_}")
+                    self._log.debug(f"    {self._pid} add after: {org_id} on {date_}")
                     new_aff.append({"org"  : org_id,
                                     "start": date_.isoformat(),
                                     "end"  : date_.isoformat()})
@@ -110,14 +114,14 @@ class AffiliationsForPerson:
                 found = True
                 if org_id == old_aff["org"]:
                     # Overlaps with a previously known affilation and date range
-                    print(f"    {self._pid} affiliation {old_aff['org']} on {date_} is within known range {old_aff['start']} -> {old_aff['end']}")
+                    self._log.debug(f"    {self._pid} affiliation {old_aff['org']} on {date_} is within known range {old_aff['start']} -> {old_aff['end']}")
                     new_aff.append(old_aff)
                 else:
                     # Split an existing affiliation record
-                    print(f"    {self._pid} Split affiliation:")
-                    print(f"    {self._pid}   {old_aff['org']} {old_aff['start']} - {date_}")
-                    print(f"    {self._pid}   {org_id} {date_} - {date_}")
-                    print(f"    {self._pid}   {old_aff['org']} {date_} - {old_aff['end']}")
+                    self._log.debug(f"    {self._pid} Split affiliation:")
+                    self._log.debug(f"    {self._pid}   {old_aff['org']} {old_aff['start']} - {date_}")
+                    self._log.debug(f"    {self._pid}   {org_id} {date_} - {date_}")
+                    self._log.debug(f"    {self._pid}   {old_aff['org']} {date_} - {old_aff['end']}")
                     new_aff.append({"org": old_aff["org"], "start": old_aff["start"],  "end": date_.isoformat()})
                     new_aff.append({"org": org_id,         "start": date_.isoformat(), "end": date_.isoformat()})
                     new_aff.append({"org": old_aff["org"], "start": date_.isoformat(), "end": old_aff["end"]})
@@ -131,7 +135,7 @@ class AffiliationsForPerson:
 
     def add(self, date_:date, org_id:str) -> None:
         if self._aff == []:
-            print(f"    {self._pid} initial affiliation {org_id} {date_}")
+            self._log.debug(f"    {self._pid} initial affiliation {org_id} {date_}")
             self._aff = [{"org"  : org_id,
                           "start": date_.isoformat(),
                           "end"  : date_.isoformat()}]
@@ -169,7 +173,7 @@ class Affiliations:
     def add(self, date_:date, pid:str, org_id:str) -> None:
         if pid not in self._affiliations_for_person:
             self._affiliations_for_person[pid] = AffiliationsForPerson(pid)
-            print(f"    {pid} created")
+            # print(f"    {pid} created")
         self._affiliations_for_person[pid].add(date_, org_id)
 
 
