@@ -262,6 +262,21 @@ def record_affiliation(orgs: OrganisationDB, name:str, email:str) -> Optional[Tu
                 orgs.organisations_match(name, full_name)
                 break
 
+    # If the organisation name contains a "/", add variants with or without
+    # surrounding spaces and match as matching.
+    if " / " in name:
+        no_slash = name.replace(" / ", "/")
+        orgs.organisation_exists(no_slash)
+        orgs.organisations_match(name, no_slash)
+    elif "/ " in name:
+        no_slash = name.replace("/ ", "/")
+        orgs.organisation_exists(no_slash)
+        orgs.organisations_match(name, no_slash)
+    elif " /" in name:
+        no_slash = name.replace(" /", "/")
+        orgs.organisation_exists(no_slash)
+        orgs.organisations_match(name, no_slash)
+
     # If the organisation name matches the domain, record the domain as
     # belonging to this organisation:
     org_domain = None
