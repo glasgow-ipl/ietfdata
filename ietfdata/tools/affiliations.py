@@ -218,7 +218,7 @@ def rfc_date(year:int, month:str) -> date:
 if __name__ == "__main__":
     print(f"*** ietfdata.tools.affiliations")
 
-    if len(sys.argv) != 4:
+    if len(sys.argv) != 5:
         print('')
         print('Usage: python3 -m ietfdata.tools.affiliations <ietfdata.sqlite> <participants.json> <organisation.json> <affiliations.json>')
         sys.exit(1)
