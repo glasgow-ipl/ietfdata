@@ -1,4 +1,4 @@
-# Copyright (C) 2019 University of Glasgow
+# Copyright (C) 2019-2025 University of Glasgow
 # 
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions 
@@ -23,8 +23,6 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-.PHONY: test typecheck runtests
-
 test: typecheck runtests
 
 typecheck:
@@ -34,3 +32,54 @@ typecheck:
 runtests:
 	@python3 -m unittest discover -s tests/ -v
 
+test-all: test data/affiliations.json
+
+data:
+	mkdir $@
+
+data/ietfdata-ma.sqlite: | data
+	python3 -m ietfdata.tools.download_ma $@
+
+data/ietfdata-dt.sqlite: | data
+	python3 -m ietfdata.tools.download_dt $@
+
+data/participants.json: data/ietfdata-dt.sqlite data/ietfdata-ma.sqlite
+	python3 -m ietfdata.tools.participants  $^ $@
+
+data/organisations.json: data/ietfdata-dt.sqlite
+	python3 -m ietfdata.tools.organisations $^ $@
+
+data/affiliations.json: data/ietfdata-dt.sqlite data/participants.json data/organisations.json
+	python3 -m ietfdata.tools.affiliations $^ $@
+
+# Can this rule and ietfdata/tools/participants_affiliations.py be removed?
+data/affiliations2.json: data/ietfdata-dt.sqlite data/participants.json data/organisations.json
+	python3 -m ietfdata.tools.participants_affiliations $^ $@
+
+# =================================================================================================
+# Rules to clean-up:
+
+clean:
+	rm -f data/ietfdata-ma.sqlite
+	rm -f data/ietfdata-dt.sqlite
+	rm -f data/participants.json
+	rm -f data/organisations.json
+	rm -f data/affiliations.json
+	rm -f data/affiliations2.json
+
+# =================================================================================================
+# Targets that don't represent files:
+
+.PHONY: test test-all typecheck runtests clean
+
+# =================================================================================================
+# Configuration for make:
+
+.DELETE_ON_ERROR:
+
+.NOTINTERMEDIATE:
+
+MAKEFLAGS += --output-sync --warn-undefined-variables --no-builtin-rules --no-builtin-variables
+
+# =================================================================================================
+# vim: set ts=2 sw=2 tw=0 ai:
