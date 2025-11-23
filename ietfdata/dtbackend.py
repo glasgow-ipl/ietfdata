@@ -252,7 +252,7 @@ class DTBackendArchive(DTBackend):
                 elif r.status_code == 429:
                     retry_after = int(r.headers['Retry-After']) 
                     if retry_after != 0:
-                        self._log.warning(f"_dt_fetch: retry in {retry_after} (1)")
+                        self._log.warning(f"_dt_fetch: rate limited, will retry in {retry_after}s")
                         time.sleep(retry_after)
                         # Increase the delay between repeated fetches, to try to avoid
                         # rate limiting in future:
@@ -261,21 +261,21 @@ class DTBackendArchive(DTBackend):
                     else:
                         # Some versions of the datatracker incorrectly send 429 with "Retry-After: 0".
                         # Handle this with an exponential backoff as-if we got a 500 error.
-                        self._log.warning(f"_dt_fetch: retry in {retry_delay} (2)")
+                        self._log.warning(f"_dt_fetch: rate limited, will retry in {retry_delay}s (implicit)")
                         if retry_delay > 60:
                             self._log.error(f"_dt_fetch: retry limit exceeded")
                             sys.exit(1)
                         time.sleep(retry_delay)
                         retry_delay *= 2
                 else:
-                    self._log.warning(f"_dt_fetch: retry in {retry_delay} (3)")
+                    self._log.warning(f"_dt_fetch: received {r.status_code} response, will retry in {retry_delay}s")
                     if retry_delay > 60:
                         self._log.error(f"_dt_fetch: retry limit exceeded")
                         sys.exit(1)
                     time.sleep(retry_delay)
                     retry_delay *= 2
             except requests.exceptions.ConnectionError:
-                self._log.warning(F"_dt_fetch: retry in {retry_delay} - connection error")
+                self._log.warning(F"_dt_fetch: connection error, will retry in {retry_delay}s")
                 if retry_delay > 60:
                     self._log.error(f"_dt_fetch: retry limit exceeded")
                     sys.exit(1)
@@ -298,7 +298,7 @@ class DTBackendArchive(DTBackend):
                 # If any succeed, we then construct an appropriate next URL and 
                 # continue the multi fetch.
                 if "?limit=" in uri and "&offset=" in uri:
-                    self._log.warn(f"_dt_fetch_multi: cannot fetch {uri} - trying individual")
+                    self._log.warning(f"_dt_fetch_multi: cannot fetch {uri} - trying individual")
                     found_some = False
                     limit_pos  = uri.find("?limit=")
                     offset_pos = uri.find("&offset=")
