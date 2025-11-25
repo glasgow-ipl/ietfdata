@@ -111,7 +111,7 @@ class Person(Resource):
     # observed that the datatracker shows your name incorrectly."
     plain           : str
     pronouns_freetext     : Optional[str]
-    pronouns_selectable   : str
+    pronouns_selectable   : Optional[str]
 
 
 class HistoricalPerson(Resource):
@@ -133,7 +133,7 @@ class HistoricalPerson(Resource):
     history_date          : datetime
     plain                 : str
     pronouns_freetext     : Optional[str]
-    pronouns_selectable   : str
+    pronouns_selectable   : Optional[str]
 
 
 class PersonAliasURI(URI):
