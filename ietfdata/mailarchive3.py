@@ -360,6 +360,7 @@ class EmailPolicyCustom(EmailPolicy):
     This is a private helper class - do not use.
     """
     def __init__(self, **kw):
+        self._log = logging.getLogger("ietfdata")
         super().__init__(**kw)
 
 
@@ -423,9 +424,9 @@ class EmailPolicyCustom(EmailPolicy):
                 new_value = re.sub(pattern, replacement, value)
                 if new_value != value:
                     try:
-                        print(f"header_source_parse: rewrite {name}: {value} -> {new_value}")
+                        self._log.debug(f"header_source_parse: rewrite {name}: {value} -> {new_value}")
                     except:
-                        print(f"header_source_parse: rewrite {name}: ?unprintable? -> {new_value}")
+                        self._log.debug(f"header_source_parse: rewrite {name}: ?unprintable? -> {new_value}")
                     value = new_value
             value = value.rstrip(",")
 
@@ -441,9 +442,9 @@ class EmailPolicyCustom(EmailPolicy):
                 new_value = new_value.rstrip(",")
                 if new_value != value:
                     try:
-                        print(f"header_source_parse: rewrite {name}: {value} -> {new_value}")
+                        self._log.debug(f"header_source_parse: rewrite {name}: {value} -> {new_value}")
                     except:
-                        print(f"header_source_parse: rewrite {name}: ?unprintable? -> {new_value}")
+                        self._log.debug(f"header_source_parse: rewrite {name}: ?unprintable? -> {new_value}")
                     value = new_value
                     break
 
