@@ -234,6 +234,9 @@ class ParticipantDB:
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
+    log = logging.getLogger("ietfdata")
+
     if len(sys.argv) == 4:
         dt_sqlite_file = sys.argv[1]
         ma_sqlite_file = sys.argv[2]
@@ -276,6 +279,7 @@ if __name__ == "__main__":
 
     print("Finding participants in IETF datatracker: names")
     for dt_person in dt.people():
+        log.debug(f"{str(dt_person.resource_uri)}")
         pdb.person_with_identifier("dt_person_uri", str(dt_person.resource_uri))
         # Add names:
         if dt_person.name != "":
@@ -292,6 +296,7 @@ if __name__ == "__main__":
 
     print("Finding participants in IETF datatracker: emails")
     for msg in dt.emails():
+        log.debug(f"{msg.address}")
         if msg.address in ignore:
             continue
         pdb.person_with_identifier("email", msg.address)
@@ -301,6 +306,7 @@ if __name__ == "__main__":
 
     print("Finding participants in IETF datatracker: external resources")
     for resource in dt.person_ext_resources():
+        log.debug(str(resource.resource_uri))
         if str(resource.name) == "/api/v1/name/extresourcename/webpage/":
             pdb.identifies_same_person("dt_person_uri", str(resource.person), "webpage", resource.value)
         if str(resource.name) == "/api/v1/name/extresourcename/github_username/":
@@ -329,7 +335,7 @@ if __name__ == "__main__":
 
     for ml_name in ma.mailing_list_names():
         ml = ma.mailing_list(ml_name)
-        print(f"    {ml.name()}")
+        log.info(f"{ml.name()}")
         for envelope in ml.messages():
             from_addr = envelope.from_()
             if from_addr is None:
