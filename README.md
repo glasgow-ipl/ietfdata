@@ -68,7 +68,7 @@ data, for example if writing a research paper, a dissertation, or as part
 of a student project, then the `DTBackendArchive` should be used:
 
 ```~~~~~~~~
-dt = DataTracker(DTBackendArchive(sqlite_file="ietfdata.sqlite"))
+dt = DataTracker(DTBackendArchive("ietfdata.sqlite"))
 ```
 
 In this case, the `DataTracker` class will create the specified sqlite file
