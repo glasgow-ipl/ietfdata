@@ -256,9 +256,9 @@ if __name__ == "__main__":
     ri = RFCIndex(cache_dir = "cache")
     af = Affiliations()
 
-    print("Finding affiliations of RFC authors:")
+    print("Finding affiliations of RFC authors")
     for rfc in ri.rfcs(since="1995-01"):
-        print(f"  {rfc.doc_id}: {textwrap.shorten(rfc.title, width=80, placeholder='...')}")
+        # print(f"  {rfc.doc_id}: {textwrap.shorten(rfc.title, width=80, placeholder='...')}")
         dt_document = dt.document_from_rfc(rfc.doc_id)
         if dt_document is not None:
             for dt_author in dt.document_authors(dt_document):
@@ -277,9 +277,9 @@ if __name__ == "__main__":
                 af.add(date_, pid, oid)
     print("")
 
-    print("Finding affiliations in internet-draft submissions:")
+    print("Finding affiliations in internet-draft submissions")
     for submission in dt.submissions():
-        print(f"  {submission.name}-{submission.rev}")
+        # print(f"  {submission.name}-{submission.rev}")
         for authors in submission.parse_authors():
             if "affiliation" not in authors:
                 continue
@@ -292,7 +292,7 @@ if __name__ == "__main__":
             af.add(submission.submission_date, pid, oid)
     print("")
 
-    print("Finding affiliations in meeting registration records:")
+    print("Finding affiliations in meeting registration records")
     for reg in dt.meeting_registrations():
         meeting = dt.meeting(reg.meeting)
         assert meeting is not None
@@ -300,7 +300,7 @@ if __name__ == "__main__":
         email = reg.email
         affil = reg.affiliation
         if email not in emails or affil not in org_names:
-            print(f"skipped {email} {affil}")
+            # print(f"skipped {email} {affil}")
             continue
         pid = emails[email]
         oid = org_names[affil]
