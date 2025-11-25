@@ -53,10 +53,10 @@ class AffiliationsForPerson:
         list of known affiliations.
         """
         if org_id == self._aff[0]["org"]:
-            self._log.debug(f"    {self._pid} extend first affiliation {org_id} {self._aff[0]['start']} -> {date_}")
+            self._log.debug(f"{self._pid} extend first affiliation {org_id} {self._aff[0]['start']} -> {date_}")
             self._aff[0]["start"] = date_.isoformat()
         else:
-            self._log.debug(f"    {self._pid} add first affiliation {org_id} {self._aff[0]['start']} -> {date_}")
+            self._log.debug(f"{self._pid} add first affiliation {org_id} {self._aff[0]['start']} -> {date_}")
             self._aff.insert(0, {"org"  : org_id,
                                  "start": date_.isoformat(), 
                                  "end"  : self._aff[0]["start"]})
@@ -68,12 +68,12 @@ class AffiliationsForPerson:
         list of known affiliations.
         """
         if org_id == self._aff[-1]["org"]:
-            self._log.debug(f"    {self._pid} extend final affiliation {self._aff[-1]['org']} {self._aff[-1]['end']} -> {date_}")
+            self._log.debug(f"{self._pid} extend final affiliation {self._aff[-1]['org']} {self._aff[-1]['end']} -> {date_}")
             self._aff[-1]["end"] = date_.isoformat()
         else:
-            self._log.debug(f"    {self._pid} extend final affiliation {self._aff[-1]['org']} {self._aff[-1]['end']} -> {date_}")
+            self._log.debug(f"{self._pid} extend final affiliation {self._aff[-1]['org']} {self._aff[-1]['end']} -> {date_}")
             self._aff[-1]["end"] = date_.isoformat()
-            self._log.debug(f"   {self._pid} add final affiliation {org_id} on {date_}")
+            self._log.debug(f"{self._pid} add final affiliation {org_id} on {date_}")
             self._aff.append({"org"  : org_id,
                               "start": date_.isoformat(),
                               "end"  : date_.isoformat()})
