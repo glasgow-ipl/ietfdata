@@ -84,8 +84,8 @@ class Organisation:
 
 class OrganisationDB:
     _log           : logging.Logger
-    _organisations : Dict[str,Organisation]
-    _domains       : Dict[str,Organisation]
+    _organisations : Dict[str,Organisation]   # Map from name to Organisation
+    _domains       : Dict[str,Organisation]   # Map from domain to Organisation
 
     def __init__(self) -> None:
         logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
@@ -256,14 +256,14 @@ class OrganisationMatcher:
         logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
         self._log    = logging.getLogger("ietfdata")
         self._org_db = OrganisationDB()
-        self._orgs   = []
+        self._orgs   = set()
 
 
     def add(self, organisation:Optional[str], email:str):
         blocklist = ["University"]
         if organisation is None or organisation == "" or organisation in blocklist:
             return
-        self._orgs.append((organisation, email))
+        self._orgs.add((organisation, email))
 
 
     def find_organisations_ietf(self, sqlite_file:str):
