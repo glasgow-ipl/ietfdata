@@ -90,14 +90,14 @@ class AffiliationsForPerson:
             if date_.isoformat() == old_aff["start"] and date_.isoformat() == old_aff["end"]:
                 found = True
                 if org_id == old_aff["org"]:
-                    self._log.debug(f"    {self._pid} duplicate affiliation {old_aff['org']} on {date_}")
+                    self._log.debug(f"{self._pid} duplicate affiliation {old_aff['org']} on {date_}")
                     new_aff.append(old_aff)
                 else:
-                    self._log.info(f"    {self._pid} conflicting affiliation: {org_id} != {old_aff['org']} on {date_}")
+                    self._log.warning(f"{self._pid} conflicting affiliation: {org_id} != {old_aff['org']} on {date_}")
             elif date_.isoformat() == old_aff["start"] and date_.isoformat() < old_aff["end"]:
                 found = True
                 if org_id != old_aff["org"]:
-                    self._log.debug(f"    {self._pid} add before: {org_id} on {date_}")
+                    self._log.debug(f"{self._pid} add before: {org_id} on {date_}")
                     new_aff.append({"org"  : org_id,
                                     "start": date_.isoformat(),
                                     "end"  : date_.isoformat()})
@@ -106,7 +106,7 @@ class AffiliationsForPerson:
                 found = True
                 new_aff.append(old_aff)
                 if org_id != old_aff["org"]:
-                    self._log.debug(f"    {self._pid} add after: {org_id} on {date_}")
+                    self._log.debug(f"{self._pid} add after: {org_id} on {date_}")
                     new_aff.append({"org"  : org_id,
                                     "start": date_.isoformat(),
                                     "end"  : date_.isoformat()})
@@ -114,14 +114,14 @@ class AffiliationsForPerson:
                 found = True
                 if org_id == old_aff["org"]:
                     # Overlaps with a previously known affilation and date range
-                    self._log.debug(f"    {self._pid} affiliation {old_aff['org']} on {date_} is within known range {old_aff['start']} -> {old_aff['end']}")
+                    self._log.debug(f"{self._pid} affiliation {old_aff['org']} on {date_} is within known range {old_aff['start']} -> {old_aff['end']}")
                     new_aff.append(old_aff)
                 else:
                     # Split an existing affiliation record
-                    self._log.debug(f"    {self._pid} Split affiliation:")
-                    self._log.debug(f"    {self._pid}   {old_aff['org']} {old_aff['start']} - {date_}")
-                    self._log.debug(f"    {self._pid}   {org_id} {date_} - {date_}")
-                    self._log.debug(f"    {self._pid}   {old_aff['org']} {date_} - {old_aff['end']}")
+                    self._log.debug(f"{self._pid} Split affiliation:")
+                    self._log.debug(f"{self._pid}   {old_aff['org']} {old_aff['start']} - {date_}")
+                    self._log.debug(f"{self._pid}   {org_id} {date_} - {date_}")
+                    self._log.debug(f"{self._pid}   {old_aff['org']} {date_} - {old_aff['end']}")
                     new_aff.append({"org": old_aff["org"], "start": old_aff["start"],  "end": date_.isoformat()})
                     new_aff.append({"org": org_id,         "start": date_.isoformat(), "end": date_.isoformat()})
                     new_aff.append({"org": old_aff["org"], "start": date_.isoformat(), "end": old_aff["end"]})
@@ -220,6 +220,9 @@ def rfc_date(year:int, month:str) -> date:
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
+    log = logging.getLogger("ietfdata")
+
     print(f"*** ietfdata.tools.affiliations")
 
     if len(sys.argv) != 5:
@@ -258,7 +261,7 @@ if __name__ == "__main__":
 
     print("Finding affiliations of RFC authors")
     for rfc in ri.rfcs(since="1995-01"):
-        # print(f"  {rfc.doc_id}: {textwrap.shorten(rfc.title, width=80, placeholder='...')}")
+        log.info(f"{rfc.doc_id}: {textwrap.shorten(rfc.title, width=80, placeholder='...')}")
         dt_document = dt.document_from_rfc(rfc.doc_id)
         if dt_document is not None:
             for dt_author in dt.document_authors(dt_document):
@@ -275,11 +278,10 @@ if __name__ == "__main__":
                 pid = emails[email.address]
                 oid = org_names[affil]
                 af.add(date_, pid, oid)
-    print("")
 
     print("Finding affiliations in internet-draft submissions")
     for submission in dt.submissions():
-        # print(f"  {submission.name}-{submission.rev}")
+        log.info(f"{submission.name}-{submission.rev}")
         for authors in submission.parse_authors():
             if "affiliation" not in authors:
                 continue
@@ -290,7 +292,6 @@ if __name__ == "__main__":
             pid = emails[authors["email"]]
             oid = org_names[authors["affiliation"]]
             af.add(submission.submission_date, pid, oid)
-    print("")
 
     print("Finding affiliations in meeting registration records")
     for reg in dt.meeting_registrations():
@@ -300,12 +301,11 @@ if __name__ == "__main__":
         email = reg.email
         affil = reg.affiliation
         if email not in emails or affil not in org_names:
-            # print(f"skipped {email} {affil}")
+            log.debug(f"skipped {email} {affil}")
             continue
         pid = emails[email]
         oid = org_names[affil]
         af.add(date_, pid, oid)
-    print("")
 
     af.save(sys.argv[4])
 
