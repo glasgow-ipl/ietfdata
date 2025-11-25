@@ -250,7 +250,7 @@ class OrganisationDB:
 
 class OrganisationMatcher:
     _org_db : OrganisationDB
-    _orgs   : List[Tuple[str,str]]
+    _orgs   : set[Tuple[str,str]]
 
     def __init__(self):
         logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
