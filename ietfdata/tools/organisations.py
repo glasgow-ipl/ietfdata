@@ -97,28 +97,28 @@ class OrganisationDB:
     def get_domains(self) -> List[str]:
         return sorted(list(self._domains.keys()))
 
-    
+
     def get_organisations(self) -> List[str]:
         return sorted(list(self._organisations.keys()))
 
 
-    def organisation_exists(self, name: str) -> None:
+    def add_organisation(self, name: str) -> None:
         """
         Indicate that an organisation with the specified `name` exists
         """
         if name not in self._organisations:
-            self._log.debug(f"    Organisation exists: \"{name}\"")
+            self._log.debug(f"Add organisation: \"{name}\"")
             self._organisations[name] = Organisation(name)
 
 
-    def organisation_has_domain(self, name:str, domain:str) -> None:
+    def add_domain_for_organisation(self, name:str, domain:str) -> None:
         """
         Indicate that an organisation with the specified `name` has sole
         use of the `domain`
         """
-        self.organisation_exists(name)
+        self.add_organisation(name)
         if domain not in self._domains:
-            self._log.debug(f"    Organisation has domain: \"{name}\" -> \"{domain}\"")
+            self._log.debug(f"Add domain for organisation: \"{name}\" -> \"{domain}\"")
             self._organisations[name].set_domain(domain)
             self._domains[domain] = self._organisations[name]
         else:
@@ -131,12 +131,18 @@ class OrganisationDB:
                 self._merge(self._organisations[name], self._domains[domain])
 
 
-    def organisation_has_preferred_name(self, name: str) -> None:
+    def add_preferred_name_for_organisation(self, name: str) -> None:
         """
         Indicates that `name` is the preferred name for an organisation.
         """
-        self.organisation_exists(name)
+        self.add_organisation(name)
         self._organisations[name].set_preferred_name(name)
+
+
+    def organisation_has_domain(self, name:str) -> bool:
+        if name not in self._organisations:
+            return False
+        return self._organisations[name].domain() != None
 
 
     def organisations_match(self, name1: str, name2: str) -> None:
@@ -144,15 +150,15 @@ class OrganisationDB:
         Indicate that `name1` and `name2` exist and are the same organisation
         so should merge into one.
         """
-        self.organisation_exists(name1)
-        self.organisation_exists(name2)
+        self.add_organisation(name1)
+        self.add_organisation(name2)
         self._merge(self._organisations[name1], self._organisations[name2])
 
 
     def _merge(self, org1: Organisation, org2: Organisation) -> None:
         if org1 == org2:
             return
-        self._log.debug(f"    Merging organisations: {org1.names()} -> {org2.names()}")
+        self._log.debug(f"Merging organisations: {org1.names()} -> {org2.names()}")
         # Merge names from org1 into org2:
         for name in org1.names():
             org2.add_name(name)
@@ -220,89 +226,6 @@ class OrganisationDB:
         print("}")
 
 
-
-# =============================================================================
-# Helper functions for extracting organisations from the datatracker:
-
-def record_affiliation(orgs: OrganisationDB, name:str, email:str) -> Optional[Tuple[str,str]]:
-    # Clean-up malformed organisation names:
-    name = name.replace("\n", " ")
-
-    # Record the organisation
-    orgs.organisation_exists(name)
-
-    # If the organisation name ends in a known company suffix, also record
-    # the variant without the suffix and mark them as matching:
-    for suffix in ["Ltd", "Inc", "Pty", "GmbH"]:
-        for variant in [f", {suffix}.", f", {suffix}", f" {suffix}.", f" {suffix}"]: 
-            if name.endswith(variant):
-                bare_name = name[:-len(variant)]
-                orgs.organisation_exists(bare_name)
-                orgs.organisations_match(bare_name, name)
-                break
-
-    # If the organisation name ends in a known abbreviation, also record
-    # the variant with the full name and mark them as matching:
-    for abbr, full in [("Corp", "Corporation"),
-                       ("Univ", "University")]:
-        for variant in [f", {abbr}.", f", {abbr}", f" {abbr}.", f" {abbr}"]: 
-            if name.endswith(variant):
-                full_name = f"{name[:-len(variant)]} {full}"
-                orgs.organisation_exists(full_name)
-                orgs.organisations_match(name, full_name)
-                break
-
-    # If the organisation name starts with a known abbreviation, also record
-    # the variant with the full name and mark them as matching:
-    for abbr, full in [("Univ", "University")]:
-        for variant in [f"{abbr}. ", f"{abbr} "]: 
-            if name.startswith(variant):
-                full_name = f"{full} {name[len(variant):]}"
-                orgs.organisation_exists(full_name)
-                orgs.organisations_match(name, full_name)
-                break
-
-    # If the organisation name contains a "/", add variants with or without
-    # surrounding spaces and match as matching.
-    if " / " in name:
-        no_slash = name.replace(" / ", "/")
-        orgs.organisation_exists(no_slash)
-        orgs.organisations_match(name, no_slash)
-    elif "/ " in name:
-        no_slash = name.replace("/ ", "/")
-        orgs.organisation_exists(no_slash)
-        orgs.organisations_match(name, no_slash)
-    elif " /" in name:
-        no_slash = name.replace(" /", "/")
-        orgs.organisation_exists(no_slash)
-        orgs.organisations_match(name, no_slash)
-
-    # If the organisation name matches the domain, record the domain as
-    # belonging to this organisation:
-    org_domain = None
-    if "@" in email:
-        parts  = email.split("@")[1].split(".")
-        for tld in ["com", "org", "edu"]:
-            if len(parts) >= 2 and parts[-1] == tld:
-                domain = f"{parts[-2]}.{parts[-1]}".lower()
-                if domain in ["iana.com", "linaro.com", "mit.org"]:
-                    print(f"    Domain in blocklist: {domain}")
-                else:
-                    if name.lower() == parts[-2].lower():
-                        # Organisation name directly matches domain
-                        orgs.organisation_has_domain(name, domain)
-                        org_domain = (name, domain)
-                        # If the organisation name has an initial upper case letter and
-                        # the remaining letters are lower case, set as preferred name.
-                        if name[0].upper() == name[0] and name[1:].lower() == name[1:]:
-                            orgs.organisation_has_preferred_name(name)
-                    # elif name.replace(" ", "").lower() == parts[-2].lower():
-                    #     # Organisation name, with spaces removed, matches domain
-                    #     orgs.organisation_has_domain(name, domain)
-                    #     org_domain = (name, domain)
-    return org_domain
-
-
 # =============================================================================
 # The OrganisationMatcher class extracts information from the IETF
 # datatacker then uses the OrganisationDB and Organisation classes
@@ -326,20 +249,21 @@ def record_affiliation(orgs: OrganisationDB, name:str, email:str) -> Optional[Tu
 # things.
 
 class OrganisationMatcher:
-    _org_db      : OrganisationDB
-    _org_domains : List[Tuple[str,str]]
+    _org_db : OrganisationDB
+    _orgs   : List[Tuple[str,str]]
 
     def __init__(self):
+        logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
+        self._log    = logging.getLogger("ietfdata")
         self._org_db = OrganisationDB()
-        self._org_domains = []
+        self._orgs   = []
 
 
-    def add(self, organisation:str, email:str):
-        if organisation == "":
+    def add(self, organisation:Optional[str], email:str):
+        blocklist = ["University"]
+        if organisation is None or organisation == "" or organisation in blocklist:
             return
-        org_domain = record_affiliation(self._org_db, organisation, email)
-        if org_domain is not None and org_domain not in self._org_domains:
-            self._org_domains.append(org_domain)
+        self._orgs.append((organisation, email))
 
 
     def find_organisations_ietf(self, sqlite_file:str):
@@ -353,48 +277,135 @@ class OrganisationMatcher:
         dt = DataTracker(DTBackendArchive(sqlite_file))
         ri = RFCIndex(cache_dir = "data")
 
-        print("Finding organisations in RFC author affiliations:")
+        print("Finding organisations in RFCs")
         for rfc in ri.rfcs(since="1995-01"):
-            print(f"  {rfc.doc_id}: {textwrap.shorten(rfc.title, width=80, placeholder='...')}")
+            self._log.info(f"{rfc.doc_id}: {textwrap.shorten(rfc.title, width=80, placeholder='...')}")
             dt_document = dt.document_from_rfc(rfc.doc_id)
             if dt_document is not None:
                 for dt_author in dt.document_authors(dt_document):
-                    if dt_author.affiliation == "" or dt_author.email is None:
-                        continue
-                    email = dt.email(dt_author.email)
-                    if email is None:
-                        continue
-                    self.add(dt_author.affiliation, email.address)
-        print("")
+                    if dt_author.email is None:
+                        self.add(dt_author.affiliation, "")
+                    else:
+                        email = dt.email(dt_author.email)
+                        assert email is not None
+                        self.add(dt_author.affiliation, email.address)
 
-        print("Finding affiliations in internet-draft submissions:")
+        print("Finding affiliations in internet-drafts")
         for submission in dt.submissions():
-            print(f"  {submission.name}-{submission.rev}")
-            for authors in submission.parse_authors():
-                if "affiliation" not in authors or authors["affiliation"] is None:
+            self._log.info(f"{submission.name}-{submission.rev}")
+            for author in submission.parse_authors():
+                if "affiliation" not in author:
                     continue
-                if authors["affiliation"] == "":
-                    continue
-                if "email"       not in authors or authors["email"]       is None:
-                    continue
-                self.add(authors["affiliation"], authors["email"])
-        print("")
+                if "email" not in author:
+                    self.add(author["affiliation"], "")
+                else:
+                    self.add(author["affiliation"], author["email"])
 
-        print("Finding organisations in meeting registration records:")
+        print("Finding organisations in meeting registrations")
         for reg in dt.meeting_registrations():
             self.add(reg.affiliation, reg.email)
-        print("")
-        
+
 
     def consolidate_organisations(self):
+        print("Consolidating organisations (pass 1)")
+        orgs_for_domain : Dict[str,List[str]] = {}
+        for name, email in self._orgs:
+            # Clean-up malformed organisation names:
+            name = name.replace("\n", " ")
+
+            # Record the organisation
+            self._org_db.add_organisation(name)
+
+            # If the organisation name ends in a known company suffix, also record
+            # the variant without the suffix and mark them as matching:
+            for suffix in ["Ltd", "Inc", "Pty", "GmbH"]:
+                for variant in [f", {suffix}.", f", {suffix}", f" {suffix}.", f" {suffix}"]:
+                    if name.endswith(variant):
+                        bare_name = name[:-len(variant)]
+                        self._org_db.add_organisation(bare_name)
+                        self._org_db.organisations_match(bare_name, name)
+                        break
+
+            # If the organisation name ends in a known abbreviation, also record
+            # the variant with the full name and mark them as matching:
+            for abbr, full in [("Corp", "Corporation"),
+                               ("Univ", "University")]:
+                for variant in [f", {abbr}.", f", {abbr}", f" {abbr}.", f" {abbr}"]:
+                    if name.endswith(variant):
+                        full_name = f"{name[:-len(variant)]} {full}"
+                        self._org_db.add_organisation(full_name)
+                        self._org_db.organisations_match(name, full_name)
+                        break
+
+            # If the organisation name starts with a known abbreviation, also record
+            # the variant with the full name and mark them as matching:
+            for abbr, full in [("Univ", "University")]:
+                for variant in [f"{abbr}. ", f"{abbr} "]:
+                    if name.startswith(variant):
+                        full_name = f"{full} {name[len(variant):]}"
+                        self._org_db.add_organisation(full_name)
+                        self._org_db.organisations_match(name, full_name)
+                        break
+
+            # # If the organisation name contains a "/", add variants with or without
+            # # surrounding spaces and match as matching.
+            # if " / " in name:
+            #     no_slash = name.replace(" / ", "/")
+            #     self._org_db.add_organisation(no_slash)
+            #     self._org_db.organisations_match(name, no_slash)
+            # elif "/ " in name:
+            #     no_slash = name.replace("/ ", "/")
+            #     self._org_db.add_organisation(no_slash)
+            #     self._org_db.organisations_match(name, no_slash)
+            # elif " /" in name:
+            #     no_slash = name.replace(" /", "/")
+            #     self._org_db.add_organisation(no_slash)
+            #     self._org_db.organisations_match(name, no_slash)
+
+            # If the organisation name matches the domain, record the domain as
+            # belonging to this organisation:
+            org_domain = None
+            if email is not None and "@" in email:
+                parts  = email.split("@")[1].split(".")
+                for tld in ["com", "org", "edu"]:
+                    if len(parts) >= 2 and parts[-1] == tld:
+                        domain = f"{parts[-2]}.{parts[-1]}".lower()
+                        if domain in ["iana.com", "linaro.com", "mit.org"]:
+                            # print(f"    Domain in blocklist: {domain}")
+                            pass
+                        else:
+                            if name.lower() == parts[-2].lower():
+                                # Organisation name directly matches domain
+                                self._org_db.add_domain_for_organisation(name, domain)
+                                # If the organisation name has an initial upper case letter and
+                                # the remaining letters are lower case, set as preferred name.
+                                if name[0].upper() == name[0] and name[1:].lower() == name[1:]:
+                                    self._org_db.add_preferred_name_for_organisation(name)
+                            # Record the organisations used with this domain
+                            if domain not in orgs_for_domain:
+                                orgs_for_domain[domain] = []
+                            if name not in orgs_for_domain[domain]:
+                                orgs_for_domain[domain].append(name)
+
         # Merge organisations that start with an organisation that matched its domain.
         # e.g., "Cisco Belgique" starts with "Cisco", which matched "cisco.com", so
         # should be merged with "Cisco".
-        print("Consolidating organisations:")
+        print("Consolidating organisations (pass 2)")
         for org_name in self._org_db.get_organisations():
-            for name, domain in self._org_domains:
+            for name, domain in self._orgs:
                 if org_name.startswith(f"{name} "):
+                    self._log.debug(f"Organisations match: \"{name}\" -> \"{org_name}\"")
                     self._org_db.organisations_match(org_name, name)
+
+        print("Consolidating organisations (pass 3)")
+        for domain in orgs_for_domain:
+            # If the domain is only used by a single organisation and that
+            # organisation has not already been assigned a domain, assign
+            # to that organisation.
+            if len(orgs_for_domain[domain]) == 1:
+                name = orgs_for_domain[domain][0]
+                if not self._org_db.organisation_has_domain(name):
+                    self._org_db.add_domain_for_organisation(name, domain)
 
 
     def dump(self, path:Path):
@@ -402,7 +413,7 @@ class OrganisationMatcher:
 
 
 # =============================================================================
-# Code to extract affiliations from the datatracker:
+# Code to extract organisations from the datatracker:
 
 if __name__ == "__main__":
     print(f"*** ietfdata.tools.organisations")
