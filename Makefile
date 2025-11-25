@@ -45,23 +45,23 @@ data:
 	mkdir $@
 
 data/ietfdata-ma.sqlite: | data
-	python3 -m ietfdata.tools.download_ma $@
+	@python3 -m ietfdata.tools.download_ma $@
 
 data/ietfdata-dt.sqlite: | data
-	python3 -m ietfdata.tools.download_dt $@
+	@python3 -m ietfdata.tools.download_dt $@
 
 data/participants.json: data/ietfdata-dt.sqlite data/ietfdata-ma.sqlite
-	python3 -m ietfdata.tools.participants  $^ $@
+	@python3 -m ietfdata.tools.participants  $^ $@
 
 data/organisations.json: data/ietfdata-dt.sqlite
-	python3 -m ietfdata.tools.organisations $^ $@
+	@python3 -m ietfdata.tools.organisations $^ $@
 
 data/affiliations.json: data/ietfdata-dt.sqlite data/participants.json data/organisations.json
-	python3 -m ietfdata.tools.affiliations $^ $@
+	@python3 -m ietfdata.tools.affiliations $^ $@
 
 # Can this rule and ietfdata/tools/participants_affiliations.py be removed?
 data/affiliations2.json: data/ietfdata-dt.sqlite data/participants.json data/organisations.json
-	python3 -m ietfdata.tools.participants_affiliations $^ $@
+	@python3 -m ietfdata.tools.participants_affiliations $^ $@
 
 # =================================================================================================
 # Rules to clean-up:
