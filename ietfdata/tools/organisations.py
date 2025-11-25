@@ -387,14 +387,20 @@ class OrganisationMatcher:
                             if name not in orgs_for_domain[domain]:
                                 orgs_for_domain[domain].append(name)
 
-        # Merge organisations that start with an organisation that matched its domain.
-        # e.g., "Cisco Belgique" starts with "Cisco", which matched "cisco.com", so
-        # should be merged with "Cisco".
         print("Consolidating organisations (pass 2)")
         for org_name in self._org_db.get_organisations():
             for name, domain in self._orgs:
-                if org_name.startswith(f"{name} "):
-                    self._log.debug(f"Organisations match: \"{name}\" -> \"{org_name}\"")
+                if org_name == name:
+                    self._org_db.organisations_match(org_name, name)
+                elif org_name.lower() == name.lower():
+                    # Merge organisations that differ only in case
+                    self._log.debug(f"Organisations match (case): \"{name}\" -> \"{org_name}\"")
+                    self._org_db.organisations_match(org_name, name)
+                elif org_name.startswith(f"{name} "):
+                    # Merge organisations that start with an organisation that matched its domain.
+                    # e.g., "Cisco Belgique" starts with "Cisco", which matched "cisco.com", so
+                    # should be merged with "Cisco".
+                    self._log.debug(f"Organisations match (prefix): \"{name}\" -> \"{org_name}\"")
                     self._org_db.organisations_match(org_name, name)
 
         print("Consolidating organisations (pass 3)")
