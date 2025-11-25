@@ -23,7 +23,16 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+DATA = data/ietfdata-dt.sqlite \
+       data/ietfdata-ma.sqlite \
+       data/participants.json  \
+       data/organisations.json \
+       data/affiliations.json
+
+
 test: typecheck runtests
+
+test-all: $(DATA) test
 
 typecheck:
 	mypy ietfdata/*.py ietfdata/tools/*.py
@@ -31,8 +40,6 @@ typecheck:
 
 runtests:
 	@python3 -m unittest discover -s tests/ -v
-
-test-all: test data/affiliations.json
 
 data:
 	mkdir $@
@@ -60,11 +67,7 @@ data/affiliations2.json: data/ietfdata-dt.sqlite data/participants.json data/org
 # Rules to clean-up:
 
 clean:
-	rm -f data/ietfdata-ma.sqlite
-	rm -f data/ietfdata-dt.sqlite
-	rm -f data/participants.json
-	rm -f data/organisations.json
-	rm -f data/affiliations.json
+	rm -f $(DATA)
 	rm -f data/affiliations2.json
 
 # =================================================================================================
