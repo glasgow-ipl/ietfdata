@@ -30,7 +30,7 @@ import textwrap
 
 from datetime import datetime, date
 from pathlib  import Path
-from typing   import List, Dict, Optional, Iterator
+from typing   import Dict, Dict, Optional, Iterator, Any
 
 from ietfdata.datatracker import *
 from ietfdata.rfcindex    import *
@@ -194,7 +194,7 @@ class Affiliations:
             json.dump(res, outf, indent=3)
 
 
-    def get_conflicts(self) -> Dict[str, any]:
+    def get_conflicts(self) -> Dict[str, Any]:
         conflicts = {}
         for pid, aff in self._affiliations_for_person.items():
             conflict_list = aff.get_conflicts()
@@ -345,5 +345,5 @@ if __name__ == "__main__":
             log.info(f"      {org2}")
             for name in organisations[org2]["names"]:
                 log.info(f"        {name}")
-    log.info(f"Found {ccount} people with conflicts")
+    log.warning(f"Found {ccount} people with conflicts")
 
