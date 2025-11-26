@@ -39,12 +39,14 @@ class AffiliationsForPerson:
     _log: logging.Logger
     _pid: str
     _aff: List[Dict[str,str]]
+    _conflicts: List[Tuple[str, str, str]]
 
     def __init__(self, pid:str) -> None:
         logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
         self._log = logging.getLogger("ietfdata")
         self._pid = pid
         self._aff = []
+        self._conflicts = []
 
 
     def _add_at_start(self, date_:date, org_id:str) -> None:
@@ -93,7 +95,8 @@ class AffiliationsForPerson:
                     self._log.debug(f"{self._pid} duplicate affiliation {old_aff['org']} on {date_}")
                     new_aff.append(old_aff)
                 else:
-                    self._log.warning(f"{self._pid} conflicting affiliation: {org_id} != {old_aff['org']} on {date_}")
+                    self._log.info(f"{self._pid} conflicting affiliation: {org_id} != {old_aff['org']} on {date_}")
+                    self._conflicts.append((org_id, old_aff['org'], date_.isoformat()))
             elif date_.isoformat() == old_aff["start"] and date_.isoformat() < old_aff["end"]:
                 found = True
                 if org_id != old_aff["org"]:
@@ -158,6 +161,10 @@ class AffiliationsForPerson:
         return res
 
 
+    def get_conflicts(self) -> List[Tuple[str, str, str]]:
+        return self._conflicts
+
+
     def print(self) -> None:
         for aff in self._aff:
             print(f"   {aff}")
@@ -185,6 +192,17 @@ class Affiliations:
 
         with open(affiliations_json, "w") as outf:
             json.dump(res, outf, indent=3)
+
+
+    def get_conflicts(self) -> Dict[str, any]:
+        conflicts = {}
+        for pid, aff in self._affiliations_for_person.items():
+            conflict_list = aff.get_conflicts()
+            if len(conflict_list) > 0:
+                conflicts[pid] = conflict_list
+        return conflicts
+
+
 
 
 def rfc_date(year:int, month:str) -> date:
@@ -282,6 +300,10 @@ if __name__ == "__main__":
     print("Finding affiliations in internet-draft submissions")
     for submission in dt.submissions():
         log.info(f"{submission.name}-{submission.rev}")
+        if submission.state != "/api/v1/name/draftsubmissionstatename/posted/":
+            # Skip submissions that are not posted to the archive
+            log.debug(f"Skipped submission in state {submission.state}")
+            continue
         for authors in submission.parse_authors():
             if "affiliation" not in authors:
                 continue
@@ -308,4 +330,20 @@ if __name__ == "__main__":
         af.add(date_, pid, oid)
 
     af.save(sys.argv[4])
+
+    log.info("Identifying conflicting affiliations")
+    conflicts = af.get_conflicts()
+    ccount = 0
+    for pid, conflicts in conflicts.items():
+        ccount += 1
+        log.info(f"  {pid} {participants[pid]["names"][0]}")
+        for org1, org2, date_ in conflicts:
+            log.info(f"    {date_}")
+            log.info(f"      {org1}")
+            for name in organisations[org1]["names"]:
+                log.info(f"        {name}")
+            log.info(f"      {org2}")
+            for name in organisations[org2]["names"]:
+                log.info(f"        {name}")
+    log.info(f"Found {ccount} people with conflicts")
 
