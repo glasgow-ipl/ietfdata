@@ -293,6 +293,10 @@ class OrganisationMatcher:
         print("Finding affiliations in internet-drafts")
         for submission in dt.submissions():
             self._log.info(f"{submission.name}-{submission.rev}")
+            if submission.state != "/api/v1/name/draftsubmissionstatename/posted/":
+                # Skip submissions that are not posted to the archive
+                self._log.debug(f"Skipped submission in state {submission.state}")
+                continue
             for author in submission.parse_authors():
                 if "affiliation" not in author:
                     continue
