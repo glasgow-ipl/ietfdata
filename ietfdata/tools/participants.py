@@ -65,8 +65,12 @@ class Participant:
             self.log.debug(f"Participant({id(self)}) add_identifier: {ident_type} -> {ident_value}")
         else:
             if ident_value not in self.identifiers[ident_type]:
-                self.identifiers[ident_type].append(ident_value)
                 self.log.debug(f"Participant({id(self)}) add_identifier: {ident_type} -> {ident_value}")
+                if ident_type == "dt_person_uri" and len(self.identifiers[ident_type]) > 1:
+                    self.log.warning(f"Participant({id(self)}) adding additional dt_person_uri {ident_value}")
+                    for dt_person_uri in self.identifiers[ident_type]:
+                        self.log.warning(f"Participant({id(self)})          existing dt_person_uri {dt_person_uri}")
+                self.identifiers[ident_type].append(ident_value)
             else:
                 self.log.debug(f"Participant({id(self)}) has_identifier: {ident_type} -> {ident_value}")
 
