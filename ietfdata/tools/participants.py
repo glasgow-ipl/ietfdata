@@ -335,6 +335,7 @@ if __name__ == "__main__":
         ignore.append(f"{n}-archive@ietf.org")
         ignore.append(f"{n}-archive@lists.ietf.org")
         ignore.append(f"{n}-archive@megatron.ietf.org")
+        ignore.append(f"{n}-bounces@ietf.org")
         ignore.append(f"{n}-request@ietf.org")
 
     for ml_name in ma.mailing_list_names():
@@ -352,6 +353,10 @@ if __name__ == "__main__":
             if email_addr == "":
                 continue
             if email_addr in ignore:
+                continue
+            if email_addr.startswith(f"{ml_name}-bounces@"):
+                continue
+            if email_addr.lower().startswith("mailer-daemon@"):
                 continue
             if email_addr in seen_addr:
                 # This address is already associated with a datatracker uri
