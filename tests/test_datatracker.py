@@ -1335,7 +1335,7 @@ class TestDatatracker(unittest.TestCase):
             #self.assertEqual(s.abstract,        "Internet technical specifications often need to...")
             self.assertEqual(s.access_key,      "f77d08da6da54f3cbecca13d31646be8")
             self.assertEqual(s.auth_key,        "fMm6hur5dJ7gV58x5SE0vkHUoDOrSuSF")
-            self.assertEqual(s.authors,         "[{'email': 'dcrocker@bbiw.net', 'name': 'Dave Crocker'}, {'email': 'paul.overell@thus.net', 'name': 'Paul Overell'}]")
+            self.assertEqual(s.authors,         "[{'name': 'Dave Crocker', 'email': 'dcrocker@bbiw.net'}, {'name': 'Paul Overell', 'email': 'paul.overell@thus.net'}]")
             self.assertEqual(s.checks,          [SubmissionCheckURI(uri="/api/v1/submit/submissioncheck/386/")])
             self.assertEqual(s.document_date,   date.fromisoformat("2007-10-09"))
             self.assertEqual(s.draft,           DocumentURI(uri="/api/v1/doc/document/draft-crocker-rfc4234bis/"))
@@ -1779,15 +1779,14 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_roles_email(self) -> None:
         group_roles = list(self.dt.group_roles(email="csp@csperkins.org"))
-        self.assertEqual(len(group_roles), 8)
+        self.assertEqual(len(group_roles), 7)
         self.assertEqual(group_roles[0].id, 1076)  # SAFE BoF chair
         self.assertEqual(group_roles[1].id, 3998)  # TSV DIR reviewer
         self.assertEqual(group_roles[2].id, 9355)  # RMCAT chair
         self.assertEqual(group_roles[3].id, 11103) # TSV ART reviewer
-        self.assertEqual(group_roles[4].id, 11680) # IRTF ANRW chair
-        self.assertEqual(group_roles[5].id, 12915) # IAB-ISOC Policy Coordination
-        self.assertEqual(group_roles[6].id, 13098) # IAB E-Impact workshop
-        self.assertEqual(group_roles[7].id, 14156) # IRSG at-large member
+        self.assertEqual(group_roles[4].id, 12915) # IAB-ISOC Policy Coordination
+        self.assertEqual(group_roles[5].id, 13098) # IAB E-Impact workshop
+        self.assertEqual(group_roles[6].id, 14156) # IRSG at-large member
 
 
     def test_group_roles_group(self) -> None:
@@ -1814,15 +1813,14 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_roles_person(self) -> None:
         group_roles = list(self.dt.group_roles(person=self.dt.person(PersonURI(uri="/api/v1/person/person/20209/"))))
-        self.assertEqual(len(group_roles), 8)
+        self.assertEqual(len(group_roles), 7)
         self.assertEqual(group_roles[0].id, 1076)  # SAFE BoF chair
         self.assertEqual(group_roles[1].id, 3998)  # TSV DIR reviewer
         self.assertEqual(group_roles[2].id, 9355)  # RMCAT chair
         self.assertEqual(group_roles[3].id, 11103) # TSV ART reviewer
-        self.assertEqual(group_roles[4].id, 11680) # IRTF ANRW chair
-        self.assertEqual(group_roles[5].id, 12915) # IAB-ISOC Policy Coordination
-        self.assertEqual(group_roles[6].id, 13098) # IAB E-Impact workshop
-        self.assertEqual(group_roles[7].id, 14156) # IRSG at-large member
+        self.assertEqual(group_roles[4].id, 12915) # IAB-ISOC Policy Coordination
+        self.assertEqual(group_roles[5].id, 13098) # IAB E-Impact workshop
+        self.assertEqual(group_roles[6].id, 14156) # IRSG at-large member
 
 
     def test_group_milestone_history(self) -> None:
@@ -1928,7 +1926,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_email(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(email="csp@csperkins.org"))
-        self.assertEqual(len(group_role_histories), 125)
+        self.assertEqual(len(group_role_histories), 128)
 
 
     def test_group_role_histories_group(self) -> None:
@@ -1944,7 +1942,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_person(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(person=self.dt.person(PersonURI(uri="/api/v1/person/person/20209/"))))
-        self.assertEqual(len(group_role_histories), 125)
+        self.assertEqual(len(group_role_histories), 128)
 
 
     def test_group_state_change_event(self) -> None:
@@ -1983,7 +1981,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_groups_state(self) -> None:
         groups = list(self.dt.groups(group_state=self.dt.group_state(GroupStateURI(uri="/api/v1/name/groupstatename/abandon/"))))
-        self.assertEqual(len(groups), 15)
+        self.assertEqual(len(groups), 16)
         self.assertEqual(groups[ 0].id, 1949)
         self.assertEqual(groups[ 1].id, 2009)
         self.assertEqual(groups[ 2].id, 2018)
@@ -1999,6 +1997,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(groups[12].id, 2387)    # CONGRESS was renamed to CCWG while chartering
         self.assertEqual(groups[13].id, 2389)    # NIMBY was renamed to IVY while chartering
         self.assertEqual(groups[14].id, 2400)    # MULTIFORMATS
+        self.assertEqual(groups[15].id, 2501)    # 
 
 
     def test_groups_parent(self) -> None:
