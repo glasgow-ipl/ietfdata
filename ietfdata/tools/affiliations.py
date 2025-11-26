@@ -345,5 +345,6 @@ if __name__ == "__main__":
             log.info(f"      {org2}")
             for name in organisations[org2]["names"]:
                 log.info(f"        {name}")
-    log.warning(f"Found {ccount} people with conflicts")
+    if ccount > 0:
+        log.warning(f"Found {ccount} people with conflicting affiliations")
 
