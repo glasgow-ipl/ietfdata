@@ -62,6 +62,8 @@ class TestMailArchive3(unittest.TestCase):
         dbc = self.db.cursor()
         sql = "SELECT message FROM ietf_ma_msg WHERE mailing_list = ? and uidvalidity = ? and uid = ?;"
         res = dbc.execute(sql, (ml_name, uidvalidity, uid)).fetchall()
+        if len(res) == 0:
+            self.fail(f"Cannot find message {ml_name}/{uid} with uidvalidity={uidvalidity}")
         msg = _parse_message(uidvalidity, uid, res[0][0])
         self.assertEqual(msg["from_name"], name)
         self.assertEqual(msg["from_addr"], addr)
