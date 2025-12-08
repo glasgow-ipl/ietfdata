@@ -413,7 +413,7 @@ class TestMailArchive3(unittest.TestCase):
     def test_mailarchive3_envelope_date_received(self) -> None:
         msgs = self.ma.message("<CAMr0u6mtvLBNnurVjw3rq5PmSF6okisAg5OVRzoqVvzpR7+r=A@mail.gmail.com>")
         self.assertEqual(len(msgs), 1)
-        self.assertEqual(msgs[0].date_received(), datetime.fromisoformat("2025-04-18T06:30:21Z"))
+        self.assertEqual(msgs[0].date_received(), datetime.fromisoformat("2025-04-18T05:30:21+00:00"))
 
 
     def test_mailarchive3_envelope_size(self) -> None:
