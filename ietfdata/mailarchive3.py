@@ -925,11 +925,18 @@ class MailingList:
             msg_remote = set(imap.search('NOT DELETED'))
             msg_to_fetch = list(msg_remote - msg_local)
 
-            self._archive._log.debug(f"mailarchive3:update: {len(msg_to_fetch)} messages to fetch")
+            self._archive._log.info(f"mailarchive3:update: {len(msg_local)} messages in archive")
+            self._archive._log.info(f"mailarchive3:update: {len(msg_remote)} messages on server")
+            self._archive._log.info(f"mailarchive3:update: {len(msg_to_fetch)} messages to fetch")
+
+            unknown_msgs = list(msg_local - msg_remote)
+            if len(unknown_msgs) > 0:
+                self._archive._log.warning(f"mailarchive3:update: {len(unknown_msgs)} unknown local messages ")
+
             for i in range(0, len(msg_to_fetch), 16):
                 uid_slice = msg_to_fetch[slice(i, i+16, 1)]
                 for uid, msg in imap.fetch(uid_slice, "INTERNALDATE RFC822.SIZE RFC822").items():
-                    self._archive._log.info(f"mailarchive3:update: {self._name}/{uid}")
+                    self._archive._log.info(f"mailarchive3:update: {self._name}/{uid} (uidvalidity={uidvalidity})")
                     rxd = msg[b'INTERNALDATE'].astimezone(UTC).isoformat()
                     cur = self._archive._db.cursor()
                     sql = "INSERT INTO ietf_ma_msg VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING message_num"
