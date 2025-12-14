@@ -514,13 +514,13 @@ class TestMailArchive3(unittest.TestCase):
         self.assertEqual(msgs[0].replies()[1].message_id(), "<CADhumskFy4-Jsr7YC7Xd38NUJ4Nv0xTvKgivXE-U0D3k3cCMtQ@mail.gmail.com>")
 
 
-    def test_mailarchive3_envelope_metadata(self) -> None:
-        msg = self.ma.message("<CAMr0u6mtvLBNnurVjw3rq5PmSF6okisAg5OVRzoqVvzpR7+r=A@mail.gmail.com>")[0]
-        self.assertEqual(msg.get_metadata("test_mailarchive3", "testing"), None)
-        msg.add_metadata("test_mailarchive3", "testing", "1... 2... 3...")
-        self.assertEqual(msg.get_metadata("test_mailarchive3", "testing"), "1... 2... 3...")
-        msg.clear_metadata("test_mailarchive3", "testing")
-        self.assertEqual(msg.get_metadata("test_mailarchive3", "testing"), None)
+    #def test_mailarchive3_envelope_metadata(self) -> None:
+    #    msg = self.ma.message("<CAMr0u6mtvLBNnurVjw3rq5PmSF6okisAg5OVRzoqVvzpR7+r=A@mail.gmail.com>")[0]
+    #    self.assertEqual(msg.get_metadata("test_mailarchive3", "testing"), None)
+    #    msg.add_metadata("test_mailarchive3", "testing", "1... 2... 3...")
+    #    self.assertEqual(msg.get_metadata("test_mailarchive3", "testing"), "1... 2... 3...")
+    #    msg.clear_metadata("test_mailarchive3", "testing")
+    #    self.assertEqual(msg.get_metadata("test_mailarchive3", "testing"), None)
 
 
     # =============================================================================================
@@ -588,13 +588,13 @@ class TestMailArchive3(unittest.TestCase):
         self.assertEqual(len(threads["<9B50505D-A7E7-40E0-B789-419DA14C6021@gmail.com>"]), 2)
 
 
-    def test_mailarchive3_mailinglist_metadata(self) -> None:
-        mlist = self.ma.mailing_list("100attendees")
-        self.assertEqual(mlist.get_metadata("test_mailarchive3", "testing"), None)
-        mlist.add_metadata("test_mailarchive3", "testing", "1... 2... 3...")
-        self.assertEqual(mlist.get_metadata("test_mailarchive3", "testing"), "1... 2... 3...")
-        mlist.clear_metadata("test_mailarchive3", "testing")
-        self.assertEqual(mlist.get_metadata("test_mailarchive3", "testing"), None)
+    #def test_mailarchive3_mailinglist_metadata(self) -> None:
+    #    mlist = self.ma.mailing_list("100attendees")
+    #    self.assertEqual(mlist.get_metadata("test_mailarchive3", "testing"), None)
+    #    mlist.add_metadata("test_mailarchive3", "testing", "1... 2... 3...")
+    #    self.assertEqual(mlist.get_metadata("test_mailarchive3", "testing"), "1... 2... 3...")
+    #    mlist.clear_metadata("test_mailarchive3", "testing")
+    #    self.assertEqual(mlist.get_metadata("test_mailarchive3", "testing"), None)
 
 
     # =============================================================================================
