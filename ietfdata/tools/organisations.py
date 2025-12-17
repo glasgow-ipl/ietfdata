@@ -449,12 +449,12 @@ class OrganisationMatcher:
                         domain = f"{parts[-2]}.{parts[-1]}".lower()
                         if name.lower() == parts[-2].lower():
                             # Organisation name directly matches domain
-                            self._log.warning(f"Organisation matches domain (1): {domain} -> {name}")
+                            self._log.debug(f"Organisation matches domain (1): {domain} -> {name}")
                             self._org_db.add_domain_for_organisation(name, domain)
                             orgs_matching_domain[name] = domain
                         elif name.replace(" ", "").lower() == parts[-2].lower():
                             # Organisation name with spaces removes matches domain
-                            self._log.warning(f"Organisation matches domain (2): {domain} -> {name}")
+                            self._log.debug(f"Organisation matches domain (2): {domain} -> {name}")
                             self._org_db.add_domain_for_organisation(name, domain)
                             orgs_matching_domain[name] = domain
         self.print_stats()
@@ -466,7 +466,7 @@ class OrganisationMatcher:
         for name, email in self._orgs:
             for org_name, domain in orgs_matching_domain.items():
                 if name.lower().startswith(f"{org_name} ".lower()):
-                    self._log.warning(f"Organisation prefix matches domain: {name} -> {domain}")
+                    self._log.debug(f"Organisation prefix matches domain: {name} -> {domain}")
                     self._org_db.organisations_match(org_name, name)
         self.print_stats()
 
@@ -491,7 +491,7 @@ class OrganisationMatcher:
         for domain, orgs in orgs_for_domain.items():
             emails = email_for_domain[domain]
             if len(orgs) == 1 and len(emails) > 1 and orgs[0] not in orgs_matching_domain:
-                self._log.warning(f"Found single organisation domain: {orgs[0]} -> {domain}")
+                self._log.debug(f"Found single organisation domain: {orgs[0]} -> {domain}")
                 self._org_db.add_domain_for_organisation(orgs[0], domain)
         self.print_stats()
 
