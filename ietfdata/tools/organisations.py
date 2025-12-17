@@ -204,12 +204,27 @@ class OrganisationDB:
 def variant_names(name:str) -> List[str]:
     variants = []
 
-    # Generate variants based on known suffixes
-    for suffix in ["Ltd", "LLC", "Inc", "Pty", "GmbH", "Company", "Co.,Ltd", "z.s.p.o", "TZI"]:
+    # Generate variants based on known suffixes. If the name ends in a known
+    # suffix, generate the variant without that suffix and variants with all
+    # other suffices; if the name doesn't end with a known suffix, generate
+    # variants with all possible suffixes.
+    suffixes = ["Ltd", "LLC", "Inc", "Pty", "GmbH", "Company", "Co.,Ltd", "z.s.p.o", "TZI", "SA", "AG"]
+    for suffix in suffixes:
+        found = False
         for variant in [f", {suffix}.", f", {suffix}", f" {suffix}.", f" {suffix}"]:
             if name.endswith(variant):
+                found = True
                 bare_name = name[:-len(variant)]
                 variants.append(bare_name)
+                for o_suffix in suffixes:
+                    for variant in [f", {o_suffix}.", f", {o_suffix}", f" {o_suffix}.", f" {o_suffix}"]:
+                        if not name.endswith(variant):
+                            full_name = f"{bare_name}{variant}"
+                            variants.append(full_name)
+        if not found:
+            for variant in [f", {suffix}.", f", {suffix}", f" {suffix}.", f" {suffix}"]:
+                full_name = f"{name}{variant}"
+                variants.append(full_name)
 
     # Generate variants ending with known abbreviations
     for abbr, full in [("Corp", "Corporation"),
@@ -218,6 +233,10 @@ def variant_names(name:str) -> List[str]:
             if name.endswith(variant):
                 full_name = f"{name[:-len(variant)]} {full}"
                 variants.append(full_name)
+        if name.endswith(f" {full}"):
+            for variant in [f", {abbr}.", f", {abbr}", f" {abbr}.", f" {abbr}"]:
+                abbr_name = f"{name[:-(len(full)+1)]}{variant}"
+                variants.append(abbr_name)
 
     # Generate variants based on known prefixes
     for prefix in ["The", "TZI", "TZI/", "TZI,"]:
@@ -226,7 +245,7 @@ def variant_names(name:str) -> List[str]:
                 bare_name = name[len(variant):]
                 variants.append(bare_name)
 
-    # Generate variants starting with known abbreviations
+    # Generate variants for names starting with known abbreviations
     for abbr, full in [("Univ",       "University"),
                        ("Univ",       "Université"),
                        ("Univ",       "Universität"),
@@ -397,7 +416,11 @@ class OrganisationMatcher:
 
         # Generate other variants and record matches:
         print("Consolidating organisations: pass 2b (variant names)")
+        seen = set()
         for name, email in self._orgs:
+            if name in seen:
+                continue
+            seen.add(name)
             for variant in variant_names(name):
                 for other_name, other_email in self._orgs:
                     if variant == other_name:
@@ -424,7 +447,10 @@ class OrganisationMatcher:
 
         # Merge organisations that differ only in case
         print("Consolidating organisations: pass 2c (case folding)")
+        seen = set()
         for name, email in self._orgs:
+            if name in seen:
+                continue
             lname = name.lower()
             for other_name, other_email in self._orgs:
                 if name == other_name:
