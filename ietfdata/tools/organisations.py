@@ -466,8 +466,8 @@ class OrganisationMatcher:
         for name, email in self._orgs:
             for org_name, domain in orgs_matching_domain.items():
                 if name.lower().startswith(f"{org_name} ".lower()):
-                    self._log.debug(f"Organisation prefix matches domain: {name} -> {domain}")
-                    self._org_db.organisations_match(org_name, name)
+                    self._log.debug(f"Organisation prefix matches domain: {name} -> {org_name} -> {domain}")
+                    self._org_db.add_domain_for_organisation(name, domain)
         self.print_stats()
 
         # If the domain is used by multiple email addresses with a single organisation
