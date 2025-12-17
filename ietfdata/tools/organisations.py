@@ -496,30 +496,31 @@ class OrganisationMatcher:
         self.print_stats()
 
         # FIXME: not clear this gives useful mappings
-        #   print("Consolidating organisations (pass 4)")
-        #   # Map names to acronyms. This merges, e.g., "ISC" and "Internet Systems Consortium".
-        #   expansions = {}
-        #   for name, domain in self._orgs:
-        #       if name.isalpha() and name.isascii() and name.isupper():
-        #           # `name` is all upper case ASCII with no spaces, potentially an acronym
-        #           for org_name in self._org_db.get_all_organisations():
-        #               new_name = org_name.strip().replace("\n", " ")
-        #               while "\t" in new_name:
-        #                   new_name = new_name.replace("\t", " ")
-        #               while "  " in new_name:
-        #                   new_name = new_name.replace("  ", " ")
-        #   
-        #               acronym = "".join(map(lambda x : x[0].upper(), new_name.split(" ")))
-        #               if name == acronym:
-        #                   if acronym in expansions:
-        #                       expansions[acronym].append(org_name)
-        #                   else:
-        #                       expansions[acronym] = [org_name]
-        #   for acronym, names in expansions.items():
-        #       if len(names) == 1:
-        #           # Only consider cases where there is a unique expansion for the acronym
-        #           org = self._org_db.get_organisation(names[0])
-        #           print(f"*********** {acronym} -> {names[0]} -> {org.names()}")
+        # print("Consolidating organisations: pass 4 (unique acronyms)")
+        # # Map names to acronyms. This merges, e.g., "ISC" and "Internet Systems Consortium".
+        # expansions = {}
+        # for name, domain in self._orgs:
+        #     if name.isalpha() and name.isascii() and name.isupper():
+        #         # `name` is all upper case ASCII with no spaces, potentially an acronym
+        #         for org_name in self._org_db.get_all_organisations():
+        #             new_name = org_name.strip().replace("\n", " ")
+        #             while "\t" in new_name:
+        #                 new_name = new_name.replace("\t", " ")
+        #             while "  " in new_name:
+        #                 new_name = new_name.replace("  ", " ")
+        #             acronym = "".join(map(lambda x : x[0].upper(), new_name.split(" ")))
+        #             if name == acronym:
+        #                 self._log.warning(f"Possible acronym: {acronym} -> {org_name}")
+        #                 if acronym in expansions:
+        #                     expansions[acronym].append(org_name)
+        #                 else:
+        #                     expansions[acronym] = [org_name]
+        # for acronym, names in expansions.items():
+        #     if len(names) == 1:
+        #         # Only consider cases where there is a unique expansion for the acronym
+        #         org = self._org_db.get_organisation(names[0])
+        #         self._log.warning(f"Found unique acronym: {acronym} -> {org}")
+        #         self._org_db.organisations_match(acronym, org)
 
 
     def dump(self, path:Path):
