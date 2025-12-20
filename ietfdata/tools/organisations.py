@@ -208,7 +208,7 @@ def variant_names(name:str) -> List[str]:
     # suffix, generate the variant without that suffix and variants with all
     # other suffices; if the name doesn't end with a known suffix, generate
     # variants with all possible suffixes.
-    suffixes = ["Ltd", "LTD", "LLC", "Inc", "Pty", "GmbH", "Company", "Co.,Ltd", "z.s.p.o", "TZI", "SA", "AG", "AB", "L.L.C."]
+    suffixes = ["Ltd", "LTD", "LLC", "Inc", "Pty", "GmbH", "Company", "Co.,Ltd", "z.s.p.o", "TZI", "SA", "S.L.", "SSE", "AG", "AB", "L.L.C."]
     for suffix in suffixes:
         found = False
         for variant in [f", {suffix}.", f", {suffix}", f" {suffix}.", f" {suffix}"]:
@@ -296,7 +296,9 @@ def variant_names(name:str) -> List[str]:
                        ("Technology",                        "Technologies"),
                        ("BrightTiger",                       "Bright Tiger"),
                        ("NC State",                          "North Carolina State"),
-                       ("USC/ISI",                           "USC/Information Sciences Institute"),
+                       ("USC/ISI",                           "USC Information Sciences Institute"),
+                       ("USC-ISI",                           "USC Information Sciences Institute"),
+                       ("ISI",                               "USC Information Sciences Institute"),
                        ("uc3m",                              "Universidad Carlos III de Madrid"),
                        ("CDT",                               "Center for Democracy and Technology"),
                        ("PIR",                               "Public Interest Registry"),
@@ -314,6 +316,7 @@ def variant_names(name:str) -> List[str]:
                        ("Individual",                        "Individual Contributor"),
                        ("Futureway Technologies",            "Futurewei"),
                        ("Fururewei Technologies Inc",        "Futurewei"),
+                       ("Fijitsu",                           "Fujitsu"),
                        ("Lab",                               "Laboratory"),
                        ("Labs",                              "Laboratories"),
                        ("ETRI",                              "Electronics and Telecommunications Research Institute"),
@@ -334,8 +337,9 @@ def variant_names(name:str) -> List[str]:
                        ("UPC/i2CAT",                         "Universitat Politecnica de Catalunya"),
                        ("UPC",                               "Universitat Politecnica de Catalunya"),
                        ("UCLouvain",                         "Universite Catholique de Louvain"),
+                       ("UCL",                               "University College London"),
                        ("Fraunhofer SIT",                    "Fraunhofer Institute for Secure Information Technology"),
-                       ("ZTE  Corporation",                  "ZTE Corporation"),
+                       ("ZTE  Corporation",                  "ZTE"),
                        ("Telefónica",                        "Telefonica"),
                        ("Telecom SudParis",                  "Telecom Sud Paris"),
                        ("John Hopkins University",           "Johns Hopkins University"),
@@ -349,6 +353,7 @@ def variant_names(name:str) -> List[str]:
                        ("deSEC, Secure Systems Engineering", "SSE - Secure Systems Engineering GmbH"),
                        ("deSEC, SSE",                        "SSE - Secure Systems Engineering GmbH"),
                        ("Zuerich",                           "Zürich"),
+                       ("Telecom Italia",                    "Telecom Italia - TIM"),
                        ("TIM - Telecom Italia",              "Telecom Italia - TIM"),
                        ("Universite de Liege",               "Université de Liège"),
                        ("Team Digitale, Italian Government", "Digital Transformation Department, Italian Government"),
@@ -357,6 +362,9 @@ def variant_names(name:str) -> List[str]:
                        ("NDSC P.R. China",                   "National Digital Switching System Engineering and Technological"),
                        ("HPE",                               "Hewlett Packard Enterprise"),
                        ("Alpabet Inc",                       "Alphabet Inc"),
+                       ("Sabancı",                           "Sabanci"),
+                       ("King’s College London",             "King's College London"),
+                       ("universidad autonoma de madrid",    "Universidad Autónoma de Madrid"),
                        (" & ",                               " and "),
                        (" / ",                               "/")]:
         if orig in name:
