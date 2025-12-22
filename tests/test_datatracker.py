@@ -46,7 +46,7 @@ class TestDatatracker(unittest.TestCase):
     @classmethod
     def setUpClass(self) -> None:
         self.dt = DataTracker(DTBackendLive())
-        #self.dt = DataTracker(DTBackendArchive("data/ietfdata-st.sqlite"))
+        #self.dt = DataTracker(DTBackendArchive("data/ietfdata-dt.sqlite"))
 
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to email addresses:
@@ -1926,7 +1926,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_email(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(email="csp@csperkins.org"))
-        self.assertEqual(len(group_role_histories), 128)
+        self.assertEqual(len(group_role_histories), 129)
 
 
     def test_group_role_histories_group(self) -> None:
@@ -1942,7 +1942,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_person(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(person=self.dt.person(PersonURI(uri="/api/v1/person/person/20209/"))))
-        self.assertEqual(len(group_role_histories), 128)
+        self.assertEqual(len(group_role_histories), 129)
 
 
     def test_group_state_change_event(self) -> None:
@@ -2984,16 +2984,17 @@ class TestDatatracker(unittest.TestCase):
 
     def test_review_result_types(self) -> None:
         types = list(self.dt.review_result_types())
-        self.assertEqual(len(types), 9)
+        self.assertEqual(len(types), 10)
         self.assertEqual(types[0].slug, "almost-ready")
-        self.assertEqual(types[1].slug, "issues")
-        self.assertEqual(types[2].slug, "nits")
-        self.assertEqual(types[3].slug, "not-ready")
-        self.assertEqual(types[4].slug, "ready")
-        self.assertEqual(types[5].slug, "ready-issues")
-        self.assertEqual(types[6].slug, "ready-nits")
-        self.assertEqual(types[7].slug, "right-track")
-        self.assertEqual(types[8].slug, "serious-issues")
+        self.assertEqual(types[1].slug, "clarification-needed")
+        self.assertEqual(types[2].slug, "issues")
+        self.assertEqual(types[3].slug, "nits")
+        self.assertEqual(types[4].slug, "not-ready")
+        self.assertEqual(types[5].slug, "ready")
+        self.assertEqual(types[6].slug, "ready-issues")
+        self.assertEqual(types[7].slug, "ready-nits")
+        self.assertEqual(types[8].slug, "right-track")
+        self.assertEqual(types[9].slug, "serious-issues")
 
 
     def test_review_type(self) -> None:
