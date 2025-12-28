@@ -36,8 +36,12 @@ from ietfdata.rfcindex        import *
 dt = DataTrackerExt(DTBackendArchive("data/ietfdata-dt.sqlite"))
 ri = RFCIndex()
 
-rfc = ri.rfc("RFC8941")
-if rfc is not None:
-    for d in dt.draft_history_for_rfc(rfc):
-        print("    {0: <50} | {1} | {2}".format(d.draft.name, d.rev, d.date.strftime("%Y-%m-%d")))
+for rfc_num in ["RFC9553", "RFC9551", "RFC9441", "RFC9427", "RFC9198",
+                "RFC9000", "RFC8941", "RFC7982", "RFC7945", "RFC7740", "RFC7271"]:
+    print(rfc_num)
+    rfc = ri.rfc(rfc_num)
+    if rfc is not None:
+        for d in dt.draft_history_for_rfc(rfc):
+            print("    {0: <50} | {1} | {2}".format(d.draft.name, d.rev, d.date.strftime("%Y-%m-%d")))
+    print("")
 
