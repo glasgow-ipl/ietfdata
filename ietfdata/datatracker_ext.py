@@ -105,7 +105,7 @@ class DataTrackerExt(DataTracker):
         super().__init__(backend)
 
 
-    def draft_history(self, draft: Document, drafts_seen: List[Document] = []) -> List[DraftHistory]:
+    def draft_history(self, draft: Document, drafts_seen: List[Document] = [], latest=None) -> List[DraftHistory]:
         """
         Find the previous versions of an Internet-Draft
         """
@@ -118,9 +118,15 @@ class DataTrackerExt(DataTracker):
         else:
             drafts_seen.append(draft)
 
+        new_latest = None
         # Step 1: Use document_events() to find previous versions of the draft.
         for event in self.document_events(doc=draft, event_type="new_revision"):
-            drafts.append(DraftHistory(draft, event.rev, event.time.date(), None))
+            if latest is not None and event.time.date() > latest:
+                self.log.warning(f"Skipped late submission {draft.name}-{event.rev} {event.time.date()}")
+            else:
+                drafts.append(DraftHistory(draft, event.rev, event.time.date(), None))
+            if new_latest is None or event.time.date() > new_latest:
+                new_latest = event.time.date()
 
         # Step 2: Find the submissions, and add them to the previously found
         # draft versions. Some versions of a draft may not have a submission.
@@ -132,6 +138,12 @@ class DataTrackerExt(DataTracker):
         for submission_uri in draft.submissions:
             submission = self.submission(submission_uri)
             if submission is not None:
+                if submission.state != "/api/v1/name/draftsubmissionstatename/posted/":
+                    self.log.warning(f"skippd submission {submission.resource_uri} in state {submission.state}")
+                    continue
+                if latest is not None and submission.submission_date > latest:
+                    self.log.warning(f"Skipped late submission {submission.name}-{submission.rev} {submission.submission_date}")
+                    continue
                 submissions.append(submission)
                 if submission.replaces != "":
                     for replaces_draft in submission.replaces.split(","):
@@ -143,6 +155,7 @@ class DataTrackerExt(DataTracker):
                                     found = True
                                     break
                             if not found:
+                                self.log.debug(f"submission of {draft.name} replaces {replaces_doc.name}")
                                 replaces.append(replaces_doc)
 
         for submission in submissions:
@@ -154,6 +167,8 @@ class DataTrackerExt(DataTracker):
                     break
             if not found:
                 drafts.append(DraftHistory(draft, submission.rev, submission.submission_date, submission))
+                if new_latest is None or submission.submission_date > new_latest:
+                    new_latest = submission.submission_date
 
         # Step 3: Use related_documents() to find additional drafts this replaces:
         for related in self.related_documents(source=draft, relationship_type=self.relationship_type_from_slug("replaces")):
@@ -165,12 +180,16 @@ class DataTrackerExt(DataTracker):
                         found = True
                         break
                 if not found:
+                    self.log.debug(f"{draft.name} replaces {reldoc.name}")
                     replaces.append(reldoc)
+
+        if latest is None:
+            latest = new_latest
 
         # Step 4: Process the drafts this replaces, to find earlier versions:
         for r in replaces:
             if r.name != draft.name:
-                drafts.extend(self.draft_history(r, drafts_seen=drafts_seen))
+                drafts.extend(self.draft_history(r, drafts_seen=drafts_seen, latest=latest))
 
         return list(reversed(sorted(drafts, key=lambda d: d.date)))
 
