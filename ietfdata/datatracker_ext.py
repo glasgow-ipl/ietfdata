@@ -148,21 +148,9 @@ class DataTrackerExt(DataTracker):
                         if not found:
                             replaces.append(replaces_doc)
 
-        # Step 3: Use related_documents() to find additional drafts this replaces:
-        for related in self.related_documents(source=draft, relationship_type=self.relationship_type_from_slug("replaces")):
-            reldoc = self.document(related.target)
-            if reldoc is not None:
-                found = False
-                for r in replaces:
-                    if r.name == reldoc.name:
-                        found = True
-                        break
-                if not found:
-                    replaces.append(reldoc)
-
-        # Step 4: use document_events() to identify drafts this replaces (`replacements_added`)
+        # Step 3: use document_events() to identify drafts this replaces (`replacements_added`)
         # and also to find any drafts that were explicitly removed from the list of replacements
-        # (`replacemens_removed`).
+        # (`replacements_removed`).
         replacements_added = set()
         replacements_removed = set()
         for event in self.document_events(doc=draft, event_type="changed_document"):
@@ -188,11 +176,27 @@ class DataTrackerExt(DataTracker):
         self.log.debug(f"draft_history: replacements_added: {replacements_added}")
         self.log.debug(f"draft_history: replacements_removed: {replacements_removed}")
 
+        new_replaces = []
+        for r in replaces:
+            if r.name not in replacements_removed:
+                new_replaces.append(r)
+        replaces = new_replaces
+
+        # Step 4: Use related_documents() to find additional drafts this replaces:
+        for related in self.related_documents(source=draft, relationship_type=self.relationship_type_from_slug("replaces")):
+            reldoc = self.document(related.target)
+            if reldoc is not None:
+                self.log.debug(f"draft_history: {draft.name} replaces {reldoc.name}")
+                found = False
+                for r in replaces:
+                    if r.name == reldoc.name:
+                        found = True
+                        break
+                if not found:
+                    replaces.append(reldoc)
+
         # Step 5: Process the drafts this replaces to find earlier versions:
         for r in replaces:
-            if r.name in replacements_removed:
-                self.log.warning(f"draft_history: {r.name} was removed from replacements")
-                continue
             if r.name != draft.name:
                 history.extend(self.draft_history(r, drafts_seen))
 
