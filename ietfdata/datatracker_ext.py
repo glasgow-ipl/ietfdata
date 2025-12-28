@@ -105,70 +105,48 @@ class DataTrackerExt(DataTracker):
         super().__init__(backend)
 
 
-    def draft_history(self, draft: Document, drafts_seen: List[Document] = [], latest=None) -> List[DraftHistory]:
+    def draft_history(self, draft: Document, drafts_seen: List[Document] = []) -> List[DraftHistory]:
         """
         Find the previous versions of an Internet-Draft
         """
-        assert draft.type == DocumentTypeURI(uri="/api/v1/name/doctypename/draft/")
-
-        drafts : List[DraftHistory] = []
-
         if draft in drafts_seen:
             return []
-        else:
-            drafts_seen.append(draft)
 
-        new_latest = None
+        drafts_seen.append(draft)
+
         # Step 1: Use document_events() to find previous versions of the draft.
+        history : List[DraftHistory] = []
         for event in self.document_events(doc=draft, event_type="new_revision"):
-            if latest is not None and event.time.date() > latest:
-                self.log.warning(f"Skipped late submission {draft.name}-{event.rev} {event.time.date()}")
-            else:
-                drafts.append(DraftHistory(draft, event.rev, event.time.date(), None))
-            if new_latest is None or event.time.date() > new_latest:
-                new_latest = event.time.date()
+            history.append(DraftHistory(draft, event.rev, event.time.date(), None))
 
         # Step 2: Find the submissions, and add them to the previously found
         # draft versions. Some versions of a draft may not have a submission.
         # While we're doing this, record any drafts the submissions are marked
         # as replacing.
-        submissions : List[Submission]  = []
-        replaces    : List[Document]    = []
+        replaces : List[Document] = []
 
-        for submission_uri in draft.submissions:
-            submission = self.submission(submission_uri)
-            if submission is not None:
-                if submission.state != "/api/v1/name/draftsubmissionstatename/posted/":
-                    self.log.warning(f"skippd submission {submission.resource_uri} in state {submission.state}")
-                    continue
-                if latest is not None and submission.submission_date > latest:
-                    self.log.warning(f"Skipped late submission {submission.name}-{submission.rev} {submission.submission_date}")
-                    continue
-                submissions.append(submission)
-                if submission.replaces != "":
-                    for replaces_draft in submission.replaces.split(","):
-                        replaces_doc = self.document_from_draft(replaces_draft)
-                        if replaces_doc is not None:
-                            found = False
-                            for r in replaces:
-                                if r.name == replaces_doc.name:
-                                    found = True
-                                    break
-                            if not found:
-                                self.log.debug(f"submission of {draft.name} replaces {replaces_doc.name}")
-                                replaces.append(replaces_doc)
+        for submission in map(lambda submission_uri : self.submission(submission_uri), draft.submissions):
+            if submission is None or submission.state != "/api/v1/name/draftsubmissionstatename/posted/":
+                continue
 
-        for submission in submissions:
-            found = False
-            for d in drafts:
+            added_to_history = False
+            for d in history:
                 if d.draft.resource_uri == submission.draft and d.rev == submission.rev:
                     d.submission = submission
-                    found = True
-                    break
-            if not found:
-                drafts.append(DraftHistory(draft, submission.rev, submission.submission_date, submission))
-                if new_latest is None or submission.submission_date > new_latest:
-                    new_latest = submission.submission_date
+                    added_to_history = True
+            if not added_to_history:
+                history.append(DraftHistory(draft, submission.rev, submission.submission_date, submission))
+
+            if submission.replaces != "":
+                for replaces_doc in map(lambda draft : self.document_from_draft(draft), submission.replaces.split(",")):
+                    if replaces_doc is not None:
+                        found = False
+                        for r in replaces:
+                            if r.name == replaces_doc.name:
+                                found = True
+                                break
+                        if not found:
+                            replaces.append(replaces_doc)
 
         # Step 3: Use related_documents() to find additional drafts this replaces:
         for related in self.related_documents(source=draft, relationship_type=self.relationship_type_from_slug("replaces")):
@@ -180,18 +158,45 @@ class DataTrackerExt(DataTracker):
                         found = True
                         break
                 if not found:
-                    self.log.debug(f"{draft.name} replaces {reldoc.name}")
                     replaces.append(reldoc)
 
-        if latest is None:
-            latest = new_latest
+        # Step 4: use document_events() to identify drafts this replaces (`replacements_added`)
+        # and also to find any drafts that were explicitly removed from the list of replacements
+        # (`replacemens_removed`).
+        replacements_added = set()
+        replacements_removed = set()
+        for event in self.document_events(doc=draft, event_type="changed_document"):
+            if event.desc.startswith("This document now replaces <b>"):
+                offset = event.desc.find("</b> instead of ")
+                new_repl = event.desc[30:offset].split(", ")
+                old_repl = event.desc[offset+16:].split(", ")
+                self.log.debug(f"draft_history: {event.time} new {new_repl} old {old_repl}")
+                to_add = []
+                for r in new_repl:
+                    if r not in replacements_added and r != "None":
+                        to_add.append(r)
+                for r in to_add:
+                    replacements_added.add(r)
+                    replacements_removed.discard(r)
+                to_remove = []
+                for r in replacements_added:
+                    if r not in new_repl:
+                        to_remove.append(r)
+                for r in to_remove:
+                    replacements_added.discard(r)
+                    replacements_removed.add(r)
+        self.log.debug(f"draft_history: replacements_added: {replacements_added}")
+        self.log.debug(f"draft_history: replacements_removed: {replacements_removed}")
 
-        # Step 4: Process the drafts this replaces, to find earlier versions:
+        # Step 5: Process the drafts this replaces to find earlier versions:
         for r in replaces:
+            if r.name in replacements_removed:
+                self.log.warning(f"draft_history: {r.name} was removed from replacements")
+                continue
             if r.name != draft.name:
-                drafts.extend(self.draft_history(r, drafts_seen=drafts_seen, latest=latest))
+                history.extend(self.draft_history(r, drafts_seen))
 
-        return list(reversed(sorted(drafts, key=lambda d: d.date)))
+        return list(reversed(sorted(history, key=lambda d: d.date)))
 
 
 
