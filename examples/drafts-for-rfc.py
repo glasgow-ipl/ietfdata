@@ -33,10 +33,10 @@ from ietfdata.datatracker     import *
 from ietfdata.datatracker_ext import *
 from ietfdata.rfcindex        import *
 
-dt = DataTrackerExt()
+dt = DataTrackerExt(DTBackendArchive("data/ietfdata-dt.sqlite"))
 ri = RFCIndex()
 
-rfc = ri.rfc("RFC8280")
+rfc = ri.rfc("RFC8941")
 if rfc is not None:
     for d in dt.draft_history_for_rfc(rfc):
         print("    {0: <50} | {1} | {2}".format(d.draft.name, d.rev, d.date.strftime("%Y-%m-%d")))
