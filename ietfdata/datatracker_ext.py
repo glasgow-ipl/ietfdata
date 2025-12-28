@@ -188,18 +188,40 @@ class DataTrackerExt(DataTracker):
         Note that earlier RFCs and "April Fools" RFCs do not exist in draft
         form, so this may return an empty list.
         """
-        final_draft = None
+        if   rfc.doc_id.startswith("RFC000"):
+            rfc.doc_id = "RFC" + rfc.doc_id[6:]
+        elif rfc.doc_id.startswith("RFC00"):
+            rfc.doc_id = "RFC" + rfc.doc_id[5:]
+        elif rfc.doc_id.startswith("RFC0"):
+            rfc.doc_id = "RFC" + rfc.doc_id[4:]
+
         if rfc.draft is not None:
+            # The RFC index specifies the final draft for this RFC
+            self.log.debug(f"draft_history_for_rfc: {rfc.doc_id} was {rfc.draft} (RFC index)")
             final_draft = self.document_from_draft(rfc.draft[:-3])
             if final_draft is None:
-                final_draft = self.document_from_rfc(rfc.doc_id)
+                if rfc.month == "April" and rfc.day == 1:
+                    self.log.info(f"draft_history_for_rfc: {rfc.doc_id} no history for April 1 RFCs")
+                    return []
+                else:
+                    self.log.info(f"draft_history_for_rfc: {rfc.doc_id} cannot find {rfc.draft} in datatracker")
+                    return []
+            else:
+                return self.draft_history(final_draft)
         else:
-            final_draft = self.document_from_rfc(rfc.doc_id)
-
-        if final_draft is not None:
-            return self.draft_history(final_draft)
-        else:
-            return []
+            # no final draft specified in RFC index
+            rfc_doc = self.document_from_rfc(rfc.doc_id)
+            for related in self.related_documents(target=rfc_doc, relationship_type_slug="became_rfc"):
+                self.log.debug(f"draft_history_for_rfc: {rfc.doc_id} was {related.source} (datatracker)")
+                final_draft = self.document(related.source)
+                if final_draft is not None:
+                    return self.draft_history(final_draft)
+            if rfc.month == "April" and rfc.day == 1:
+                self.log.info(f"draft_history_for_rfc: {rfc.doc_id} no history for April 1 RFCs")
+                return []
+            else:
+                self.log.info(f"draft_history_for_rfc: {rfc.doc_id} no final draft specified")
+                return []
 
 
     def iab_chair(self) -> Person:
