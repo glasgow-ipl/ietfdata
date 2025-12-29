@@ -160,19 +160,19 @@ class DataTrackerExt(DataTracker):
                 old_repl = event.desc[offset+16:].split(", ")
                 self.log.debug(f"draft_history: {event.time} new {new_repl} old {old_repl}")
                 to_add = []
-                for r in new_repl:
-                    if r not in replacements_added and r != "None":
-                        to_add.append(r)
-                for r in to_add:
-                    replacements_added.add(r)
-                    replacements_removed.discard(r)
+                for nr in new_repl:
+                    if nr not in replacements_added and r != "None":
+                        to_add.append(nr)
+                for nr in to_add:
+                    replacements_added.add(nr)
+                    replacements_removed.discard(nr)
                 to_remove = []
-                for r in replacements_added:
-                    if r not in new_repl:
-                        to_remove.append(r)
-                for r in to_remove:
-                    replacements_added.discard(r)
-                    replacements_removed.add(r)
+                for nr in replacements_added:
+                    if nr not in new_repl:
+                        to_remove.append(nr)
+                for nr in to_remove:
+                    replacements_added.discard(nr)
+                    replacements_removed.add(nr)
         self.log.debug(f"draft_history: replacements_added: {replacements_added}")
         self.log.debug(f"draft_history: replacements_removed: {replacements_removed}")
 
@@ -217,11 +217,11 @@ class DataTrackerExt(DataTracker):
         form, so this may return an empty list.
         """
         if   rfc.doc_id.startswith("RFC000"):
-            rfc.doc_id = "RFC" + rfc.doc_id[6:]
+            rfc.doc_id = DocID("RFC" + rfc.doc_id[6:])
         elif rfc.doc_id.startswith("RFC00"):
-            rfc.doc_id = "RFC" + rfc.doc_id[5:]
+            rfc.doc_id = DocID("RFC" + rfc.doc_id[5:])
         elif rfc.doc_id.startswith("RFC0"):
-            rfc.doc_id = "RFC" + rfc.doc_id[4:]
+            rfc.doc_id = DocID("RFC" + rfc.doc_id[4:])
 
         if rfc.draft is not None:
             # The RFC index specifies the final draft for this RFC
