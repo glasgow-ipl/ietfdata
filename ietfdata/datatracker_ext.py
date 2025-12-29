@@ -162,7 +162,7 @@ class DataTrackerExt(DataTracker):
                 self.log.debug(f"draft_history: {event.time} new {new_repl} old {old_repl}")
                 to_add = []
                 for nr in new_repl:
-                    if nr not in replacements_added and r != "None":
+                    if nr not in replacements_added and nr != "None":
                         to_add.append(nr)
                 for nr in to_add:
                     replacements_added.add(nr)
