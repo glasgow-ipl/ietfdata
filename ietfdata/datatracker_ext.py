@@ -117,6 +117,7 @@ class DataTrackerExt(DataTracker):
         # Step 1: Use document_events() to find previous versions of the draft.
         history : List[DraftHistory] = []
         for event in self.document_events(doc=draft, event_type="new_revision"):
+            assert event.rev is not None
             history.append(DraftHistory(draft, event.rev, event.time.date(), None))
 
         # Step 2: Find the submissions, and add them to the previously found

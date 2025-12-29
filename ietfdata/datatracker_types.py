@@ -480,7 +480,7 @@ class DocumentEvent(Resource):
     doc             : DocumentURI
     id              : int
     resource_uri    : DocumentEventURI
-    rev             : str
+    rev             : Optional[str]
     time            : datetime
     type            : str
 
