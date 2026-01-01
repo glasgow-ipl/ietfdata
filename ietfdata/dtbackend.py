@@ -501,7 +501,7 @@ class DTBackendArchive(DTBackend):
                 for column in to_many:
                     for subitem in item[column]:
                         dbc.execute(f"INSERT INTO {table_name}_{column} VALUES (null, ?, ?);", (item["resource_uri"], subitem))
-            self._db.commit()
+                self._db.commit()
 
 
 
