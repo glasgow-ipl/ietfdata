@@ -1926,7 +1926,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_email(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(email="csp@csperkins.org"))
-        self.assertEqual(len(group_role_histories), 129)
+        self.assertEqual(len(group_role_histories), 130)
 
 
     def test_group_role_histories_group(self) -> None:
@@ -1942,7 +1942,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_person(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(person=self.dt.person(PersonURI(uri="/api/v1/person/person/20209/"))))
-        self.assertEqual(len(group_role_histories), 129)
+        self.assertEqual(len(group_role_histories), 130)
 
 
     def test_group_state_change_event(self) -> None:
