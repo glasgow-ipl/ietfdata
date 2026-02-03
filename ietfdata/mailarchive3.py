@@ -908,12 +908,14 @@ class MailingList:
 
             folder_name = self._name
             folder_path = f"{imap_prefix}{folder_name}"
+            self._archive._log.debug(f"mailarchive3:update: selecting {folder_path}")
             folder_info = imap.select_folder(folder_path, readonly=True)
             uidvalidity = folder_info[b'UIDVALIDITY']
 
             # Save uidvalidity
             dbc = self._archive._db.cursor()
             sql = "INSERT OR REPLACE INTO ietf_ma_lists (name, uidvalidity) VALUES (?, ?);"
+            self._archive._log.debug(f"mailarchive3:update: uidvalidity {uidvalidity}")
             dbc.execute(sql, (self.name(), uidvalidity))
             self._archive._db.commit()
 
