@@ -67,7 +67,7 @@ Alternatively, if the intent is to perform analysis of a snapshot of the
 data, for example if writing a research paper, a dissertation, or as part
 of a student project, then the `DTBackendArchive` should be used:
 
-```~~~~~~~~
+``` python
 dt = DataTracker(DTBackendArchive("ietfdata.sqlite"))
 ```
 
@@ -85,6 +85,7 @@ If you are working on a paper, project, or dissertation with a group of
 people, one person should create the `ietfdata.sqlite` file, then share
 a copy with the others. This avoids overloading the IETF's servers, and
 ensures that everyone working in the group generates the same results.
+This could also be done with a single command (see the Usage section)
 
 It is safe to use the same sqlite file with both the `DataTracker` and
 `MailArchive3` classes.
@@ -92,17 +93,14 @@ It is safe to use the same sqlite file with both the `DataTracker` and
 ### Usage
 
 (wip)
-
-#### Creating a local snapshot of the DataTracker
+#### Creating a local snapshot of the IETF DataTracker
 **This will take a very long time (10s of hours) and a lot of storage (~40GB or so)**
-The following command will create a local snapshot of the DataTracker:
+The IETF DataTracker snapshot can also be created with the following command:
 ``` bash
   python3 -m ietfdata.tools.download_dt ietf_dt.sqlite
 ```
-Once complete, use the following line in the python script to use the local offline snapshot instead of the live DataTracker server online.
-``` python
-  dt = DataTracker(DTBackendArchive("ietfdata_dt.sqlite")
-```
+This could be used by instantiating it as shown in the previous section.
+
 
 ## Accessing the IETF Mail Archive
 
