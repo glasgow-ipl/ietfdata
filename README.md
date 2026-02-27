@@ -91,8 +91,18 @@ It is safe to use the same sqlite file with both the `DataTracker` and
 
 ### Usage
 
-(tbd)
+(wip)
 
+#### Creating a local snapshot of the DataTracker
+**This will take a very long time (10s of hours) and a lot of storage (~40GB or so)**
+The following command will create a local snapshot of the DataTracker:
+``` bash
+  python3 -m ietfdata.tools.download_dt ietf_dt.sqlite
+```
+Once complete, use the following line in the python script to use the local offline snapshot instead of the live DataTracker server online.
+``` python
+  dt = DataTracker(DTBackendArchive("ietfdata_dt.sqlite")
+```
 
 ## Accessing the IETF Mail Archive
 
