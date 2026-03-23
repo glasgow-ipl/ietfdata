@@ -1832,7 +1832,7 @@ class TestDatatracker(unittest.TestCase):
         chair = self.dt.role_name_from_slug("chair")
         group_roles = list(self.dt.group_roles(group = iab, name = chair))
         self.assertEqual(len(group_roles), 1)
-        self.assertEqual(group_roles[0].id, 13626)   # IAB chair is Tommy Pauley
+        self.assertEqual(group_roles[0].id, 14526)   # IAB chair is Dhurv Dhody
 
 
 
@@ -2153,7 +2153,7 @@ class TestDatatracker(unittest.TestCase):
     def test_meeting_attendance(self) -> None:
         person   = self.dt.person(PersonURI(uri="/api/v1/person/person/125662/"))
         attended = list(self.dt.meeting_attendance(person = person))
-        self.assertEqual(len(attended), 81)
+        self.assertEqual(len(attended), 90)
 
 
     def test_meeting_session_assignment(self) -> None:
