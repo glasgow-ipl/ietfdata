@@ -912,11 +912,11 @@ class MailingList:
                 sql = "INSERT INTO ietf_ma_msg VALUES (?, ?, ?, ?, ?) RETURNING message_num"
                 num = cur.execute(sql, (None, self._name, uidvalidity, uid, msg)).fetchone()[0]
             self._archive._db.commit()
-        if len(msg_to_fetch) > 0:
-            # If we downloaded any messages, rebuild the dependent tables
-            self.reindex(verbose)
 
         self._archive._backend.close_mailbox()
+
+        if len(msg_to_fetch) > 0:
+            self.reindex(verbose)
 
         return msg_to_fetch
 
@@ -926,7 +926,7 @@ class MailingList:
         """
         Rebuild the database tables indexing this mailing list.
 
-        The mailing list archives contain a number of messages with
+        The mailing list archives may contain a number of messages with
         malformed or corrupt "Date:", "From:", "To:", and "Cc:" headers.
         This library attempts to correct these headers when indexing the
         retrieved messages. This method refreshes the index for messages
@@ -940,29 +940,18 @@ class MailingList:
         This function operates on the previously retrieved mail archive
         only, and does not contact the mail server.
         """
-        if self.num_messages() == 0:
-            if verbose:
-                print(f"Re-indexing {self._name} (no messages)")
-            else:
-                self._archive._log.info(f"mailarchive3:reindex: {self._name} has no messages")
-            return
-        else:
-            if verbose:
-                print(f"Re-indexing {self._name}")
-            else:
-                self._archive._log.info(f"mailarchive3:reindex: {self._name}")
+        if verbose:
+            print(f"Re-indexing {self._name}")
+
+        uidvalidity = self.uidvalidity()
+        assert uidvalidity is not None
 
         dbc = self._archive._db.cursor()
         sql = "SELECT message_num, uid, message FROM ietf_ma_msg WHERE mailing_list = ? and uidvalidity = ?;"
-        res = dbc.execute(sql, (self.name(), self.uidvalidity())).fetchall()
-
-        for message_num, uid, message in res:
+        for message_num, uid, message in dbc.execute(sql, (self.name(), uidvalidity)).fetchall():
             self._archive._log.debug(f"mailarchive3:reindex: {self._name}/{uid}")
 
-            uidvalidity = self.uidvalidity()
-            assert uidvalidity is not None
-
-            parsed_msg  = _parse_message(uidvalidity, uid, message)
+            parsed_msg = _parse_message(uidvalidity, uid, message)
             val = (message_num,
                    message_num,
                    parsed_msg["from_name"],
@@ -994,6 +983,7 @@ class MailingList:
                 dbc.execute(sql, (message_num, index, message_num, index, name, addr))
             sql = "DELETE FROM ietf_ma_hdr_cc WHERE message_num = ? AND cc_index > ?;"
             dbc.execute(sql, (message_num, max_index))
+
             self._archive._db.commit()
 
 
