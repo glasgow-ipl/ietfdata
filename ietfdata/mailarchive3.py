@@ -46,7 +46,7 @@ from imapclient           import IMAPClient
 from pathlib              import Path
 from typing               import Dict, Iterator, List, Optional, Tuple, Union, Any
 
-from ietfdata.dtbackend   import *
+from ietfdata.dt_backend  import *
 
 # The mailarchive3 package is intended to be a drop-in replacement for the
 # mailarchive2 package, storing messages in a local sqlite3 database rather

@@ -66,7 +66,7 @@ from pydantic          import ValidationError
 # =================================================================================================================================
 # Import the types representing the datatracker API endpoints:
 
-from ietfdata.dtbackend         import *
+from ietfdata.dt_backend        import *
 from ietfdata.datatracker_types import *
 
 # =================================================================================================================================
