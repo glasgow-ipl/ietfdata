@@ -61,8 +61,6 @@ class Envelope:
     _uidvalidity   : int
     _uid           : int
     _message       : bytes
-    _size          : int
-    _date_received : str
 
     def __init__(self, mail_archive: MailArchive, message_num : int) -> None:
         """
@@ -72,14 +70,12 @@ class Envelope:
         self._message_num = message_num
 
         dbc = self._archive._db.cursor()
-        sql = "SELECT mailing_list, uidvalidity, uid, message, size, date_received FROM ietf_ma_msg WHERE message_num = ?;"
+        sql = "SELECT mailing_list, uidvalidity, uid, message FROM ietf_ma_msg WHERE message_num = ?;"
         res = dbc.execute(sql, (message_num, )).fetchone()
         self._mailing_list  = res[0]
         self._uidvalidity   = res[1]
         self._uid           = res[2]
         self._message       = res[3]
-        self._size          = res[4]
-        self._date_received = res[5]
 
     # Accessors for properties of the message in this Envelope.
     #
@@ -100,14 +96,6 @@ class Envelope:
 
     def uid(self) -> int:
         return self._uid
-
-
-    def date_received(self) -> datetime:
-        return datetime.fromisoformat(self._date_received).astimezone(UTC)
-
-
-    def size(self) -> int:
-        return self._size
 
 
     def message_id(self) -> str:
@@ -937,12 +925,11 @@ class MailingList:
 
             for i in range(0, len(msg_to_fetch), 16):
                 uid_slice = msg_to_fetch[slice(i, i+16, 1)]
-                for uid, msg in imap.fetch(uid_slice, "INTERNALDATE RFC822.SIZE RFC822").items():
+                for uid, msg in imap.fetch(uid_slice, "RFC822").items():
                     self._archive._log.info(f"mailarchive3:update: {self._name}/{uid} (uidvalidity={uidvalidity})")
-                    rxd = msg[b'INTERNALDATE'].astimezone(UTC).isoformat()
                     cur = self._archive._db.cursor()
-                    sql = "INSERT INTO ietf_ma_msg VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING message_num"
-                    num = cur.execute(sql, (None, folder_name, uidvalidity, uid, msg[b"RFC822"], msg[b"RFC822.SIZE"], rxd)).fetchone()[0]
+                    sql = "INSERT INTO ietf_ma_msg VALUES (?, ?, ?, ?, ?) RETURNING message_num"
+                    num = cur.execute(sql, (None, folder_name, uidvalidity, uid, msg[b"RFC822"])).fetchone()[0]
                 self._archive._db.commit()
             if len(msg_to_fetch) > 0:
                 # If we downloaded any messages, rebuild the dependent tables
@@ -1228,12 +1215,9 @@ class MailArchive:
                                 mailing_list  TEXT NOT NULL,
                                 uidvalidity   INTEGER NOT NULL,
                                 uid           INTEGER NOT NULL,
-                                message       BLOB,
-                                size          INTEGER,
-                                date_received TEXT
+                                message       BLOB
                             );""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_msg_list_date_uid  ON ietf_ma_msg (mailing_list, date_received, uidvalidity, uid);""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_msg_date ON ietf_ma_msg (message_num, date_received);""")
+        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_msg_list_uid  ON ietf_ma_msg (mailing_list, uidvalidity, uid);""")
 
         self._db.execute("""CREATE TABLE IF NOT EXISTS ietf_ma_hdr (
                                 id           INTEGER PRIMARY KEY AUTOINCREMENT,
