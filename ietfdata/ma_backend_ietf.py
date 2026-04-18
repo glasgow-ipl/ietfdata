@@ -86,8 +86,8 @@ class MailArchiveBackendIETF(MailArchiveBackend):
         return list(self._imap.search('NOT DELETED'))
 
 
-    def fetch(self, message_ids: List[int]) -> Iterator[Tuple[int, str]]:
+    def fetch(self, message_ids: List[int]) -> Iterator[Tuple[int, bytes]]:
         assert self._imap is not None
-        for uid, msg in self._imap.fetch(message_ids, "INTERNALDATE RFC822.SIZE RFC822").items():
+        for uid, msg in self._imap.fetch(message_ids, b"RFC822").items():
             yield(uid, msg[b"RFC822"])
 

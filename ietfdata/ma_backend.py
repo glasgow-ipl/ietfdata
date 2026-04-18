@@ -75,7 +75,7 @@ class MailArchiveBackend(ABC):
 
 
     @abstractmethod
-    def fetch(self, message_ids: List[int]) -> Iterator[Tuple[int, str]]:
+    def fetch(self, message_ids: List[int]) -> Iterator[Tuple[int, bytes]]:
         """
         Return messages from the mailbox.
 
