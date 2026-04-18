@@ -24,7 +24,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 from abc    import ABC, abstractmethod
-from typing import List
+from typing import Iterator, List, Tuple
 
 class MailArchiveBackend(ABC):
     @abstractmethod
@@ -83,7 +83,7 @@ class MailArchiveBackend(ABC):
 
 
     @abstractmethod
-    def fetch(self, message_ids: List[int]) -> Iterator[(int, str)]:
+    def fetch(self, message_ids: List[int]) -> Iterator[Tuple[int, str]]:
         """
         Return messages from the mailbox.
 
