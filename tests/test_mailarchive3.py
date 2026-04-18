@@ -549,10 +549,6 @@ class TestMailArchive3(unittest.TestCase):
         # Test all messages:
         msgs  = list(mlist.messages())
         self.assertEqual(len(msgs), 434)
-        # Test messages with received before/after constraints:
-        msgs  = list(mlist.messages(received_after  = "2017-10-01T00:00:00+00:00",
-                                    received_before = "2017-11-01T00:00:00+00:00"))
-        self.assertEqual(len(msgs), 9)
 
 
     def test_mailarchive3_mailinglist_messages_as_dataframe(self) -> None:
@@ -560,11 +556,6 @@ class TestMailArchive3(unittest.TestCase):
         # Test all messages:
         df = mlist.messages_as_dataframe()
         self.assertEqual(df.shape, (434, 7))
-
-        # Test messages with received before/after constraints:
-        df  = mlist.messages_as_dataframe(received_after  = "2017-10-01T00:00:00+00:00",
-                                          received_before = "2017-11-01T00:00:00+00:00")
-        self.assertEqual(df.shape, (9, 7))
 
 
     def test_mailarchive3_mailinglist_threads(self) -> None:

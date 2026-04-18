@@ -1,4 +1,4 @@
-# Copyright (C) 2020-2025 University of Glasgow
+# Copyright (C) 2020-2026 University of Glasgow
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -33,28 +33,25 @@ import sqlite3
 import sys
 import time
 
-from datetime             import date, datetime, timedelta, timezone, UTC
-from email                import policy, message_from_bytes
-from email.header         import decode_header
-from email.headerregistry import Address
-from email.message        import Message
-from email.parser         import BytesHeaderParser
-from email.policy         import EmailPolicy
-from email.utils          import parseaddr, parsedate_to_datetime, getaddresses, unquote
-from graphlib             import TopologicalSorter
-from imapclient           import IMAPClient
-from pathlib              import Path
-from typing               import Dict, Iterator, List, Optional, Tuple, Union, Any
+from datetime                 import date, datetime, timezone, UTC
+from email                    import policy, message_from_bytes
+from email.header             import decode_header
+from email.headerregistry     import Address
+from email.message            import Message
+from email.parser             import BytesHeaderParser
+from email.policy             import EmailPolicy
+from email.utils              import parseaddr, parsedate_to_datetime, getaddresses, unquote
+from typing                   import Dict, Iterator, List, Optional, Tuple, Union, Any
 
-from ietfdata.dt_backend  import *
-
-# The mailarchive3 package is intended to be a drop-in replacement for the
-# mailarchive2 package, storing messages in a local sqlite3 database rather
-# than a MongoDB instance.
+from ietfdata.ma_backend      import MailArchiveBackend
+from ietfdata.ma_backend_ietf import MailArchiveBackendIETF
 
 # =================================================================================================
 
 class Envelope:
+    """
+    An Envelope holds a single email message.
+    """
     _archive       : MailArchive
     _message_num   : int
     _mailing_list  : str
@@ -63,9 +60,6 @@ class Envelope:
     _message       : bytes
 
     def __init__(self, mail_archive: MailArchive, message_num : int) -> None:
-        """
-        This differs from mailarchive2 but should not be called by user code.
-        """
         self._archive = mail_archive
         self._message_num = message_num
 
@@ -77,28 +71,43 @@ class Envelope:
         self._uid           = res[2]
         self._message       = res[3]
 
-    # Accessors for properties of the message in this Envelope.
-    #
-    # Messages in IMAP are assigned a unique identifier `uid()` within a folder
-    # representing a mailing list. That identifier is not supposed to change,
-    # but the IMAP standard recognises that mailboxes occasionally get rebuilt.
-    # If this happens, the `uidvalidity()` will change. The combination of
-    # mailing_list(), uid(), and uidvalidity() uniquely identifies a message on
-    # the server.
 
     def mailing_list(self) -> MailingList:
+        """
+        Retrieve the mailing list that holds this envelope.
+        """
         return self._archive.mailing_list(self._mailing_list)
 
 
     def uidvalidity(self) -> int:
+        """
+        Retrieve the uidvalidity of the envelope.
+
+        The uidvalidity is not supposed to change, but mailboxes occasionally
+        get rebuilt. When this happens, the uidvalidity will change.
+        """
         return self._uidvalidity
 
 
     def uid(self) -> int:
+        """
+        Retrieve the uid of the envelope.
+
+        The combination of the mailing list, uidvalidity, and uid uniquely
+        identifies an envelope on the server.
+        """
         return self._uid
 
 
     def message_id(self) -> str:
+        """
+        Retrieve the "Message-ID" from the envelope.
+
+        A Message-ID is chosen by the sender of a message and is intended to
+        be globally unique identifier for that message. There can be several
+        envelopes with the same Message-ID on a server if the message was
+        copied to several different mailing lists.
+        """
         dbc = self._archive._db.cursor()
         sql = "SELECT message_id FROM ietf_ma_hdr WHERE message_num = ?;"
         res = dbc.execute(sql, (self._message_num, )).fetchone()
@@ -107,14 +116,12 @@ class Envelope:
 
     def from_(self) -> Optional[Address]:
         """
-        Retrieve the parsed "From:" address from the message.
+        Retrieve the parsed "From:" address from the envelope, or return `None`
+        if the header is missing or cannot be parsed.
 
-        The mailarchive3 library uses a number of heuristics to correct
-        malformed headers, so the value returned might differ from the
-        uncorrected value returned by calling `header("from")`. If the
-        address is missing or unparsable, None is returned.
-
-        New in mailarchive3.
+        This library uses a number of heuristics to correct malformed headers,
+        so the value returned might differ from the uncorrected value returned
+        by calling `header("from")`. 
         """
         dbc = self._archive._db.cursor()
         sql = "SELECT from_name, from_addr FROM ietf_ma_hdr WHERE message_num = ?;"
@@ -135,13 +142,11 @@ class Envelope:
 
     def to(self) -> List[Address]:
         """
-        Retrieve the parsed "To:" address from the message.
+        Retrieve the parsed "To:" address from the envelope.
 
-        The mailarchive3 library uses a number of heuristics to correct
-        malformed headers, so the value returned might differ from the
-        uncorrected value returned by calling `header("to")`.
-
-        New in mailarchive3
+        This library uses a number of heuristics to correct malformed headers,
+        so the value returned might differ from the uncorrected value returned
+        by calling `header("to")`.
         """
         dbc = self._archive._db.cursor()
         sql = "SELECT to_name, to_addr FROM ietf_ma_hdr_to WHERE message_num = ?;"
@@ -153,13 +158,11 @@ class Envelope:
 
     def cc(self) -> List[Address]:
         """
-        Retrieve the parsed "Cc:" address from the message.
+        Retrieve the parsed "Cc:" address from the envelope.
 
-        The mailarchive3 library uses a number of heuristics to correct
-        malformed headers, so the value returned might differ from the
-        uncorrected value returned by calling `header("cc")`.
-
-        New in mailarchive3
+        This library uses a number of heuristics to correct malformed headers,
+        so the value returned might differ from the uncorrected value returned
+        by calling `header("cc")`.
         """
         dbc = self._archive._db.cursor()
         sql = "SELECT cc_name, cc_addr FROM ietf_ma_hdr_cc WHERE message_num = ?;"
@@ -171,13 +174,11 @@ class Envelope:
 
     def subject(self) -> str:
         """
-        Retrieve the parsed "Subject:" header from the message.
+        Retrieve the parsed "Subject:" header from the envelope.
 
-        The mailarchive3 library uses a number of heuristics to correct
-        malformed headers, so the value returned might differ from the
-        uncorrected value returned by calling `header("subject")`.
-
-        New in mailarchive3
+        This library uses a number of heuristics to correct malformed headers,
+        so the value returned might differ from the uncorrected value returned
+        by calling `header("subject")`.
         """
         dbc = self._archive._db.cursor()
         sql = "SELECT subject FROM ietf_ma_hdr WHERE message_num = ?;"
@@ -187,16 +188,12 @@ class Envelope:
 
     def date(self) -> Optional[datetime]:
         """
-        Retrieve the "Date:" header from the message, parsed into a `DateTime`
-        object.
+        Retrieve the "Date:" header from the envelope, parsed into a `DateTime`
+        object, or return `None` if the header is missing or cannot be parsed.
 
-        This will return `None` if the "Date:" header is not present or cannot
-        be parsed.
-
-        The `header("date")` method can be used to return the unparsed "Date:"
-        header as a `str`. The mailarchive3 library uses a number of heuristics
-        to correct malformed headers so the value returned by this method might
-        differ from the uncorrected value returned by calling `header("date")`.
+        This library uses a number of heuristics to correct malformed headers
+        so the value returned by this method might differ from the uncorrected
+        value returned by calling `header("date")`.
         """
         dbc = self._archive._db.cursor()
         sql = "SELECT date FROM ietf_ma_hdr WHERE message_num = ?;"
@@ -206,22 +203,23 @@ class Envelope:
 
     def header(self, header_name:str) -> List[str]:
         """
-        Retrieve unparsed headers from the message.
+        Retrieve unparsed headers from the envelope.
 
-        Do not use this method in you can avoid it: use the `from_()`, `to()`,
-        `cc()`, `subject()`, `date()`, and `message_id()` methods instead. The
-        mailarchive3 library uses a number of heuristics to correct malformed
-        headers, but those heuristics are not applied to the values returned by
-        this method. 
+        You SHOULD use the `from_()`, `to()`, `cc()`, `subject()`, `date()`,
+        and `message_id()` methods instead of calling this method to retrieve
+        those header fields. This library heuristics to correct for malformed
+        headers that are applied when calling the dedicated accessor methods
+        but not when calling this method.
 
         Some headers, e.g., "Received:" are expected to occur multiple times
-        within a message and will return a list containing multiple items.
+        within an envelope and will return a list containing multiple items.
 
         Other headers, e.g., "From:", are only supposed to occur once in each
-        message. In these cases, this method should return a list containing a
-        single value. Note, however, that the IETF mail archive contains some
-        malformed messages with unexpected duplicate headers. For example,
-        there are some messages with two addresses in the "From:" line.
+        envelope. In these cases, this method should return a list containing a
+        single value. Note, however, that the mail archive might contain some
+        malformed envelope with unexpected duplicate headers. For example,
+        there are some envelope with two addresses in the "From:" line in the
+        IETF archive.
         """
         msg = message_from_bytes(self._message, policy=policy.default)
         try:
@@ -237,14 +235,14 @@ class Envelope:
 
     def contents(self) -> Message:
         """
-        Return the Message contained within this Envelope.
+        Retrieve the message contained within the envelope.
         """
         return message_from_bytes(self._message, policy=policy.default)
 
 
     def in_reply_to(self) -> List[Envelope]:
         """
-        Return the envelopes containing the messages that this is in reply to.
+        Retrieve the envelopes containing the messages that this is in reply to.
 
         Each message can only be in reply to a single other message, but there
         may be multiple copies of that message in the archive if it was sent to
@@ -266,7 +264,7 @@ class Envelope:
 
     def replies(self) -> List[Envelope]:
         """
-        Return the envelopes containing the messages sent in reply to this.
+        Retrieve the envelopes containing the messages sent in reply to this.
         """
         dbc = self._archive._db.cursor()
         sql = "SELECT message_num FROM ietf_ma_hdr WHERE in_reply_to = ?;"
@@ -781,7 +779,7 @@ def _parse_message(uidvalidity:int, uid:int, raw):
 
 class MailingList:
     """
-    A class representing a mailing list in the IETF email archive.
+    A class representing a mailing list.
     """
 
     _archive : MailArchive
@@ -834,29 +832,25 @@ class MailingList:
             return Envelope(self._archive, int(res[0]))
 
 
-    def messages(self,
-                 received_after : str = "1970-01-01T00:00:00",
-                 received_before: str = "2038-01-19T03:14:07") -> Iterator[Envelope]:
+    def messages(self) -> Iterator[Envelope]:
         """
         Return the envelopes containing the specified messages from this mailing list.
         """
         dbc = self._archive._db.cursor()
-        sql = "SELECT message_num FROM ietf_ma_msg WHERE mailing_list = ? AND uidvalidity = ? AND date_received >= ? AND date_received < ?;"
-        arg = (self.name(), self.uidvalidity(), received_after, received_before)
+        sql = "SELECT message_num FROM ietf_ma_msg WHERE mailing_list = ? AND uidvalidity = ?;"
+        arg = (self.name(), self.uidvalidity())
         for res in map(lambda x : x[0], dbc.execute(sql, arg).fetchall()):
             assert res is not None
             yield Envelope(self._archive, res)
 
 
-    def messages_as_dataframe(self,
-                              received_after : str = "1970-01-01T00:00:00",
-                              received_before: str = "2038-01-19T03:14:07") -> pd.DataFrame:
+    def messages_as_dataframe(self) -> pd.DataFrame:
         """
         Return a dataframe containing information about the specified messages from
         this mailing list.
         """
         messages_as_dict = []
-        for message in self.messages(received_after = received_after, received_before = received_before):
+        for message in self.messages():
             mdict = {"Message-ID"  : message.message_id(),
                      "From"        : message.from_(),
                      "To"          : message.to(),
@@ -874,7 +868,7 @@ class MailingList:
 
     def update(self, verbose=True) -> List[int]:
         """
-        Update the local copy of this mailing list from the IMAP server.
+        Update the local copy of this mailing list from the server.
 
         This MUST be called at least once for each mailing list, else no
         messages will be retrieved from the server. That initial update
@@ -884,56 +878,46 @@ class MailingList:
         """
         if verbose:
             print(f"Downloading {self._name}")
-        else:
-            self._archive._log.info(f"mailarchive3:update: {self._name}")
-        with IMAPClient(self._archive._imap_server, ssl=True, use_uid=True) as imap:
-            self._archive._log.debug(f"mailarchive3:update: connected")
-            imap.login("anonymous", "anonymous")
 
-            _, _, imap_ns_shared = imap.namespace()
-            imap_prefix    = imap_ns_shared[0][0]
-            imap_separator = imap_ns_shared[0][1]
+        self._archive._backend.open_mailbox(self._name)
 
-            folder_name = self._name
-            folder_path = f"{imap_prefix}{folder_name}"
-            self._archive._log.debug(f"mailarchive3:update: selecting {folder_path}")
-            folder_info = imap.select_folder(folder_path, readonly=True)
-            uidvalidity = folder_info[b'UIDVALIDITY']
+        # Retrieve and save uidvalidity:
+        uidvalidity = self._archive._backend.validity()
+        dbc = self._archive._db.cursor()
+        sql = "INSERT OR REPLACE INTO ietf_ma_lists (name, uidvalidity) VALUES (?, ?);"
+        dbc.execute(sql, (self.name(), uidvalidity))
+        self._archive._db.commit()
 
-            # Save uidvalidity
-            dbc = self._archive._db.cursor()
-            sql = "INSERT OR REPLACE INTO ietf_ma_lists (name, uidvalidity) VALUES (?, ?);"
-            self._archive._log.debug(f"mailarchive3:update: uidvalidity {uidvalidity}")
-            dbc.execute(sql, (self.name(), uidvalidity))
+        # FIXME: remove messages from database where uidvalidity doesn't match
+
+        # Retrieve messages on server but not in database:
+        sql = "SELECT uid FROM ietf_ma_msg WHERE mailing_list = ? and uidvalidity = ?;"
+        msg_local  = set(map(lambda x : x[0], dbc.execute(sql, (self.name(), uidvalidity))))
+        msg_remote = set(self._archive._backend.message_ids())
+        msg_to_fetch = list(msg_remote - msg_local)
+
+        self._archive._log.info(f"mailarchive3:update: {len(msg_local)} messages in archive")
+        self._archive._log.info(f"mailarchive3:update: {len(msg_remote)} messages on server")
+        self._archive._log.info(f"mailarchive3:update: {len(msg_to_fetch)} messages to fetch")
+
+        unknown_msgs = list(msg_local - msg_remote)
+        if len(unknown_msgs) > 0:
+            self._archive._log.warning(f"mailarchive3:update: {len(unknown_msgs)} unknown local messages ")
+
+        for i in range(0, len(msg_to_fetch), 16):
+            uid_slice = msg_to_fetch[slice(i, i+16, 1)]
+            for uid, msg in self._archive._backend.fetch(uid_slice):
+                self._archive._log.info(f"mailarchive3:update: {self._name}/{uid} (uidvalidity={uidvalidity})")
+                cur = self._archive._db.cursor()
+                sql = "INSERT INTO ietf_ma_msg VALUES (?, ?, ?, ?, ?) RETURNING message_num"
+                num = cur.execute(sql, (None, self._name, uidvalidity, uid, msg)).fetchone()[0]
             self._archive._db.commit()
+        if len(msg_to_fetch) > 0:
+            # If we downloaded any messages, rebuild the dependent tables
+            self.reindex(verbose)
 
-            # FIXME: remove messages from database where uidvalidity doesn't match
+        self._archive._backend.close_mailbox()
 
-            # Retrieve messages on server but not in database
-            sql = "SELECT uid FROM ietf_ma_msg WHERE mailing_list = ? and uidvalidity = ?;"
-            msg_local  = set(map(lambda x : x[0], dbc.execute(sql, (self.name(), uidvalidity))))
-            msg_remote = set(imap.search('NOT DELETED'))
-            msg_to_fetch = list(msg_remote - msg_local)
-
-            self._archive._log.info(f"mailarchive3:update: {len(msg_local)} messages in archive")
-            self._archive._log.info(f"mailarchive3:update: {len(msg_remote)} messages on server")
-            self._archive._log.info(f"mailarchive3:update: {len(msg_to_fetch)} messages to fetch")
-
-            unknown_msgs = list(msg_local - msg_remote)
-            if len(unknown_msgs) > 0:
-                self._archive._log.warning(f"mailarchive3:update: {len(unknown_msgs)} unknown local messages ")
-
-            for i in range(0, len(msg_to_fetch), 16):
-                uid_slice = msg_to_fetch[slice(i, i+16, 1)]
-                for uid, msg in imap.fetch(uid_slice, "RFC822").items():
-                    self._archive._log.info(f"mailarchive3:update: {self._name}/{uid} (uidvalidity={uidvalidity})")
-                    cur = self._archive._db.cursor()
-                    sql = "INSERT INTO ietf_ma_msg VALUES (?, ?, ?, ?, ?) RETURNING message_num"
-                    num = cur.execute(sql, (None, folder_name, uidvalidity, uid, msg[b"RFC822"])).fetchone()[0]
-                self._archive._db.commit()
-            if len(msg_to_fetch) > 0:
-                # If we downloaded any messages, rebuild the dependent tables
-                self.reindex(verbose)
         return msg_to_fetch
 
 
@@ -942,7 +926,7 @@ class MailingList:
         """
         Rebuild the database tables indexing this mailing list.
 
-        The IETF mailing list archives contain a number of messages with
+        The mailing list archives contain a number of messages with
         malformed or corrupt "Date:", "From:", "To:", and "Cc:" headers.
         This library attempts to correct these headers when indexing the
         retrieved messages. This method refreshes the index for messages
@@ -954,9 +938,7 @@ class MailingList:
         the mail archive.
 
         This function operates on the previously retrieved mail archive
-        only, and does not contact the IETF mail server.
-
-        New in mailarchive3
+        only, and does not contact the mail server.
         """
         if self.num_messages() == 0:
             if verbose:
@@ -1153,26 +1135,26 @@ class MailingList:
 
 class MailArchive:
     """
-    A class representing the IETF email archive.
+    A class representing an email archive.
     """
-    _log         : logging.Logger
-    _imap_server :str
+    _log     : logging.Logger
+    _backend : MailArchiveBackend
 
     # Differs from mailarchiv2
     def __init__(self,
                  sqlite_file : str = "ietfdata.sqlite",
-                 imap_server : str = "imap.ietf.org") -> None:
+                 backend     : MailArchiveBackend = MailArchiveBackendIETF()) -> None:
         """
         Initialise the MailArchive.
 
-        If it doesn't exist, an sqlite3 database, specified by the `sqlite_file`
-        argument, is created to hold a local copy of the IETF mail archive. The
-        database will initially be empty and must be populated before it can be
-        used. There are two ways to populate the database:
+        If it doesn't exist, an sqlite3 database, specified by the
+        `sqlite_file` argument, is created to hold a local copy of the mail
+        archive. The database will initially be empty and must be populated
+        before it can be used. There are two ways to populate the database:
 
-        1. Call the `update()` method to populate the database with a
-           complete copy of the IETF mail archive. As of January 2025,
-           the complete archive is around 35 gigabytes in size.
+        1. Call the `update()` method to populate the database with a complete
+           copy of the mail archive. As of January 2025 the complete IETF mail
+           archive is around 35 gigabytes in size.
 
         2. Call the `update_mailing_list_names()` method to add the mailing
            list names to the database. Then, use the `mailing_list_names()`
@@ -1181,16 +1163,10 @@ class MailArchive:
 
         In normal operation, calling `update()` to fetch the complete mail
         archive is the right thing to do.
-
-        Previous versions of this library used MongoDB to store the archived
-        email messages. This version uses an sqlite3 database file instead.
-        The following arguments are no longer accepted and should be removed
-        from code that use this library: `mongodb_hostname`, `mongodb_port`,
-        `mongodb_username`, and `mongodb_password`.
         """
         logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
 
-        self._imap_server = imap_server
+        self._backend = backend
         self._log = logging.getLogger("ietfdata")
         self._db  = sqlite3.connect(sqlite_file)
         self._db.execute('PRAGMA synchronous = OFF;')
@@ -1271,44 +1247,29 @@ class MailArchive:
 
     def update_mailing_list_names(self) -> None:
         """
-        Contact the IETF mail server and update the local copy of the list of
+        Contact the mail server and update the local copy of the list of
         mailing lists that are available.
 
         In normal operation you do not need to call this method. It should only
-        be used if you plan to download only a subset of the IETF mailing lists,
-        in which case you should call this method, then `mailing_list_names()`
-        to query what lists exist, then `update_mailing_list()` to populate the
+        be used if you plan to download only a subset of the mailing lists, in
+        which case you should call this method, then `mailing_list_names()` to
+        query what lists exist, then `update_mailing_list()` to populate the
         local database with the messages from the lists of interest.
-
-        New in mailarchive3
         """
-        with IMAPClient(host=self._imap_server, ssl=True, use_uid=True) as imap:
-            imap.login("anonymous", "anonymous")
-
-            _, _, imap_ns_shared = imap.namespace()
-            imap_prefix    = imap_ns_shared[0][0]
-            imap_separator = imap_ns_shared[0][1]
-            folder_list    = imap.list_folders()
-
         dbc = self._db.cursor()
-        for (flags, delimiter, folder_path) in folder_list:
-            if b'\\Noselect' in flags:
-                continue
-            name = folder_path.split(imap_separator)[-1]
+        for name in self._backend.mailboxes():
             dbc.execute("INSERT OR IGNORE INTO ietf_ma_lists (name) VALUES (?)", (name,))
         self._db.commit()
 
 
     def update_mailing_list(self, mailing_list_name: str) -> None:
         """
-        Contact the IETF mail serer to update the local copy of the specified
+        Contact the mail serer to update the local copy of the specified
         mailing list.
 
         In normal operation you do not need to call this method. It's only used
-        when working with a partial copy of the IETF mail archive, as discussed
-        in the documentation for `update_mailing_list_names()`.
-
-        New in mailarchive3
+        when working with a partial copy of the mail archive, as discussed in
+        the documentation for `update_mailing_list_names()`.
         """
         ml = self.mailing_list(mailing_list_name)
         ml.update()
@@ -1316,12 +1277,12 @@ class MailArchive:
 
     def update(self, verbose=True) -> None:
         """
-        Contact the IETF mail server to update the local copy of the IETF
-        mailing list archive.
+        Contact the mail server to update the local copy of the mailing list
+        archive.
 
         This method should be called when working with a complete copy of
         the mail archive to synchronise the local copy of the archive with
-        the IETF mail server.
+        the mail server.
 
         WARNING: The first time this method is called, it will download the
         entire mail archive. This will take several hours and download tens
@@ -1349,8 +1310,6 @@ class MailArchive:
 
         This nmethod operates locally based on the previously downloaded
         messages.
-
-        New in mailarchive3
         """
         for ml_name in self.mailing_list_names():
             ml = self.mailing_list(ml_name)
@@ -1373,16 +1332,16 @@ class MailArchive:
         return MailingList(self, mailing_list_name)
 
 
-
     def message(self, message_id:str) -> List[Envelope]:
         """
         Return the envelopes for all messages with the specified `message_id`.
 
-        There can be multiple copies of a message with a particular ID in the
-        archive if t was sent to multiple lists. This method returns all the
-        copies, since each copy might have a different set of replies.  For
-        example, message "<396c8d37-f979-73fe-34fa-475a038b94f8@alum.mit.edu>"
-        appears in the archives of the "art", "last-call", and "tsvwg" lists.
+        There can be several copies of a message with a particular `message_id`
+        in the archive if the message was sent to multiple lists. This method
+        returns all the copies since each might have a different set of replies.
+        In the IETF mail archive, for example, the message with `message_id`
+        "<396c8d37-f979-73fe-34fa-475a038b94f8@alum.mit.edu>" appears in the
+        archives of the "art", "last-call", and "tsvwg" lists.
         """
         dbc = self._db.cursor()
         sql = "SELECT message_num FROM ietf_ma_hdr WHERE message_id = ?;"
@@ -1393,13 +1352,7 @@ class MailArchive:
 
 
     def messages(self,
-                 received_after    : str = "1970-01-01T00:00:00", # Deprecated, use sent_after instead
-                 received_before   : str = "2038-01-19T03:14:07", # Deprecated, use sent_before instead
-                 header_from       : Optional[str] = None, # Regex match - deprecated, use from_addr or from_name instead
-                 header_to         : Optional[str] = None, # Regex match - deprecated, use to_addr instead
-                 header_subject    : Optional[str] = None, # Regex match - deprecated, use subject instead
                  mailing_list_name : Optional[str] = None, # Exact match
-                 # The following are new for mailarchive3:
                  sent_after        : str = "1970-01-01T00:00:00",
                  sent_before       : str = "2038-01-19T03:14:07",
                  from_name         : Optional[str] = None, # Substring match
@@ -1411,24 +1364,8 @@ class MailArchive:
                  in_reply_to       : Optional[str] = None,
                 ) -> Iterator[Envelope]:
         """
-        Search the local copy of the IETF mail archive, returning the envelopes
-        of the messages that match all of the specified criteria.
-
-        The `received_after` and `received_before` arguments are deprecated and
-        should not be used. These arguments can be used to find messages based
-        on the date when they were added to the mail archive, but for a number
-        of mailing lists the archive was back-filled after the fact so the date
-        when the messages were added to the mail archive bears no relation to
-        the date when the messages were sent. In normal use, the `sent_after`
-        and `sent_before` arguments should be used instead to find messages
-        based on the parsed "Date:" headers.
-
-        The `header_from`, `header_to`, and `header_subject` arguments are
-        deprecated and should not be used. The mailarchive3 library uses a
-        number of heuristics to correct malformed headers, but these methods
-        search only the uncorrected headers. In normal use, the `from_name`,
-        `from_addr`, `to_addr`, and `subject` arguments should be used instead
-        since they search the corrected data and are much faster.
+        Search the local copy of the mail archive, returning the envelopes of
+        the messages that match all of the specified criteria.
         """
         dbc = self._db.cursor()
         query = """SELECT DISTINCT ietf_ma_msg.message_num 
@@ -1436,53 +1373,47 @@ class MailArchive:
                    LEFT JOIN ietf_ma_hdr    ON ietf_ma_msg.message_num = ietf_ma_hdr.message_num
                    LEFT JOIN ietf_ma_hdr_to ON ietf_ma_msg.message_num = ietf_ma_hdr_to.message_num
                    LEFT JOIN ietf_ma_hdr_cc ON ietf_ma_msg.message_num = ietf_ma_hdr_cc.message_num
-                   WHERE date_received >= ? AND date_received < ? """
-        param = [received_after, received_before]
+                   WHERE """
+        sql = []
+        arg = []
         if mailing_list_name is not None:
-            query += "AND mailing_list == ? "
-            param.append(mailing_list_name)
+            sql.append("mailing_list == ?")
+            arg.append(mailing_list_name)
 
-        query += " AND date >= ? AND date < ? "
-        param.append(sent_after)
-        param.append(sent_before)
+        sql.append("date >= ?")
+        arg.append(sent_after)
+        sql.append("date < ?")
+        arg.append(sent_before)
 
         if from_name is not None:
-            query += "AND from_name LIKE ? "
-            param.append(from_name)
+            sql.append("from_name LIKE ?")
+            arg.append(from_name)
         if from_addr is not None:
-            query += "AND from_addr == ? "
-            param.append(from_addr)
+            sql.append("from_addr == ?")
+            arg.append(from_addr)
         if to_addr is not None:
-            query += "AND to_addr == ? "
-            param.append(to_addr)
+            sql.append("to_addr == ?")
+            arg.append(to_addr)
         if cc_addr is not None:
-            query += "AND cc_addr == ? "
-            param.append(cc_addr)
+            sql.append("cc_addr == ?")
+            arg.append(cc_addr)
         if subject is not None:
-            query += "AND subject LIKE ? "
-            param.append(f'%{subject}%')
+            sql.append("subject LIKE ?")
+            arg.append(f'%{subject}%')
         if message_id is not None:
-            query += "AND message_id == ? "
-            param.append(message_id)
+            sql.append("message_id == ?")
+            arg.append(message_id)
         if in_reply_to is not None:
-            query += "AND in_reply_to == ? "
-            param.append(in_reply_to)
+            sql.append("in_reply_to == ?")
+            arg.append(in_reply_to)
+
+        query += " AND ".join(sql)
         query += ";"
-        if header_from is None and header_to is None and header_subject is None:
-            qplan  = dbc.execute("EXPLAIN QUERY PLAN " + query, param).fetchone()
-            self._log.debug(query)
-            self._log.debug(qplan)
-            for msg_num in map(lambda x : x[0], dbc.execute(query, param).fetchall()): 
-                yield Envelope(self, msg_num)
-        else:
-            # Handle deprecated queries that do a regexp match on the raw headers.
-            # This is very slow.
-            for msg_num in map(lambda x : x[0], dbc.execute(query, param).fetchall()): 
-                msg = Envelope(self, msg_num)
-                if (header_from    is None or re.search(header_from,    str(msg.header("from")))) and \
-                   (header_to      is None or re.search(header_to,      str(msg.header("to"))))   and \
-                   (header_subject is None or re.search(header_subject, str(msg.header("subject")))):
-                    yield msg
+        qplan  = dbc.execute("EXPLAIN QUERY PLAN " + query, arg).fetchone()
+        self._log.debug(query)
+        self._log.debug(qplan)
+        for msg_num in map(lambda x : x[0], dbc.execute(query, arg).fetchall()): 
+            yield Envelope(self, msg_num)
 
 
     def clear_metadata(self, project: str):
