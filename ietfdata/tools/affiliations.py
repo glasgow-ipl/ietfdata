@@ -291,7 +291,7 @@ if __name__ == "__main__":
                     continue
                 date_ = rfc_date(rfc.year, rfc.month) # FIXME get the actual publication date
                 if email.address not in emails or affil not in org_names:
-                    print(f"skipped {email} {affil}")
+                    log.debug(f"skipped {email.address} {affil}")
                     continue
                 pid = emails[email.address]
                 oid = org_names[affil]
@@ -331,20 +331,20 @@ if __name__ == "__main__":
 
     af.save(sys.argv[4])
 
-    log.info("Identifying conflicting affiliations")
+    log.warning("Identifying conflicting affiliations")
     conflicts = af.get_conflicts()
     ccount = 0
     for pid, conflicts in conflicts.items():
         ccount += 1
-        log.info(f"  {pid} {participants[pid]["names"][0]}")
+        log.warning(f"  {pid} {participants[pid]["names"][0]}")
         for org1, org2, date_ in conflicts:
-            log.info(f"    {date_}")
-            log.info(f"      {org1}")
-            for name in organisations[org1]["names"]:
-                log.info(f"        {name}")
-            log.info(f"      {org2}")
-            for name in organisations[org2]["names"]:
-                log.info(f"        {name}")
+            log.warning(f"    {date_}")
+            log.warning(f"      {org1} {organisations[org1]['names'][0]}")
+            #for name in organisations[org1]["names"]:
+            #    log.warning(f"        {name}")
+            log.warning(f"      {org2} {organisations[org2]['names'][0]}")
+            #for name in organisations[org2]["names"]:
+            #    log.warning(f"        {name}")
     if ccount > 0:
         log.warning(f"Found {ccount} people with conflicting affiliations")
 
