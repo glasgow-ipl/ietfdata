@@ -28,22 +28,6 @@ from typing import Iterator, List, Tuple
 
 class MailArchiveBackend(ABC):
     @abstractmethod
-    def connect(self) -> None:
-        """
-        Connect to the mail server.
-        """
-        pass
-
-
-    @abstractmethod
-    def disconnect(self) -> None:
-        """
-        Disconnect from the mail server.
-        """
-        pass
-
-
-    @abstractmethod
     def mailboxes(self) -> List[str]:
         """
         Return the list of mailboxes available on the server.
@@ -52,12 +36,20 @@ class MailArchiveBackend(ABC):
 
 
     @abstractmethod
-    def select_mailbox(self, mailbox: str) -> None:
+    def open_mailbox(self, mailbox: str) -> None:
         """
-        Select a mailbox. 
+        Open a mailbox for processing.
 
         The selected mailbox is used by calls to the `validity()`,
-        `message_ids()`, and `fetch()` methods.
+        `message_ids()`, `fetch()`, and `close_mailbox()` methods.
+        """
+        pass
+
+
+    @abstractmethod
+    def close_mailbox(self) -> None:
+        """
+        Close a mailbox after processing
         """
         pass
 
@@ -75,7 +67,7 @@ class MailArchiveBackend(ABC):
 
 
     @abstractmethod
-    def messages_ids(self) -> List[int]:
+    def message_ids(self) -> List[int]:
         """
         Return the list of valid message identifiers for this mailbox.
         """
