@@ -3,10 +3,10 @@ Change Log -- ietfdata
 
 ## Version 0.9.0
 
-- Introduce `mailarchive3.py`. This is intended to be an almost
-  drop-in replacement for `mailarchive2.py`, that uses a local
-  sqlite3 file as the database rather than MongoDB. Currently
-  work in progress.
+- Introduce `mailarchive3.py`. This is replaces `mailarchive2.py`
+  using a local sqlite3 file as the database instead of MongoDB.
+  Add support for different back ends, allowing use with archives
+  other than the IETF.
 - Update the DataTracker class to support different back ends.
   The `DTBackendLive` class is intended for interactive use, while
   `DTBackendArchive` is intended to support offline use, backed by
@@ -25,7 +25,7 @@ Change Log -- ietfdata
 
 
 
-## Version 0.8.3
+## Version 0.8.3 -- 9 May 2025
 
  - Fix parsing of `Submission` objections that lack a draft
  - Add `ietfdata.tools.organisations.py` as a tool to find
@@ -33,19 +33,19 @@ Change Log -- ietfdata
  - Update tests and examples
 
 
-## Version 0.8.2
+## Version 0.8.2 -- 26 March 2025
 
  - Require Python 3.13
  - Update tests and examples
  - Update rate limiting to handle 429 with "Retry-After: 0"
 
 
-## Version 0.8.1 
+## Version 0.8.1 -- 4 October 2024
 
  - Fix type mismatch in `DataTrackerExt::draft_history()`
 
 
-## Version 0.8.0 
+## Version 0.8.0 -- 23 August 2024
 
  - Use a local sqlite file for the datatracker cache rather than MongoDB.
    The `IETFDATA_CACHEDIR` environment variable specifies the location of
