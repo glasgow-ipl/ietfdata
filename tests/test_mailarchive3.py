@@ -1,4 +1,4 @@
-# Copyright (C) 2021-2025 University of Glasgow
+# Copyright (C) 2021-2026 University of Glasgow
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -39,7 +39,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from ietfdata.datatracker  import *
 from ietfdata.mailarchive3 import *
-from ietfdata.mailarchive3 import _parse_message
+from ietfdata.ma_parsing   import parse_message
 
 # =================================================================================================================================
 # Unit tests:
@@ -64,7 +64,7 @@ class TestMailArchive3(unittest.TestCase):
         res = dbc.execute(sql, (ml_name, uidvalidity, uid)).fetchall()
         if len(res) == 0:
             self.fail(f"Cannot find message {ml_name}/{uid} with uidvalidity={uidvalidity}")
-        msg = _parse_message(uidvalidity, uid, res[0][0])
+        msg = parse_message(uidvalidity, uid, res[0][0])
         self.assertEqual(msg["from_name"], name)
         self.assertEqual(msg["from_addr"], addr)
 
