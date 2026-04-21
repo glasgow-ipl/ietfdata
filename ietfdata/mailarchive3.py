@@ -743,7 +743,8 @@ class MailArchive:
                                 uid           INTEGER NOT NULL,
                                 message       BLOB
                             );""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_msg_list_uid  ON ietf_ma_msg (mailing_list, uidvalidity, uid);""")
+        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_msg                 ON ietf_ma_msg (message_num);""")
+        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_msg_uidvalidity_uid ON ietf_ma_msg (mailing_list, uidvalidity, uid);""")
 
         self._db.execute("""CREATE TABLE IF NOT EXISTS ietf_ma_hdr (
                                 id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -756,13 +757,12 @@ class MailArchive:
                                 in_reply_to  TEXT,
                                 FOREIGN KEY (message_num)  REFERENCES ietf_ma_msg (message_num)
                             );""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_message_num    ON ietf_ma_hdr (message_num);""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_message_id     ON ietf_ma_hdr (message_id);""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_in_reply_to    ON ietf_ma_hdr (in_reply_to);""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_from_addr_date ON ietf_ma_hdr (from_addr, date);""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_from_name_date ON ietf_ma_hdr (from_name, date);""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_date_subject   ON ietf_ma_hdr (date, subject);""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_message_num_date   ON ietf_ma_hdr (message_num, date);""")
+        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr                ON ietf_ma_hdr (message_num);""")
+        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_message_id     ON ietf_ma_hdr (message_num, message_id);""")
+        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_in_reply_to    ON ietf_ma_hdr (message_num, in_reply_to);""")
+        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_from_addr_date ON ietf_ma_hdr (message_num, from_addr, date);""")
+        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_from_name_date ON ietf_ma_hdr (message_num, from_name, date);""")
+        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_date_subject   ON ietf_ma_hdr (message_num, date, subject);""")
 
         self._db.execute("""CREATE TABLE IF NOT EXISTS ietf_ma_hdr_to (
                                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -772,7 +772,8 @@ class MailArchive:
                                 to_addr     TEXT,
                                 FOREIGN KEY (message_num) REFERENCES ietf_ma_msg (message_num)
                             );""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_to ON ietf_ma_hdr_to (message_num, to_index);""")
+        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_to          ON ietf_ma_hdr_to (message_num);""")
+        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_to_to_index ON ietf_ma_hdr_to (message_num, to_index);""")
 
         self._db.execute("""CREATE TABLE IF NOT EXISTS ietf_ma_hdr_cc (
                                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -782,7 +783,8 @@ class MailArchive:
                                 cc_addr     TEXT,
                                 FOREIGN KEY (message_num) REFERENCES ietf_ma_msg (message_num)
                             );""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_cc ON ietf_ma_hdr_cc (message_num, cc_index);""")
+        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_cc          ON ietf_ma_hdr_cc (message_num);""")
+        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_cc_cc_index ON ietf_ma_hdr_cc (message_num, cc_index);""")
 
         self._db.execute("""CREATE TABLE IF NOT EXISTS ietf_ma_msg_metadata (
                                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
