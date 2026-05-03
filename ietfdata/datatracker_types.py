@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2025 University of Glasgow
+# Copyright (C) 2017-2026 University of Glasgow
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -61,6 +61,14 @@ class URI(BaseModel):
             return {"uri" : data}
         else:
             return data
+
+
+    @model_validator(mode='after')
+    def check_uri(self) -> Self:
+        if self.uri is not None and not self.uri.startswith(self.root):
+            raise ValueError(f"uri doesn't match root: {self.root} -> {self.uri}")
+        return self
+
 
 
 class DocumentURI(URI):
