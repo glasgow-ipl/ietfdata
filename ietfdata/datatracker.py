@@ -97,12 +97,12 @@ class DataTracker:
     data, for example if writing a research paper, a dissertation, or as part
     of a student project, then the DTBackendArchive should be used:
 
-        dt = DataTracker(DTBackendArchive(sqlite_file="ietfdata.sqlite"))
+        dt = DataTracker(DTBackendArchive("ietfdata.sqlite"))
 
     In this case, the DataTracker class will create the specified sqlite file
     if it doesn't exist and download a complete copy of the data from the IETF
     datatracker (this will take around 24 hours, and will generate an sqlite
-    file that is around 1.5GB in size; if the download is interrupted, it is
+    file that is around 2GB in size; if the download is interrupted, it is
     safe to rerun the above operation and the download should resume where it
     left-off). Once the sqlite file is downloaded, future instantiations of the
     DataTracker will read from it directly and will not access the online IETF
