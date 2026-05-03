@@ -1029,15 +1029,54 @@ class MeetingAttended(Resource):
     time         : datetime
 
 
-# See also MeetingRegistrationURI
-class MeetingRegistrationOldURI(URI):
-    root : str = "/api/v1/stats/meetingregistration/"
+class AttendanceTypeNameURI(URI):
+    root : str = "/api/v1/name/attendancetypename/"
 
 
-# See also MeetingRegistration
-class MeetingRegistrationOld(Resource):
+class AttendanceTypeName(Resource):
+    desc         : str
+    name         : str
+    order        : int
+    resource_uri : AttendanceTypeNameURI
+    slug         : str
+    used         : bool
+
+
+class RegistrationTicketTypeNameURI(URI):
+    root : str = "/api/v1/name/registrationtickettypename/"
+
+
+class RegistrationTicketTypeName(Resource):
+    desc         : str
+    name         : str
+    order        : int
+    resource_uri : RegistrationTicketTypeNameURI
+    slug         : str
+    used         : bool
+
+
+# See also StatsMeetingRegistrationURI
+class MeetingRegistrationURI(URI):
+    root : str = "/api/v1/meeting/registration/"
+
+
+class RegistrationTicketURI(URI):
+    root : str = "/api/v1/meeting/registrationticket/"
+
+
+class RegistrationTicket(Resource):
+    attendance_type : AttendanceTypeNameURI
+    id              : int
+    registration    : MeetingRegistrationURI
+    resource_uri    : RegistrationTicketURI
+    ticket_type     : RegistrationTicketTypeNameURI
+
+
+# See also StatsMeetingRegistration
+class MeetingRegistration(Resource):
     affiliation  : str
     attended     : bool
+    checkedin    : bool
     country_code : str
     email        : str
     first_name   : str
@@ -1045,8 +1084,8 @@ class MeetingRegistrationOld(Resource):
     last_name    : str
     meeting      : MeetingURI
     person       : Optional[PersonURI]
-    resource_uri : MeetingRegistrationOldURI
-    checkedin    : bool
+    resource_uri : MeetingRegistrationURI
+    tickets      : List[RegistrationTicket]
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------
@@ -1520,15 +1559,15 @@ class CountryAlias(Resource):
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------
-# Types relating to statistics:
+# Types relating to meeting registration statistics:
 
-# See also MeetingRegistrationOldURI
-class MeetingRegistrationURI(URI):
+# See also MeetingRegistrationURI
+class StatsMeetingRegistrationURI(URI):
     root : str = "/api/v1/stats/meetingregistration/"
 
 
-# See also MeetingRegistrationOld
-class MeetingRegistration(Resource):
+# See also MeetingRegistration
+class StatsMeetingRegistration(Resource):
     affiliation  : str
     attended     : bool
     country_code : str
@@ -1539,9 +1578,8 @@ class MeetingRegistration(Resource):
     meeting      : MeetingURI
     person       : Optional[PersonURI]
     reg_type     : str
-    resource_uri : MeetingRegistrationURI
+    resource_uri : StatsMeetingRegistrationURI
     ticket_type  : str
-    checkedin    : bool
 
 
 # =================================================================================================================================

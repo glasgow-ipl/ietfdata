@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2025 University of Glasgow
+# Copyright (C) 2017-2026 University of Glasgow
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -158,7 +158,7 @@ class DataTracker:
         self._hints["/api/v1/mailinglists/subscribed/"]            = Hints(EmailListSubscriptions,      "id")
         self._hints["/api/v1/meeting/attended/"]                   = Hints(MeetingAttended,             "id")
         self._hints["/api/v1/meeting/meeting/"]                    = Hints(Meeting,                     "id")
-        self._hints["/api/v1/meeting/registration/"]               = Hints(MeetingRegistrationOld,      "id")
+        self._hints["/api/v1/meeting/registration/"]               = Hints(MeetingRegistration,         "id")
         self._hints["/api/v1/meeting/schedtimesessassignment/"]    = Hints(SessionAssignment,           "id")
         self._hints["/api/v1/meeting/schedule/"]                   = Hints(Schedule,                    "id")
         self._hints["/api/v1/meeting/schedulingevent/"]            = Hints(SchedulingEvent,             "id")
@@ -206,7 +206,7 @@ class DataTracker:
         self._hints["/api/v1/name/continentname/"]                 = Hints(Continent,                   "slug")
         self._hints["/api/v1/name/countryname/"]                   = Hints(Country,                     "slug")
         self._hints["/api/v1/stats/countryalias/"]                 = Hints(CountryAlias,                "id")
-        self._hints["/api/v1/stats/meetingregistration/"]          = Hints(MeetingRegistration,         "id")
+        self._hints["/api/v1/stats/meetingregistration/"]          = Hints(StatsMeetingRegistration,    "id")
         self._hints["/api/v1/submit/submission/"]                  = Hints(Submission,                  "id")
         self._hints["/api/v1/submit/submissionevent/"]             = Hints(SubmissionEvent,             "id")
 
@@ -1201,7 +1201,7 @@ class DataTracker:
         not always a straightforward match with the values returned
         from the other functions.
         """
-        url = SessionURI(uri="/api/v1/meeting/attended/")
+        url = MeetingAttendedURI(uri="/api/v1/meeting/attended/")
         if session is not None:
             url.params["session"] = session.id
         if person is not None:
@@ -1348,11 +1348,11 @@ class DataTracker:
         yield from self._retrieve_multi(MeetingTypeURI(uri="/api/v1/name/meetingtypename/"), MeetingType)
 
 
-    def meeting_registration_old(self, meeting_registration_old_uri: MeetingRegistrationOldURI) -> Optional[MeetingRegistrationOld]:
-        return self._retrieve(meeting_registration_old_uri, MeetingRegistrationOld)
+    def meeting_registration(self, meeting_registration_old_uri: MeetingRegistrationURI) -> Optional[MeetingRegistration]:
+        return self._retrieve(meeting_registration_old_uri, MeetingRegistration)
 
 
-    def meeting_registrations_old(self,
+    def meeting_registrations(self,
                 affiliation   : Optional[str]             = None,
                 attended      : Optional[bool]            = None,
                 country_code  : Optional[str]             = None,
@@ -1362,16 +1362,15 @@ class DataTracker:
                 meeting       : Optional[Meeting]         = None,
                 person        : Optional[Person]          = None,
                 reg_type      : Optional[str]             = None,
-                ticket_type   : Optional[str]             = None) -> Iterator[MeetingRegistrationOld]:
+                ticket_type   : Optional[str]             = None) -> Iterator[MeetingRegistration]:
         """
         There are four ways to access meeting registration data from the 
         datatracker:
 
-        `meeting_registration()` and `meeting_registration_old()` provide
+        `meeting_registration()` and `stats_meeting_registration()` provide
         information about people who have registered for meetings. These
-        two functions provide the same information, although the
-        `meeting_registration()` call provides more detail on registrations
-        for ANRW and the hackathon.
+        provide the same information, although `stats_meeting_registration()`
+        provides more detail on registrations for ANRW and the hackathon.
 
         `meeting_attendance()` provides information about the people that
         attended a particular session of the meeting. This information is
@@ -1384,7 +1383,7 @@ class DataTracker:
         not always a straightforward match with the values returned
         from the other functions.
         """
-        url = MeetingRegistrationOldURI(uri="/api/v1/meeting/registration/")
+        url = MeetingRegistrationURI(uri="/api/v1/meeting/registration/")
         if affiliation is not None:
             url.params["affiliation"] = affiliation
         if attended is not None:
@@ -1405,7 +1404,7 @@ class DataTracker:
             url.params["reg_type"] = reg_type
         if ticket_type is not None:
             url.params["ticket_type"] = ticket_type
-        yield from self._retrieve_multi(url, MeetingRegistrationOld)
+        yield from self._retrieve_multi(url, MeetingRegistration)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -2000,17 +1999,15 @@ class DataTracker:
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
-    # Datatracker API endpoints returning information about statistics:
+    # Datatracker API endpoints returning statistics about meeting registrations:
     #
-    #   https://datatracker.ietf.org/api/v1/stats/affiliationalias/
-    #   https://datatracker.ietf.org/api/v1/stats/affiliationignoredending/
     #   https://datatracker.ietf.org/api/v1/stats/meetingregistration/
 
-    def meeting_registration(self, meeting_registration_uri: MeetingRegistrationURI) -> Optional[MeetingRegistration]:
-        return self._retrieve(meeting_registration_uri, MeetingRegistration)
+    def stats_meeting_registration(self, stats_meeting_registration_uri: StatsMeetingRegistrationURI) -> Optional[StatsMeetingRegistration]:
+        return self._retrieve(stats_meeting_registration_uri, StatsMeetingRegistration)
 
 
-    def meeting_registrations(self,
+    def stats_meeting_registrations(self,
                 affiliation   : Optional[str]             = None,
                 attended      : Optional[bool]            = None,
                 country_code  : Optional[str]             = None,
@@ -2020,16 +2017,15 @@ class DataTracker:
                 meeting       : Optional[Meeting]         = None,
                 person        : Optional[Person]          = None,
                 reg_type      : Optional[str]             = None,
-                ticket_type   : Optional[str]             = None) -> Iterator[MeetingRegistration]:
+                ticket_type   : Optional[str]             = None) -> Iterator[StatsMeetingRegistration]:
         """
         There are four ways to access meeting registration data from the 
         datatracker:
 
-        `meeting_registration()` and `meeting_registration_old()` provide
+        `meeting_registration()` and `stats_meeting_registration()` provide
         information about people who have registered for meetings. These
-        two functions provide the same information, although the
-        `meeting_registration()` call provides more detail on registrations
-        for ANRW and the hackathon.
+        provide the same information, although `stats_meeting_registration()`
+        provides more detail on registrations for ANRW and the hackathon.
 
         `meeting_attendance()` provides information about the people that
         attended a particular session of the meeting. This information is
@@ -2042,7 +2038,7 @@ class DataTracker:
         not always a straightforward match with the values returned
         from the other functions.
         """
-        url = MeetingRegistrationURI(uri="/api/v1/stats/meetingregistration/")
+        url = StatsMeetingRegistrationURI(uri="/api/v1/stats/meetingregistration/")
         if affiliation is not None:
             url.params["affiliation"] = affiliation
         if attended is not None:
@@ -2063,7 +2059,7 @@ class DataTracker:
             url.params["reg_type"] = reg_type
         if ticket_type is not None:
             url.params["ticket_type"] = ticket_type
-        yield from self._retrieve_multi(url, MeetingRegistration)
+        yield from self._retrieve_multi(url, StatsMeetingRegistration)
 
 
 # =================================================================================================================================
