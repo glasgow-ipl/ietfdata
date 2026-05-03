@@ -24,8 +24,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import copy
-import os
+import json
 import logging
+import os
 import pprint
 import re
 import requests
@@ -512,6 +513,8 @@ class DTBackendArchive(DTBackend):
 
                 for column in to_many:
                     for subitem in item[column]:
+                        if isinstance(subitem, dict):
+                            subitem = json.dumps(subitem)
                         dbc.execute(f"INSERT INTO {table_name}_{column} VALUES (null, ?, ?);", (item["resource_uri"], subitem))
                 self._db.commit()
 
