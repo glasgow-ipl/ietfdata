@@ -1184,11 +1184,10 @@ class DataTracker:
         There are four ways to access meeting registration data from the 
         datatracker:
 
-        `meeting_registration()` and `meeting_registration_old()` provide
+        `meeting_registration()` and `stats_meeting_registration()` provide
         information about people who have registered for meetings. These
-        two functions provide the same information, although the
-        `meeting_registration()` call provides more detail on registrations
-        for ANRW and the hackathon.
+        provide the same information, although `stats_meeting_registration()`
+        provides more detail on registrations for ANRW and the hackathon.
 
         `meeting_attendance()` provides information about the people that
         attended a particular session of the meeting. This information is
@@ -1315,7 +1314,7 @@ class DataTracker:
         `meeting()` provides a count of the number of attendees at the
         meeting as part of the result.  The way in which the number of
         attendees given here is derived has varied over time. See also
-        the `meeting_registration()`, `meeting_registration_old()`, and
+        the `meeting_registration()`, `stats_meeting_registration()`, and
         `meeting_attendance()` functions.
         """
         url = MeetingURI(uri="/api/v1/meeting/meeting/")
@@ -1440,13 +1439,13 @@ class DataTracker:
 
 
     def ipr_disclosure_bases(self,
-            since              : str                             = "1970-01-01T00:00:00Z",
-            until              : str                             = "2038-01-19T03:14:07Z",
-            by                 : Optional[Person]                = None,
-            holder_legal_name  : Optional[str]                   = None,
-            state              : Optional[IPRDisclosureState]    = None,
-            submitter_email    : Optional[str]                   = None,
-            submitter_name     : Optional[str]                   = None) -> Iterator[IPRDisclosureBase]:
+            since             : str                          = "1970-01-01T00:00:00Z",
+            until             : str                          = "2038-01-19T03:14:07Z",
+            by                : Optional[Person]             = None,
+            holder_legal_name : Optional[str]                = None,
+            state             : Optional[IPRDisclosureState] = None,
+            submitter_email   : Optional[str]                = None,
+            submitter_name    : Optional[str]                = None) -> Iterator[IPRDisclosureBase]:
         url = IPRDisclosureBaseURI(uri="/api/v1/ipr/iprdisclosurebase/")
         url.params["time__gte"] = since
         url.params["time__lt"]  = until
@@ -1468,14 +1467,14 @@ class DataTracker:
 
 
     def generic_ipr_disclosures(self,
-            since               : str                             = "1970-01-01T00:00:00Z",
-            until               : str                             = "2038-01-19T03:14:07Z",
-            by                  : Optional[Person]                = None,
-            holder_legal_name   : Optional[str]                   = None,
-            holder_contact_name : Optional[str]                   = None,
-            state               : Optional[IPRDisclosureState]    = None,
-            submitter_email     : Optional[str]                   = None,
-            submitter_name      : Optional[str]                   = None) -> Iterator[GenericIPRDisclosure]:
+            since               : str                          = "1970-01-01T00:00:00Z",
+            until               : str                          = "2038-01-19T03:14:07Z",
+            by                  : Optional[Person]             = None,
+            holder_legal_name   : Optional[str]                = None,
+            holder_contact_name : Optional[str]                = None,
+            state               : Optional[IPRDisclosureState] = None,
+            submitter_email     : Optional[str]                = None,
+            submitter_name      : Optional[str]                = None) -> Iterator[GenericIPRDisclosure]:
         url = GenericIPRDisclosureURI(uri="/api/v1/ipr/genericiprdisclosure/")
         url.params["time__gte"] = since
         url.params["time__lt"]  = until
@@ -1507,17 +1506,17 @@ class DataTracker:
 
 
     def holder_ipr_disclosures(self,
-            since                : str                             = "1970-01-01T00:00:00Z",
-            until                : str                             = "2038-01-19T03:14:07Z",
-            by                   : Optional[Person]                = None,
-            holder_legal_name    : Optional[str]                   = None,
-            holder_contact_name  : Optional[str]                   = None,
-            ietfer_contact_email : Optional[str]                   = None,
-            ietfer_name          : Optional[str]                   = None,
-            licensing            : Optional[IPRLicenseType]        = None,
-            state                : Optional[IPRDisclosureState]    = None,
-            submitter_email      : Optional[str]                   = None,
-            submitter_name       : Optional[str]                   = None) -> Iterator[HolderIPRDisclosure]:
+            since                : str                          = "1970-01-01T00:00:00Z",
+            until                : str                          = "2038-01-19T03:14:07Z",
+            by                   : Optional[Person]             = None,
+            holder_legal_name    : Optional[str]                = None,
+            holder_contact_name  : Optional[str]                = None,
+            ietfer_contact_email : Optional[str]                = None,
+            ietfer_name          : Optional[str]                = None,
+            licensing            : Optional[IPRLicenseType]     = None,
+            state                : Optional[IPRDisclosureState] = None,
+            submitter_email      : Optional[str]                = None,
+            submitter_name       : Optional[str]                = None) -> Iterator[HolderIPRDisclosure]:
         url = HolderIPRDisclosureURI(uri="/api/v1/ipr/holderiprdisclosure/")
         url.params["time__gte"] = since
         url.params["time__lt"]  = until
@@ -1547,15 +1546,15 @@ class DataTracker:
 
 
     def thirdparty_ipr_disclosures(self,
-            since                : str                             = "1970-01-01T00:00:00Z",
-            until                : str                             = "2038-01-19T03:14:07Z",
-            by                   : Optional[Person]                = None,
-            holder_legal_name    : Optional[str]                   = None,
-            ietfer_contact_email : Optional[str]                   = None,
-            ietfer_name          : Optional[str]                   = None,
-            state                : Optional[IPRDisclosureState]    = None,
-            submitter_email      : Optional[str]                   = None,
-            submitter_name       : Optional[str]                   = None) -> Iterator[HolderIPRDisclosure]:
+            since                : str                          = "1970-01-01T00:00:00Z",
+            until                : str                          = "2038-01-19T03:14:07Z",
+            by                   : Optional[Person]             = None,
+            holder_legal_name    : Optional[str]                = None,
+            ietfer_contact_email : Optional[str]                = None,
+            ietfer_name          : Optional[str]                = None,
+            state                : Optional[IPRDisclosureState] = None,
+            submitter_email      : Optional[str]                = None,
+            submitter_name       : Optional[str]                = None) -> Iterator[HolderIPRDisclosure]:
         url = ThirdPartyIPRDisclosureURI(uri="/api/v1/ipr/thirdpartyiprdisclosure/")
         url.params["time__gte"] = since
         url.params["time__lt"]  = until
