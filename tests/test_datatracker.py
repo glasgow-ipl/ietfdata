@@ -2498,7 +2498,6 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(reg.meeting,      MeetingURI(uri="/api/v1/meeting/meeting/805/"))
             self.assertEqual(reg.person,       PersonURI(uri="/api/v1/person/person/20209/"))
             self.assertEqual(reg.resource_uri, MeetingRegistrationURI(uri="/api/v1/meeting/registration/29329/"))
-            self.assertEqual(len(reg.tickets), 1)
         else:
             self.fail("Cannot find meeting registration")
 

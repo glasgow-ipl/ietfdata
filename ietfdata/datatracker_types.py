@@ -1029,47 +1029,9 @@ class MeetingAttended(Resource):
     time         : datetime
 
 
-class AttendanceTypeNameURI(URI):
-    root : str = "/api/v1/name/attendancetypename/"
-
-
-class AttendanceTypeName(Resource):
-    desc         : str
-    name         : str
-    order        : int
-    resource_uri : AttendanceTypeNameURI
-    slug         : str
-    used         : bool
-
-
-class RegistrationTicketTypeNameURI(URI):
-    root : str = "/api/v1/name/registrationtickettypename/"
-
-
-class RegistrationTicketTypeName(Resource):
-    desc         : str
-    name         : str
-    order        : int
-    resource_uri : RegistrationTicketTypeNameURI
-    slug         : str
-    used         : bool
-
-
 # See also StatsMeetingRegistrationURI
 class MeetingRegistrationURI(URI):
     root : str = "/api/v1/meeting/registration/"
-
-
-class RegistrationTicketURI(URI):
-    root : str = "/api/v1/meeting/registrationticket/"
-
-
-class RegistrationTicket(Resource):
-    attendance_type : AttendanceTypeNameURI
-    id              : int
-    registration    : MeetingRegistrationURI
-    resource_uri    : RegistrationTicketURI
-    ticket_type     : RegistrationTicketTypeNameURI
 
 
 # See also StatsMeetingRegistration
@@ -1085,7 +1047,8 @@ class MeetingRegistration(Resource):
     meeting      : MeetingURI
     person       : Optional[PersonURI]
     resource_uri : MeetingRegistrationURI
-    tickets      : List[RegistrationTicket]
+    # FIXME: handle tickets
+    # tickets      : List[dict]
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------
