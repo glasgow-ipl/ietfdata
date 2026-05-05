@@ -287,8 +287,6 @@ if __name__ == "__main__":
                     continue
                 affil = dt_author.affiliation.replace("\n", " ")
                 email = dt.email(dt_author.email)
-                if email is None:
-                    continue
                 date_ = rfc_date(rfc.year, rfc.month) # FIXME get the actual publication date
                 if email.address not in emails or affil not in org_names:
                     log.debug(f"skipped {email.address} {affil}")
@@ -318,7 +316,6 @@ if __name__ == "__main__":
     print("Finding affiliations in meeting registration records")
     for reg in dt.meeting_registrations():
         meeting = dt.meeting(reg.meeting)
-        assert meeting is not None
         date_  = meeting.date
         email = reg.email
         affil = reg.affiliation
