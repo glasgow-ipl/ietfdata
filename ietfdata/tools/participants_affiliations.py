@@ -316,8 +316,6 @@ class ParticipantsAffiliations:
             tmp_email = reg.email
             
             tmp_meeting = dt.meeting(reg.meeting)
-            if tmp_meeting is None:
-                continue
             tmp_date = tmp_meeting.date
             tmp_pid = None
             
