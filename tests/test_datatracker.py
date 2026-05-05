@@ -2532,7 +2532,7 @@ class TestDatatracker(unittest.TestCase):
     def test_meeting_registrations_first_name(self) -> None:
         regs = self.dt.meeting_registrations(first_name="Colin")
         self.assertIsNot(regs, None)
-        self.assertEqual(len(list(regs)), 111)
+        self.assertEqual(len(list(regs)), 112)
 
 
     def test_meeting_registrations_last_name(self) -> None:
