@@ -1104,7 +1104,7 @@ class TestDatatracker(unittest.TestCase):
     def test_document_states(self) -> None:
         st = self.dt.document_state_type(DocumentStateTypeURI(uri="/api/v1/doc/statetype/draft-rfceditor/"))
         states = list(self.dt.document_states(state_type = st))
-        self.assertEqual(len(states), 19)
+        self.assertEqual(len(states), 21)
         self.assertEqual(states[ 0].name, 'AUTH')
         self.assertEqual(states[ 1].name, 'AUTH48')
         self.assertEqual(states[ 2].name, 'EDIT')
@@ -1124,6 +1124,8 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(states[16].name, 'ISR-AUTH')
         self.assertEqual(states[17].name, 'Pending')
         self.assertEqual(states[18].name, 'TI')
+        self.assertEqual(states[19].name, 'In Progress')
+        self.assertEqual(states[20].name, 'Blocked')
 
 
     def test_document_state_type(self) -> None:
