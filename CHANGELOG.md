@@ -7,6 +7,7 @@ Change Log -- ietfdata
   using a local sqlite3 file as the database instead of MongoDB.
   Add support for different back ends, allowing use with archives
   other than the IETF.
+- Remove `mailarchive2.py`.
 - Update the DataTracker class to support different back ends.
   The `DTBackendLive` class is intended for interactive use, while
   `DTBackendArchive` is intended to support offline use, backed by
