@@ -2528,7 +2528,7 @@ class TestDatatracker(unittest.TestCase):
     def test_meeting_registrations_email(self) -> None:
         regs = self.dt.meeting_registrations(email="sm@smcquistin.uk")
         self.assertIsNot(regs, None)
-        self.assertEqual(len(list(regs)), 13)
+        self.assertEqual(len(list(regs)), 14)
 
 
     def test_meeting_registrations_first_name(self) -> None:
@@ -2540,7 +2540,7 @@ class TestDatatracker(unittest.TestCase):
     def test_meeting_registrations_last_name(self) -> None:
         regs = self.dt.meeting_registrations(last_name="McQuistin")
         self.assertIsNot(regs, None)
-        self.assertEqual(len(list(regs)), 17)
+        self.assertEqual(len(list(regs)), 18)
 
 
     def test_meeting_registrations_meeting(self) -> None:
@@ -2552,7 +2552,7 @@ class TestDatatracker(unittest.TestCase):
     def test_meeting_registrations_person(self) -> None:
         regs = self.dt.meeting_registrations(person=self.dt.person(PersonURI(uri="/api/v1/person/person/117769/")))
         self.assertIsNot(regs, None)
-        self.assertEqual(len(list(regs)), 17)
+        self.assertEqual(len(list(regs)), 18)
 
 
     def test_meeting_registrations_reg_type(self) -> None:

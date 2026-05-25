@@ -384,7 +384,6 @@ class StdEntry:
       An STD entry in the rfc-index.xml file.
     """
     doc_id  : DocID
-    title   : str
     is_also : List[DocID]
 
 
