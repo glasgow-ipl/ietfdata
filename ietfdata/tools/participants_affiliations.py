@@ -391,7 +391,7 @@ if __name__ == "__main__":
     
     participants_affiliations = ParticipantsAffiliations(participants,organisations)       
     dt = DataTracker(DTBackendArchive(sqlite_file=sys.argv[1]))
-    ri = RFCIndex(cache_dir = "cache")
+    ri = RFCIndex(cache_dir = "data")
     participants_affiliations.find_participants_affiliations_ietf(dt,ri)
     participants_affiliations.output(path)
     

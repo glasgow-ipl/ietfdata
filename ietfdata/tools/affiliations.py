@@ -274,7 +274,7 @@ if __name__ == "__main__":
 
 
     dt = DataTracker(DTBackendArchive(sqlite_file=sys.argv[1]))
-    ri = RFCIndex(cache_dir = "cache")
+    ri = RFCIndex(cache_dir = "data")
     af = Affiliations()
 
     print("Finding affiliations of RFC authors")

@@ -486,7 +486,7 @@ class RFCIndex:
                 return xml_file.read()
 
         if self.cache_dir is not None:
-            cache_filepath = Path(self.cache_dir, "rfc", "rfc-index.xml")
+            cache_filepath = Path(self.cache_dir, "rfc-index.xml")
             if self._is_cached(cache_filepath):
                 with open(cache_filepath, "r") as cache_file:
                     return cache_file.read()
