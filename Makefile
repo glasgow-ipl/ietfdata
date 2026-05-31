@@ -1,4 +1,4 @@
-# Copyright (C) 2019-2025 University of Glasgow
+# Copyright (C) 2019-2026 University of Glasgow
 # 
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions 
@@ -29,39 +29,43 @@ DATA = data/ietfdata-dt.sqlite \
        data/organisations.json \
        data/affiliations.json
 
+test: typecheck
+	@echo "*** Testing against live datatracker"
+	python3 -m unittest discover -s tests/ -v
 
-test: typecheck runtests
-
-test-all: $(DATA) test
+test-archive: typecheck $(DATA)
+	@echo "*** Testing against archived datatracker"
+	DT_TEST_SQLITE=data/ietfdata-dt.sqlite  python3 -m unittest discover -s tests/ -v
 
 typecheck:
 	mypy ietfdata/*.py ietfdata/tools/*.py
 	mypy tests/*.py
 
-runtests:
-	@python3 -m unittest discover -s tests/ -v
-
 data:
 	mkdir $@
 
-data/ietfdata-ma.sqlite: | data
-	@python3 -m ietfdata.tools.download_ma $@
+data/rfc-index.xml: | data
+	curl -s -o $@ https://www.rfc-editor.org/rfc-index.xml
 
-data/ietfdata-dt.sqlite: | data
-	@python3 -m ietfdata.tools.download_dt $@
+data/ietfdata-dt.sqlite: data/rfc-index.xml | data
+	python3 -m ietfdata.tools.download_dt $@
+
+data/ietfdata-ma.sqlite: | data
+	python3 -m ietfdata.tools.download_ma $@
 
 data/participants.json: data/ietfdata-dt.sqlite data/ietfdata-ma.sqlite
-	@python3 -m ietfdata.tools.participants  $^ $@
+	python3 -m ietfdata.tools.participants  $^ $@
 
+# FIXME: This depends on data/rfc-index.xml, but doesn't take it as a parameter
 data/organisations.json: data/ietfdata-dt.sqlite
-	@python3 -m ietfdata.tools.organisations $^ $@
+	python3 -m ietfdata.tools.organisations $^ $@
 
 data/affiliations.json: data/ietfdata-dt.sqlite data/participants.json data/organisations.json
-	@python3 -m ietfdata.tools.affiliations $^ $@
+	python3 -m ietfdata.tools.affiliations  $^ $@
 
 # Can this rule and ietfdata/tools/participants_affiliations.py be removed?
 data/affiliations2.json: data/ietfdata-dt.sqlite data/participants.json data/organisations.json
-	@python3 -m ietfdata.tools.participants_affiliations $^ $@
+	python3 -m ietfdata.tools.participants_affiliations $^ $@
 
 # =================================================================================================
 # Rules to clean-up:
@@ -73,7 +77,7 @@ clean:
 # =================================================================================================
 # Targets that don't represent files:
 
-.PHONY: test test-all typecheck runtests clean
+.PHONY: test test-archive typecheck clean
 
 # =================================================================================================
 # Configuration for make:
