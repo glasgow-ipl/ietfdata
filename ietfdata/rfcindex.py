@@ -293,7 +293,7 @@ class RfcEntry:
         rfcnum = "rfc" + self.doc_id[3:].lstrip("0")
         for fmt in self.formats:
             if fmt == required_format:
-                if required_format in [ "ASCII", "TEXT"] :
+                if required_format in [ "ASCII", "TEXT", "TXT"] :
                     return "https://www.rfc-editor.org/rfc/" + rfcnum + ".txt"
                 elif required_format == "PS":
                     return "https://www.rfc-editor.org/rfc/" + rfcnum + ".ps"
