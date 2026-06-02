@@ -56,15 +56,14 @@ data/ietfdata-ma.sqlite: | data
 data/participants.json: data/ietfdata-dt.sqlite data/ietfdata-ma.sqlite
 	python3 -m ietfdata.tools.participants  $^ $@
 
-# FIXME: This depends on data/rfc-index.xml, but doesn't take it as a parameter
-data/organisations.json: data/ietfdata-dt.sqlite
+data/organisations.json: data/ietfdata-dt.sqlite data/rfc-index.xml
 	python3 -m ietfdata.tools.organisations $^ $@
 
-data/affiliations.json: data/ietfdata-dt.sqlite data/participants.json data/organisations.json
+data/affiliations.json: data/ietfdata-dt.sqlite data/rfc-index.xml data/participants.json data/organisations.json
 	python3 -m ietfdata.tools.affiliations  $^ $@
 
 # Can this rule and ietfdata/tools/participants_affiliations.py be removed?
-data/affiliations2.json: data/ietfdata-dt.sqlite data/participants.json data/organisations.json
+data/affiliations2.json: data/ietfdata-dt.sqlite data/rfc-index.xml data/participants.json data/organisations.json
 	python3 -m ietfdata.tools.participants_affiliations $^ $@
 
 # =================================================================================================

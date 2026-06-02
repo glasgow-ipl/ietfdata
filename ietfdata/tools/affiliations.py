@@ -243,12 +243,12 @@ if __name__ == "__main__":
 
     print(f"*** ietfdata.tools.affiliations")
 
-    if len(sys.argv) != 5:
+    if len(sys.argv) != 6:
         print('')
-        print('Usage: python3 -m ietfdata.tools.affiliations <ietfdata.sqlite> <participants.json> <organisation.json> <affiliations.json>')
+        print('Usage: python3 -m ietfdata.tools.affiliations <ietfdata.sqlite> <rfc-index.xml> <participants.json> <organisation.json> <affiliations.json>')
         sys.exit(1)
 
-    print(f"Loading {sys.argv[2]}")
+    print(f"Loading {sys.argv[4]}")
     with open(sys.argv[2], "r") as inf:
         participants = json.load(inf)
         print(f"  {len(participants):5} participants")
@@ -262,7 +262,7 @@ if __name__ == "__main__":
         print(f"  {len(emails):5} email addresses")
 
 
-    print(f"Loading {sys.argv[3]}")
+    print(f"Loading {sys.argv[4]}")
     with open(sys.argv[3], "r") as inf:
         organisations = json.load(inf)
         print(f"  {len(organisations):5} organisations")
@@ -274,7 +274,7 @@ if __name__ == "__main__":
 
 
     dt = DataTracker(DTBackendArchive(sqlite_file=sys.argv[1]))
-    ri = RFCIndex(cache_dir = "data")
+    ri = RFCIndex(rfc_index = sys.argv[2])
     af = Affiliations()
 
     print("Finding affiliations of RFC authors")
@@ -326,7 +326,7 @@ if __name__ == "__main__":
         oid = org_names[affil]
         af.add(date_, pid, oid)
 
-    af.save(sys.argv[4])
+    af.save(sys.argv[5])
 
     log.warning("Identifying conflicting affiliations")
     conflicts = af.get_conflicts()
