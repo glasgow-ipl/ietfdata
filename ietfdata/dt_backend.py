@@ -239,7 +239,8 @@ class DTBackendArchive(DTBackend):
         self._base_url    = os.environ.get("IETFDATA_DT_URL", "https://datatracker.ietf.org")
         self._multi_delay = 0.1
         self._session     = requests.Session()
-        self._db          = sqlite3.connect(sqlite_file)
+        assert sqlite3.threadsafety == 3
+        self._db          = sqlite3.connect(sqlite_file, check_same_thread=False)
         self._db.execute('PRAGMA synchronous = OFF;')
         self._log.info(f"DTBackendArchive at {self._base_url} (multi_delay={self._multi_delay}s)")
 

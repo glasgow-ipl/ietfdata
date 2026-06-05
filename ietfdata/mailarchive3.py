@@ -718,7 +718,8 @@ class MailArchive:
 
         self._backend = backend
         self._log = logging.getLogger("ietfdata")
-        self._db  = sqlite3.connect(sqlite_file)
+        assert sqlite3.threadsafety == 3
+        self._db  = sqlite3.connect(sqlite_file, check_same_thread=False)
         self._db.execute('PRAGMA synchronous = OFF;')
         self._db.execute('PRAGMA foreign_keys = ON;')
         self._db.execute("""CREATE TABLE IF NOT EXISTS ietf_ma_lists (
