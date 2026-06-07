@@ -248,8 +248,8 @@ if __name__ == "__main__":
         print('Usage: python3 -m ietfdata.tools.affiliations <ietfdata.sqlite> <rfc-index.xml> <participants.json> <organisation.json> <affiliations.json>')
         sys.exit(1)
 
-    print(f"Loading {sys.argv[4]}")
-    with open(sys.argv[2], "r") as inf:
+    print(f"Loading {sys.argv[3]}")
+    with open(sys.argv[3], "r") as inf:
         participants = json.load(inf)
         print(f"  {len(participants):5} participants")
         emails = {}
@@ -263,7 +263,7 @@ if __name__ == "__main__":
 
 
     print(f"Loading {sys.argv[4]}")
-    with open(sys.argv[3], "r") as inf:
+    with open(sys.argv[4], "r") as inf:
         organisations = json.load(inf)
         print(f"  {len(organisations):5} organisations")
         org_names = {}
