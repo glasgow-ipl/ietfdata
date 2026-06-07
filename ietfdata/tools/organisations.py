@@ -623,7 +623,7 @@ if __name__ == "__main__":
     print(f"*** ietfdata.tools.organisations")
 
     if len(sys.argv) == 4:
-        output_path = Path(sys.argv[4])
+        output_path = Path(sys.argv[3])
     else:
         print('')
         print('Usage: python3 -m ietfdata.tools.organisations <ietfdata-dt.sqlite> <rfc-index.xml> <organisations.json>')
