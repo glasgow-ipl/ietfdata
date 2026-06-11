@@ -38,7 +38,7 @@ test: typecheck
 	@echo "*** Testing against live datatracker"
 	python3 -m unittest discover -s tests/ -v
 
-test-archive: test $(ARCHIVE)
+test-archive: typecheck $(ARCHIVE)
 	@echo "*** Testing against archived datatracker"
 	DT_TEST_ARCHIVE=1 python3 -m unittest discover -s tests/ -v
 
