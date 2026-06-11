@@ -45,11 +45,10 @@ class TestDatatracker(unittest.TestCase):
 
     @classmethod
     def setUpClass(self) -> None:
-        sqlite_file = os.environ.get("DT_TEST_SQLITE")
-        if sqlite_file is None:
-            self.dt = DataTracker(DTBackendLive())
+        if os.getenv("DT_TEST_ARCHIVE") is not None:
+            self.dt = DataTracker(DTBackendArchive("archive/ietfdata-dt.sqlite"))
         else:
-            self.dt = DataTracker(DTBackendArchive(sqlite_file))
+            self.dt = DataTracker(DTBackendLive())
 
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to email addresses:

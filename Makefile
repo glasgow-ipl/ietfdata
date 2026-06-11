@@ -40,7 +40,7 @@ test: typecheck
 
 test-archive: test $(ARCHIVE)
 	@echo "*** Testing against archived datatracker"
-	DT_TEST_SQLITE=data/ietfdata-dt.sqlite  python3 -m unittest discover -s tests/ -v
+	DT_TEST_ARCHIVE=1 python3 -m unittest discover -s tests/ -v
 
 typecheck:
 	mypy ietfdata/*.py ietfdata/tools/*.py

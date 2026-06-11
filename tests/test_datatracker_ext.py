@@ -46,7 +46,10 @@ class TestDatatracker(unittest.TestCase):
 
     @classmethod
     def setUpClass(self) -> None:
-        self.dt = DataTrackerExt(DTBackendLive())
+        if os.getenv("DT_TEST_ARCHIVE") is not None:
+            self.dt = DataTrackerExt(DTBackendArchive("archive/ietfdata-dt.sqlite"))
+        else:
+            self.dt = DataTrackerExt(DTBackendLive())
 
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to the datatracker access layer:
