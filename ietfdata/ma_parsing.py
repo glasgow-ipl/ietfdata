@@ -131,14 +131,14 @@ def _fixup_from_addr_0at(from_name:str, from_addr:str):
     # Fix From: header when the from_addr does not conain an @
     if " at " in from_addr:
         repl_addr = from_addr.replace(" at ", "@")
-        print(f"_fixup_from_addr_0at: rewrite From: \"{from_addr}\" -> \"{repl_addr}\"")
+        # print(f"_fixup_from_addr_0at: rewrite From: \"{from_addr}\" -> \"{repl_addr}\"")
         return from_name, repl_addr
 
     if from_name == "":
-        print(f"_fixup_from_addr_0at: returned \"{from_addr}\" as name with no address")
+        # print(f"_fixup_from_addr_0at: returned \"{from_addr}\" as name with no address")
         return from_addr, None
     else:
-        print(f"_fixup_from_addr_0at: cannot rewrite From: \"{from_addr}\"")
+        # print(f"_fixup_from_addr_0at: cannot rewrite From: \"{from_addr}\"")
         return from_name, from_addr
 
 
@@ -155,7 +155,7 @@ def _fixup_from_addr_1at(from_name:str, from_addr:str):
                 repl_addr = re.sub(pattern, addr_sub, from_addr)
             else:
                 repl_addr = ""
-            print(f"_fixup_from_addr_1at: rewrite [{from_name}] [{from_addr}] -> [{repl_name}] [{repl_addr}]")
+            # print(f"_fixup_from_addr_1at: rewrite [{from_name}] [{from_addr}] -> [{repl_name}] [{repl_addr}]")
             return repl_name, repl_addr
 
     return from_name, from_addr
@@ -178,7 +178,7 @@ def _fixup_from_addr_2at(from_name:str, from_addr:str):
                     ('"ietf-ipr@ietf.org"@ietfa.amsl.com',                              'ietf-ipr@ietf.org')]
     for orig_addr, repl_addr in replacements:
         if from_addr == orig_addr:
-            print(f"_fixup_from_addr_2at: rewrite From: \"{orig_addr}\" -> \"{repl_addr}\"")
+            # print(f"_fixup_from_addr_2at: rewrite From: \"{orig_addr}\" -> \"{repl_addr}\"")
             return from_name, repl_addr
     raise RuntimeError(f"Cannot fix from_addr containing two @ signs: {from_addr}")
 
@@ -244,7 +244,7 @@ def _parse_header_from(msg) -> Tuple[Optional[str],Optional[str]]:
             from_name, from_addr = _fixup_from_addr_2at(from_name, from_addr)
         if from_addr is not None and from_addr.count("@") >= 2:
             raise RuntimeError("Cannot fix from address with more than two @ signs")
-        print(f"_parse_header_from: multiple addresses [{hdr}] -> [{from_name}] [{from_addr}]")
+        # print(f"_parse_header_from: multiple addresses [{hdr}] -> [{from_name}] [{from_addr}]")
     else:
         raise RuntimeError(f"Cannot parse \"From:\" header: cannot happen")
 
@@ -264,10 +264,10 @@ def _parse_header_from(msg) -> Tuple[Optional[str],Optional[str]]:
             return_addr = from_addr
         return (return_from, return_addr)
     except:
-        print(f"_parse_header_from: cannot convert to Address")
-        print(f"   from header: {hdr}")
-        print(f"   parsed name: {from_name}")
-        print(f"   parsed addr: {from_addr}")
+        # print(f"_parse_header_from: cannot convert to Address")
+        # print(f"   from header: {hdr}")
+        # print(f"   parsed name: {from_name}")
+        # print(f"   parsed addr: {from_addr}")
         return (None, None)
 
 
@@ -310,22 +310,22 @@ def _parse_header_to_cc(msg, to_cc:str):
 
                 if addr.endswith("@dmarc.ietf.org"):
                     fixed_addr = addr[:-15].replace("=40", "@")
-                    #print(f"_parse_header_to_cc: undo DMARC {to_cc} processing: {addr} -> {fixed_addr}")
+                    # print(f"_parse_header_to_cc: undo DMARC {to_cc} processing: {addr} -> {fixed_addr}")
                     addr = fixed_addr
 
                 if " at " in addr and addr.count("@") == 0:
                     fixed_addr = addr.replace(" at ", "@")
                     if fixed_addr.startswith('"') and fixed_addr.endswith('"'):
                         fixed_addr = fixed_addr[1:-1]
-                    print(f"_parse_header_to_cc: undo anti-spam {to_cc} processing: {addr} -> {fixed_addr}")
+                    # print(f"_parse_header_to_cc: undo anti-spam {to_cc} processing: {addr} -> {fixed_addr}")
                     addr = fixed_addr
 
                 # Discard malfored addresses:
                 if addr != "" and addr.count("@") == 0:
-                    print(f"_parse_header_to_cc: discarded malformed {to_cc} address (1): [{decoded_name}] [{addr}]")
+                    # print(f"_parse_header_to_cc: discarded malformed {to_cc} address (1): [{decoded_name}] [{addr}]")
                     continue
                 if addr != "" and addr.count("@") >= 2:
-                    print(f"_parse_header_to_cc: discarded malformed {to_cc} address (2): [{decoded_name}] [{addr}]")
+                    # print(f"_parse_header_to_cc: discarded malformed {to_cc} address (2): [{decoded_name}] [{addr}]")
                     continue
 
                 # The headers extracted here are stored in the database and later
@@ -339,7 +339,8 @@ def _parse_header_to_cc(msg, to_cc:str):
                         discarded = Address(display_name = decoded_name, addr_spec = addr)
                         headers.append((index, decoded_name, addr))
                 except:
-                    print(f"_parse_header_to_cc: discarded malformed {to_cc} address (3): [{decoded_name}] [{addr}]")
+                    # print(f"_parse_header_to_cc: discarded malformed {to_cc} address (3): [{decoded_name}] [{addr}]")
+                    pass
 
                 index += 1
             return headers
