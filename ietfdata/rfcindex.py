@@ -462,25 +462,61 @@ class RFCIndex:
     _fyi            : Dict[str, FyiEntry]
 
 
-    def _retrieve_index(self, rfc_index: str | None) -> str:
+    def _download_index(self) -> str:
+        with requests.Session() as session:
+            response = session.get("https://www.rfc-editor.org/rfc-index.xml", verify=True)
+            if response.status_code == 200:
+                return response.text
+            else:
+                raise RuntimeError("Cannot retrieve RFC index")
+
+
+    def _is_cached(self, cache_filepath : Path) -> bool:
+        if cache_filepath.exists():
+            curr_time = datetime.now()
+            prev_time = datetime.fromtimestamp(cache_filepath.stat().st_mtime)
+            if curr_time < prev_time + timedelta(days = 1):
+                return True
+        return False
+
+
+    def _retrieve_index(self, cache_dir: str | None, rfc_index: str | None) -> str:
         if rfc_index is not None:
             with open(rfc_index, "r") as xml_file:
                 return xml_file.read()
+
+        cache_dir = os.getenv("IETFDATA_CACHEDIR", default=cache_dir)
+        if cache_dir is not None:
+            cache_filepath = Path(cache_dir, "rfc-index.xml")
+            if self._is_cached(cache_filepath):
+                with open(cache_filepath, "r") as cache_file:
+                    return cache_file.read()
+            else:
+                cache_filepath.parent.mkdir(parents=True, exist_ok=True)
+                response = self._download_index()
+                with open(cache_filepath, "w") as cache_file:
+                    cache_file.write(response)
+                return response
         else:
-            with requests.Session() as session:
-                response = session.get("https://www.rfc-editor.org/rfc-index.xml", verify=True)
-                if response.status_code == 200:
-                    return response.text
-                else:
-                    raise RuntimeError("Cannot retrieve RFC index")
+            return self._download_index()
 
 
-    def __init__(self, rfc_index: Optional[str] = None):
+    def __init__(self, cache_dir: str | None = None, rfc_index: str | None = None):
         """
+        If rfc_index is not None, load the RFC index from that file and
+        ignore cache_dir. Fail if the specified file does not exist.
+
+        If rfc_index is None and cache_dir is not None, load the RFC index
+        from the file "rfc-index.xml" in cache_dir. If the "rfc-index.xml"
+        file is not present, or is outdated, fetch a new copy from the RFC
+        Editor.
+
+        if rfc_index is None and cache_dir is None, fetch a copy of the RFC
+        index from the RFC Editor.
+
         Parameters:
-            rfc_index -- If not None, load the RFC index from this file.
-                         If None, the RFC index is fetched from the RFC
-                         Editor website.
+            cache_dir -- If not None, use this directory as a cache
+            rfc_index -- If not None, load the RFC index from this file
         """
         logging.getLogger('requests').setLevel('ERROR')
         logging.getLogger('requests_cache').setLevel('ERROR')
@@ -495,9 +531,9 @@ class RFCIndex:
         self._std            = {}
         self._fyi            = {}
 
-        xml = self._retrieve_index(rfc_index)
+        xml = self._retrieve_index(cache_dir, rfc_index)
         if xml is None:
-            raise RuntimeError
+            raise RuntimeError("Cannot retrieve RFC index")
 
         for doc in ET.fromstring(xml):
             if   doc.tag == "{https://www.rfc-editor.org/rfc-index}rfc-entry":
