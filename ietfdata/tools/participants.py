@@ -305,8 +305,11 @@ if __name__ == "__main__":
             continue
         pdb.person_with_identifier("email", msg.address)
         pdb.identifies_same_person("email", msg.address, "dt_person_uri", str(msg.person))
+        if msg.address.lower() != msg.address:
+            pdb.person_with_identifier("email", msg.address.lower())
+            pdb.identifies_same_person("email", msg.address.lower(), "email", msg.address)
+            log.debug(f"case match {str(msg.person):30} {msg.address} <-> {msg.address.lower()}")
         seen_addr.add(msg.address)
-
 
     print("Finding participants in IETF datatracker: external resources")
     for resource in dt.person_ext_resources():
@@ -376,6 +379,10 @@ if __name__ == "__main__":
                         pdb.person_with_name("dt_person_uri", str(person.resource_uri), email_name)
                 if email_name is not None and email_name != "" and envelope.header("X-Spam-Flag") != "YES":
                     pdb.person_with_name("email", email_addr, email_name)
+                if email_addr.lower() != email_addr:
+                    pdb.person_with_identifier("email", email_addr.lower())
+                    pdb.identifies_same_person("email", email_addr.lower(), "email", email_addr)
+                    log.debug(f"case match {str(msg.person):30} {email_addr} <-> {email_addr.lower()}")
                 seen_full.add(email_full)
 
     print(f"Saving {new_path}")
