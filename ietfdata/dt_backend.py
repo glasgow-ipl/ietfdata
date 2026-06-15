@@ -24,8 +24,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import copy
-import os
+import json
 import logging
+import os
 import pprint
 import re
 import requests
@@ -86,6 +87,10 @@ class DTBackendLive(DTBackend):
         self.cache.delete(expired=True)
 
 
+    # FIXME: This does the same thing as _dt_fetch() in DTBackendArchive,
+    # except that (a) this uses URI objects rather strings to represent the
+    # URI; and (b) _dt_fetch() updates self._multi_delay while this does
+    # not.
     def datatracker_get_single(self, obj_uri: URI) -> Optional[Dict[str, Any]]:
         assert obj_uri.uri is not None
         retry_delay  = 1.875
@@ -135,6 +140,14 @@ class DTBackendLive(DTBackend):
                 retry_delay *= 2
 
 
+    # FIXME: This does the same as _dt_fetch_multi() in DTBackendArchive,
+    # except:
+    # * This handles order_by, and _dt_fetch_multi does not.
+    # * This handles rate limits and retry internally but _dt_fetch_multi()
+    #   defers that handling to _dt_fetch()
+    # * This warns about, but does not otherwise handle, duplicates
+    # * The _dt_fetch_multi() call handles 404 errors for the URL returned
+    #   in r["meta"]["next"] while this does not.
     def datatracker_get_multi(self, get_uri: URI, order_by: Optional[str] = None) -> Iterator[Dict[Any, Any]]:
         obj_uri = copy.deepcopy(get_uri)
 
@@ -226,7 +239,8 @@ class DTBackendArchive(DTBackend):
         self._base_url    = os.environ.get("IETFDATA_DT_URL", "https://datatracker.ietf.org")
         self._multi_delay = 0.1
         self._session     = requests.Session()
-        self._db          = sqlite3.connect(sqlite_file)
+        assert sqlite3.threadsafety == 3
+        self._db          = sqlite3.connect(sqlite_file, check_same_thread=False)
         self._db.execute('PRAGMA synchronous = OFF;')
         self._log.info(f"DTBackendArchive at {self._base_url} (multi_delay={self._multi_delay}s)")
 
@@ -500,6 +514,8 @@ class DTBackendArchive(DTBackend):
 
                 for column in to_many:
                     for subitem in item[column]:
+                        if isinstance(subitem, dict):
+                            subitem = json.dumps(subitem)
                         dbc.execute(f"INSERT INTO {table_name}_{column} VALUES (null, ?, ?);", (item["resource_uri"], subitem))
                 self._db.commit()
 

@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2025 University of Glasgow
+# Copyright (C) 2017-2026 University of Glasgow
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -66,7 +66,7 @@ from pydantic          import ValidationError
 # =================================================================================================================================
 # Import the types representing the datatracker API endpoints:
 
-from ietfdata.dtbackend         import *
+from ietfdata.dt_backend        import *
 from ietfdata.datatracker_types import *
 
 # =================================================================================================================================
@@ -97,12 +97,12 @@ class DataTracker:
     data, for example if writing a research paper, a dissertation, or as part
     of a student project, then the DTBackendArchive should be used:
 
-        dt = DataTracker(DTBackendArchive(sqlite_file="ietfdata.sqlite"))
+        dt = DataTracker(DTBackendArchive("ietfdata.sqlite"))
 
     In this case, the DataTracker class will create the specified sqlite file
     if it doesn't exist and download a complete copy of the data from the IETF
     datatracker (this will take around 24 hours, and will generate an sqlite
-    file that is around 1.5GB in size; if the download is interrupted, it is
+    file that is around 2GB in size; if the download is interrupted, it is
     safe to rerun the above operation and the download should resume where it
     left-off). Once the sqlite file is downloaded, future instantiations of the
     DataTracker will read from it directly and will not access the online IETF
@@ -158,7 +158,7 @@ class DataTracker:
         self._hints["/api/v1/mailinglists/subscribed/"]            = Hints(EmailListSubscriptions,      "id")
         self._hints["/api/v1/meeting/attended/"]                   = Hints(MeetingAttended,             "id")
         self._hints["/api/v1/meeting/meeting/"]                    = Hints(Meeting,                     "id")
-        self._hints["/api/v1/meeting/registration/"]               = Hints(MeetingRegistrationOld,      "id")
+        self._hints["/api/v1/meeting/registration/"]               = Hints(MeetingRegistration,         "id")
         self._hints["/api/v1/meeting/schedtimesessassignment/"]    = Hints(SessionAssignment,           "id")
         self._hints["/api/v1/meeting/schedule/"]                   = Hints(Schedule,                    "id")
         self._hints["/api/v1/meeting/schedulingevent/"]            = Hints(SchedulingEvent,             "id")
@@ -206,7 +206,7 @@ class DataTracker:
         self._hints["/api/v1/name/continentname/"]                 = Hints(Continent,                   "slug")
         self._hints["/api/v1/name/countryname/"]                   = Hints(Country,                     "slug")
         self._hints["/api/v1/stats/countryalias/"]                 = Hints(CountryAlias,                "id")
-        self._hints["/api/v1/stats/meetingregistration/"]          = Hints(MeetingRegistration,         "id")
+        self._hints["/api/v1/stats/meetingregistration/"]          = Hints(StatsMeetingRegistration,    "id")
         self._hints["/api/v1/submit/submission/"]                  = Hints(Submission,                  "id")
         self._hints["/api/v1/submit/submissionevent/"]             = Hints(SubmissionEvent,             "id")
 
@@ -214,24 +214,14 @@ class DataTracker:
     # ----------------------------------------------------------------------------------------------------------------------------
     # Private methods to retrieve objects from the datatracker:
 
-    def _retrieve(self, obj_uri: URI, obj_type: Type[T]) -> Optional[T]:
+    def _retrieve(self, obj_uri: URI, obj_type: Type[T]) -> T:
         self.log.debug(F"_retrieve {obj_uri}")
         obj_json = self.backend.datatracker_get_single(obj_uri)
         if obj_json is not None:
-            #print(obj_json)
-            #print(obj_type)
-            res = None
-            try:
-                res = obj_type(**obj_json)
-            except ValidationError as e:
-                self.log.error(f"Cannot parse response {obj_json}: {e.errors()}")
-            #try:
-            #    res = self.pavlova.from_mapping(obj_json, obj_type)
-            #except PavlovaParsingError:
-            #    self.log.error(f"Cannot parse response {obj_json}")
+            res = obj_type(**obj_json)
             return res
         else:
-            return None
+            raise RuntimeError(f"Cannot retrieve {obj_uri}")
 
 
     def _retrieve_multi(self, obj_uri: URI, obj_type: Type[T]) -> Iterator[T]:
@@ -259,8 +249,8 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/person/historicalperson/
     # * https://datatracker.ietf.org/api/v1/person/alias/
 
-    def person(self, person_uri: PersonURI) -> Optional[Person]:
-        return self._retrieve(person_uri, Person)
+    def person(self, uri: PersonURI) -> Person:
+        return self._retrieve(uri, Person)
 
 
     def person_from_email(self, email_addr: str) -> Optional[Person]:
@@ -335,7 +325,7 @@ class DataTracker:
         yield from self._retrieve_multi(url, Person)
 
 
-    def person_ext_resource(self, person_ext_resource_uri: PersonExtResourceURI) -> Optional[PersonExtResource]:
+    def person_ext_resource(self, uri: PersonExtResourceURI) -> PersonExtResource:
         """
         Retrieve information about an external resource associated with a
         person.
@@ -343,7 +333,7 @@ class DataTracker:
         External resources include GitHub usernames and personal webpages,
         amongst other things.
         """
-        return self._retrieve(person_ext_resource_uri, PersonExtResource)
+        return self._retrieve(uri, PersonExtResource)
 
 
     def person_ext_resources(self,
@@ -360,11 +350,11 @@ class DataTracker:
         yield from self._retrieve_multi(url, PersonExtResource)
 
 
-    def ext_resource_name(self, ext_resource_name_uri: ExtResourceNameURI) -> Optional[ExtResourceName]:
-        return self._retrieve(ext_resource_name_uri, ExtResourceName)
+    def ext_resource_name(self, uri: ExtResourceNameURI) -> ExtResourceName:
+        return self._retrieve(uri, ExtResourceName)
 
 
-    def ext_resource_name_from_slug(self, slug: str) -> Optional[ExtResourceName]:
+    def ext_resource_name_from_slug(self, slug: str) -> ExtResourceName:
         return self._retrieve(ExtResourceNameURI(uri=f"/api/v1/name/extresourcename/{slug}/"), ExtResourceName)
 
 
@@ -372,8 +362,8 @@ class DataTracker:
         yield from self._retrieve_multi(ExtResourceNameURI(uri="/api/v1/name/extresourcename/"), ExtResourceName)
 
 
-    def ext_resource_type_name(self, ext_resource_type_name_uri: ExtResourceTypeNameURI) -> Optional[ExtResourceTypeName]:
-        return self._retrieve(ext_resource_type_name_uri, ExtResourceTypeName)
+    def ext_resource_type_name(self, uri: ExtResourceTypeNameURI) -> ExtResourceTypeName:
+        return self._retrieve(uri, ExtResourceTypeName)
 
 
     def ext_resource_type_name_from_slug(self, slug: str) -> Optional[ExtResourceTypeName]:
@@ -389,8 +379,8 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/person/email/csp@csperkins.org/
     # * https://datatracker.ietf.org/api/v1/person/historicalemail/
 
-    def email(self, email_uri: EmailURI) -> Optional[Email]:
-        return self._retrieve(email_uri, Email)
+    def email(self, uri: EmailURI) -> Email:
+        return self._retrieve(uri, Email)
 
 
     def email_for_address(self, email_addr: str) -> Optional[Email]:
@@ -439,8 +429,8 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/doc/document/                        - list of documents
     # * https://datatracker.ietf.org/api/v1/doc/document/draft-ietf-avt-rtp-new/ - info about document
 
-    def document(self, document_uri: DocumentURI) -> Optional[Document]:
-        return self._retrieve(document_uri, Document)
+    def document(self, uri: DocumentURI) -> Document:
+        return self._retrieve(uri, Document)
 
 
     def documents(self,
@@ -530,8 +520,8 @@ class DataTracker:
     # Datatracker API endpoints returning information about document types:
     # * https://datatracker.ietf.org/api/v1/name/doctypename/
 
-    def document_type(self, doc_type_uri: DocumentTypeURI) -> Optional[DocumentType]:
-        return self._retrieve(doc_type_uri, DocumentType)
+    def document_type(self, uri: DocumentTypeURI) -> DocumentType:
+        return self._retrieve(uri, DocumentType)
 
 
     def document_type_from_slug(self, slug: str) -> Optional[DocumentType]:
@@ -546,8 +536,8 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/doc/state/                           - Types of state a document can be in
     # * https://datatracker.ietf.org/api/v1/doc/statetype/                       - Possible types of state for a document
 
-    def document_state(self, state_uri: DocumentStateURI) -> Optional[DocumentState]:
-        return self._retrieve(state_uri, DocumentState)
+    def document_state(self, uri: DocumentStateURI) -> DocumentState:
+        return self._retrieve(uri, DocumentState)
 
     def document_state_from_slug(self, state_type: DocumentStateType, slug: str) -> DocumentState:
         states = list(self.document_states(state_type, slug))
@@ -565,8 +555,8 @@ class DataTracker:
         yield from self._retrieve_multi(url, DocumentState)
 
 
-    def document_state_type(self, state_type_uri : DocumentStateTypeURI) -> Optional[DocumentStateType]:
-        return self._retrieve(state_type_uri, DocumentStateType)
+    def document_state_type(self, uri : DocumentStateTypeURI) -> DocumentStateType:
+        return self._retrieve(uri, DocumentStateType)
 
 
     def document_state_type_from_slug(self, slug: str) -> Optional[DocumentStateType]:
@@ -594,8 +584,8 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/doc/initialreviewdocevent/           -               "                "
     #   https://datatracker.ietf.org/api/v1/doc/editedauthorsdocevent/           -               "                "
 
-    def document_event(self, event_uri : DocumentEventURI) -> Optional[DocumentEvent]:
-        return self._retrieve(event_uri, DocumentEvent)
+    def document_event(self, uri : DocumentEventURI) -> DocumentEvent:
+        return self._retrieve(uri, DocumentEvent)
 
 
     # FIXME: add `rev` parameter
@@ -676,7 +666,7 @@ class DataTracker:
         yield from self._retrieve_multi(url, RelatedDocument)
 
 
-    def relationship_type(self, relationship_type_uri: RelationshipTypeURI) -> Optional[RelationshipType]:
+    def relationship_type(self, uri: RelationshipTypeURI) -> RelationshipType:
         """
         Retrieve a relationship type
 
@@ -687,7 +677,7 @@ class DataTracker:
         Returns:
             A RelationshipType object
         """
-        return self._retrieve(relationship_type_uri, RelationshipType)
+        return self._retrieve(uri, RelationshipType)
 
 
     def relationship_type_from_slug(self, slug: str) -> Optional[RelationshipType]:
@@ -722,8 +712,8 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/doc/ballottype/
     # * https://datatracker.ietf.org/api/v1/doc/ballotdocevent/
 
-    def ballot_position_name(self, ballot_position_name_uri : BallotPositionNameURI) -> Optional[BallotPositionName]:
-        return self._retrieve(ballot_position_name_uri, BallotPositionName)
+    def ballot_position_name(self, uri : BallotPositionNameURI) -> BallotPositionName:
+        return self._retrieve(uri, BallotPositionName)
 
 
     def ballot_position_name_from_slug(self, slug: str) -> Optional[BallotPositionName]:
@@ -743,8 +733,8 @@ class DataTracker:
         yield from self._retrieve_multi(url, BallotPositionName)
 
 
-    def ballot_type(self, ballot_type_uri : BallotTypeURI) -> Optional[BallotType]:
-        return self._retrieve(ballot_type_uri, BallotType)
+    def ballot_type(self, uri : BallotTypeURI) -> BallotType:
+        return self._retrieve(uri, BallotType)
 
 
     def ballot_types(self, doc_type : Optional[DocumentType]) -> Iterator[BallotType]:
@@ -764,8 +754,8 @@ class DataTracker:
 
 
 
-    def ballot_document_event(self, ballot_event_uri : BallotDocumentEventURI) -> Optional[BallotDocumentEvent]:
-        return self._retrieve(ballot_event_uri, BallotDocumentEvent)
+    def ballot_document_event(self, uri : BallotDocumentEventURI) -> BallotDocumentEvent:
+        return self._retrieve(uri, BallotDocumentEvent)
 
 
     # FIXME: add `rev` parameter
@@ -806,8 +796,8 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/submit/submissioncheck/
     #   https://datatracker.ietf.org/api/v1/submit/preapproval/
 
-    def submission(self, submission_uri: SubmissionURI) -> Optional[Submission]:
-        return self._retrieve(submission_uri, Submission)
+    def submission(self, uri: SubmissionURI) -> Submission:
+        return self._retrieve(uri, Submission)
 
 
     # FIXME: add `group`, `name`, `rev`, `title_contains` parameters
@@ -820,8 +810,8 @@ class DataTracker:
         yield from self._retrieve_multi(url, Submission)
 
 
-    def submission_event(self, event_uri: SubmissionEventURI) -> Optional[SubmissionEvent]:
-        return self._retrieve(event_uri, SubmissionEvent)
+    def submission_event(self, uri: SubmissionEventURI) -> SubmissionEvent:
+        return self._retrieve(uri, SubmissionEvent)
 
 
     def submission_events(self,
@@ -852,8 +842,8 @@ class DataTracker:
     # FIXME: implement these
 
     #   https://datatracker.ietf.org/api/v1/doc/documenturl/
-    def document_url(self, document_url_uri: DocumentUrlURI) -> Optional[DocumentUrl]:
-        return self._retrieve(document_url_uri, DocumentUrl)
+    def document_url(self, uri: DocumentUrlURI) -> DocumentUrl:
+        return self._retrieve(uri, DocumentUrl)
     
     
     def document_urls(self, doc: Optional[Document] = None) -> Iterator[DocumentUrl]:
@@ -865,16 +855,16 @@ class DataTracker:
 
 
     #   https://datatracker.ietf.org/api/v1/name/doctagname/
-    def document_tag(self, tag_uri: DocumentTagURI) -> Optional[DocumentTag]:
-        return self._retrieve(tag_uri, DocumentTag)
+    def document_tag(self, uri: DocumentTagURI) -> DocumentTag:
+        return self._retrieve(uri, DocumentTag)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
     # Datatracker API endpoints returning information about RFC publication streams:
     # * https://datatracker.ietf.org/api/v1/name/streamname/
 
-    def stream(self, stream_uri: StreamURI) -> Optional[Stream]:
-        return self._retrieve(stream_uri, Stream)
+    def stream(self, uri: StreamURI) -> Stream:
+        return self._retrieve(uri, Stream)
 
 
     def stream_from_slug(self, slug: str) -> Optional[Stream]:
@@ -906,8 +896,8 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/name/groupstatename/
     # * https://datatracker.ietf.org/api/v1/name/grouptypename/
 
-    def group(self, group_uri: GroupURI) -> Optional[Group]:
-        return self._retrieve(group_uri, Group)
+    def group(self, uri: GroupURI) -> Group:
+        return self._retrieve(uri, Group)
 
 
     def group_from_acronym(self, acronym: str) -> Optional[Group]:
@@ -937,8 +927,8 @@ class DataTracker:
         yield from self._retrieve_multi(url, Group)
 
 
-    def group_history(self, group_history_uri: GroupHistoryURI) -> Optional[GroupHistory]:
-        return self._retrieve(group_history_uri, GroupHistory)
+    def group_history(self, uri: GroupHistoryURI) -> GroupHistory:
+        return self._retrieve(uri, GroupHistory)
 
 
     def group_histories_from_acronym(self, acronym: str) -> Iterator[GroupHistory]:
@@ -961,8 +951,8 @@ class DataTracker:
         yield from self._retrieve_multi(url, GroupHistory)
 
 
-    def group_event(self, group_event_uri : GroupEventURI) -> Optional[GroupEvent]:
-        return self._retrieve(group_event_uri, GroupEvent)
+    def group_event(self, uri : GroupEventURI) -> GroupEvent:
+        return self._retrieve(uri, GroupEvent)
 
 
     def group_events(self,
@@ -979,8 +969,8 @@ class DataTracker:
         yield from self._retrieve_multi(url, GroupEvent)
 
 
-    def group_url(self, group_url_uri: GroupUrlURI) -> Optional[GroupUrl]:
-        return self._retrieve(group_url_uri, GroupUrl)
+    def group_url(self, uri: GroupUrlURI) -> GroupUrl:
+        return self._retrieve(uri, GroupUrl)
 
 
     def group_urls(self, group: Optional[Group] = None) -> Iterator[GroupUrl]:
@@ -990,16 +980,16 @@ class DataTracker:
         yield from self._retrieve_multi(url, GroupUrl)
 
 
-    def group_milestone_statename(self, group_milestone_statename_uri: GroupMilestoneStateNameURI) -> Optional[GroupMilestoneStateName]:
-        return self._retrieve(group_milestone_statename_uri, GroupMilestoneStateName)
+    def group_milestone_statename(self, uri: GroupMilestoneStateNameURI) -> GroupMilestoneStateName:
+        return self._retrieve(uri, GroupMilestoneStateName)
 
 
     def group_milestone_statenames(self) -> Iterator[GroupMilestoneStateName]:
         yield from self._retrieve_multi(GroupMilestoneStateNameURI(uri="/api/v1/name/groupmilestonestatename/"), GroupMilestoneStateName)
 
 
-    def group_milestone(self, group_milestone_uri : GroupMilestoneURI) -> Optional[GroupMilestone]:
-        return self._retrieve(group_milestone_uri, GroupMilestone)
+    def group_milestone(self, uri : GroupMilestoneURI) -> GroupMilestone:
+        return self._retrieve(uri, GroupMilestone)
 
 
     def group_milestones(self,
@@ -1013,8 +1003,8 @@ class DataTracker:
         yield from self._retrieve_multi(url, GroupMilestone)
 
 
-    def role_name(self, role_name_uri: RoleNameURI) -> Optional[RoleName]:
-        return self._retrieve(role_name_uri, RoleName)
+    def role_name(self, uri: RoleNameURI) -> RoleName:
+        return self._retrieve(uri, RoleName)
 
 
     def role_name_from_slug(self, slug: str) -> Optional[RoleName]:
@@ -1025,8 +1015,8 @@ class DataTracker:
         yield from self._retrieve_multi(RoleNameURI(uri="/api/v1/name/rolename/"), RoleName)
 
 
-    def group_role(self, group_role_uri : GroupRoleURI) -> Optional[GroupRole]:
-        return self._retrieve(group_role_uri, GroupRole)
+    def group_role(self, uri : GroupRoleURI) -> GroupRole:
+        return self._retrieve(uri, GroupRole)
 
 
     def group_roles(self,
@@ -1046,8 +1036,8 @@ class DataTracker:
         yield from self._retrieve_multi(url, GroupRole)
 
 
-    def group_role_history(self, group_role_history_uri : GroupRoleHistoryURI) -> Optional[GroupRoleHistory]:
-        return self._retrieve(group_role_history_uri, GroupRoleHistory)
+    def group_role_history(self, uri : GroupRoleHistoryURI) -> GroupRoleHistory:
+        return self._retrieve(uri, GroupRoleHistory)
 
 
     def group_role_histories(self,
@@ -1067,8 +1057,8 @@ class DataTracker:
         yield from self._retrieve_multi(url, GroupRoleHistory)
 
 
-    def group_milestone_history(self, group_milestone_history_uri : GroupMilestoneHistoryURI) -> Optional[GroupMilestoneHistory]:
-        return self._retrieve(group_milestone_history_uri, GroupMilestoneHistory)
+    def group_milestone_history(self, uri : GroupMilestoneHistoryURI) -> GroupMilestoneHistory:
+        return self._retrieve(uri, GroupMilestoneHistory)
 
 
     def group_milestone_histories(self,
@@ -1085,8 +1075,8 @@ class DataTracker:
         yield from self._retrieve_multi(url, GroupMilestoneHistory)
 
 
-    def group_milestone_event(self, group_milestone_event_uri : GroupMilestoneEventURI) -> Optional[GroupMilestoneEvent]:
-        return self._retrieve(group_milestone_event_uri, GroupMilestoneEvent)
+    def group_milestone_event(self, uri : GroupMilestoneEventURI) -> GroupMilestoneEvent:
+        return self._retrieve(uri, GroupMilestoneEvent)
 
 
     def group_milestone_events(self,
@@ -1106,8 +1096,8 @@ class DataTracker:
         yield from self._retrieve_multi(url, GroupMilestoneEvent)
 
 
-    def group_state_change_event(self, group_state_change_event_uri : GroupStateChangeEventURI) -> Optional[GroupStateChangeEvent]:
-        return self._retrieve(group_state_change_event_uri, GroupStateChangeEvent)
+    def group_state_change_event(self, uri : GroupStateChangeEventURI) -> GroupStateChangeEvent:
+        return self._retrieve(uri, GroupStateChangeEvent)
 
 
     def group_state_change_events(self,
@@ -1124,8 +1114,8 @@ class DataTracker:
         yield from self._retrieve_multi(url, GroupStateChangeEvent)
 
 
-    def group_state(self, group_state_uri : GroupStateURI) -> Optional[GroupState]:
-        return self._retrieve(group_state_uri, GroupState)
+    def group_state(self, uri : GroupStateURI) -> GroupState:
+        return self._retrieve(uri, GroupState)
 
 
     def group_state_from_slug(self, slug : str) -> Optional[GroupState]:
@@ -1137,8 +1127,8 @@ class DataTracker:
         yield from self._retrieve_multi(url, GroupState)
 
 
-    def group_type_name(self, group_type_name_uri : GroupTypeNameURI) -> Optional[GroupTypeName]:
-        return self._retrieve(group_type_name_uri, GroupTypeName)
+    def group_type_name(self, uri : GroupTypeNameURI) -> GroupTypeName:
+        return self._retrieve(uri, GroupTypeName)
 
 
     def group_type_name_from_slug(self, slug : str) -> Optional[GroupTypeName]:
@@ -1175,8 +1165,8 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/name/meetingtypename/
     #   https://datatracker.ietf.org/api/v1/name/importantdatename/
 
-    def meeting_attended(self, meeting_attended_uri: MeetingAttendedURI) -> Optional[MeetingAttended]:
-        return self._retrieve(meeting_attended_uri, MeetingAttended)
+    def meeting_attended(self, uri: MeetingAttendedURI) -> MeetingAttended:
+        return self._retrieve(uri, MeetingAttended)
 
 
     def meeting_attendance(self, session: Optional[Session]=None, person: Optional[Person]=None) -> Iterator[MeetingAttended]:
@@ -1184,11 +1174,10 @@ class DataTracker:
         There are four ways to access meeting registration data from the 
         datatracker:
 
-        `meeting_registration()` and `meeting_registration_old()` provide
+        `meeting_registration()` and `stats_meeting_registration()` provide
         information about people who have registered for meetings. These
-        two functions provide the same information, although the
-        `meeting_registration()` call provides more detail on registrations
-        for ANRW and the hackathon.
+        provide the same information, although `stats_meeting_registration()`
+        provides more detail on registrations for ANRW and the hackathon.
 
         `meeting_attendance()` provides information about the people that
         attended a particular session of the meeting. This information is
@@ -1201,7 +1190,7 @@ class DataTracker:
         not always a straightforward match with the values returned
         from the other functions.
         """
-        url = SessionURI(uri="/api/v1/meeting/attended/")
+        url = MeetingAttendedURI(uri="/api/v1/meeting/attended/")
         if session is not None:
             url.params["session"] = session.id
         if person is not None:
@@ -1209,8 +1198,8 @@ class DataTracker:
         yield from self._retrieve_multi(url, MeetingAttended)
 
 
-    def meeting_session_assignment(self, assignment_uri : SessionAssignmentURI) -> Optional[SessionAssignment]:
-        return self._retrieve(assignment_uri, SessionAssignment)
+    def meeting_session_assignment(self, uri : SessionAssignmentURI) -> SessionAssignment:
+        return self._retrieve(uri, SessionAssignment)
 
 
     def meeting_session_assignments(self, schedule : Schedule) -> Iterator[SessionAssignment]:
@@ -1230,8 +1219,8 @@ class DataTracker:
         return None
 
 
-    def meeting_session_status_name(self, ssn_uri: SessionStatusNameURI) -> Optional[SessionStatusName]:
-        return self._retrieve(ssn_uri, SessionStatusName)
+    def meeting_session_status_name(self, uri: SessionStatusNameURI) -> SessionStatusName:
+        return self._retrieve(uri, SessionStatusName)
 
 
     def meeting_session_status_name_from_slug(self, slug: str) -> Optional[SessionStatusName]:
@@ -1242,16 +1231,16 @@ class DataTracker:
         yield from self._retrieve_multi(SessionStatusNameURI(uri="/api/v1/name/sessionstatusname/"), SessionStatusName)
 
 
-    def meeting_session_purpose(self, purpose_uri: SessionPurposeURI) -> Optional[SessionPurpose]:
-        return self._retrieve(purpose_uri, SessionPurpose)
+    def meeting_session_purpose(self, uri: SessionPurposeURI) -> SessionPurpose:
+        return self._retrieve(uri, SessionPurpose)
 
 
     def meeting_session_purposes(self) -> Iterator[SessionPurpose]:
         yield from self._retrieve_multi(SessionPurposeURI(uri="/api/v1/name/sessionpurposename/"), SessionPurpose)
 
 
-    def meeting_session(self, session_uri : SessionURI) -> Optional[Session]:
-        return self._retrieve(session_uri, Session)
+    def meeting_session(self, uri : SessionURI) -> Session:
+        return self._retrieve(uri, Session)
 
 
     def meeting_sessions(self,
@@ -1264,12 +1253,12 @@ class DataTracker:
         yield from self._retrieve_multi(url, Session)
 
 
-    def meeting_timeslot(self, timeslot_uri: TimeslotURI) -> Optional[Timeslot]:
-        return self._retrieve(timeslot_uri, Timeslot)
+    def meeting_timeslot(self, uri: TimeslotURI) -> Timeslot:
+        return self._retrieve(uri, Timeslot)
 
 
-    def meeting_scheduling_event(self, scheduling_event_uri: SchedulingEventURI) -> Optional[SchedulingEvent]:
-        return self._retrieve(scheduling_event_uri, SchedulingEvent)
+    def meeting_scheduling_event(self, uri: SchedulingEventURI) -> SchedulingEvent:
+        return self._retrieve(uri, SchedulingEvent)
 
 
     def meeting_scheduling_events(self,
@@ -1283,17 +1272,17 @@ class DataTracker:
         yield from self._retrieve_multi(url, SchedulingEvent)
 
 
-    def meeting_schedule(self, schedule_uri : ScheduleURI) -> Optional[Schedule]:
+    def meeting_schedule(self, uri : ScheduleURI) -> Schedule:
         """
         Information about a particular version of the schedule for a meeting.
 
         Use `meeting_session_assignments()` to find what sessions are scheduled
         in each timeslot of the meeting in this version of the meeting schedule.
         """
-        return self._retrieve(schedule_uri, Schedule)
+        return self._retrieve(uri, Schedule)
 
 
-    def meeting(self, meeting_uri : MeetingURI) -> Optional[Meeting]:
+    def meeting(self, uri : MeetingURI) -> Meeting:
         """
         Information about a meeting.
 
@@ -1302,7 +1291,7 @@ class DataTracker:
         meeting. Use `meeting_session_assignments()` to find the timeslots when
         those sessions occurred.
         """
-        return self._retrieve(meeting_uri, Meeting)
+        return self._retrieve(uri, Meeting)
 
 
     def meetings(self,
@@ -1315,7 +1304,7 @@ class DataTracker:
         `meeting()` provides a count of the number of attendees at the
         meeting as part of the result.  The way in which the number of
         attendees given here is derived has varied over time. See also
-        the `meeting_registration()`, `meeting_registration_old()`, and
+        the `meeting_registration()`, `stats_meeting_registration()`, and
         `meeting_attendance()` functions.
         """
         url = MeetingURI(uri="/api/v1/meeting/meeting/")
@@ -1327,8 +1316,8 @@ class DataTracker:
 
 
 
-    def meeting_type(self, meeting_type_uri: MeetingTypeURI) -> Optional[MeetingType]:
-        return self._retrieve(meeting_type_uri, MeetingType)
+    def meeting_type(self, uri: MeetingTypeURI) -> MeetingType:
+        return self._retrieve(uri, MeetingType)
 
 
     def meeting_type_from_slug(self, slug: str) -> Optional[MeetingType]:
@@ -1348,11 +1337,11 @@ class DataTracker:
         yield from self._retrieve_multi(MeetingTypeURI(uri="/api/v1/name/meetingtypename/"), MeetingType)
 
 
-    def meeting_registration_old(self, meeting_registration_old_uri: MeetingRegistrationOldURI) -> Optional[MeetingRegistrationOld]:
-        return self._retrieve(meeting_registration_old_uri, MeetingRegistrationOld)
+    def meeting_registration(self, uri: MeetingRegistrationURI) -> MeetingRegistration:
+        return self._retrieve(uri, MeetingRegistration)
 
 
-    def meeting_registrations_old(self,
+    def meeting_registrations(self,
                 affiliation   : Optional[str]             = None,
                 attended      : Optional[bool]            = None,
                 country_code  : Optional[str]             = None,
@@ -1362,16 +1351,15 @@ class DataTracker:
                 meeting       : Optional[Meeting]         = None,
                 person        : Optional[Person]          = None,
                 reg_type      : Optional[str]             = None,
-                ticket_type   : Optional[str]             = None) -> Iterator[MeetingRegistrationOld]:
+                ticket_type   : Optional[str]             = None) -> Iterator[MeetingRegistration]:
         """
         There are four ways to access meeting registration data from the 
         datatracker:
 
-        `meeting_registration()` and `meeting_registration_old()` provide
+        `meeting_registration()` and `stats_meeting_registration()` provide
         information about people who have registered for meetings. These
-        two functions provide the same information, although the
-        `meeting_registration()` call provides more detail on registrations
-        for ANRW and the hackathon.
+        provide the same information, although `stats_meeting_registration()`
+        provides more detail on registrations for ANRW and the hackathon.
 
         `meeting_attendance()` provides information about the people that
         attended a particular session of the meeting. This information is
@@ -1384,7 +1372,7 @@ class DataTracker:
         not always a straightforward match with the values returned
         from the other functions.
         """
-        url = MeetingRegistrationOldURI(uri="/api/v1/meeting/registration/")
+        url = MeetingRegistrationURI(uri="/api/v1/meeting/registration/")
         if affiliation is not None:
             url.params["affiliation"] = affiliation
         if attended is not None:
@@ -1405,7 +1393,7 @@ class DataTracker:
             url.params["reg_type"] = reg_type
         if ticket_type is not None:
             url.params["ticket_type"] = ticket_type
-        yield from self._retrieve_multi(url, MeetingRegistrationOld)
+        yield from self._retrieve_multi(url, MeetingRegistration)
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
@@ -1428,26 +1416,26 @@ class DataTracker:
     #   https://datatracker.ietf.org/api/v1/name/ipreventtypename/
     # * https://datatracker.ietf.org/api/v1/name/iprlicensetypename/
 
-    def ipr_disclosure_state(self, ipr_disclosure_state_uri: IPRDisclosureStateURI) -> Optional[IPRDisclosureState]:
-        return self._retrieve(ipr_disclosure_state_uri, IPRDisclosureState)
+    def ipr_disclosure_state(self, uri: IPRDisclosureStateURI) -> IPRDisclosureState:
+        return self._retrieve(uri, IPRDisclosureState)
 
 
     def ipr_disclosure_states(self) -> Iterator[IPRDisclosureState]:
         yield from self._retrieve_multi(IPRDisclosureStateURI(uri="/api/v1/name/iprdisclosurestatename/"), IPRDisclosureState)
 
 
-    def ipr_disclosure_base(self, ipr_disclosure_base_uri: IPRDisclosureBaseURI) -> Optional[IPRDisclosureBase]:
-        return self._retrieve(ipr_disclosure_base_uri, IPRDisclosureBase)
+    def ipr_disclosure_base(self, uri: IPRDisclosureBaseURI) -> IPRDisclosureBase:
+        return self._retrieve(uri, IPRDisclosureBase)
 
 
     def ipr_disclosure_bases(self,
-            since              : str                             = "1970-01-01T00:00:00Z",
-            until              : str                             = "2038-01-19T03:14:07Z",
-            by                 : Optional[Person]                = None,
-            holder_legal_name  : Optional[str]                   = None,
-            state              : Optional[IPRDisclosureState]    = None,
-            submitter_email    : Optional[str]                   = None,
-            submitter_name     : Optional[str]                   = None) -> Iterator[IPRDisclosureBase]:
+            since             : str                          = "1970-01-01T00:00:00Z",
+            until             : str                          = "2038-01-19T03:14:07Z",
+            by                : Optional[Person]             = None,
+            holder_legal_name : Optional[str]                = None,
+            state             : Optional[IPRDisclosureState] = None,
+            submitter_email   : Optional[str]                = None,
+            submitter_name    : Optional[str]                = None) -> Iterator[IPRDisclosureBase]:
         url = IPRDisclosureBaseURI(uri="/api/v1/ipr/iprdisclosurebase/")
         url.params["time__gte"] = since
         url.params["time__lt"]  = until
@@ -1464,19 +1452,19 @@ class DataTracker:
         yield from self._retrieve_multi(url, IPRDisclosureBase)
 
 
-    def generic_ipr_disclosure(self, generic_ipr_disclosure_uri: GenericIPRDisclosureURI) -> Optional[GenericIPRDisclosure]:
-        return self._retrieve(generic_ipr_disclosure_uri, GenericIPRDisclosure)
+    def generic_ipr_disclosure(self, uri: GenericIPRDisclosureURI) -> GenericIPRDisclosure:
+        return self._retrieve(uri, GenericIPRDisclosure)
 
 
     def generic_ipr_disclosures(self,
-            since               : str                             = "1970-01-01T00:00:00Z",
-            until               : str                             = "2038-01-19T03:14:07Z",
-            by                  : Optional[Person]                = None,
-            holder_legal_name   : Optional[str]                   = None,
-            holder_contact_name : Optional[str]                   = None,
-            state               : Optional[IPRDisclosureState]    = None,
-            submitter_email     : Optional[str]                   = None,
-            submitter_name      : Optional[str]                   = None) -> Iterator[GenericIPRDisclosure]:
+            since               : str                          = "1970-01-01T00:00:00Z",
+            until               : str                          = "2038-01-19T03:14:07Z",
+            by                  : Optional[Person]             = None,
+            holder_legal_name   : Optional[str]                = None,
+            holder_contact_name : Optional[str]                = None,
+            state               : Optional[IPRDisclosureState] = None,
+            submitter_email     : Optional[str]                = None,
+            submitter_name      : Optional[str]                = None) -> Iterator[GenericIPRDisclosure]:
         url = GenericIPRDisclosureURI(uri="/api/v1/ipr/genericiprdisclosure/")
         url.params["time__gte"] = since
         url.params["time__lt"]  = until
@@ -1495,30 +1483,30 @@ class DataTracker:
         yield from self._retrieve_multi(url, GenericIPRDisclosure)
 
 
-    def ipr_license_type(self, ipr_license_type_uri: IPRLicenseTypeURI) -> Optional[IPRLicenseType]:
-        return self._retrieve(ipr_license_type_uri, IPRLicenseType)
+    def ipr_license_type(self, uri: IPRLicenseTypeURI) -> IPRLicenseType:
+        return self._retrieve(uri, IPRLicenseType)
 
 
     def ipr_license_types(self) -> Iterator[IPRLicenseType]:
         yield from self._retrieve_multi(IPRLicenseTypeURI(uri="/api/v1/name/iprlicensetypename/"), IPRLicenseType)
 
 
-    def holder_ipr_disclosure(self, holder_ipr_disclosure_uri: HolderIPRDisclosureURI) -> Optional[HolderIPRDisclosure]:
-        return self._retrieve(holder_ipr_disclosure_uri, HolderIPRDisclosure)
+    def holder_ipr_disclosure(self, uri: HolderIPRDisclosureURI) -> HolderIPRDisclosure:
+        return self._retrieve(uri, HolderIPRDisclosure)
 
 
     def holder_ipr_disclosures(self,
-            since                : str                             = "1970-01-01T00:00:00Z",
-            until                : str                             = "2038-01-19T03:14:07Z",
-            by                   : Optional[Person]                = None,
-            holder_legal_name    : Optional[str]                   = None,
-            holder_contact_name  : Optional[str]                   = None,
-            ietfer_contact_email : Optional[str]                   = None,
-            ietfer_name          : Optional[str]                   = None,
-            licensing            : Optional[IPRLicenseType]        = None,
-            state                : Optional[IPRDisclosureState]    = None,
-            submitter_email      : Optional[str]                   = None,
-            submitter_name       : Optional[str]                   = None) -> Iterator[HolderIPRDisclosure]:
+            since                : str                          = "1970-01-01T00:00:00Z",
+            until                : str                          = "2038-01-19T03:14:07Z",
+            by                   : Optional[Person]             = None,
+            holder_legal_name    : Optional[str]                = None,
+            holder_contact_name  : Optional[str]                = None,
+            ietfer_contact_email : Optional[str]                = None,
+            ietfer_name          : Optional[str]                = None,
+            licensing            : Optional[IPRLicenseType]     = None,
+            state                : Optional[IPRDisclosureState] = None,
+            submitter_email      : Optional[str]                = None,
+            submitter_name       : Optional[str]                = None) -> Iterator[HolderIPRDisclosure]:
         url = HolderIPRDisclosureURI(uri="/api/v1/ipr/holderiprdisclosure/")
         url.params["time__gte"] = since
         url.params["time__lt"]  = until
@@ -1543,20 +1531,20 @@ class DataTracker:
         yield from self._retrieve_multi(url, HolderIPRDisclosure)
 
 
-    def thirdparty_ipr_disclosure(self, thirdparty_ipr_disclosure_uri: ThirdPartyIPRDisclosureURI) -> Optional[ThirdPartyIPRDisclosure]:
-        return self._retrieve(thirdparty_ipr_disclosure_uri, ThirdPartyIPRDisclosure)
+    def thirdparty_ipr_disclosure(self, uri: ThirdPartyIPRDisclosureURI) -> ThirdPartyIPRDisclosure:
+        return self._retrieve(uri, ThirdPartyIPRDisclosure)
 
 
     def thirdparty_ipr_disclosures(self,
-            since                : str                             = "1970-01-01T00:00:00Z",
-            until                : str                             = "2038-01-19T03:14:07Z",
-            by                   : Optional[Person]                = None,
-            holder_legal_name    : Optional[str]                   = None,
-            ietfer_contact_email : Optional[str]                   = None,
-            ietfer_name          : Optional[str]                   = None,
-            state                : Optional[IPRDisclosureState]    = None,
-            submitter_email      : Optional[str]                   = None,
-            submitter_name       : Optional[str]                   = None) -> Iterator[HolderIPRDisclosure]:
+            since                : str                          = "1970-01-01T00:00:00Z",
+            until                : str                          = "2038-01-19T03:14:07Z",
+            by                   : Optional[Person]             = None,
+            holder_legal_name    : Optional[str]                = None,
+            ietfer_contact_email : Optional[str]                = None,
+            ietfer_name          : Optional[str]                = None,
+            state                : Optional[IPRDisclosureState] = None,
+            submitter_email      : Optional[str]                = None,
+            submitter_name       : Optional[str]                = None) -> Iterator[HolderIPRDisclosure]:
         url = ThirdPartyIPRDisclosureURI(uri="/api/v1/ipr/thirdpartyiprdisclosure/")
         url.params["time__gte"] = since
         url.params["time__lt"]  = until
@@ -1615,8 +1603,8 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/name/reviewrequeststatename/
     # * https://datatracker.ietf.org/api/v1/name/reviewtypename/
 
-    def review_assignment_state(self, review_assignment_state_uri: ReviewAssignmentStateURI) -> Optional[ReviewAssignmentState]:
-        return self._retrieve(review_assignment_state_uri, ReviewAssignmentState)
+    def review_assignment_state(self, uri: ReviewAssignmentStateURI) -> ReviewAssignmentState:
+        return self._retrieve(uri, ReviewAssignmentState)
 
 
     def review_assignment_state_from_slug(self, slug: str) -> Optional[ReviewAssignmentState]:
@@ -1627,8 +1615,8 @@ class DataTracker:
         yield from self._retrieve_multi(ReviewAssignmentStateURI(uri="/api/v1/name/reviewassignmentstatename/"), ReviewAssignmentState)
 
 
-    def review_result_type(self, review_result_uri: ReviewResultTypeURI) -> Optional[ReviewResultType]:
-        return self._retrieve(review_result_uri, ReviewResultType)
+    def review_result_type(self, uri: ReviewResultTypeURI) -> ReviewResultType:
+        return self._retrieve(uri, ReviewResultType)
 
 
     def review_result_type_from_slug(self, slug: str) -> Optional[ReviewResultType]:
@@ -1639,8 +1627,8 @@ class DataTracker:
         yield from self._retrieve_multi(ReviewResultTypeURI(uri="/api/v1/name/reviewresultname/"), ReviewResultType)
 
 
-    def review_type(self, review_type_uri: ReviewTypeURI) -> Optional[ReviewType]:
-        return self._retrieve(review_type_uri, ReviewType)
+    def review_type(self, uri: ReviewTypeURI) -> ReviewType:
+        return self._retrieve(uri, ReviewType)
 
 
     def review_type_from_slug(self, slug: str) -> Optional[ReviewType]:
@@ -1651,8 +1639,8 @@ class DataTracker:
         yield from self._retrieve_multi(ReviewTypeURI(uri="/api/v1/name/reviewtypename/"), ReviewType)
 
 
-    def review_request_state(self, review_request_state_uri: ReviewRequestStateURI) -> Optional[ReviewRequestState]:
-        return self._retrieve(review_request_state_uri, ReviewRequestState)
+    def review_request_state(self, uri: ReviewRequestStateURI) -> ReviewRequestState:
+        return self._retrieve(uri, ReviewRequestState)
 
 
     def review_request_state_from_slug(self, slug: str) -> Optional[ReviewRequestState]:
@@ -1663,8 +1651,8 @@ class DataTracker:
         yield from self._retrieve_multi(ReviewRequestStateURI(uri="/api/v1/name/reviewrequeststatename/"), ReviewRequestState)
 
 
-    def review_request(self, review_request_uri: ReviewRequestURI) -> Optional[ReviewRequest]:
-        return self._retrieve(review_request_uri, ReviewRequest)
+    def review_request(self, uri: ReviewRequestURI) -> ReviewRequest:
+        return self._retrieve(uri, ReviewRequest)
 
 
     def review_requests(self,
@@ -1688,8 +1676,8 @@ class DataTracker:
         yield from self._retrieve_multi(url, ReviewRequest)
 
 
-    def review_assignment(self, review_assignment_uri: ReviewAssignmentURI) -> Optional[ReviewAssignment]:
-        return self._retrieve(review_assignment_uri, ReviewAssignment)
+    def review_assignment(self, uri: ReviewAssignmentURI) -> ReviewAssignment:
+        return self._retrieve(uri, ReviewAssignment)
 
 
     def review_assignments(self,
@@ -1717,8 +1705,8 @@ class DataTracker:
         yield from self._retrieve_multi(url, ReviewAssignment)
 
 
-    def review_wish(self, review_wish_uri: ReviewWishURI) -> Optional[ReviewWish]:
-        return self._retrieve(review_wish_uri, ReviewWish)
+    def review_wish(self, uri: ReviewWishURI) -> ReviewWish:
+        return self._retrieve(uri, ReviewWish)
 
 
     def review_wishes(self,
@@ -1736,8 +1724,8 @@ class DataTracker:
         yield from self._retrieve_multi(url, ReviewWish)
 
 
-    def historical_unavailable_period(self, historical_unavailable_period_uri: HistoricalUnavailablePeriodURI) -> Optional[HistoricalUnavailablePeriod]:
-        return self._retrieve(historical_unavailable_period_uri, HistoricalUnavailablePeriod)
+    def historical_unavailable_period(self, uri: HistoricalUnavailablePeriodURI) -> HistoricalUnavailablePeriod:
+        return self._retrieve(uri, HistoricalUnavailablePeriod)
 
 
     def historical_unavailable_periods(self,
@@ -1757,8 +1745,8 @@ class DataTracker:
         yield from self._retrieve_multi(url, HistoricalUnavailablePeriod)
 
 
-    def historical_review_request(self, historical_review_request_uri: HistoricalReviewRequestURI) -> Optional[HistoricalReviewRequest]:
-        return self._retrieve(historical_review_request_uri, HistoricalReviewRequest)
+    def historical_review_request(self, uri: HistoricalReviewRequestURI) -> HistoricalReviewRequest:
+        return self._retrieve(uri, HistoricalReviewRequest)
 
 
     def historical_review_requests(self,
@@ -1782,8 +1770,8 @@ class DataTracker:
         yield from self._retrieve_multi(url, HistoricalReviewRequest)
 
 
-    def next_reviewer_in_team(self, next_reviewer_in_team_uri: NextReviewerInTeamURI) -> Optional[NextReviewerInTeam]:
-        return self._retrieve(next_reviewer_in_team_uri, NextReviewerInTeam)
+    def next_reviewer_in_team(self, uri: NextReviewerInTeamURI) -> NextReviewerInTeam:
+        return self._retrieve(uri, NextReviewerInTeam)
 
 
     def next_reviewers_in_teams(self,
@@ -1794,8 +1782,8 @@ class DataTracker:
         yield from self._retrieve_multi(url, NextReviewerInTeam)
 
 
-    def review_team_settings(self, review_team_settings_uri: ReviewTeamSettingsURI) -> Optional[ReviewTeamSettings]:
-        return self._retrieve(review_team_settings_uri, ReviewTeamSettings)
+    def review_team_settings(self, uri: ReviewTeamSettingsURI) -> ReviewTeamSettings:
+        return self._retrieve(uri, ReviewTeamSettings)
 
 
     def review_team_settings_all(self,
@@ -1806,8 +1794,8 @@ class DataTracker:
         yield from self._retrieve_multi(url, ReviewTeamSettings)
 
 
-    def reviewer_settings(self, reviewer_settings_uri: ReviewerSettingsURI) -> Optional[ReviewerSettings]:
-        return self._retrieve(reviewer_settings_uri, ReviewerSettings)
+    def reviewer_settings(self, uri: ReviewerSettingsURI) -> ReviewerSettings:
+        return self._retrieve(uri, ReviewerSettings)
 
 
     def reviewer_settings_all(self,
@@ -1821,8 +1809,8 @@ class DataTracker:
         yield from self._retrieve_multi(url, ReviewerSettings)
 
 
-    def unavailable_period(self, unavailable_period_uri: UnavailablePeriodURI) -> Optional[UnavailablePeriod]:
-        return self._retrieve(unavailable_period_uri, UnavailablePeriod)
+    def unavailable_period(self, uri: UnavailablePeriodURI) -> UnavailablePeriod:
+        return self._retrieve(uri, UnavailablePeriod)
 
 
     def unavailable_periods(self,
@@ -1836,8 +1824,8 @@ class DataTracker:
         yield from self._retrieve_multi(url, UnavailablePeriod)
 
 
-    def historical_reviewer_settings(self, historical_reviewer_settings_uri: HistoricalReviewerSettingsURI) -> Optional[HistoricalReviewerSettings]:
-        return self._retrieve(historical_reviewer_settings_uri, HistoricalReviewerSettings)
+    def historical_reviewer_settings(self, uri: HistoricalReviewerSettingsURI) -> HistoricalReviewerSettings:
+        return self._retrieve(uri, HistoricalReviewerSettings)
 
 
     def historical_reviewer_settings_all(self,
@@ -1851,8 +1839,8 @@ class DataTracker:
         yield from self._retrieve_multi(url, HistoricalReviewerSettings)
 
 
-    def historical_review_assignment(self, historical_review_assignment_uri: HistoricalReviewAssignmentURI) -> Optional[HistoricalReviewAssignment]:
-        return self._retrieve(historical_review_assignment_uri, HistoricalReviewAssignment)
+    def historical_review_assignment(self, uri: HistoricalReviewAssignmentURI) -> HistoricalReviewAssignment:
+        return self._retrieve(uri, HistoricalReviewAssignment)
 
 
     def historical_review_assignments(self,
@@ -1880,8 +1868,8 @@ class DataTracker:
         yield from self._retrieve_multi(url, HistoricalReviewAssignment)
 
 
-    def review_secretary_settings(self, review_secretary_settings_uri: ReviewSecretarySettingsURI) -> Optional[ReviewSecretarySettings]:
-        return self._retrieve(review_secretary_settings_uri, ReviewSecretarySettings)
+    def review_secretary_settings(self, uri: ReviewSecretarySettingsURI) -> ReviewSecretarySettings:
+        return self._retrieve(uri, ReviewSecretarySettings)
 
 
     def review_secretary_settings_all(self,
@@ -1951,8 +1939,8 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/name/countryname/
     # * https://datatracker.ietf.org/api/v1/name/continentname/
 
-    def continent(self, continent_uri : ContinentURI) -> Optional[Continent]:
-        return self._retrieve(continent_uri, Continent)
+    def continent(self, uri : ContinentURI) -> Continent:
+        return self._retrieve(uri, Continent)
 
 
     def continent_from_slug(self, slug : str) -> Optional[Continent]:
@@ -1964,8 +1952,8 @@ class DataTracker:
         yield from self._retrieve_multi(url, Continent)
 
 
-    def country(self, country_uri: CountryURI) -> Optional[Country]:
-        return self._retrieve(country_uri, Country)
+    def country(self, uri: CountryURI) -> Country:
+        return self._retrieve(uri, Country)
 
 
     def country_from_slug(self, slug : str) -> Optional[Country]:
@@ -1989,8 +1977,8 @@ class DataTracker:
         yield from self._retrieve_multi(url, Country)
 
 
-    def country_alias(self, country_alias_uri : CountryAliasURI) -> Optional[CountryAlias]:
-        return self._retrieve(country_alias_uri, CountryAlias)
+    def country_alias(self, uri : CountryAliasURI) -> CountryAlias:
+        return self._retrieve(uri, CountryAlias)
 
 
     def country_aliases(self, alias : str) -> Iterator[CountryAlias]:
@@ -2000,17 +1988,15 @@ class DataTracker:
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
-    # Datatracker API endpoints returning information about statistics:
+    # Datatracker API endpoints returning statistics about meeting registrations:
     #
-    #   https://datatracker.ietf.org/api/v1/stats/affiliationalias/
-    #   https://datatracker.ietf.org/api/v1/stats/affiliationignoredending/
     #   https://datatracker.ietf.org/api/v1/stats/meetingregistration/
 
-    def meeting_registration(self, meeting_registration_uri: MeetingRegistrationURI) -> Optional[MeetingRegistration]:
-        return self._retrieve(meeting_registration_uri, MeetingRegistration)
+    def stats_meeting_registration(self, uri: StatsMeetingRegistrationURI) -> StatsMeetingRegistration:
+        return self._retrieve(uri, StatsMeetingRegistration)
 
 
-    def meeting_registrations(self,
+    def stats_meeting_registrations(self,
                 affiliation   : Optional[str]             = None,
                 attended      : Optional[bool]            = None,
                 country_code  : Optional[str]             = None,
@@ -2020,16 +2006,15 @@ class DataTracker:
                 meeting       : Optional[Meeting]         = None,
                 person        : Optional[Person]          = None,
                 reg_type      : Optional[str]             = None,
-                ticket_type   : Optional[str]             = None) -> Iterator[MeetingRegistration]:
+                ticket_type   : Optional[str]             = None) -> Iterator[StatsMeetingRegistration]:
         """
         There are four ways to access meeting registration data from the 
         datatracker:
 
-        `meeting_registration()` and `meeting_registration_old()` provide
+        `meeting_registration()` and `stats_meeting_registration()` provide
         information about people who have registered for meetings. These
-        two functions provide the same information, although the
-        `meeting_registration()` call provides more detail on registrations
-        for ANRW and the hackathon.
+        provide the same information, although `stats_meeting_registration()`
+        provides more detail on registrations for ANRW and the hackathon.
 
         `meeting_attendance()` provides information about the people that
         attended a particular session of the meeting. This information is
@@ -2042,7 +2027,7 @@ class DataTracker:
         not always a straightforward match with the values returned
         from the other functions.
         """
-        url = MeetingRegistrationURI(uri="/api/v1/stats/meetingregistration/")
+        url = StatsMeetingRegistrationURI(uri="/api/v1/stats/meetingregistration/")
         if affiliation is not None:
             url.params["affiliation"] = affiliation
         if attended is not None:
@@ -2063,7 +2048,7 @@ class DataTracker:
             url.params["reg_type"] = reg_type
         if ticket_type is not None:
             url.params["ticket_type"] = ticket_type
-        yield from self._retrieve_multi(url, MeetingRegistration)
+        yield from self._retrieve_multi(url, StatsMeetingRegistration)
 
 
 # =================================================================================================================================

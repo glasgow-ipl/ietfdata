@@ -243,13 +243,13 @@ if __name__ == "__main__":
 
     print(f"*** ietfdata.tools.affiliations")
 
-    if len(sys.argv) != 5:
+    if len(sys.argv) != 6:
         print('')
-        print('Usage: python3 -m ietfdata.tools.affiliations <ietfdata.sqlite> <participants.json> <organisation.json> <affiliations.json>')
+        print('Usage: python3 -m ietfdata.tools.affiliations <ietfdata.sqlite> <rfc-index.xml> <participants.json> <organisation.json> <affiliations.json>')
         sys.exit(1)
 
-    print(f"Loading {sys.argv[2]}")
-    with open(sys.argv[2], "r") as inf:
+    print(f"Loading {sys.argv[3]}")
+    with open(sys.argv[3], "r") as inf:
         participants = json.load(inf)
         print(f"  {len(participants):5} participants")
         emails = {}
@@ -262,8 +262,8 @@ if __name__ == "__main__":
         print(f"  {len(emails):5} email addresses")
 
 
-    print(f"Loading {sys.argv[3]}")
-    with open(sys.argv[3], "r") as inf:
+    print(f"Loading {sys.argv[4]}")
+    with open(sys.argv[4], "r") as inf:
         organisations = json.load(inf)
         print(f"  {len(organisations):5} organisations")
         org_names = {}
@@ -274,7 +274,7 @@ if __name__ == "__main__":
 
 
     dt = DataTracker(DTBackendArchive(sqlite_file=sys.argv[1]))
-    ri = RFCIndex(cache_dir = "cache")
+    ri = RFCIndex(rfc_index = sys.argv[2])
     af = Affiliations()
 
     print("Finding affiliations of RFC authors")
@@ -287,11 +287,9 @@ if __name__ == "__main__":
                     continue
                 affil = dt_author.affiliation.replace("\n", " ")
                 email = dt.email(dt_author.email)
-                if email is None:
-                    continue
                 date_ = rfc_date(rfc.year, rfc.month) # FIXME get the actual publication date
                 if email.address not in emails or affil not in org_names:
-                    print(f"skipped {email} {affil}")
+                    log.debug(f"skipped {email.address} {affil}")
                     continue
                 pid = emails[email.address]
                 oid = org_names[affil]
@@ -318,7 +316,6 @@ if __name__ == "__main__":
     print("Finding affiliations in meeting registration records")
     for reg in dt.meeting_registrations():
         meeting = dt.meeting(reg.meeting)
-        assert meeting is not None
         date_  = meeting.date
         email = reg.email
         affil = reg.affiliation
@@ -329,22 +326,22 @@ if __name__ == "__main__":
         oid = org_names[affil]
         af.add(date_, pid, oid)
 
-    af.save(sys.argv[4])
+    af.save(sys.argv[5])
 
-    log.info("Identifying conflicting affiliations")
+    log.warning("Identifying conflicting affiliations")
     conflicts = af.get_conflicts()
     ccount = 0
     for pid, conflicts in conflicts.items():
         ccount += 1
-        log.info(f"  {pid} {participants[pid]["names"][0]}")
+        log.warning(f"  {pid} {participants[pid]["names"][0]}")
         for org1, org2, date_ in conflicts:
-            log.info(f"    {date_}")
-            log.info(f"      {org1}")
-            for name in organisations[org1]["names"]:
-                log.info(f"        {name}")
-            log.info(f"      {org2}")
-            for name in organisations[org2]["names"]:
-                log.info(f"        {name}")
+            log.warning(f"    {date_}")
+            log.warning(f"      {org1} {organisations[org1]['names'][0]}")
+            #for name in organisations[org1]["names"]:
+            #    log.warning(f"        {name}")
+            log.warning(f"      {org2} {organisations[org2]['names'][0]}")
+            #for name in organisations[org2]["names"]:
+            #    log.warning(f"        {name}")
     if ccount > 0:
         log.warning(f"Found {ccount} people with conflicting affiliations")
 

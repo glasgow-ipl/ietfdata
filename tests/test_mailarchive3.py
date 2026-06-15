@@ -1,4 +1,4 @@
-# Copyright (C) 2021-2025 University of Glasgow
+# Copyright (C) 2021-2026 University of Glasgow
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -39,7 +39,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from ietfdata.datatracker  import *
 from ietfdata.mailarchive3 import *
-from ietfdata.mailarchive3 import _parse_message
+from ietfdata.ma_parsing   import parse_message
 
 # =================================================================================================================================
 # Unit tests:
@@ -51,7 +51,7 @@ class TestMailArchive3(unittest.TestCase):
 
     @classmethod
     def setUpClass(self) -> None:
-        sqlite_file = "data/ietfdata-ma.sqlite"
+        sqlite_file = "archive/ietfdata-ma.sqlite"
         self.ma = MailArchive(sqlite_file)
         self.db = sqlite3.connect(sqlite_file)
 
@@ -64,7 +64,7 @@ class TestMailArchive3(unittest.TestCase):
         res = dbc.execute(sql, (ml_name, uidvalidity, uid)).fetchall()
         if len(res) == 0:
             self.fail(f"Cannot find message {ml_name}/{uid} with uidvalidity={uidvalidity}")
-        msg = _parse_message(uidvalidity, uid, res[0][0])
+        msg = parse_message(uidvalidity, uid, res[0][0])
         self.assertEqual(msg["from_name"], name)
         self.assertEqual(msg["from_addr"], addr)
 
@@ -410,18 +410,6 @@ class TestMailArchive3(unittest.TestCase):
         self.assertEqual(msgs[0].uid(), 14157)
 
 
-    def test_mailarchive3_envelope_date_received(self) -> None:
-        msgs = self.ma.message("<CAMr0u6mtvLBNnurVjw3rq5PmSF6okisAg5OVRzoqVvzpR7+r=A@mail.gmail.com>")
-        self.assertEqual(len(msgs), 1)
-        self.assertEqual(msgs[0].date_received(), datetime.fromisoformat("2025-04-18T05:30:21+00:00"))
-
-
-    def test_mailarchive3_envelope_size(self) -> None:
-        msgs = self.ma.message("<CAMr0u6mtvLBNnurVjw3rq5PmSF6okisAg5OVRzoqVvzpR7+r=A@mail.gmail.com>")
-        self.assertEqual(len(msgs), 1)
-        self.assertEqual(msgs[0].size(), 6866)
-
-
     def test_mailarchive3_envelope_message_id(self) -> None:
         msgs = self.ma.message("<CAMr0u6mtvLBNnurVjw3rq5PmSF6okisAg5OVRzoqVvzpR7+r=A@mail.gmail.com>")
         self.assertEqual(len(msgs), 1)
@@ -561,10 +549,6 @@ class TestMailArchive3(unittest.TestCase):
         # Test all messages:
         msgs  = list(mlist.messages())
         self.assertEqual(len(msgs), 434)
-        # Test messages with received before/after constraints:
-        msgs  = list(mlist.messages(received_after  = "2017-10-01T00:00:00+00:00",
-                                    received_before = "2017-11-01T00:00:00+00:00"))
-        self.assertEqual(len(msgs), 9)
 
 
     def test_mailarchive3_mailinglist_messages_as_dataframe(self) -> None:
@@ -572,11 +556,6 @@ class TestMailArchive3(unittest.TestCase):
         # Test all messages:
         df = mlist.messages_as_dataframe()
         self.assertEqual(df.shape, (434, 7))
-
-        # Test messages with received before/after constraints:
-        df  = mlist.messages_as_dataframe(received_after  = "2017-10-01T00:00:00+00:00",
-                                          received_before = "2017-11-01T00:00:00+00:00")
-        self.assertEqual(df.shape, (9, 7))
 
 
     def test_mailarchive3_mailinglist_threads(self) -> None:

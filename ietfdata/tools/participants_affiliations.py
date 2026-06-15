@@ -316,8 +316,6 @@ class ParticipantsAffiliations:
             tmp_email = reg.email
             
             tmp_meeting = dt.meeting(reg.meeting)
-            if tmp_meeting is None:
-                continue
             tmp_date = tmp_meeting.date
             tmp_pid = None
             
@@ -377,23 +375,23 @@ class ParticipantsAffiliations:
 if __name__ == "__main__":
     print("*** ietfdata.tools.participants_affiliations")
     
-    if len(sys.argv) == 5:
-        path = Path(sys.argv[4])
+    if len(sys.argv) == 6:
+        path = Path(sys.argv[5])
     else:
-        print("Usage: python3 -m ietfdata.tools.participants_affiliations <ietfdata.sqlite> <participants.json> <organisations.json> <output.json>")
+        print("Usage: python3 -m ietfdata.tools.participants_affiliations <ietfdata.sqlite> <rfc-index.xml> <participants.json> <organisations.json> <output.json>")
         sys.exit(1)
     
-    print(f"Loading participants from: {sys.argv[2]} and organisations from: {sys.argv[3]}")
+    print(f"Loading participants from: {sys.argv[3]} and organisations from: {sys.argv[4]}")
     participants = None
     organisations = None
-    with open(sys.argv[2]) as f:
-        participants = json.load(f)
     with open(sys.argv[3]) as f:
+        participants = json.load(f)
+    with open(sys.argv[4]) as f:
         organisations = json.load(f)
     
     participants_affiliations = ParticipantsAffiliations(participants,organisations)       
     dt = DataTracker(DTBackendArchive(sqlite_file=sys.argv[1]))
-    ri = RFCIndex(cache_dir = "cache")
+    ri = RFCIndex(rfc_index = sys.argv[2])
     participants_affiliations.find_participants_affiliations_ietf(dt,ri)
     participants_affiliations.output(path)
     

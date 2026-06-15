@@ -45,8 +45,10 @@ class TestDatatracker(unittest.TestCase):
 
     @classmethod
     def setUpClass(self) -> None:
-        self.dt = DataTracker(DTBackendLive())
-        #self.dt = DataTracker(DTBackendArchive("data/ietfdata-dt.sqlite"))
+        if os.getenv("DT_TEST_ARCHIVE") is not None:
+            self.dt = DataTracker(DTBackendArchive("archive/ietfdata-dt.sqlite"))
+        else:
+            self.dt = DataTracker(DTBackendLive())
 
     # -----------------------------------------------------------------------------------------------------------------------------
     # Tests relating to email addresses:
@@ -1104,7 +1106,7 @@ class TestDatatracker(unittest.TestCase):
     def test_document_states(self) -> None:
         st = self.dt.document_state_type(DocumentStateTypeURI(uri="/api/v1/doc/statetype/draft-rfceditor/"))
         states = list(self.dt.document_states(state_type = st))
-        self.assertEqual(len(states), 19)
+        self.assertEqual(len(states), 21)
         self.assertEqual(states[ 0].name, 'AUTH')
         self.assertEqual(states[ 1].name, 'AUTH48')
         self.assertEqual(states[ 2].name, 'EDIT')
@@ -1124,6 +1126,8 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(states[16].name, 'ISR-AUTH')
         self.assertEqual(states[17].name, 'Pending')
         self.assertEqual(states[18].name, 'TI')
+        self.assertEqual(states[19].name, 'In Progress')
+        self.assertEqual(states[20].name, 'Blocked')
 
 
     def test_document_state_type(self) -> None:
@@ -1832,7 +1836,7 @@ class TestDatatracker(unittest.TestCase):
         chair = self.dt.role_name_from_slug("chair")
         group_roles = list(self.dt.group_roles(group = iab, name = chair))
         self.assertEqual(len(group_roles), 1)
-        self.assertEqual(group_roles[0].id, 13626)   # IAB chair is Tommy Pauley
+        self.assertEqual(group_roles[0].id, 14526)   # IAB chair is Dhurv Dhody
 
 
 
@@ -1955,7 +1959,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_email(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(email="csp@csperkins.org"))
-        self.assertEqual(len(group_role_histories), 132)
+        self.assertEqual(len(group_role_histories), 133)
 
 
     def test_group_role_histories_group(self) -> None:
@@ -1971,7 +1975,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_person(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(person=self.dt.person(PersonURI(uri="/api/v1/person/person/20209/"))))
-        self.assertEqual(len(group_role_histories), 132)
+        self.assertEqual(len(group_role_histories), 133)
 
 
     def test_group_state_change_event(self) -> None:
@@ -2010,7 +2014,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_groups_state(self) -> None:
         groups = list(self.dt.groups(group_state=self.dt.group_state(GroupStateURI(uri="/api/v1/name/groupstatename/abandon/"))))
-        self.assertEqual(len(groups), 16)
+        self.assertEqual(len(groups), 17)
         self.assertEqual(groups[ 0].id, 1949)
         self.assertEqual(groups[ 1].id, 2009)
         self.assertEqual(groups[ 2].id, 2018)
@@ -2027,6 +2031,7 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(groups[13].id, 2389)    # NIMBY was renamed to IVY while chartering
         self.assertEqual(groups[14].id, 2400)    # MULTIFORMATS
         self.assertEqual(groups[15].id, 2501)    # 
+        self.assertEqual(groups[16].id, 2609)    #
 
 
     def test_groups_parent(self) -> None:
@@ -2153,7 +2158,7 @@ class TestDatatracker(unittest.TestCase):
     def test_meeting_attendance(self) -> None:
         person   = self.dt.person(PersonURI(uri="/api/v1/person/person/125662/"))
         attended = list(self.dt.meeting_attendance(person = person))
-        self.assertEqual(len(attended), 81)
+        self.assertEqual(len(attended), 90)
 
 
     def test_meeting_session_assignment(self) -> None:
@@ -2484,8 +2489,8 @@ class TestDatatracker(unittest.TestCase):
             self.fail("Cannot find meeting")
 
 
-    def test_meeting_registration_old(self) -> None:
-        reg = self.dt.meeting_registration_old(MeetingRegistrationOldURI(uri="/api/v1/meeting/registration/29329/"))
+    def test_meeting_registration(self) -> None:
+        reg = self.dt.meeting_registration(MeetingRegistrationURI(uri="/api/v1/meeting/registration/29329/"))
         if reg is not None:
             self.assertEqual(reg.affiliation,  "University of Glasgow")
             self.assertEqual(reg.attended,     True)
@@ -2497,9 +2502,71 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(reg.last_name,    "Perkins")
             self.assertEqual(reg.meeting,      MeetingURI(uri="/api/v1/meeting/meeting/805/"))
             self.assertEqual(reg.person,       PersonURI(uri="/api/v1/person/person/20209/"))
-            self.assertEqual(reg.resource_uri, MeetingRegistrationOldURI(uri="/api/v1/meeting/registration/29329/"))
+            self.assertEqual(reg.resource_uri, MeetingRegistrationURI(uri="/api/v1/meeting/registration/29329/"))
         else:
             self.fail("Cannot find meeting registration")
+
+
+    def test_meeting_registrations(self) -> None:
+        regs = self.dt.meeting_registrations()
+        self.assertIsNot(regs, None)
+
+
+    def test_meeting_registrations_affiliation(self) -> None:
+        regs = self.dt.meeting_registrations(affiliation="University of Glasgow")
+        self.assertIsNot(regs, None)
+        self.assertEqual(len(list(regs)), 75)
+
+
+    def test_meeting_registrations_attended(self) -> None:
+        regs = self.dt.meeting_registrations(attended=True)
+        self.assertIsNot(regs, None)
+
+
+    def test_meeting_registrations_country_code(self) -> None:
+        regs = self.dt.meeting_registrations(country_code="GB")
+        self.assertIsNot(regs, None)
+
+
+    def test_meeting_registrations_email(self) -> None:
+        regs = self.dt.meeting_registrations(email="sm@smcquistin.uk")
+        self.assertIsNot(regs, None)
+        self.assertEqual(len(list(regs)), 14)
+
+
+    def test_meeting_registrations_first_name(self) -> None:
+        regs = self.dt.meeting_registrations(first_name="Colin")
+        self.assertIsNot(regs, None)
+        self.assertEqual(len(list(regs)), 112)
+
+
+    def test_meeting_registrations_last_name(self) -> None:
+        regs = self.dt.meeting_registrations(last_name="McQuistin")
+        self.assertIsNot(regs, None)
+        self.assertEqual(len(list(regs)), 18)
+
+
+    def test_meeting_registrations_meeting(self) -> None:
+        regs = self.dt.meeting_registrations(meeting=self.dt.meeting(MeetingURI(uri="/api/v1/meeting/meeting/1003/")))
+        self.assertIsNot(regs, None)
+        self.assertEqual(len(list(regs)), 1370)
+
+
+    def test_meeting_registrations_person(self) -> None:
+        regs = self.dt.meeting_registrations(person=self.dt.person(PersonURI(uri="/api/v1/person/person/117769/")))
+        self.assertIsNot(regs, None)
+        self.assertEqual(len(list(regs)), 18)
+
+
+    def test_meeting_registrations_reg_type(self) -> None:
+        regs = self.dt.meeting_registrations(reg_type="remote")
+        self.assertIsNot(regs, None)
+
+
+    def test_meeting_registrations_ticket_type(self) -> None:
+        regs = self.dt.meeting_registrations(ticket_type="one_day")
+        self.assertIsNot(regs, None)
+
 
 
     # -----------------------------------------------------------------------------------------------------------------------------
@@ -3721,10 +3788,10 @@ class TestDatatracker(unittest.TestCase):
 
 
     # -----------------------------------------------------------------------------------------------------------------------------
-    # Tests relating to statistics:
+    # Tests relating to meeting registration statistics:
 
-    def test_meeting_registration(self) -> None:
-        reg = self.dt.meeting_registration(MeetingRegistrationURI(uri="/api/v1/stats/meetingregistration/42206/"))
+    def test_stats_meeting_registration(self) -> None:
+        reg = self.dt.stats_meeting_registration(StatsMeetingRegistrationURI(uri="/api/v1/stats/meetingregistration/42206/"))
         if reg is not None:
             self.assertEqual(reg.affiliation,  "University of Glasgow")
             self.assertEqual(reg.attended,     True)
@@ -3736,64 +3803,70 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(reg.meeting,      MeetingURI(uri="/api/v1/meeting/meeting/1003/"))
             self.assertEqual(reg.person,       PersonURI(uri="/api/v1/person/person/117769/"))
             self.assertEqual(reg.reg_type,     "remote")
-            self.assertEqual(reg.resource_uri, MeetingRegistrationURI(uri="/api/v1/stats/meetingregistration/42206/"))
+            self.assertEqual(reg.resource_uri, StatsMeetingRegistrationURI(uri="/api/v1/stats/meetingregistration/42206/"))
             self.assertEqual(reg.ticket_type,  "week_pass")
         else:
             self.fail("Cannot find meeting registration")
 
 
-    def test_meeting_registrations(self) -> None:
-        regs = self.dt.meeting_registrations()
+    def test_stats_meeting_registrations(self) -> None:
+        regs = self.dt.stats_meeting_registrations()
         self.assertIsNot(regs, None)
 
 
-    def test_meeting_registrations_affiliation(self) -> None:
-        regs = self.dt.meeting_registrations(affiliation="University of Glasgow")
+    def test_stats_meeting_registrations_affiliation(self) -> None:
+        regs = self.dt.stats_meeting_registrations(affiliation="University of Glasgow")
+        self.assertIsNot(regs, None)
+        self.assertEqual(len(list(regs)), 93)
+
+
+    def test_stats_meeting_registrations_attended(self) -> None:
+        regs = self.dt.stats_meeting_registrations(attended=True)
         self.assertIsNot(regs, None)
 
 
-    def test_meeting_registrations_attended(self) -> None:
-        regs = self.dt.meeting_registrations(attended=True)
+    def test_stats_meeting_registrations_country_code(self) -> None:
+        regs = self.dt.stats_meeting_registrations(country_code="GB")
         self.assertIsNot(regs, None)
 
 
-    def test_meeting_registrations_country_code(self) -> None:
-        regs = self.dt.meeting_registrations(country_code="GB")
+    def test_stats_meeting_registrations_email(self) -> None:
+        regs = self.dt.stats_meeting_registrations(email="sm@smcquistin.uk")
+        self.assertIsNot(regs, None)
+        self.assertEqual(len(list(regs)), 17)
+
+
+    def test_stats_meeting_registrations_first_name(self) -> None:
+        regs = self.dt.stats_meeting_registrations(first_name="Colin")
+        self.assertIsNot(regs, None)
+        self.assertEqual(len(list(regs)), 118)
+
+
+    def test_stats_meeting_registrations_last_name(self) -> None:
+        regs = self.dt.stats_meeting_registrations(last_name="McQuistin")
+        self.assertIsNot(regs, None)
+        self.assertEqual(len(list(regs)), 24)
+
+
+    def test_stats_meeting_registrations_meeting(self) -> None:
+        regs = self.dt.stats_meeting_registrations(meeting=self.dt.meeting(MeetingURI(uri="/api/v1/meeting/meeting/1003/")))
+        self.assertIsNot(regs, None)
+        self.assertEqual(len(list(regs)), 1494)
+
+
+    def test_stats_meeting_registrations_person(self) -> None:
+        regs = self.dt.stats_meeting_registrations(person=self.dt.person(PersonURI(uri="/api/v1/person/person/117769/")))
+        self.assertIsNot(regs, None)
+        self.assertEqual(len(list(regs)), 24)
+
+
+    def test_stats_meeting_registrations_reg_type(self) -> None:
+        regs = self.dt.stats_meeting_registrations(reg_type="remote")
         self.assertIsNot(regs, None)
 
 
-    def test_meeting_registrations_email(self) -> None:
-        regs = self.dt.meeting_registrations(email="sm@smcquistin.uk")
-        self.assertIsNot(regs, None)
-
-
-    def test_meeting_registrations_first_name(self) -> None:
-        regs = self.dt.meeting_registrations(first_name="Stephen")
-        self.assertIsNot(regs, None)
-
-
-    def test_meeting_registrations_last_name(self) -> None:
-        regs = self.dt.meeting_registrations(last_name="McQuistin")
-        self.assertIsNot(regs, None)
-
-
-    def test_meeting_registrations_meeting(self) -> None:
-        regs = self.dt.meeting_registrations(meeting=self.dt.meeting(MeetingURI(uri="/api/v1/meeting/meeting/1003/")))
-        self.assertIsNot(regs, None)
-
-
-    def test_meeting_registrations_person(self) -> None:
-        regs = self.dt.meeting_registrations(person=self.dt.person(PersonURI(uri="/api/v1/person/person/117769/")))
-        self.assertIsNot(regs, None)
-
-
-    def test_meeting_registrations_reg_type(self) -> None:
-        regs = self.dt.meeting_registrations(reg_type="remote")
-        self.assertIsNot(regs, None)
-
-
-    def test_meeting_registrations_ticket_type(self) -> None:
-        regs = self.dt.meeting_registrations(ticket_type="one_day")
+    def test_stats_meeting_registrations_ticket_type(self) -> None:
+        regs = self.dt.stats_meeting_registrations(ticket_type="one_day")
         self.assertIsNot(regs, None)
 
 

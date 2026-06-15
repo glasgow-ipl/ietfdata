@@ -163,7 +163,7 @@ This could be used by instantiating it as shown in the previous section by passi
 - Edit CHANGELOG.md and ensure up-to-date
 - Edit setup.py to ensure the correct version number is present
 - Edit pyproject.toml to ensure the correct version number is present
-- Edit ietfdata/dtbackend.py to ensure the correct version number if
+- Edit `ietfdata/dt_backend.py` to ensure the correct version number if
   present (there is one copy in each back-end)
 - Run `make test` to run the test suite. If any tests fail, fix then
   restart the release process

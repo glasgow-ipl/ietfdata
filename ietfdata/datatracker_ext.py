@@ -387,7 +387,10 @@ class DataTrackerExt(DataTracker):
             email_addr = email_addr[:-15].replace("=40", "@")
 
         # Try to match on the email address:
-        email = self.email_for_address(email_addr)
+        try:
+            email = self.email_for_address(email_addr)
+        except RuntimeError:
+            email = None
         if email is not None and email.person is not None:
             self.log.debug(f"person_from_name_email: {name} <{email_addr}> -> {email.person} (email match)")
             return self.person(email.person)
@@ -398,7 +401,10 @@ class DataTrackerExt(DataTracker):
             if local.count("+") == 1:
                 base, suffix = local.rsplit("+", 1)
                 email_base = F"{base}@{remote}"
-                email = self.email_for_address(email_base)
+                try:
+                    email = self.email_for_address(email_base)
+                except RuntimeError:
+                    email = None
                 if email is not None and email.person is not None:
                     self.log.debug(f"person_from_name_email: {name} <{email_addr}> -> {email.person} (email match as {email_base})")
                     return self.person(email.person)

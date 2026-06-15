@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2025 University of Glasgow
+# Copyright (C) 2017-2026 University of Glasgow
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -61,6 +61,14 @@ class URI(BaseModel):
             return {"uri" : data}
         else:
             return data
+
+
+    @model_validator(mode='after')
+    def check_uri(self) -> Self:
+        if self.uri is not None and not self.uri.startswith(self.root):
+            raise ValueError(f"uri doesn't match root: {self.root} -> {self.uri}")
+        return self
+
 
 
 class DocumentURI(URI):
@@ -1021,15 +1029,16 @@ class MeetingAttended(Resource):
     time         : datetime
 
 
-# See also MeetingRegistrationURI
-class MeetingRegistrationOldURI(URI):
-    root : str = "/api/v1/stats/meetingregistration/"
+# See also StatsMeetingRegistrationURI
+class MeetingRegistrationURI(URI):
+    root : str = "/api/v1/meeting/registration/"
 
 
-# See also MeetingRegistration
-class MeetingRegistrationOld(Resource):
+# See also StatsMeetingRegistration
+class MeetingRegistration(Resource):
     affiliation  : str
     attended     : bool
+    checkedin    : bool
     country_code : str
     email        : str
     first_name   : str
@@ -1037,8 +1046,9 @@ class MeetingRegistrationOld(Resource):
     last_name    : str
     meeting      : MeetingURI
     person       : Optional[PersonURI]
-    resource_uri : MeetingRegistrationOldURI
-    checkedin    : bool
+    resource_uri : MeetingRegistrationURI
+    # FIXME: handle tickets
+    # tickets      : List[dict]
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------
@@ -1512,15 +1522,15 @@ class CountryAlias(Resource):
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------
-# Types relating to statistics:
+# Types relating to meeting registration statistics:
 
-# See also MeetingRegistrationOldURI
-class MeetingRegistrationURI(URI):
+# See also MeetingRegistrationURI
+class StatsMeetingRegistrationURI(URI):
     root : str = "/api/v1/stats/meetingregistration/"
 
 
-# See also MeetingRegistrationOld
-class MeetingRegistration(Resource):
+# See also MeetingRegistration
+class StatsMeetingRegistration(Resource):
     affiliation  : str
     attended     : bool
     country_code : str
@@ -1531,9 +1541,8 @@ class MeetingRegistration(Resource):
     meeting      : MeetingURI
     person       : Optional[PersonURI]
     reg_type     : str
-    resource_uri : MeetingRegistrationURI
+    resource_uri : StatsMeetingRegistrationURI
     ticket_type  : str
-    checkedin    : bool
 
 
 # =================================================================================================================================

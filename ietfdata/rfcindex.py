@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2020 University of Glasgow
+# Copyright (C) 2017-2026 University of Glasgow
 # 
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions 
@@ -293,7 +293,7 @@ class RfcEntry:
         rfcnum = "rfc" + self.doc_id[3:].lstrip("0")
         for fmt in self.formats:
             if fmt == required_format:
-                if required_format in [ "ASCII", "TEXT"] :
+                if required_format in [ "ASCII", "TEXT", "TXT"] :
                     return "https://www.rfc-editor.org/rfc/" + rfcnum + ".txt"
                 elif required_format == "PS":
                     return "https://www.rfc-editor.org/rfc/" + rfcnum + ".ps"
@@ -384,7 +384,6 @@ class StdEntry:
       An STD entry in the rfc-index.xml file.
     """
     doc_id  : DocID
-    title   : str
     is_also : List[DocID]
 
 
@@ -463,13 +462,13 @@ class RFCIndex:
     _fyi            : Dict[str, FyiEntry]
 
 
-    def _download_index(self) -> Optional[str]:
+    def _download_index(self) -> str:
         with requests.Session() as session:
             response = session.get("https://www.rfc-editor.org/rfc-index.xml", verify=True)
             if response.status_code == 200:
                 return response.text
             else:
-                return None
+                raise RuntimeError("Cannot retrieve RFC index")
 
 
     def _is_cached(self, cache_filepath : Path) -> bool:
@@ -481,33 +480,43 @@ class RFCIndex:
         return False
 
 
-    def _retrieve_index(self, rfc_index) -> Optional[str]:
+    def _retrieve_index(self, cache_dir: str | None, rfc_index: str | None) -> str:
         if rfc_index is not None:
             with open(rfc_index, "r") as xml_file:
                 return xml_file.read()
 
-        if self.cache_dir is not None:
-            cache_filepath = Path(self.cache_dir, "rfc", "rfc-index.xml")
+        cache_dir = os.getenv("IETFDATA_CACHEDIR", default=cache_dir)
+        if cache_dir is not None:
+            cache_filepath = Path(cache_dir, "rfc-index.xml")
             if self._is_cached(cache_filepath):
                 with open(cache_filepath, "r") as cache_file:
                     return cache_file.read()
             else:
+                cache_filepath.parent.mkdir(parents=True, exist_ok=True)
                 response = self._download_index()
-                if response is not None:
-                    cache_filepath.parent.mkdir(parents=True, exist_ok=True)
-                    with open(cache_filepath, "w") as cache_file:
-                        cache_file.write(response)
-                        return response
-                else:
-                    return None
+                with open(cache_filepath, "w") as cache_file:
+                    cache_file.write(response)
+                return response
         else:
             return self._download_index()
 
 
-    def __init__(self, cache_dir: Optional[str] = None, rfc_index: Optional[str] = None):
+    def __init__(self, cache_dir: str | None = None, rfc_index: str | None = None):
         """
+        If rfc_index is not None, load the RFC index from that file and
+        ignore cache_dir. Fail if the specified file does not exist.
+
+        If rfc_index is None and cache_dir is not None, load the RFC index
+        from the file "rfc-index.xml" in cache_dir. If the "rfc-index.xml"
+        file is not present, or is outdated, fetch a new copy from the RFC
+        Editor.
+
+        if rfc_index is None and cache_dir is None, fetch a copy of the RFC
+        index from the RFC Editor.
+
         Parameters:
-            cache_dir -- If set, use this directory as a cache
+            cache_dir -- If not None, use this directory as a cache
+            rfc_index -- If not None, load the RFC index from this file
         """
         logging.getLogger('requests').setLevel('ERROR')
         logging.getLogger('requests_cache').setLevel('ERROR')
@@ -516,18 +525,15 @@ class RFCIndex:
         logging.basicConfig(level=os.getenv("IETFDATA_LOGLEVEL", default="INFO"))
         self.log = logging.getLogger("rfcindex")
 
-        self.cache_dir       = os.getenv("IETFDATA_CACHEDIR", default=cache_dir)
         self._rfc            = {}
         self._rfc_not_issued = {}
         self._bcp            = {}
         self._std            = {}
         self._fyi            = {}
 
-        self.log.warning(f"cache enabled: dir={self.cache_dir}")
-
-        xml = self._retrieve_index(rfc_index)
+        xml = self._retrieve_index(cache_dir, rfc_index)
         if xml is None:
-            raise RuntimeError
+            raise RuntimeError("Cannot retrieve RFC index")
 
         for doc in ET.fromstring(xml):
             if   doc.tag == "{https://www.rfc-editor.org/rfc-index}rfc-entry":
