@@ -94,12 +94,14 @@ It is safe to use the same sqlite file with both the `DataTracker` and
 
 (wip)
 #### Creating a local snapshot of the IETF DataTracker
-**This will take a very long time (10s of hours) and a lot of storage (~40GB or so)**
+**This will take a long time (a few hours) and a lot of storage (~2GB or so)**
+
 The IETF DataTracker snapshot can also be created with the following command:
 ``` bash
   python3 -m ietfdata.tools.download_dt ietf_dt.sqlite
 ```
-This could be used by instantiating it as shown in the previous section.
+This will create a IETF DataTracker snapshot in a file `ietf_dt.sqlite`.
+This could be used by instantiating it as shown in the previous section by passing the path appropriately to `DTBackendArchive()`.
 
 
 ## Accessing the IETF Mail Archive
@@ -110,7 +112,13 @@ email archive.
 ### Instantiation
 
 (tbd)
+The IETF Mail Archive could be instantiated as shown below: 
 
+```python
+from ietfdata.mailarchive3 import *
+
+ma  = MailArchive(sqlite_file)
+```
 
 It is safe to use the same sqlite file with both the `DataTracker` and
 `MailArchive3` classes.
@@ -118,7 +126,29 @@ It is safe to use the same sqlite file with both the `DataTracker` and
 
 ### Usage
 
+First instantiate Mail Archive as above.
+
+The below will instantiate a particular mailing list:
+```python
+ml  = ma.mailing_list(mailing_list)
+```
+
+The blow will return Envelopes in a given mailing list as instantiated above:
+```python
+ml_msgs = ml.messages()
+```
+
 (tbd)
+
+#### Creating a local snapshot of the IETF Mail Archive
+**This will take a very long time (10s of hours) and a lot of storage (~40GB or so)**
+
+The IETF Mail Archive snapshot can also be created with the following command:
+``` bash
+  python3 -m ietfdata.tools.download_ma ietf_ma.sqlite
+```
+This will create a IETF Mail Archive snapshot in a file `ietf_ma.sqlite`.
+This could be used by instantiating it as shown in the previous section by passing the path appropriately to `MailArchive()`.
 
 
 ## Accessing the RFC Index
