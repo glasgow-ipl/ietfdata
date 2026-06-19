@@ -32,10 +32,12 @@ from pathlib                  import Path
 from ietfdata.datatracker     import *
 from ietfdata.datatracker_ext import *
 
-dt = DataTracker()
+dt = DataTrackerExt(DTBackendArchive("archive/ietfdata-dt.sqlite"))
 
-g  = dt.group_from_acronym("rmcat")
-for draft in dt.documents(group=g, doctype=dt.document_type_from_slug("draft")):
+group   = dt.group_from_acronym("quic")
+doctype = dt.document_type_from_slug("draft")
+
+for draft in dt.documents(group=group, doctype=doctype):
     print(draft.name)
     for sub_url in draft.submissions:
         sub = dt.submission(sub_url)
