@@ -38,7 +38,8 @@ streams = {}
 total = 0
 legacy = 0
 
-ri = RFCIndex()
+ri = RFCIndex(rfc_index="archive/rfc-index.xml")
+
 for rfc in ri.rfcs():
     total += 1
     if rfc.stream == "Legacy":

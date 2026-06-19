@@ -34,17 +34,17 @@ from ietfdata.datatracker import *
 # =============================================================================
 # Example: print information about document authors
 
-dt    = DataTracker()
+dt    = DataTracker(DTBackendArchive("archive/ietfdata-dt.sqlite"))
 draft = "draft-ietf-quic-transport"
 
 print(f"{draft}:")
 
-for alias in dt.document_aliases(draft):
-    for rel in dt.related_documents(target = alias):
-        rel_type   = dt.relationship_type(rel.relationship)
-        rel_source = dt.document(rel.source)
-        assert rel_type is not None
-        assert rel_source is not None
-        if dt.document_type(rel_source.type) == dt.document_type_from_slug("draft"):
-            print(F"    {rel_type.revname} {rel_source.name}-{rel_source.rev}")
+doc = dt.document_from_draft(draft)
+for rel in dt.related_documents(target = doc):
+    rel_type   = dt.relationship_type(rel.relationship)
+    rel_source = dt.document(rel.source)
+    assert rel_type is not None
+    assert rel_source is not None
+    if dt.document_type(rel_source.type) == dt.document_type_from_slug("draft"):
+        print(F"    {rel_type.revname} {rel_source.name}-{rel_source.rev}")
 

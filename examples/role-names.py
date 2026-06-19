@@ -32,7 +32,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from pathlib              import Path
 from ietfdata.datatracker import *
 
-dt = DataTracker()
+dt = DataTracker(DTBackendArchive("archive/ietfdata-dt.sqlite"))
 
 def group_roles(group: Group):
     print(F"Group: {group.name}")

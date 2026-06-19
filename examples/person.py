@@ -44,12 +44,13 @@ def person_chair_roles(dt: DataTracker, person: Person):
             group_type  = dt.group_type_name(group.type)
             print(F"Chair of {group.acronym} which is {group_state.name} {group_type.name}")
             group_acronyms.add(dt.group(role.group).acronym)
+
     for role in dt.group_role_histories(person=p):
         if dt.role_name(role.name).slug == "chair":
             gh = dt.group_history(role.group)
             group_state = dt.group_state(gh.state)
             group_type  = dt.group_type_name(gh.type)
-            print(F"Chaired {group.acronym} which was {group_state.name} {group_type.name} on {gh.time}")
+            print(F"Chaired {gh.acronym} which was {group_state.name} {group_type.name} on {gh.time}")
             group_acronyms.add(dt.group_history(role.group).acronym)
 
     for acronym in group_acronyms:
@@ -83,7 +84,7 @@ def person_chair_roles(dt: DataTracker, person: Person):
 # =============================================================================
 # Example: print all the information we can find about a person
 
-dt = DataTracker()
+dt = DataTracker(DTBackendArchive("archive/ietfdata-dt.sqlite"))
 
 p = dt.person_from_email("csp@csperkins.org")
 
@@ -106,10 +107,6 @@ for email in dt.email_for_person(p):
         primary = ""
     print("Email: {} {}".format(email.address, primary))
 
-    for subscriptions in dt.email_list_subscriptions(email.address):
-        for mailing_list_uri in subscriptions.lists:
-            mailing_list = dt.email_list(mailing_list_uri)
-            print("  Subscribed to mailing list {}".format(mailing_list.name))
 
 print("")
 for h in dt.email_history_for_person(p):

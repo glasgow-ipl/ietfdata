@@ -43,7 +43,7 @@ from ietfdata.datatracker import *
 # numbers of drafts, it's much faster to rsync the entire draft archive, as
 # described at https://www.ietf.org/standards/ids/internet-draft-mirror-sites/
 
-dt = DataTracker()
+dt = DataTracker(DTBackendArchive("archive/ietfdata-dt.sqlite"))
 for submission in dt.submissions(date_since = "2021-11-01", date_until = "2021-11-30"):
     print(f"{submission.name}-{submission.rev}")
     print(f"  submitted: {submission.submission_date}")

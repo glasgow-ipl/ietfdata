@@ -30,7 +30,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from ietfdata.datatracker import *
 
-dt  = DataTracker()
+dt = DataTracker(DTBackendArchive("archive/ietfdata-dt.sqlite"))
 doc = dt.document_from_draft("draft-ietf-eppext-keyrelay")
 for submit_url in doc.submissions:
     submit = dt.submission(submit_url)

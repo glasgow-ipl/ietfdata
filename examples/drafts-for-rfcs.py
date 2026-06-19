@@ -36,7 +36,7 @@ from ietfdata.datatracker_ext import *
 from ietfdata.rfcindex        import *
 
 dt = DataTrackerExt(DTBackendArchive("archive/ietfdata-dt.sqlite"))
-ri = RFCIndex()
+ri = RFCIndex(rfc_index="archive/rfc-index.xml")
 
 rfcs = []
 

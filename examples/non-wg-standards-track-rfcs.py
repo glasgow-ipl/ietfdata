@@ -34,7 +34,8 @@ from ietfdata.rfcindex    import *
 
 print("Finding non-working group IETF standards-track RFCs:")
 
-ri = RFCIndex()
+ri = RFCIndex(rfc_index="archive/rfc-index.xml")
+
 count = 0
 for rfc in ri.rfcs(stream="IETF", wg="NON WORKING GROUP"):
     if "STANDARD" in rfc.curr_status:

@@ -43,7 +43,7 @@ from ietfdata.datatracker import *
 # The conflict list is saved in the file conflicts.txt
 
 
-dt = DataTracker(cache_timeout = timedelta(hours = 12))
+dt = DataTracker(DTBackendArchive("archive/ietfdata-dt.sqlite"))
 
 doc_state    = dt.document_state_type_from_slug("draft")
 draft        = dt.document_type_from_slug("draft")
@@ -72,16 +72,16 @@ def save_info(wg):
 
 
 # Find adopted drafts for IETF working groups:
-for area in dt.groups(state = active_group, parent = iesg):
+for area in dt.groups(group_state = active_group, parent = iesg):
     print(area.acronym)
-    for wg in dt.groups(state = active_group, parent = area):
+    for wg in dt.groups(group_state = active_group, parent = area):
         if wg.type == GroupTypeNameURI(uri="/api/v1/name/grouptypename/wg/"):
             print(f"  {wg.acronym}")
             save_info(wg)
 
 # Find adopted drafts for IETF research groups:
 print("irtf")
-for rg in dt.groups(state = active_group, parent = irtf):
+for rg in dt.groups(group_state = active_group, parent = irtf):
     if rg.type == GroupTypeNameURI(uri="/api/v1/name/grouptypename/rg/"):
         print(f"  {rg.acronym}")
         save_info(rg)
@@ -89,7 +89,7 @@ for rg in dt.groups(state = active_group, parent = irtf):
 # Find individual submissions:
 print("individual")
 no_group = dt.group(GroupURI(uri="/api/v1/group/group/1027/"))
-for doc in dt.documents(group = no_group, doctype = draft, state = active_draft):
+for doc in dt.documents(group = no_group, doctype = draft, group_state = active_draft):
     print(f"  {doc.name}")
     related_group = doc.name.split("-")[2]
     if related_group in people_in_wg.keys():

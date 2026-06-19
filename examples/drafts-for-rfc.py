@@ -33,8 +33,8 @@ from ietfdata.datatracker     import *
 from ietfdata.datatracker_ext import *
 from ietfdata.rfcindex        import *
 
-dt = DataTrackerExt(DTBackendArchive("data/ietfdata-dt.sqlite"))
-ri = RFCIndex()
+dt = DataTrackerExt(DTBackendArchive("archive/ietfdata-dt.sqlite"))
+ri = RFCIndex(rfc_index="archive/rfc-index.xml")
 
 for rfc_num in ["RFC9553", "RFC9551", "RFC9441", "RFC9427", "RFC9198",
                 "RFC9000", "RFC8941", "RFC7982", "RFC7945", "RFC7740", "RFC7271"]:

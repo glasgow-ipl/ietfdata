@@ -34,7 +34,7 @@ from ietfdata.rfcindex    import *
 
 # =============================================================================
 
-ri = RFCIndex()
+ri = RFCIndex(rfc_index="archive/rfc-index.xml")
 
 rfcs_per_year = {}
 
