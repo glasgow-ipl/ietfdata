@@ -34,7 +34,7 @@ from ietfdata.datatracker import *
 
 # =============================================================================
 
-dt = DataTracker()
+dt = DataTracker(DTBackendArchive("archive/ietfdata-dt.sqlite"))
 p  = dt.person_from_email("csp@csperkins.org")
 
 for da in dt.documents_authored_by_person(p):
