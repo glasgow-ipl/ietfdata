@@ -747,9 +747,9 @@ class DTBackendArchive(DTBackend):
                     else:
                         param_values.append(f"/api/v1/%/{param_value}/")
                 elif param_name in to_many:
-                    raise RuntimeError(f"Not implmemented")
+                    raise RuntimeError(f"_datatracker_get_multi on {obj_uri} to_many parameter \"{param_name}\" not implmemented")
                 else:
-                    raise RuntimeError(f"Parameter references unknown column: {param_name}")
+                    raise RuntimeError(f"_datatracker_get_multi on {obj_uri} unknown parameter \"{param_name}\"")
             sql += " AND ".join(param_names)
         sql += ";"
 
