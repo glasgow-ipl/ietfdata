@@ -772,7 +772,7 @@ class DTBackendArchive(DTBackend):
             for column in to_many:
                 result[column] = []
                 sql = f"SELECT {column} FROM {table_name}_{column} WHERE _parent = ?;"
-                for res2 in dbc.execute(sql, (obj_uri.uri, )).fetchall():
+                for res2 in dbc.execute(sql, (result["resource_uri"], )).fetchall():
                     result[column].append(res2[0])
             yield result
 
