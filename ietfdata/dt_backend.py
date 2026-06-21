@@ -1,4 +1,4 @@
-# Copyright (C) 2025 University of Glasgow
+# Copyright (C) 2025-2026 University of Glasgow
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,7 +30,6 @@ import os
 import pprint
 import re
 import requests
-import requests_cache
 import sqlite3
 import sys
 import time
@@ -46,250 +45,86 @@ from ietfdata.datatracker_types import *
 # Base class
 
 class DTBackend(ABC):
-    @abstractmethod
-    def __init__(self, sqlite_file : str) -> None:
-        pass
+    _log         : logging.Logger   # Private
+    _session     : requests.Session # Private
+    _ua          : str              # Private
+    _multi_delay : float            # Private
+    _base_url    : str              # Private
 
-    @abstractmethod
-    def update(self) -> None:
-        pass
-
-    @abstractmethod
-    def datatracker_get_single(self, obj_uri: URI) -> Optional[Dict[str, Any]]:
-        pass
 
     @abstractmethod
-    def datatracker_get_multi(self, get_uri: URI, order_by: Optional[str] = None) -> Iterator[Dict[Any, Any]]:
-        pass
-
-
-# =================================================================================================
-# Backend for live access to the datatracker:
-
-class DTBackendLive(DTBackend):
-    def __init__(self, sqlite_file : str = "ietfdata-dt-cache.sqlite") -> None:
-        logging.getLogger('requests').setLevel('ERROR')
-        logging.getLogger('requests_cache').setLevel('ERROR')
-        logging.getLogger("urllib3").setLevel('ERROR')
-        logging.basicConfig(level=os.getenv("IETFDATA_LOGLEVEL", default="INFO"))
-
-        self.log       = logging.getLogger("ietfdata")
-        self.ua        = "glasgow-ietfdata/0.9.0"          # Update when making a new relaase
-        self.base_url  = os.environ.get("IETFDATA_DT_URL", "https://datatracker.ietf.org")
-        self.cache     = requests_cache.SQLiteCache(sqlite_file)
-        self.session   = requests_cache.CachedSession(backend=self.cache, expire_after=timedelta(hours=1))
-        self.get_count = 0
-
-        self.log.info(f"DTBackendLive at {self.base_url}")
-
-
-    def update(self) -> None:
-        self.cache.delete(expired=True)
-
-
-    # FIXME: This does the same thing as _dt_fetch() in DTBackendArchive,
-    # except that (a) this uses URI objects rather strings to represent the
-    # URI; and (b) _dt_fetch() updates self._multi_delay while this does
-    # not.
-    def datatracker_get_single(self, obj_uri: URI) -> Optional[Dict[str, Any]]:
-        assert obj_uri.uri is not None
-        retry_delay  = 1.875
-        while True:
-            try:
-                req_url     = self.base_url + obj_uri.uri
-                req_headers = {'User-Agent': self.ua}
-                req_params  = obj_uri.params
-                self.get_count += 1
-                r = self.session.get(req_url, params = req_params, headers = req_headers, verify = True, stream = False)
-                self.log.debug(f"datatracker_get_single in_cache={r.from_cache} cached={r.created_at} expires={r.expires} {req_url}")
-                if r.status_code == 200:
-                    self.log.debug(F"datatracker_get_single: ({r.status_code}) {obj_uri}")
-                    url_obj = r.json() # type: Dict[str, Any]
-                    return url_obj
-                elif r.status_code == 404:
-                    self.log.debug(F"datatracker_get_single: ({r.status_code}) {obj_uri}")
-                    return None
-                elif r.status_code == 429:
-                    # Some versions of the datatracker incorrectly send 429 with "Retry-After: 0".
-                    # Handle this with an exponential backoff as-if we got a 500 error.
-                    retry_after = int(r.headers['Retry-After']) 
-                    if retry_after != 0:
-                        self.log.warning(F"datatracker_get_single: {r.status_code} {obj_uri} - retry in {retry_after}")
-                        time.sleep(retry_after)
-                    else:
-                        self.log.warning(F"datatracker_get_single: {r.status_code} {obj_uri} - retry in {retry_delay}")
-                        self.log.debug(r.headers)
-                        if retry_delay > 60:
-                            self.log.error(F"datatracker_get_single: retry limit exceeded")
-                            sys.exit(1)
-                        time.sleep(retry_delay)
-                        retry_delay *= 2
-                else:
-                    self.log.warning(F"datatracker_get_single: {r.status_code} {obj_uri} - retry in {retry_delay}")
-                    if retry_delay > 60:
-                        self.log.error(F"datatracker_get_single: retry limit exceeded")
-                        sys.exit(1)
-                    time.sleep(retry_delay)
-                    retry_delay *= 2
-            except requests.exceptions.ConnectionError:
-                self.log.warning(F"datatracker_get_single: connection error - retry in {retry_delay}")
-                if retry_delay > 60:
-                    self.log.error(F"datatracker_get_single: retry limit exceeded")
-                    sys.exit(1)
-                time.sleep(retry_delay)
-                retry_delay *= 2
-
-
-    # FIXME: This does the same as _dt_fetch_multi() in DTBackendArchive,
-    # except:
-    # * This handles order_by, and _dt_fetch_multi does not.
-    # * This handles rate limits and retry internally but _dt_fetch_multi()
-    #   defers that handling to _dt_fetch()
-    # * This warns about, but does not otherwise handle, duplicates
-    # * The _dt_fetch_multi() call handles 404 errors for the URL returned
-    #   in r["meta"]["next"] while this does not.
-    def datatracker_get_multi(self, get_uri: URI, order_by: Optional[str] = None) -> Iterator[Dict[Any, Any]]:
-        obj_uri = copy.deepcopy(get_uri)
-
-        assert "order_by" not in obj_uri.params
-        assert "limit"    not in obj_uri.params
-
-        if order_by != None:
-            obj_uri.params["order_by"] = order_by
-        obj_uri.params[   "limit"] = 100
-
-        total_count  = -1
-        fetched_objs = {} # type: Dict[str, Dict[Any, Any]]
-        while obj_uri.uri is not None:
-            retry = True
-            retry_delay = 1.875
-            while retry:
-                retry = False
-                req_url     = self.base_url + obj_uri.uri
-                req_params  = obj_uri.params
-                req_headers = {'User-Agent': self.ua}
-                try:
-                    self.get_count += 1
-                    r = self.session.get(url = req_url, params = req_params, headers = req_headers, verify = True, stream = False)
-                    self.log.debug(f"datatracker_get_multi  in_cache={r.from_cache} cached={r.created_at} expires={r.expires} {obj_uri}")
-                    if r.status_code == 200:
-                        self.log.debug(F"datatracker_get_multi ({r.status_code}) {obj_uri}")
-                        meta = r.json()['meta']
-                        objs = r.json()['objects']
-                        obj_uri  = URI(uri=meta['next'])
-                        for obj in objs:
-                            # API requests returning lists should never return duplicate
-                            # objects, but due to datatracker bugs this sometimes happens.
-                            # Check for and log such problems, but pass the duplicates up
-                            # to the higher layers for reconcilition.
-                            if obj["resource_uri"] in fetched_objs:
-                                self.log.warning(F"datatracker_get_multi duplicate object {obj['resource_uri']}")
-                            else:
-                                fetched_objs[obj["resource_uri"]] = obj
-                            yield obj
-                        total_count = meta["total_count"]
-                    elif r.status_code == 429:
-                        # Some versions of the datatracker incorrectly send 429 with "Retry-After: 0".
-                        # Handle this with an exponential backoff as-if we got a 500 error.
-                        retry_after = int(r.headers['Retry-After']) 
-                        if retry_after != 0:
-                            self.log.warning(F"datatracker_get_multi: {r.status_code} {obj_uri} - retry in {retry_after}")
-                            time.sleep(retry_after)
-                        else:
-                            self.log.warning(F"datatracker_get_multi: {r.status_code} {obj_uri} - retry in {retry_delay}")
-                            self.log.debug(r.headers)
-                            if retry_delay > 60:
-                                self.log.error(F"datatracker_get_multi: retry limit exceeded")
-                                sys.exit(1)
-                            time.sleep(retry_delay)
-                            retry_delay *= 2
-                        retry = True
-                    elif r.status_code == 500:
-                        self.log.warning(F"datatracker_get_multi ({r.status_code}) {obj_uri}")
-                        if retry_delay > 60:
-                            self.log.info(F"datatracker_get_multi retry time exceeded")
-                            sys.exit(1)
-                        time.sleep(retry_delay)
-                        retry_delay *= 2
-                        retry = True
-                    else:
-                        self.log.error(F"datatracker_get_multi ({r.status_code}) {obj_uri}")
-                        sys.exit(1)
-                except requests.exceptions.ConnectionError:
-                    self.log.warning(F"datatracker_get_multi: connection error - will retry in {retry_delay}")
-                    time.sleep(retry_delay)
-                    retry_delay *= 2
-                    retry = True
-        if total_count != len(fetched_objs):
-            self.log.warning(F"datatracker_get_multi: expected {total_count} objects but got {len(fetched_objs)}")
-
-
-# =================================================================================================
-# Backend for access to the datatracker via an offline archive:
-
-
-class DTBackendArchive(DTBackend):
-    def __init__(self, sqlite_file : str = "ietfdata.sqlite") -> None:
+    def __init__(self) -> None:
         logging.getLogger('requests').setLevel('ERROR')
         logging.getLogger("urllib3").setLevel('ERROR')
         logging.basicConfig(level=os.getenv("IETFDATA_LOGLEVEL", default="INFO"))
-
         self._log         = logging.getLogger("ietfdata")
-        self._ua          = "glasgow-ietfdata/0.9.0 (archive)"     # Update when making a new relaase
-        self._base_url    = os.environ.get("IETFDATA_DT_URL", "https://datatracker.ietf.org")
-        self._multi_delay = 0.1
         self._session     = requests.Session()
-        assert sqlite3.threadsafety == 3
-        self._db          = sqlite3.connect(sqlite_file, check_same_thread=False)
-        self._db.execute('PRAGMA synchronous = OFF;')
-        self._log.info(f"DTBackendArchive at {self._base_url} (multi_delay={self._multi_delay}s)")
+        self._ua          = "glasgow-ietfdata/0.9.0" # Update when making a new relaase
+        self._multi_delay = 0.1
+        self._base_url    = os.environ.get("IETFDATA_DT_URL", "https://datatracker.ietf.org")
 
+
+
+    @abstractmethod
+    def update(self) -> None:
+        pass
+
+
+    @abstractmethod
+    def datatracker_get_single(self, obj_uri: URI) -> Optional[Dict[str, Any]]:
+        pass
+
+
+    @abstractmethod
+    def datatracker_get_multi(self, get_uri: URI, order_by: Optional[str] = None) -> Iterator[Dict[Any, Any]]:
+        pass
 
 
     def _dt_fetch(self, endpoint: str) -> Optional[Dict[str, Any]]:
         """
-        Fetch the data for a single API endpoint from the datatracker:
+        Private helper method.
+        Fetch data for a single API endpoint from the datatracker.
         """
         retry_delay = 1.875
         while True:
             try:
                 r = self._session.get(self._base_url + endpoint, headers={'User-Agent': self._ua}, verify=True, stream=False)
-                self._log.debug(f"_dt_fetch: {r.status_code} {endpoint}")
                 if r.status_code == 200:
+                    self._log.debug(f"_dt_fetch: {r.status_code} {endpoint}")
                     res = r.json() # type: Dict[str,Any]
                     return res
                 elif r.status_code == 400:
-                    self._log.error(f"_dt_fetch: bad request {self._base_url}{endpoint}")
+                    self._log.error(f"_dt_fetch: {r.status_code} {endpoint}")
                     sys.exit(1)
                 elif r.status_code == 404:
+                    self._log.warning(f"_dt_fetch: {r.status_code} {endpoint}")
                     return None
                 elif r.status_code == 429:
                     retry_after = int(r.headers['Retry-After']) 
                     if retry_after != 0:
-                        self._log.warning(f"_dt_fetch: rate limited, will retry in {retry_after}s")
+                        self._log.warning(f"_dt_fetch: {r.status_code} {endpoint} (retry in {retry_after}s)")
                         time.sleep(retry_after)
                         # Increase the delay between repeated fetches, to try to avoid
                         # rate limiting in future:
                         self._multi_delay *= 1.1
-                        self._log.debug(f"_dt_fetch: multi_delay now {self._multi_delay}s")
                     else:
                         # Some versions of the datatracker incorrectly send 429 with "Retry-After: 0".
-                        # Handle this with an exponential backoff as-if we got a 500 error.
-                        self._log.warning(f"_dt_fetch: rate limited, will retry in {retry_delay}s (implicit)")
+                        # Handle this with an exponential backoff.
+                        self._log.warning(f"_dt_fetch: {r.status_code} {endpoint} (retry in {retry_delay})s (implicit)")
                         if retry_delay > 60:
                             self._log.error(f"_dt_fetch: retry limit exceeded")
                             sys.exit(1)
                         time.sleep(retry_delay)
                         retry_delay *= 2
                 else:
-                    self._log.warning(f"_dt_fetch: received {r.status_code} response, will retry in {retry_delay}s")
+                    self._log.warning(f"_dt_fetch: {r.status_code} {endpoint} (retry in {retry_delay}s)")
                     if retry_delay > 60:
                         self._log.error(f"_dt_fetch: retry limit exceeded")
                         sys.exit(1)
                     time.sleep(retry_delay)
                     retry_delay *= 2
             except requests.exceptions.ConnectionError:
-                self._log.warning(F"_dt_fetch: connection error, will retry in {retry_delay}s")
+                self._log.warning(f"_dt_fetch: connection error, will retry in {retry_delay}s")
                 if retry_delay > 60:
                     self._log.error(f"_dt_fetch: retry limit exceeded")
                     sys.exit(1)
@@ -297,8 +132,12 @@ class DTBackendArchive(DTBackend):
                 retry_delay *= 2
 
 
-
     def _dt_fetch_multi(self, endpoint: str) -> Iterator[Dict[str, Any]]:
+        """
+        Private helper method.
+        Fetch data for multiple API endpoints from the datatracker.
+        """
+        self._log.debug(f"_dt_fetch_multi: {endpoint}")
         uri = endpoint
         while uri is not None:
             r = self._dt_fetch(uri)
@@ -337,6 +176,51 @@ class DTBackendArchive(DTBackend):
                 uri = r["meta"]["next"]
             # Rate limit the fetch of large amounts of data
             time.sleep(self._multi_delay)
+
+
+
+
+# =================================================================================================
+# Backend for live access to the datatracker:
+
+class DTBackendLive(DTBackend):
+    def __init__(self) -> None:
+        super().__init__()
+        self._log.info(f"DTBackendLive at {self._base_url}")
+
+
+    def update(self) -> None:
+        pass
+
+
+    def datatracker_get_single(self, obj_uri: URI) -> Optional[Dict[str, Any]]:
+        self._log.debug(f"datatracker_get_single: {obj_uri}")
+        return self._dt_fetch(str(obj_uri))
+
+
+    def datatracker_get_multi(self, obj_uri: URI, order_by: Optional[str] = None) -> Iterator[Dict[Any, Any]]:
+        self._log.debug(f"datatracker_get_multi: {obj_uri}")
+        assert "order_by" not in obj_uri.params
+        assert "limit"    not in obj_uri.params
+        if order_by != None:
+            obj_uri.params["order_by"] = order_by
+        obj_uri.params["limit"] = 100
+        return self._dt_fetch_multi(str(obj_uri))
+
+
+
+# =================================================================================================
+# Backend for access to the datatracker via an offline archive:
+
+
+class DTBackendArchive(DTBackend):
+    def __init__(self, sqlite_file : str = "ietfdata.sqlite") -> None:
+        super().__init__()
+        self._ua += " (archive)"
+        self._log.info(f"DTBackendArchive at {self._base_url}")
+        assert sqlite3.threadsafety == 3
+        self._db = sqlite3.connect(sqlite_file, check_same_thread=False)
+        self._db.execute('PRAGMA synchronous = OFF;')
 
 
 
