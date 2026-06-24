@@ -1,7 +1,7 @@
 # The ietfdata library - Access the IETF Datatracker and related resources
 
 This project contains Python 3 libraries to interact with, and
-access, the [IETF datatracker](https://datatracker.ietf.org), 
+access, the [IETF Datatracker](https://datatracker.ietf.org), 
 [RFC index](https://www.rfc-editor.org), and related resources.
 
 
@@ -13,6 +13,186 @@ should be able to install via `pip` in the usual manner:
 ```~~~~~~~~
 pip install ietfdata
 ```
+
+## Accessing the IETF Datatracker
+
+The `DataTracker` class provides an interface for programmatic access to
+the IETF Datatracker, providing metadata about the development of IETF
+standards.
+
+### Instantiation
+
+There are two ways to instantiate this class, depending on how it is to be
+used. The normal way, when writing code to perform analysis of a snapshot
+of the IETF data, for example if writing a research paper, a dissertation,
+or as part of a student project, is to use an archive file:
+
+``` python
+dt = DataTracker(DTBackendArchive("archive/ietfdata-dt.sqlite"))
+```
+
+When instantiated in this manner, the `DataTracker` class will read from
+the specified `sqlite3` database.
+
+If the specified `sqlite3` database does not exist, then the `DataTracker`
+class will fetch a complete copy of the data from the IETF Datatracker.
+This will take around 24 hours, and will produce database that is about
+2GB in size (if interrupted, it is safe to rerun the above operation and
+the download will resume where it left-off).  Once the `sqlite3` database
+is downloaded, future instantiations of the `DataTracker` will read from it
+directly and will not access the online IETF Datatracker, making them much
+faster and avoiding overloading the IETF's servers.
+
+The following can be run from the command line to fetch a copy of the
+database:
+
+``` bash
+  python3 -m ietfdata.tools.download_dt archive/ietf_dt.sqlite
+```
+
+If you are working on a paper, project, or dissertation with a group of
+people, one person should create the `sqlite3` database and share a copy
+with the others. This avoids overloading the IETF's servers, and ensures
+that everyone working in the group generates the same results.
+
+
+
+Alternatively, when writing code to perform live queries of the IETF
+Datatracker, for example as part of a tool that provides an interactive
+dashboard or status report, the `DataTracker` should be instantiated as
+follows:
+
+```~~~~~~~~
+dt = DataTracker(DTBackendLive())
+```
+
+In this case, the `DataTracker` class will directly query the online IETF
+Datatracker for every request you make. This is appropriate when making
+small numbers of queries, for exploratory programming or when performing
+a live status check, but must not be used for tasks that need to make
+large numbers of queries. The IETF will block your access if you make
+many queries using `DTBackendLive()`.
+
+
+
+### Usage
+
+The `DataTracker` provides an extensive API that is best explored by
+reading the source code for `datatracker.py` and `datatracker_types.py`.
+The `examples/` directory contains a number of examples of how to use 
+the library.
+
+Start by importing and instantiating the library:
+```python
+from ietfdata.datatracker import *
+dt = DataTracker(DTBackendArchive("archive/ietfdata-dt.sqlite"))
+```
+
+To find information about a person:
+```python
+p = dt.person_from_email("csp@csperkins.org")
+print(p.name)
+print(p.biography)
+```
+
+To find information about a document:
+```python
+d = dt.document_from_rfc("RFC9000")
+print(d.title)
+print(d.group)
+```
+
+To find information about a group:
+```python
+g = dt.group(d.group)
+print(g.acronym)
+
+for e in dt.group_events(group = g):
+  print(e.time)
+  print(e.desc)
+```
+
+There is a lot of information in the Datatracker. Read the source code
+the `datatracker.py` to understand what functions can be called, and the
+code for `datatracker_types.py` to understand the objects the take or
+return.
+
+
+## Accessing the IETF Mail Archive
+
+The `MailArchive3` class provides an interface to accessing the IETF
+email archive.
+
+### Instantiation
+
+The `MailArchive3` class is instantiated as follows, giving a path to
+an `sqlite3` database containing a copy of the archive:
+
+```python
+ma = MailArchive("archive/ietfdata-ma.sqlite")
+```
+
+Once instantiated, a call to `ma.update()` will bring the `sqlite3`
+database up to date with the IETF mail archive. The first time the
+`ma.update()` function is called, it will download a complete copy of the
+mail archive. This is approximately 40 gigabytes in size and will take
+around 24 hours to download. Subsequent calls only fetch new messages,
+and are much faster.
+
+The following can be run from the command line to fetch a copy of the
+mail archive:
+
+``` bash
+  python3 -m ietfdata.tools.download_ma archive/ietf_ma.sqlite
+```
+
+If you are working on a paper, project, or dissertation with a group of
+people, one person should create the `sqlite3` database and share a copy
+with the others. This avoids overloading the IETF's servers, and ensures
+that everyone working in the group generates the same results.
+
+
+
+### Usage
+
+Start by importing and instantiating the library:
+
+```python
+from ietfdata.mailarchive3 import *
+ma = MailArchive("archive/ietfdata-ma.sqlite")
+```
+
+Once this is done, you can find the mailing list names:
+```python
+for ml_name in ma.mailing_list_names()
+  print(ml_name)
+```
+
+You can find information about a particular mailing list:
+```python3
+ml = ma.mailing_list("quic")
+print(ml.num_messages())
+```
+
+You can find information about the messages:
+```python3
+for msg in ml.messages():
+  print(f"From:    {msg.from_()}")
+  print(f"To:      {msg.to()}")
+  print(f"Subject: {msg.subject()}")
+  print("")
+```
+
+Read the source code for `mailarchive3.py` for details.
+
+
+## Accessing the RFC Index
+
+(tbd)
+
+See `rfcindex.py`
+
+
 
 ### Development
 
@@ -41,120 +221,6 @@ will run the test suite for the datatracker module. Running:
 python3 tests/test_rfcindex.py
 ```
 Will test the rfcindex module.
-
-
-## Accessing the IETF Datatracker
-
-The `DataTracker` class provides an interface to the IETF Datatracker,
-providing metadata about the IETF standards process.
-
-### Instantiation
-
-There are two ways to instantiate this class, depending on how it is to be
-used. If the intention is to perform live queries of the Datatracker, for
-example as part of a tool that provides an interactive dashboard or status
-report, then it should be instantiated using the `DTBackendLive` back end,
-as follows:
-
-```~~~~~~~~
-dt = DataTracker(DTBackendLive())
-```
-
-In this case, the `DataTracker` class will directly query the online IETF
-Datatracker for every request you make.
-
-Alternatively, if the intent is to perform analysis of a snapshot of the
-data, for example if writing a research paper, a dissertation, or as part
-of a student project, then the `DTBackendArchive` should be used:
-
-``` python
-dt = DataTracker(DTBackendArchive("ietfdata.sqlite"))
-```
-
-In this case, the `DataTracker` class will create the specified sqlite file
-if it doesn't exist and download a complete copy of the data from the IETF
-Datatracker (this will take around 24 hours, and will generate an sqlite
-file that is around 1.5GB in size; if the download is interrupted, it is
-safe to rerun the above operation and the download should resume where it
-left-off). Once the sqlite file is downloaded, future instantiations of the
-`DataTracker` will read from it directly and will not access the online IETF
-Datatracker, making them much faster and avoiding overloading the IETF's
-servers.
-
-If you are working on a paper, project, or dissertation with a group of
-people, one person should create the `ietfdata.sqlite` file, then share
-a copy with the others. This avoids overloading the IETF's servers, and
-ensures that everyone working in the group generates the same results.
-This could also be done with a single command (see the Usage section)
-
-It is safe to use the same sqlite file with both the `DataTracker` and
-`MailArchive3` classes.
-
-### Usage
-
-(wip)
-#### Creating a local snapshot of the IETF DataTracker
-**This will take a long time (a few hours) and a lot of storage (~2GB or so)**
-
-The IETF DataTracker snapshot can also be created with the following command:
-``` bash
-  python3 -m ietfdata.tools.download_dt ietf_dt.sqlite
-```
-This will create a IETF DataTracker snapshot in a file `ietf_dt.sqlite`.
-This could be used by instantiating it as shown in the previous section by passing the path appropriately to `DTBackendArchive()`.
-
-
-## Accessing the IETF Mail Archive
-
-The `MailArchive3` class provides an interface to accessing the IETF
-email archive.
-
-### Instantiation
-
-(tbd)
-The IETF Mail Archive could be instantiated as shown below: 
-
-```python
-from ietfdata.mailarchive3 import *
-
-ma  = MailArchive(sqlite_file)
-```
-
-It is safe to use the same sqlite file with both the `DataTracker` and
-`MailArchive3` classes.
-
-
-### Usage
-
-First instantiate Mail Archive as above.
-
-The below will instantiate a particular mailing list:
-```python
-ml  = ma.mailing_list(mailing_list)
-```
-
-The blow will return Envelopes in a given mailing list as instantiated above:
-```python
-ml_msgs = ml.messages()
-```
-
-(tbd)
-
-#### Creating a local snapshot of the IETF Mail Archive
-**This will take a very long time (10s of hours) and a lot of storage (~40GB or so)**
-
-The IETF Mail Archive snapshot can also be created with the following command:
-``` bash
-  python3 -m ietfdata.tools.download_ma ietf_ma.sqlite
-```
-This will create a IETF Mail Archive snapshot in a file `ietf_ma.sqlite`.
-This could be used by instantiating it as shown in the previous section by passing the path appropriately to `MailArchive()`.
-
-
-## Accessing the RFC Index
-
-(tbd)
-
 
 
 
