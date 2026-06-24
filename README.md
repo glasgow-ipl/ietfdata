@@ -194,7 +194,7 @@ See `rfcindex.py`
 
 
 
-### Development
+## Development
 
 To modify the `ietfdata` library, clone from GitHub then follow the
 following instructions to install dependencies and test the results.
