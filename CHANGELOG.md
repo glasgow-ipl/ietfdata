@@ -1,7 +1,7 @@
 Change Log -- ietfdata
 ======================
 
-## Version 0.9.0
+## Version 0.9.0 -- 24 June 2026
 
 - Introduce `mailarchive3.py`. This is replaces `mailarchive2.py`
   using a local sqlite3 file as the database instead of MongoDB.
