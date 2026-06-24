@@ -32,13 +32,13 @@ dt = DataTracker(DTBackendArchive("archive/ietfdata-dt.sqlite"))
 ```
 
 When instantiated in this manner, the `DataTracker` class will read from
-the specified `sqlite3` database.
+the specified `sqlite` database.
 
-If the specified `sqlite3` database does not exist, then the `DataTracker`
+If the specified `sqlite` database does not exist, then the `DataTracker`
 class will fetch a complete copy of the data from the IETF Datatracker.
 This will take around 24 hours, and will produce database that is about
 2GB in size (if interrupted, it is safe to rerun the above operation and
-the download will resume where it left-off).  Once the `sqlite3` database
+the download will resume where it left-off).  Once the `sqlite` database
 is downloaded, future instantiations of the `DataTracker` will read from it
 directly and will not access the online IETF Datatracker, making them much
 faster and avoiding overloading the IETF's servers.
@@ -51,7 +51,7 @@ database:
 ```
 
 If you are working on a paper, project, or dissertation with a group of
-people, one person should create the `sqlite3` database and share a copy
+people, one person should create the `sqlite` database and share a copy
 with the others. This avoids overloading the IETF's servers, and ensures
 that everyone working in the group generates the same results.
 
@@ -126,13 +126,13 @@ email archive.
 ### Instantiation
 
 The `MailArchive3` class is instantiated as follows, giving a path to
-an `sqlite3` database containing a copy of the archive:
+an `sqlite` database containing a copy of the archive:
 
 ```python
 ma = MailArchive("archive/ietfdata-ma.sqlite")
 ```
 
-Once instantiated, a call to `ma.update()` will bring the `sqlite3`
+Once instantiated, a call to `ma.update()` will bring the `sqlite`
 database up to date with the IETF mail archive. The first time the
 `ma.update()` function is called, it will download a complete copy of the
 mail archive. This is approximately 40 gigabytes in size and will take
@@ -147,7 +147,7 @@ mail archive:
 ```
 
 If you are working on a paper, project, or dissertation with a group of
-people, one person should create the `sqlite3` database and share a copy
+people, one person should create the `sqlite` database and share a copy
 with the others. This avoids overloading the IETF's servers, and ensures
 that everyone working in the group generates the same results.
 
