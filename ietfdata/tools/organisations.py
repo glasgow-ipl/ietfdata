@@ -551,11 +551,14 @@ class OrganisationMatcher:
         # If the organisation name starts with the name of an organisation that matched its
         # domain, merge those organisations (e.g., "Cisco Belgique" starts with "Cisco",
         # which matched "cisco.com", so should be merged with "Cisco")
-        print("Consolidating organisations: pass 3b (organisation prefix matches domain)")
+        print("Consolidating organisations: pass 3b (organisation contains domain)")
         for name, email in self._orgs:
             for org_name, domain in orgs_matching_domain.items():
                 if name.lower().startswith(f"{org_name} ".lower()):
                     self._log.debug(f"Organisation prefix matches domain: {name} -> {org_name} -> {domain}")
+                    self._org_db.add_domain_for_organisation(name, domain)
+                elif f" {org_name.lower()} " in name.lower():
+                    self._log.warning(f"Organisation name contains domain: {name} -> {org_name} -> {domain}")
                     self._org_db.add_domain_for_organisation(name, domain)
         self.print_stats()
 
