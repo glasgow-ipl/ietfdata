@@ -409,7 +409,7 @@ class OrganisationMatcher:
         that information.
         """
         dt = DataTracker(DTBackendArchive(sqlite_file))
-        ri = RFCIndex(rfc_index)
+        ri = RFCIndex(rfc_index = rfc_index)
 
         print("Finding organisations in RFCs")
         for rfc in ri.rfcs(since="1995-01"):
