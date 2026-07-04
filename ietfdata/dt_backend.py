@@ -466,7 +466,6 @@ class DTBackendArchive(DTBackend):
             "/api/v1/person/historicalemail/",
             "/api/v1/person/historicalperson/",
             "/api/v1/person/person/",
-            "/api/v1/person/personevent/",
             "/api/v1/person/personextresource/",
             "/api/v1/review/historicalreviewassignment/",
             "/api/v1/review/historicalreviewersettings/",

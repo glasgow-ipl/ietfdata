@@ -189,7 +189,6 @@ class DataTracker:
         self._hints["/api/v1/person/historicalemail/"]             = Hints(HistoricalEmail,             "address")
         self._hints["/api/v1/person/historicalperson/"]            = Hints(HistoricalPerson,            "id")
         self._hints["/api/v1/person/person/"]                      = Hints(Person,                      "id")
-        self._hints["/api/v1/person/personevent/"]                 = Hints(PersonEvent,                 "id")
         self._hints["/api/v1/person/personextresource/"]           = Hints(PersonExtResource,           "id")
         self._hints["/api/v1/review/historicalreviewassignment/"]  = Hints(HistoricalReviewAssignment,  "id")
         self._hints["/api/v1/review/historicalreviewersettings/"]  = Hints(HistoricalReviewerSettings,  "id")
@@ -279,12 +278,6 @@ class DataTracker:
         url = HistoricalPersonURI(uri="/api/v1/person/historicalperson/")
         url.params["id"] = person.id
         yield from self._retrieve_multi(url, HistoricalPerson)
-
-
-    def person_events(self, person: Person) -> Iterator[PersonEvent]:
-        url = PersonEventURI(uri="/api/v1/person/personevent/")
-        url.params["person"] = person.id
-        yield from self._retrieve_multi(url, PersonEvent)
 
 
     def people(self,

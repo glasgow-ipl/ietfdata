@@ -155,19 +155,6 @@ class PersonAlias(Resource):
     name               : str
 
 
-class PersonEventURI(URI):
-    root : str = "/api/v1/person/personevent/"
-
-
-class PersonEvent(Resource):
-    desc            : str
-    id              : int
-    person          : PersonURI
-    resource_uri    : PersonEventURI
-    time            : datetime
-    type            : str
-
-
 class ExtResourceTypeNameURI(URI):
     root : str = "/api/v1/name/extresourcetypename/"
 
