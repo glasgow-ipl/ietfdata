@@ -494,21 +494,6 @@ class TestDatatracker(unittest.TestCase):
             self.fail("Cannot find person")
 
 
-    #def test_person_events(self) -> None:
-    #    p = self.dt.person(PersonURI(uri="/api/v1/person/person/3/"))
-    #    if p is not None:
-    #        events = list(self.dt.person_events(p))
-    #        self.assertEqual(len(events), 1)
-    #        self.assertEqual(events[0].desc,         "Sent GDPR notice email to [u'vint@google.com', u'vcerf@mci.net', u'vcerf@nri.reston.va.us', u'vinton.g.cerf@wcom.com'] with confirmation deadline 2018-10-22")
-    #        self.assertEqual(events[0].id,           478)
-    #        self.assertEqual(events[0].person,       PersonURI(uri="/api/v1/person/person/3/"))
-    #        self.assertEqual(events[0].resource_uri, PersonEventURI(uri="/api/v1/person/personevent/478/"))
-    #        self.assertEqual(events[0].time,         datetime.fromisoformat("2018-09-24T09:28:32.502465"))
-    #        self.assertEqual(events[0].type,         "gdpr_notice_email")
-    #    else:
-    #        self.fail("Cannot find person")
-
-
     def test_people(self) -> None:
         p  = list(self.dt.people(name_contains="Colin Perkins"))
         self.assertEqual(len(p), 1)
@@ -1959,7 +1944,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_email(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(email="csp@csperkins.org"))
-        self.assertEqual(len(group_role_histories), 133)
+        self.assertEqual(len(group_role_histories), 134)
 
 
     def test_group_role_histories_group(self) -> None:
@@ -1975,7 +1960,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_group_role_histories_person(self) -> None:
         group_role_histories = list(self.dt.group_role_histories(person=self.dt.person(PersonURI(uri="/api/v1/person/person/20209/"))))
-        self.assertEqual(len(group_role_histories), 133)
+        self.assertEqual(len(group_role_histories), 134)
 
 
     def test_group_state_change_event(self) -> None:
@@ -2159,7 +2144,7 @@ class TestDatatracker(unittest.TestCase):
     def test_meeting_attendance(self) -> None:
         person   = self.dt.person(PersonURI(uri="/api/v1/person/person/125662/"))
         attended = list(self.dt.meeting_attendance(person = person))
-        self.assertEqual(len(attended), 90)
+        self.assertEqual(len(attended), 103)
 
 
     def test_meeting_session_assignment(self) -> None:
