@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name    = "ietfdata"
-version = "0.9.0"
+version = "0.9.1"
 authors = [
   {name = "Colin Perkins", email = "csp@csperkins.org"}
 ]
@@ -25,7 +25,7 @@ dependencies = [
   "pandas-stubs",
   "python-dateutil",
   "pydantic",
-  "pymongo",
+  "psycopg",
   "requests",
   "requests-cache",
   "mypy",

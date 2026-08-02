@@ -59,7 +59,7 @@ class DTBackend(ABC):
         logging.basicConfig(level=os.getenv("IETFDATA_LOGLEVEL", default="INFO"))
         self._log         = logging.getLogger("ietfdata")
         self._session     = requests.Session()
-        self._ua          = "glasgow-ietfdata/0.9.0" # Update when making a new relaase
+        self._ua          = "glasgow-ietfdata/0.9.1" # Update when making a new release
         self._multi_delay = 0.1
         self._base_url    = os.environ.get("IETFDATA_DT_URL", "https://datatracker.ietf.org")
 
