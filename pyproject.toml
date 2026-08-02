@@ -18,8 +18,6 @@ classifiers = [
 ]
 
 dependencies = [
-  "bs4",
-  "email_reply_parser",
   "imapclient",
   "pandas",
   "pandas-stubs",
@@ -34,7 +32,6 @@ dependencies = [
   "twine",
   "keyring",
   "coverage",
-  "pymongo-stubs",
   "types-six",
   "types-requests",
   "types-python-dateutil",
