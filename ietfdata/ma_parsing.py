@@ -258,11 +258,7 @@ def _parse_header_from(msg) -> Tuple[Optional[str],Optional[str]]:
             return_from = None
         else:
             return_from = from_name
-        if from_addr == None:
-            return_addr = None
-        else:
-            return_addr = from_addr
-        return (return_from, return_addr)
+        return (return_from, from_addr)
     except:
         # print(f"_parse_header_from: cannot convert to Address")
         # print(f"   from header: {hdr}")
