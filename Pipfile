@@ -10,21 +10,18 @@ wheel = "*"
 twine = "*"
 keyring = "*"
 coverage = "*"
-pymongo-stubs = "*"
 types-six = "*"
 types-requests = "*"
 types-python-dateutil = "*"
 setuptools-pipfile = {file = "."}
 
 [packages]
-bs4 = "*"
-email_reply_parser = "*"
 imapclient = "==3.0.0"
 pandas = "*"
 pandas-stubs = "*"
 python-dateutil = "*"
 pydantic = "*"
-pymongo = "*"
+psycopg = "*"
 requests = ">=2.32.4"
 requests-cache = "*"
 ietfdata = {file = ".", editable = true}
