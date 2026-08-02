@@ -28,8 +28,6 @@ import os
 import sqlite3
 import sys
 
-import pymongo 
-
 from datetime             import date, datetime, timedelta, timezone
 from email.headerregistry import Address
 from pathlib              import Path
