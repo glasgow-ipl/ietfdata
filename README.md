@@ -201,23 +201,18 @@ following instructions to install dependencies and test the results.
 If you just intend to use the library to support writing a paper or 
 to perform some other analysis, you can skip this section.
 
-The project uses `pipenv` for dependency management. To begin, run:
-```~~~~~~~~
-pipenv install --dev -e .
+Create a virtual environment and install dependencies in the usual manner:
+```sh
+python3 -m venv venv/
+source venv/bin/activate
+python3 -m pip install -e .
 ```
-to create a Python virtual environment with appropriate packages install.
-Then, run:
-```~~~~~~~~
-pipenv shell
-```
-to start the virtual environment, within which you can run the scripts.
-
 Once the virtual environment is started, running:
-```~~~~~~~~
+```sh
 python3 tests/test_datatracker.py 
 ```
 will run the test suite for the datatracker module. Running:
-```~~~~~~~~
+```sh
 python3 tests/test_rfcindex.py
 ```
 Will test the rfcindex module.

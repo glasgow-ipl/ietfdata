@@ -2,20 +2,18 @@
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools]
+packages = ["ietfdata"]
+
 [project]
-name    = "ietfdata"
-version = "0.9.1"
-authors = [
-  {name = "Colin Perkins", email = "csp@csperkins.org"}
-]
-description = "Access the IETF Data Tracker and RFC Index"
-readme = "README.md"
+name            = "ietfdata"
+version         = "0.9.1"
+authors         = [{name = "Colin Perkins", email = "csp@csperkins.org"}]
+description     = "Access the IETF Data Tracker and RFC Index"
+readme          = "README.md"
+license         = "BSD-2-Clause"
+
 requires-python = '>=3.13'
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: BSD License",
-    "Operating System :: OS Independent",
-]
 
 dependencies = [
   "imapclient",
@@ -35,6 +33,5 @@ dependencies = [
   "types-six",
   "types-requests",
   "types-python-dateutil",
-  "setuptools-pipfile",
 ]
 
