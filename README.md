@@ -9,8 +9,7 @@ access, the [IETF Datatracker](https://datatracker.ietf.org),
 
 The `ietfdata` library is distributed as a Python package. You
 should be able to install via `pip` in the usual manner:
-
-```~~~~~~~~
+```sh
 pip install ietfdata
 ```
 
@@ -26,11 +25,9 @@ There are two ways to instantiate this class, depending on how it is to be
 used. The normal way, when writing code to perform analysis of a snapshot
 of the IETF data, for example if writing a research paper, a dissertation,
 or as part of a student project, is to use an archive file:
-
 ``` python
 dt = DataTracker(DTBackendArchive("archive/ietfdata-dt.sqlite"))
 ```
-
 When instantiated in this manner, the `DataTracker` class will read from
 the specified `sqlite` database.
 
@@ -45,11 +42,9 @@ faster and avoiding overloading the IETF's servers.
 
 The following can be run from the command line to fetch a copy of the
 database:
-
 ``` bash
   python3 -m ietfdata.tools.download_dt archive/ietf_dt.sqlite
 ```
-
 If you are working on a paper, project, or dissertation with a group of
 people, one person should create the `sqlite` database and share a copy
 with the others. This avoids overloading the IETF's servers, and ensures
@@ -61,11 +56,9 @@ Alternatively, when writing code to perform live queries of the IETF
 Datatracker, for example as part of a tool that provides an interactive
 dashboard or status report, the `DataTracker` should be instantiated as
 follows:
-
-```~~~~~~~~
+```python
 dt = DataTracker(DTBackendLive())
 ```
-
 In this case, the `DataTracker` class will directly query the online IETF
 Datatracker for every request you make. This is appropriate when making
 small numbers of queries, for exploratory programming or when performing
@@ -127,11 +120,9 @@ email archive.
 
 The `MailArchive3` class is instantiated as follows, giving a path to
 an `sqlite` database containing a copy of the archive:
-
 ```python
 ma = MailArchive("archive/ietfdata-ma.sqlite")
 ```
-
 Once instantiated, a call to `ma.update()` will bring the `sqlite`
 database up to date with the IETF mail archive. The first time the
 `ma.update()` function is called, it will download a complete copy of the
@@ -141,11 +132,9 @@ and are much faster.
 
 The following can be run from the command line to fetch a copy of the
 mail archive:
-
 ``` bash
   python3 -m ietfdata.tools.download_ma archive/ietf_ma.sqlite
 ```
-
 If you are working on a paper, project, or dissertation with a group of
 people, one person should create the `sqlite` database and share a copy
 with the others. This avoids overloading the IETF's servers, and ensures
@@ -156,12 +145,10 @@ that everyone working in the group generates the same results.
 ### Usage
 
 Start by importing and instantiating the library:
-
 ```python
 from ietfdata.mailarchive3 import *
 ma = MailArchive("archive/ietfdata-ma.sqlite")
 ```
-
 Once this is done, you can find the mailing list names:
 ```python
 for ml_name in ma.mailing_list_names()
@@ -197,9 +184,9 @@ See `rfcindex.py`
 ## Development
 
 To modify the `ietfdata` library, clone from GitHub then follow the
-following instructions to install dependencies and test the results.
-If you just intend to use the library to support writing a paper or 
-to perform some other analysis, you can skip this section.
+instructions below to install dependencies and test the results. If you
+just intend to use the library to support writing a paper or to perform
+some other analysis, you can skip this section.
 
 Create a virtual environment and install dependencies in the usual manner:
 ```sh
