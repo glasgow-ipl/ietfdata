@@ -60,7 +60,7 @@ class DTBackend(ABC):
         self._log         = logging.getLogger("ietfdata")
         self._session     = requests.Session()
         self._ua          = "glasgow-ietfdata/0.9.1" # Update when making a new release
-        self._multi_delay = 0.1
+        self._multi_delay = 0.01
         self._base_url    = os.environ.get("IETFDATA_DT_URL", "https://datatracker.ietf.org")
 
 
@@ -376,14 +376,14 @@ class DTBackendArchive(DTBackend):
 
             if sort_by is None:
                 self._log.debug(f"_download_data: not sorting {endpoint}")
-                uri = f"{endpoint}"
+                uri = f"{endpoint}?limit=100"
             else:
                 if sort_by in columns or sort_by in to_many:
                     self._log.debug(f"_download_data: sorting {endpoint} by {sort_by}")
-                    uri = f"{endpoint}?order_by={sort_by}"
+                    uri = f"{endpoint}?limit=100&order_by={sort_by}"
                 else:
                     self._log.debug(f"_download_data: not sorting {endpoint} - {sort_by} is not a column")
-                    uri = f"{endpoint}"
+                    uri = f"{endpoint}?limit=100"
             self._log.debug(f"_download_data: download {uri}")
 
             for item in self._dt_fetch_multi(uri):
