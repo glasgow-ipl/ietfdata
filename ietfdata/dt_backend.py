@@ -221,6 +221,7 @@ class DTBackendArchive(DTBackend):
         assert sqlite3.threadsafety == 3
         self._db = sqlite3.connect(sqlite_file, check_same_thread=False)
         self._db.execute('PRAGMA synchronous = OFF;')
+        self._db.execute('PRAGMA foreign_keys = ON;')
 
 
 
@@ -254,14 +255,14 @@ class DTBackendArchive(DTBackend):
         self._db.execute("""CREATE TABLE IF NOT EXISTS ietf_dt_schema (
                                 endpoint    TEXT PRIMARY KEY,
                                 table_name  TEXT,
-                                sort_by     TEXT);""")
+                                sort_by     TEXT) STRICT;""")
 
         self._db.execute("""CREATE TABLE IF NOT EXISTS ietf_dt_schema_columns (
                                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
                                 endpoint    TEXT NOT NULL,
                                 column_name TEXT,
                                 column_type TEXT,
-                                FOREIGN KEY (endpoint) REFERENCES ietf_dt_schema (endpoint));""")
+                                FOREIGN KEY (endpoint) REFERENCES ietf_dt_schema (endpoint)) STRICT;""")
 
         self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_dt_schema ON ietf_dt_schema (endpoint)""")
         self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_dt_schema_columns ON ietf_dt_schema_columns (endpoint)""")
@@ -330,7 +331,7 @@ class DTBackendArchive(DTBackend):
                     subtable += f"   \"_parent\" TEXT,\n"
                     subtable += f"   \"{column_name}\" TEXT,\n"
                     subtable += f"   FOREIGN KEY (_parent) REFERENCES {table_name} (resource_uri)\n"
-                    subtable += f");"
+                    subtable += f") STRICT;"
                     subtables[f"{table_name}_{column_name}"] = subtable
                 else:
                     print(f"ERROR: unknown column type: {column_type}")
@@ -339,7 +340,7 @@ class DTBackendArchive(DTBackend):
             self._log.debug(f"_create_tables: create table {table_name}")
             sql  = f"CREATE TABLE IF NOT EXISTS {table_name} (\n"
             sql += ",\n".join(columns)
-            sql += f")"
+            sql += f") STRICT"
             dbc.execute(sql, "")
 
             for table_name, subtable in subtables.items():
