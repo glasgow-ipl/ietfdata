@@ -74,8 +74,8 @@ from ietfdata.datatracker_types import *
 
 @dataclass
 class Hints(Generic[T]):
-    obj_type :  Type[T]
-    sort_by : str
+    obj_type : Type[T]
+    sort_by  : str | None
 
 
 class DataTracker:
@@ -132,14 +132,14 @@ class DataTracker:
 
         self._hints = {} # type: Dict[str, Hints]
         self._hints["/api/v1/doc/ballotdocevent/"]                 = Hints(BallotDocumentEvent,         "id")
-        self._hints["/api/v1/doc/ballottype/"]                     = Hints(BallotType,                  "slug")
+        self._hints["/api/v1/doc/ballottype/"]                     = Hints(BallotType,                  "id")
         self._hints["/api/v1/doc/docevent/"]                       = Hints(DocumentEvent,               "id")
         self._hints["/api/v1/doc/document/"]                       = Hints(Document,                    "id")
         self._hints["/api/v1/doc/documentauthor/"]                 = Hints(DocumentAuthor,              "id")
         self._hints["/api/v1/doc/documenturl/"]                    = Hints(DocumentUrl,                 "id")
         self._hints["/api/v1/doc/relateddocument/"]                = Hints(RelatedDocument,             "id")
         self._hints["/api/v1/doc/state/"]                          = Hints(DocumentState,               "id")
-        self._hints["/api/v1/doc/statetype/"]                      = Hints(DocumentStateType,           "slug")
+        self._hints["/api/v1/doc/statetype/"]                      = Hints(DocumentStateType,           None)
         self._hints["/api/v1/group/changestategroupevent/"]        = Hints(GroupStateChangeEvent,       "id")
         self._hints["/api/v1/group/group/"]                        = Hints(Group,                       "id")
         self._hints["/api/v1/group/groupevent/"]                   = Hints(GroupEvent,                  "id")
@@ -164,30 +164,30 @@ class DataTracker:
         self._hints["/api/v1/meeting/schedulingevent/"]            = Hints(SchedulingEvent,             "id")
         self._hints["/api/v1/meeting/session/"]                    = Hints(Session,                     "id")
         self._hints["/api/v1/meeting/timeslot/"]                   = Hints(Timeslot,                    "id")
-        self._hints["/api/v1/name/ballotpositionname/"]            = Hints(BallotPositionName,          "slug")
-        self._hints["/api/v1/name/docrelationshipname/"]           = Hints(RelationshipType,            "slug")
+        self._hints["/api/v1/name/ballotpositionname/"]            = Hints(BallotPositionName,          None)
+        self._hints["/api/v1/name/docrelationshipname/"]           = Hints(RelationshipType,            None)
         self._hints["/api/v1/name/doctagname/"]                    = Hints(DocumentTag,                 "slug")
-        self._hints["/api/v1/name/doctypename/"]                   = Hints(DocumentType,                "slug")
+        self._hints["/api/v1/name/doctypename/"]                   = Hints(DocumentType,                None)
         self._hints["/api/v1/name/extresourcename/"]               = Hints(ExtResourceName,             "slug")
         self._hints["/api/v1/name/extresourcetypename/"]           = Hints(ExtResourceTypeName,         "slug")
-        self._hints["/api/v1/name/groupmilestonestatename/"]       = Hints(GroupMilestoneStateName,     "slug")
-        self._hints["/api/v1/name/groupstatename/"]                = Hints(GroupState,                  "slug")
-        self._hints["/api/v1/name/grouptypename/"]                 = Hints(GroupTypeName,               "slug")
-        self._hints["/api/v1/name/meetingtypename/"]               = Hints(MeetingType,                 "slug")
-        self._hints["/api/v1/name/iprdisclosurestatename/"]        = Hints(IPRDisclosureState,          "slug")
-        self._hints["/api/v1/name/iprlicensetypename/"]            = Hints(IPRLicenseType,              "slug")
-        self._hints["/api/v1/name/reviewassignmentstatename/"]     = Hints(ReviewAssignmentState,       "slug")
-        self._hints["/api/v1/name/reviewresultname/"]              = Hints(ReviewResultType,            "slug")
-        self._hints["/api/v1/name/reviewtypename/"]                = Hints(ReviewType,                  "slug")
-        self._hints["/api/v1/name/reviewrequeststatename/"]        = Hints(ReviewRequestState,          "slug")
-        self._hints["/api/v1/name/rolename/"]                      = Hints(RoleName,                    "slug")
-        self._hints["/api/v1/name/sessionstatusname/"]             = Hints(SessionStatusName,           "slug")
+        self._hints["/api/v1/name/groupmilestonestatename/"]       = Hints(GroupMilestoneStateName,     None)
+        self._hints["/api/v1/name/groupstatename/"]                = Hints(GroupState,                  None)
+        self._hints["/api/v1/name/grouptypename/"]                 = Hints(GroupTypeName,               None)
+        self._hints["/api/v1/name/meetingtypename/"]               = Hints(MeetingType,                 None)
+        self._hints["/api/v1/name/iprdisclosurestatename/"]        = Hints(IPRDisclosureState,          None)
+        self._hints["/api/v1/name/iprlicensetypename/"]            = Hints(IPRLicenseType,              None)
+        self._hints["/api/v1/name/reviewassignmentstatename/"]     = Hints(ReviewAssignmentState,       None)
+        self._hints["/api/v1/name/reviewresultname/"]              = Hints(ReviewResultType,            None)
+        self._hints["/api/v1/name/reviewtypename/"]                = Hints(ReviewType,                  None)
+        self._hints["/api/v1/name/reviewrequeststatename/"]        = Hints(ReviewRequestState,          None)
+        self._hints["/api/v1/name/rolename/"]                      = Hints(RoleName,                    None)
+        self._hints["/api/v1/name/sessionstatusname/"]             = Hints(SessionStatusName,           None)
         self._hints["/api/v1/name/sessionpurposename/"]            = Hints(SessionPurpose,              "slug")
-        self._hints["/api/v1/name/streamname/"]                    = Hints(Stream,                      "slug")
+        self._hints["/api/v1/name/streamname/"]                    = Hints(Stream,                      None)
         self._hints["/api/v1/person/alias/"]                       = Hints(PersonAlias,                 "id")
         self._hints["/api/v1/person/email/"]                       = Hints(Email,                       "address")
-        self._hints["/api/v1/person/historicalemail/"]             = Hints(HistoricalEmail,             "address")
-        self._hints["/api/v1/person/historicalperson/"]            = Hints(HistoricalPerson,            "id")
+        self._hints["/api/v1/person/historicalemail/"]             = Hints(HistoricalEmail,             None)
+        self._hints["/api/v1/person/historicalperson/"]            = Hints(HistoricalPerson,            None)
         self._hints["/api/v1/person/person/"]                      = Hints(Person,                      "id")
         self._hints["/api/v1/person/personextresource/"]           = Hints(PersonExtResource,           "id")
         self._hints["/api/v1/review/historicalreviewassignment/"]  = Hints(HistoricalReviewAssignment,  "id")
@@ -202,8 +202,8 @@ class DataTracker:
         self._hints["/api/v1/review/reviewteamsettings/"]          = Hints(ReviewTeamSettings,          "id")
         self._hints["/api/v1/review/reviewwish/"]                  = Hints(ReviewWish,                  "id")
         self._hints["/api/v1/review/unavailableperiod/"]           = Hints(UnavailablePeriod,           "id")
-        self._hints["/api/v1/name/continentname/"]                 = Hints(Continent,                   "slug")
-        self._hints["/api/v1/name/countryname/"]                   = Hints(Country,                     "slug")
+        self._hints["/api/v1/name/continentname/"]                 = Hints(Continent,                   None)
+        self._hints["/api/v1/name/countryname/"]                   = Hints(Country,                     None)
         self._hints["/api/v1/stats/countryalias/"]                 = Hints(CountryAlias,                "id")
         self._hints["/api/v1/stats/meetingregistration/"]          = Hints(StatsMeetingRegistration,    "id")
         self._hints["/api/v1/submit/submission/"]                  = Hints(Submission,                  "id")
@@ -228,17 +228,13 @@ class DataTracker:
         obj_type_uri = type(obj_uri)(uri=obj_uri.uri)
         assert obj_uri.uri      is not None
         assert obj_type_uri.uri is not None
-        obj_jsons = [] # type: List[Dict[str, Any]]
-        for obj_json in self.backend.datatracker_get_multi(obj_uri):
-            obj_jsons.append(obj_json)
         sort_by = self._hints[obj_type_uri.uri].sort_by
-        for obj_json in sorted(obj_jsons, key=lambda k: k[sort_by]):
-            #fetch_obj = self.pavlova.from_mapping(obj_json, obj_type) # type: T
+        for obj_json in self.backend.datatracker_get_multi(obj_uri, sort_by):
             try:
-                fetch_obj = obj_type(**obj_json)
-                yield fetch_obj
+                res = obj_type(**obj_json)
+                yield res
             except ValidationError as e:
-                self.log.error(f"Cannot parse response {obj_json}: {e.errors()}")
+                self.log.error(f"_retrieve_multi: cannot parse response {obj_json}: {e.errors()}")
 
 
     # ----------------------------------------------------------------------------------------------------------------------------
