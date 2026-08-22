@@ -212,6 +212,7 @@ Will test the rfcindex module.
 - Edit setup.py to ensure the correct version number is present
 - Edit pyproject.toml to ensure the correct version number is present
 - Edit `ietfdata/dt_backend.py` to ensure the correct version number
+- Edit `ietfdata/github.py` to ensure the correct version number
 - Run `make test` to run the test suite. If any tests fail, fix then
   restart the release process
 - Commit changes and push to GitHub
