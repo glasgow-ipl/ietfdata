@@ -31,12 +31,12 @@ import sys
 import time
 
 from dataclasses       import dataclass
-from typing            import Any, Dict, Iterator
+from typing            import Any, Iterator
 from typing_extensions import Self
 
 @dataclass
 class GHResponse:
-    obj_json : dict[str,Any]
+    obj_json : list | dict
     next_uri : str | None
 
 
@@ -53,11 +53,16 @@ class GitHub:
         logging.getLogger("urllib3").setLevel('ERROR')
         logging.basicConfig(level=os.getenv("IETFDATA_LOGLEVEL", default="INFO"))
 
-        self._log         = logging.getLogger("ietfdata")
-        self._session     = requests.Session()
-        self._ua          = "glasgow-ietfdata/0.9.1" # Update when making a new release
-        self._base_url    = os.environ.get("IETFDATA_GH_URL", "https://api.github.com")
-        self._token       = os.getenv("GITHUB_API_TOKEN", default=None)
+        self._log      = logging.getLogger("ietfdata")
+        self._session  = requests.Session()
+        self._ua       = "glasgow-ietfdata/0.9.1" # Update when making a new release
+        self._base_url = os.environ.get("IETFDATA_GH_URL", "https://api.github.com")
+        self._token    = os.getenv("GITHUB_API_TOKEN", default=None)
+        self._headers  = {}
+
+        self._headers["User-Agent"] = self._ua
+        self._headers["Accept"] = "application/vnd.github+json"
+        self._headers["X-GitHub-Api-Version"] = "2026-03-10"
 
         if self._token is None:
             self._log.warning("Environment variable GITHUB_API_TOKEN is not set")
@@ -66,6 +71,7 @@ class GitHub:
         else:
             # Rate limit is 5000 requests/hour if authorised
             self._multi_delay = 3600.0 / 5000.0
+            self._headers["Authorization"] = f"Bearer {self._token}"
 
 
     def _gh_fetch(self, endpoint: str) -> GHResponse:
@@ -77,26 +83,21 @@ class GitHub:
         while True:
             self._log.debug(f"_gh_fetch: {endpoint}")
             try:
-                h = {
-                    "User-Agent"           : self._ua,
-                    "Accept"               : "application/vnd.github+json",
-                    "X-GitHub-Api-Version" : "2026-03-10"
-                }
-
-                if self._token is not None:
-                    h["Authorization"] = f"Bearer {self._token}"
-
-                r = self._session.get(self._base_url + endpoint, headers=h, verify=True)
+                r = self._session.get(self._base_url + endpoint, headers=self._headers, verify=True)
 
                 if r.status_code == 200:
                     self._log.debug(f"_gh_fetch: {r.status_code} {endpoint}")
+
+                    obj_json = r.json()
+
                     if "next" not in r.links:
                         next_uri = None
                     else:
                         next_uri = r.links["next"]["url"]
                         if next_uri.startswith(self._base_url):
                             next_uri = next_uri[len(self._base_url):]
-                    return GHResponse(r.json(), next_uri)
+
+                    return GHResponse(obj_json, next_uri)
                 elif r.status_code == 400:
                     self._log.error(f"_gh_fetch: {r.status_code} {endpoint}")
                     sys.exit(1)
@@ -142,8 +143,9 @@ class GitHub:
         uri = endpoint
         while uri is not None:
             res = self._gh_fetch(uri)
+            assert isinstance(res.obj_json, list)
             for obj in res.obj_json:
-                yield json.loads(obj)
+                yield obj
             uri = res.next_uri
             # Rate limit the fetch of large amounts of data
             time.sleep(self._multi_delay)
@@ -163,8 +165,9 @@ class GitHub:
 
     # https://docs.github.com/en/rest/repos/repos?apiVersion=2026-03-10#get-a-user
     def user(self, username:str) -> dict[str,Any]:
-        r = self._gh_fetch(f"/users/{username}")
-        return r.obj_json
+        res = self._gh_fetch(f"/users/{username}")
+        assert isinstance(res.obj_json, dict)
+        return res.obj_json
 
 
     # https://docs.github.com/en/rest/repos/repos?apiVersion=2026-03-10#list-repositories-for-a-user
