@@ -83,8 +83,10 @@ class GitHub:
         while True:
             self._log.debug(f"_gh_fetch: {endpoint}")
             try:
-                r = self._session.get(self._base_url + endpoint, headers=self._headers, verify=True)
+                # Rate limit the fetch of large amounts of data
+                time.sleep(self._multi_delay)
 
+                r = self._session.get(self._base_url + endpoint, headers=self._headers, verify=True)
                 if r.status_code == 200:
                     self._log.debug(f"_gh_fetch: {r.status_code} {endpoint}")
 
@@ -147,8 +149,6 @@ class GitHub:
             for obj in res.obj_json:
                 yield obj
             uri = res.next_uri
-            # Rate limit the fetch of large amounts of data
-            time.sleep(self._multi_delay)
 
 
     # https://docs.github.com/en/rest/issues/issues?apiVersion=2026-03-10#list-repository-issues
