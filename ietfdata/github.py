@@ -101,7 +101,7 @@ class GitHub:
                 elif r.status_code == 400:
                     self._log.error(f"_gh_fetch: {r.status_code} {endpoint}")
                     sys.exit(1)
-                elif r.status_code == 404:
+                elif r.status_code == 403 or r.status_code == 404:
                     self._log.warning(f"_gh_fetch: {r.status_code} {endpoint}")
                     return GHResponse({}, None)
                 elif r.status_code == 429:
