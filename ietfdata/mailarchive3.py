@@ -197,7 +197,10 @@ class Envelope:
         dbc = self._archive._db.cursor()
         sql = f"SELECT date FROM {self._prefix}_ma_hdr WHERE message_num = ?;"
         res = dbc.execute(sql, (self._message_num, )).fetchone()
-        return datetime.fromisoformat(res[0]).astimezone(UTC)
+        if res[0] is not None:
+            return datetime.fromisoformat(res[0]).astimezone(UTC)
+        else:
+            return None
 
 
     def header(self, header_name:str) -> List[str]:
