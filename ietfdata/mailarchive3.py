@@ -759,7 +759,7 @@ class MailArchive:
                                 FOREIGN KEY (message_num)  REFERENCES ietf_ma_msg (message_num)
                             );""")
         self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr                ON ietf_ma_hdr (message_num);""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_message_id     ON ietf_ma_hdr (message_num, message_id);""")
+        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_messageid      ON ietf_ma_hdr (message_id, message_num);""")
         self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_in_reply_to    ON ietf_ma_hdr (message_num, in_reply_to);""")
         self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_from_addr_date ON ietf_ma_hdr (message_num, from_addr, date);""")
         self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_from_name_date ON ietf_ma_hdr (message_num, from_name, date);""")
