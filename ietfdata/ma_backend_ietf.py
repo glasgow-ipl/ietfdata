@@ -40,6 +40,10 @@ class MailArchiveBackendIETF(MailArchiveBackend):
         self._imap        = None
 
 
+    def db_prefix(self) -> str:
+        return "ietf"
+
+
     def mailboxes(self) -> List[str]:
         with IMAPClient(host=self._imap_server, ssl=True, use_uid=True) as imap:
             imap.login("anonymous", "anonymous")

@@ -50,6 +50,7 @@ class Envelope:
     An Envelope holds a single email message.
     """
     _archive       : MailArchive
+    _prefix        : str
     _message_num   : int
     _mailing_list  : str
     _uidvalidity   : int
@@ -58,10 +59,11 @@ class Envelope:
 
     def __init__(self, mail_archive: MailArchive, message_num : int) -> None:
         self._archive = mail_archive
+        self._prefix  = mail_archive._prefix
         self._message_num = message_num
 
         dbc = self._archive._db.cursor()
-        sql = "SELECT mailing_list, uidvalidity, uid, message FROM ietf_ma_msg WHERE message_num = ?;"
+        sql = f"SELECT mailing_list, uidvalidity, uid, message FROM {self._prefix}_ma_msg WHERE message_num = ?;"
         res = dbc.execute(sql, (message_num, )).fetchone()
         self._mailing_list  = res[0]
         self._uidvalidity   = res[1]
@@ -106,7 +108,7 @@ class Envelope:
         copied to several different mailing lists.
         """
         dbc = self._archive._db.cursor()
-        sql = "SELECT message_id FROM ietf_ma_hdr WHERE message_num = ?;"
+        sql = f"SELECT message_id FROM {self._prefix}_ma_hdr WHERE message_num = ?;"
         res = dbc.execute(sql, (self._message_num, )).fetchone()
         return str(res[0])
 
@@ -121,7 +123,7 @@ class Envelope:
         by calling `header("from")`. 
         """
         dbc = self._archive._db.cursor()
-        sql = "SELECT from_name, from_addr FROM ietf_ma_hdr WHERE message_num = ?;"
+        sql = f"SELECT from_name, from_addr FROM {self._prefix}_ma_hdr WHERE message_num = ?;"
         name, addr = dbc.execute(sql, (self._message_num, )).fetchone()
 
         # Check the name is valid:
@@ -146,7 +148,7 @@ class Envelope:
         by calling `header("to")`.
         """
         dbc = self._archive._db.cursor()
-        sql = "SELECT to_name, to_addr FROM ietf_ma_hdr_to WHERE message_num = ?;"
+        sql = f"SELECT to_name, to_addr FROM {self._prefix}_ma_hdr_to WHERE message_num = ?;"
         res = []
         for name, addr in dbc.execute(sql, (self._message_num, )).fetchall():
             res.append(Address(display_name = name, addr_spec = addr))
@@ -162,7 +164,7 @@ class Envelope:
         by calling `header("cc")`.
         """
         dbc = self._archive._db.cursor()
-        sql = "SELECT cc_name, cc_addr FROM ietf_ma_hdr_cc WHERE message_num = ?;"
+        sql = f"SELECT cc_name, cc_addr FROM {self._prefix}_ma_hdr_cc WHERE message_num = ?;"
         res = []
         for name, addr in dbc.execute(sql, (self._message_num, )).fetchall():
             res.append(Address(display_name = name, addr_spec = addr))
@@ -178,7 +180,7 @@ class Envelope:
         by calling `header("subject")`.
         """
         dbc = self._archive._db.cursor()
-        sql = "SELECT subject FROM ietf_ma_hdr WHERE message_num = ?;"
+        sql = f"SELECT subject FROM {self._prefix}_ma_hdr WHERE message_num = ?;"
         res = dbc.execute(sql, (self._message_num, )).fetchone()
         return str(res[0])
 
@@ -193,7 +195,7 @@ class Envelope:
         value returned by calling `header("date")`.
         """
         dbc = self._archive._db.cursor()
-        sql = "SELECT date FROM ietf_ma_hdr WHERE message_num = ?;"
+        sql = f"SELECT date FROM {self._prefix}_ma_hdr WHERE message_num = ?;"
         res = dbc.execute(sql, (self._message_num, )).fetchone()
         return datetime.fromisoformat(res[0]).astimezone(UTC)
 
@@ -264,7 +266,7 @@ class Envelope:
         Retrieve the envelopes containing the messages sent in reply to this.
         """
         dbc = self._archive._db.cursor()
-        sql = "SELECT message_num FROM ietf_ma_hdr WHERE in_reply_to = ?;"
+        sql = f"SELECT message_num FROM {self._prefix}_ma_hdr WHERE in_reply_to = ?;"
         replies = []
         for message_num in dbc.execute(sql, (self.message_id(), )).fetchall():
             replies.append(Envelope(self._archive, message_num[0]))
@@ -288,8 +290,8 @@ class Envelope:
         their username as the basis for the `project` (e.g., "alice_test4").
         """
         dbc = self._archive._db.cursor()
-        sql = """INSERT OR REPLACE INTO ietf_ma_msg_metadata
-                 VALUES ((SELECT id FROM ietf_ma_msg_metadata WHERE message_num = ? and project = ? AND key_ = ?), ?, ?, ?, ?)"""
+        sql = f"""INSERT OR REPLACE INTO {self._prefix}_ma_msg_metadata
+                 VALUES ((SELECT id FROM {self._prefix}_ma_msg_metadata WHERE message_num = ? and project = ? AND key_ = ?), ?, ?, ?, ?)"""
         dbc.execute(sql, (self._message_num, project, key, self._message_num, project, key, value))
         self._archive._db.commit()
 
@@ -303,7 +305,7 @@ class Envelope:
         - `key`     -- the key under which the metadata was scored
         """
         dbc = self._archive._db.cursor()
-        sql = "SELECT value FROM ietf_ma_msg_metadata WHERE message_num = ? AND project = ? AND key_ = ?;"
+        sql = f"SELECT value FROM {self._prefix}_ma_msg_metadata WHERE message_num = ? AND project = ? AND key_ = ?;"
         res = dbc.execute(sql, (self._message_num, project, key)).fetchone()
         if res is None:
             return None
@@ -326,10 +328,10 @@ class Envelope:
         """
         dbc = self._archive._db.cursor()
         if key is None:
-            sql = "DELETE FROM ietf_ma_msg_metadata WHERE message_num = ? AND project = ?;"
+            sql = f"DELETE FROM {self._prefix}_ma_msg_metadata WHERE message_num = ? AND project = ?;"
             dbc.execute(sql, (self._message_num, project))
         else:
-            sql = "DELETE FROM ietf_ma_msg_metadata WHERE message_num = ? AND project = ? AND key_ = ?;"
+            sql = f"DELETE FROM {self._prefix}_ma_msg_metadata WHERE message_num = ? AND project = ? AND key_ = ?;"
             dbc.execute(sql, (self._message_num, project, key))
         self._archive._db.commit()
 
@@ -343,10 +345,12 @@ class MailingList:
     """
 
     _archive : MailArchive
+    _prefix  : str
     _name    : str
 
     def __init__(self, mail_archive: MailArchive, list_name: str):
         self._archive = mail_archive
+        self._prefix  = mail_archive._prefix
         self._name    = list_name
 
 
@@ -356,7 +360,7 @@ class MailingList:
 
     def uidvalidity(self) -> Optional[int]:
         dbc = self._archive._db.cursor()
-        sql = "SELECT uidvalidity FROM ietf_ma_lists WHERE name = (?);"
+        sql = f"SELECT uidvalidity FROM {self._prefix}_ma_lists WHERE name = (?);"
         res = dbc.execute(sql, (self._name, )).fetchone()[0]
         if res is None:
             return None
@@ -366,13 +370,13 @@ class MailingList:
 
     def num_messages(self) -> int:
         dbc = self._archive._db.cursor()
-        sql = "SELECT COUNT(*) FROM ietf_ma_msg WHERE mailing_list = (?);"
+        sql = f"SELECT COUNT(*) FROM {self._prefix}_ma_msg WHERE mailing_list = (?);"
         return int(dbc.execute(sql, (self._name, )).fetchone()[0])
 
 
     def message_uids(self) -> Iterator[int]:
         dbc = self._archive._db.cursor()
-        sql = "SELECT uid FROM ietf_ma_msg WHERE mailing_list = ? and uidvalidity = ?;"
+        sql = f"SELECT uid FROM {self._prefix}_ma_msg WHERE mailing_list = ? and uidvalidity = ?;"
         for uid in map(lambda x : x[0], dbc.execute(sql, (self.name(), self.uidvalidity()))):
             yield uid
 
@@ -383,7 +387,7 @@ class MailingList:
         specified uid within this mailing list.
         """
         dbc = self._archive._db.cursor()
-        sql = "SELECT message_num FROM ietf_ma_msg WHERE mailing_list = ? and uidvalidity = ? and uid = ?;"
+        sql = f"SELECT message_num FROM {self._prefix}_ma_msg WHERE mailing_list = ? and uidvalidity = ? and uid = ?;"
         arg = (self._name, self.uidvalidity(), uid)
         res = dbc.execute(sql, arg).fetchone()
         if res is None:
@@ -397,7 +401,7 @@ class MailingList:
         Return the envelopes containing the specified messages from this mailing list.
         """
         dbc = self._archive._db.cursor()
-        sql = "SELECT message_num FROM ietf_ma_msg WHERE mailing_list = ? AND uidvalidity = ?;"
+        sql = f"SELECT message_num FROM {self._prefix}_ma_msg WHERE mailing_list = ? AND uidvalidity = ?;"
         arg = (self.name(), self.uidvalidity())
         for res in map(lambda x : x[0], dbc.execute(sql, arg).fetchall()):
             assert res is not None
@@ -444,14 +448,14 @@ class MailingList:
         # Retrieve and save uidvalidity:
         uidvalidity = self._archive._backend.validity()
         dbc = self._archive._db.cursor()
-        sql = "INSERT OR REPLACE INTO ietf_ma_lists (name, uidvalidity) VALUES (?, ?);"
+        sql = f"INSERT OR REPLACE INTO {self._prefix}_ma_lists (name, uidvalidity) VALUES (?, ?);"
         dbc.execute(sql, (self.name(), uidvalidity))
         self._archive._db.commit()
 
         # FIXME: remove messages from database where uidvalidity doesn't match
 
         # Retrieve messages on server but not in database:
-        sql = "SELECT uid FROM ietf_ma_msg WHERE mailing_list = ? and uidvalidity = ?;"
+        sql = f"SELECT uid FROM {self._prefix}_ma_msg WHERE mailing_list = ? and uidvalidity = ?;"
         msg_local  = set(map(lambda x : x[0], dbc.execute(sql, (self.name(), uidvalidity))))
         msg_remote = set(self._archive._backend.message_ids())
         msg_to_fetch = list(msg_remote - msg_local)
@@ -469,7 +473,7 @@ class MailingList:
             for uid, msg in self._archive._backend.fetch(uid_slice):
                 self._archive._log.info(f"mailarchive3:update: {self._name}/{uid} (uidvalidity={uidvalidity})")
                 cur = self._archive._db.cursor()
-                sql = "INSERT INTO ietf_ma_msg VALUES (?, ?, ?, ?, ?) RETURNING message_num"
+                sql = f"INSERT INTO {self._prefix}_ma_msg VALUES (?, ?, ?, ?, ?) RETURNING message_num"
                 num = cur.execute(sql, (None, self._name, uidvalidity, uid, msg)).fetchone()[0]
             self._archive._db.commit()
 
@@ -507,7 +511,7 @@ class MailingList:
         assert uidvalidity is not None
 
         dbc = self._archive._db.cursor()
-        sql = "SELECT message_num, uid, message FROM ietf_ma_msg WHERE mailing_list = ? and uidvalidity = ?;"
+        sql = f"SELECT message_num, uid, message FROM {self._prefix}_ma_msg WHERE mailing_list = ? and uidvalidity = ?;"
         for message_num, uid, message in dbc.execute(sql, (self.name(), uidvalidity)).fetchall():
             self._archive._log.debug(f"mailarchive3:reindex: {self._name}/{uid}")
 
@@ -520,28 +524,28 @@ class MailingList:
                    parsed_msg["date"],
                    parsed_msg["message_id"],
                    parsed_msg["in_reply_to"])
-            sql = """INSERT OR REPLACE INTO ietf_ma_hdr
-                     VALUES ((SELECT id FROM ietf_ma_hdr WHERE message_num = ?), ?, ?, ?, ?, ?, ?, ?)"""
+            sql = f"""INSERT OR REPLACE INTO {self._prefix}_ma_hdr
+                     VALUES ((SELECT id FROM {self._prefix}_ma_hdr WHERE message_num = ?), ?, ?, ?, ?, ?, ?, ?)"""
             dbc.execute(sql, val)
 
             max_index = 0
             for index, name, addr in parsed_msg["to"]:
                 if index > max_index:
                     max_index = index
-                sql = """INSERT OR REPLACE INTO ietf_ma_hdr_to 
-                         VALUES ((SELECT id FROM ietf_ma_hdr_to WHERE message_num = ? AND to_index = ?), ?, ?, ?, ?)"""
+                sql = f"""INSERT OR REPLACE INTO {self._prefix}_ma_hdr_to
+                         VALUES ((SELECT id FROM {self._prefix}_ma_hdr_to WHERE message_num = ? AND to_index = ?), ?, ?, ?, ?)"""
                 dbc.execute(sql, (message_num, index, message_num, index, name, addr))
-            sql = "DELETE FROM ietf_ma_hdr_to WHERE message_num = ? AND to_index > ?;"
+            sql = f"DELETE FROM {self._prefix}_ma_hdr_to WHERE message_num = ? AND to_index > ?;"
             dbc.execute(sql, (message_num, max_index))
 
             max_index = 0
             for index, name, addr in parsed_msg["cc"]:
                 if index > max_index:
                     max_index = index
-                sql = """INSERT OR REPLACE INTO ietf_ma_hdr_cc 
-                         VALUES ((SELECT id FROM ietf_ma_hdr_cc WHERE message_num = ? AND cc_index = ?), ?, ?, ?, ?)"""
+                sql = f"""INSERT OR REPLACE INTO {self._prefix}_ma_hdr_cc
+                         VALUES ((SELECT id FROM {self._prefix}_ma_hdr_cc WHERE message_num = ? AND cc_index = ?), ?, ?, ?, ?)"""
                 dbc.execute(sql, (message_num, index, message_num, index, name, addr))
-            sql = "DELETE FROM ietf_ma_hdr_cc WHERE message_num = ? AND cc_index > ?;"
+            sql = f"DELETE FROM {self._prefix}_ma_hdr_cc WHERE message_num = ? AND cc_index > ?;"
             dbc.execute(sql, (message_num, max_index))
 
             self._archive._db.commit()
@@ -635,8 +639,8 @@ class MailingList:
         their username as the basis for the `project` (e.g., "alice_test4").
         """
         dbc = self._archive._db.cursor()
-        sql = """INSERT OR REPLACE INTO ietf_ma_list_metadata
-                 VALUES ((SELECT id FROM ietf_ma_list_metadata WHERE mailing_list = ? and project = ? AND key_ = ?), ?, ?, ?, ?)"""
+        sql = f"""INSERT OR REPLACE INTO {self._prefix}_ma_list_metadata
+                 VALUES ((SELECT id FROM {self._prefix}_ma_list_metadata WHERE mailing_list = ? and project = ? AND key_ = ?), ?, ?, ?, ?)"""
         dbc.execute(sql, (self._name, project, key, self._name, project, key, value))
         self._archive._db.commit()
 
@@ -650,7 +654,7 @@ class MailingList:
         - `key`     -- the key under which the metadata was scored
         """
         dbc = self._archive._db.cursor()
-        sql = "SELECT value FROM ietf_ma_list_metadata WHERE mailing_list = ? AND project = ? AND key_ = ?;"
+        sql = f"SELECT value FROM {self._prefix}_ma_list_metadata WHERE mailing_list = ? AND project = ? AND key_ = ?;"
         res = dbc.execute(sql, (self._name, project, key)).fetchone()
         if res is None:
             return None
@@ -673,10 +677,10 @@ class MailingList:
         """
         dbc = self._archive._db.cursor()
         if key is None:
-            sql = "DELETE FROM ietf_ma_list_metadata WHERE mailing_list = ? AND project = ?;"
+            sql = f"DELETE FROM {self._prefix}_ma_list_metadata WHERE mailing_list = ? AND project = ?;"
             dbc.execute(sql, (self._name, project))
         else:
-            sql = "DELETE FROM ietf_ma_list_metadata WHERE mailing_list = ? AND project = ? AND key_ = ?;"
+            sql = f"DELETE FROM {self._prefix}_ma_list_metadata WHERE mailing_list = ? AND project = ? AND key_ = ?;"
             dbc.execute(sql, (self._name, project, key))
         self._archive._db.commit()
 
@@ -720,34 +724,38 @@ class MailArchive:
         self._log = logging.getLogger("ietfdata")
         assert sqlite3.threadsafety == 3
         self._db  = sqlite3.connect(sqlite_file, check_same_thread=False)
+        self._prefix = backend.db_prefix()
         self._db.execute('PRAGMA synchronous = OFF;')
         self._db.execute('PRAGMA foreign_keys = ON;')
-        self._db.execute("""CREATE TABLE IF NOT EXISTS ietf_ma_lists (
+        self._db.execute(f"""CREATE TABLE IF NOT EXISTS {self._prefix}_ma_lists (
                                 name        TEXT NOT NULL PRIMARY KEY,
                                 uidvalidity INTEGER
                             );""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_lists ON ietf_ma_lists (name);""")
+        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}_ma_lists
+                             ON {self._prefix}_ma_lists (name);""")
 
-        self._db.execute("""CREATE TABLE IF NOT EXISTS ietf_ma_list_metadata (
+        self._db.execute(f"""CREATE TABLE IF NOT EXISTS {self._prefix}_ma_list_metadata (
                                 id           INTEGER PRIMARY KEY AUTOINCREMENT,
                                 mailing_list TEXT NOT NULL,
                                 project      TEXT,
                                 key_         TEXT,
                                 value        TEXT);""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_list_metadata
-                                                    ON ietf_ma_list_metadata (mailing_list, project, key_);""")
+        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}_ma_list_metadata
+                             ON {self._prefix}_ma_list_metadata (mailing_list, project, key_);""")
 
-        self._db.execute("""CREATE TABLE IF NOT EXISTS ietf_ma_msg (
+        self._db.execute(f"""CREATE TABLE IF NOT EXISTS {self._prefix}_ma_msg (
                                 message_num   INTEGER PRIMARY KEY AUTOINCREMENT,
                                 mailing_list  TEXT NOT NULL,
                                 uidvalidity   INTEGER NOT NULL,
                                 uid           INTEGER NOT NULL,
                                 message       BLOB
                             );""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_msg                 ON ietf_ma_msg (message_num);""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_msg_uidvalidity_uid ON ietf_ma_msg (mailing_list, uidvalidity, uid);""")
+        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}_ma_msg
+                             ON {self._prefix}_ma_msg (message_num);""")
+        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}_ma_msg_uidvalidity_uid
+                             ON {self._prefix}_ma_msg (mailing_list, uidvalidity, uid);""")
 
-        self._db.execute("""CREATE TABLE IF NOT EXISTS ietf_ma_hdr (
+        self._db.execute(f"""CREATE TABLE IF NOT EXISTS {self._prefix}_ma_hdr (
                                 id           INTEGER PRIMARY KEY AUTOINCREMENT,
                                 message_num  INTEGER,
                                 from_name    TEXT,
@@ -756,44 +764,55 @@ class MailArchive:
                                 date         TEXT,
                                 message_id   TEXT,
                                 in_reply_to  TEXT,
-                                FOREIGN KEY (message_num)  REFERENCES ietf_ma_msg (message_num)
+                                FOREIGN KEY (message_num)  REFERENCES {self._prefix}_ma_msg (message_num)
                             );""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr                ON ietf_ma_hdr (message_num);""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_messageid      ON ietf_ma_hdr (message_id, message_num);""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_in_reply_to    ON ietf_ma_hdr (message_num, in_reply_to);""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_from_addr_date ON ietf_ma_hdr (message_num, from_addr, date);""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_from_name_date ON ietf_ma_hdr (message_num, from_name, date);""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_date_subject   ON ietf_ma_hdr (message_num, date, subject);""")
+        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}_ma_hdr
+                             ON {self._prefix}_ma_hdr (message_num);""")
+        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}_ma_hdr_messageid
+                             ON {self._prefix}_ma_hdr (message_id, message_num);""")
+        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}_ma_hdr_in_reply_to
+                             ON {self._prefix}_ma_hdr (message_num, in_reply_to);""")
+        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}_ma_hdr_from_addr_date
+                             ON {self._prefix}_ma_hdr (message_num, from_addr, date);""")
+        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}_ma_hdr_from_name_date
+                             ON {self._prefix}_ma_hdr (message_num, from_name, date);""")
+        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}_ma_hdr_date_subject
+                             ON {self._prefix}_ma_hdr (message_num, date, subject);""")
 
-        self._db.execute("""CREATE TABLE IF NOT EXISTS ietf_ma_hdr_to (
+        self._db.execute(f"""CREATE TABLE IF NOT EXISTS {self._prefix}_ma_hdr_to (
                                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
                                 message_num INTEGER,
                                 to_index    INTEGER,
                                 to_name     TEXT,
                                 to_addr     TEXT,
-                                FOREIGN KEY (message_num) REFERENCES ietf_ma_msg (message_num)
+                                FOREIGN KEY (message_num) REFERENCES {self._prefix}_ma_msg (message_num)
                             );""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_to          ON ietf_ma_hdr_to (message_num);""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_to_to_index ON ietf_ma_hdr_to (message_num, to_index);""")
+        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}_ma_hdr_to
+                             ON {self._prefix}_ma_hdr_to (message_num);""")
+        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}_ma_hdr_to_to_index
+                             ON {self._prefix}_ma_hdr_to (message_num, to_index);""")
 
-        self._db.execute("""CREATE TABLE IF NOT EXISTS ietf_ma_hdr_cc (
+        self._db.execute(f"""CREATE TABLE IF NOT EXISTS {self._prefix}_ma_hdr_cc (
                                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
                                 message_num INTEGER,
                                 cc_index    INTEGER,
                                 cc_name     TEXT,
                                 cc_addr     TEXT,
-                                FOREIGN KEY (message_num) REFERENCES ietf_ma_msg (message_num)
+                                FOREIGN KEY (message_num) REFERENCES {self._prefix}_ma_msg (message_num)
                             );""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_cc          ON ietf_ma_hdr_cc (message_num);""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_hdr_cc_cc_index ON ietf_ma_hdr_cc (message_num, cc_index);""")
+        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}_ma_hdr_cc
+                             ON {self._prefix}_ma_hdr_cc (message_num);""")
+        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}_ma_hdr_cc_cc_index
+                             ON {self._prefix}_ma_hdr_cc (message_num, cc_index);""")
 
-        self._db.execute("""CREATE TABLE IF NOT EXISTS ietf_ma_msg_metadata (
+        self._db.execute(f"""CREATE TABLE IF NOT EXISTS {self._prefix}_ma_msg_metadata (
                                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
                                 message_num INTEGER,
                                 project     TEXT,
                                 key_        TEXT,
                                 value       TEXT);""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_ietf_ma_msg_metadata ON ietf_ma_msg_metadata (message_num, project, key_);""")
+        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}_ma_msg_metadata
+                             ON {self._prefix}_ma_msg_metadata (message_num, project, key_);""")
 
         self._db.commit()
 
@@ -811,7 +830,7 @@ class MailArchive:
         """
         dbc = self._db.cursor()
         for name in self._backend.mailboxes():
-            dbc.execute("INSERT OR IGNORE INTO ietf_ma_lists (name) VALUES (?)", (name,))
+            dbc.execute(f"INSERT OR IGNORE INTO {self._prefix}_ma_lists (name) VALUES (?)", (name,))
         self._db.commit()
 
 
@@ -874,7 +893,7 @@ class MailArchive:
         Yield the names of the mailing lists that exist in the mail archive.
         """
         dbc = self._db.cursor()
-        for name in dbc.execute("SELECT name FROM ietf_ma_lists;", ()):
+        for name in dbc.execute(f"SELECT name FROM {self._prefix}_ma_lists;", ()):
             yield name[0]
 
 
@@ -897,7 +916,7 @@ class MailArchive:
         archives of the "art", "last-call", and "tsvwg" lists.
         """
         dbc = self._db.cursor()
-        sql = "SELECT message_num FROM ietf_ma_hdr WHERE message_id = ?;"
+        sql = f"SELECT message_num FROM {self._prefix}_ma_hdr WHERE message_id = ?;"
         msgs = []
         for msg_num in map(lambda x : x[0], dbc.execute(sql, (message_id, )).fetchall()): 
             msgs.append(Envelope(self, msg_num))
@@ -921,11 +940,11 @@ class MailArchive:
         the messages that match all of the specified criteria.
         """
         dbc = self._db.cursor()
-        query = """SELECT DISTINCT ietf_ma_msg.message_num 
-                   FROM ietf_ma_msg
-                   LEFT JOIN ietf_ma_hdr    ON ietf_ma_msg.message_num = ietf_ma_hdr.message_num
-                   LEFT JOIN ietf_ma_hdr_to ON ietf_ma_msg.message_num = ietf_ma_hdr_to.message_num
-                   LEFT JOIN ietf_ma_hdr_cc ON ietf_ma_msg.message_num = ietf_ma_hdr_cc.message_num
+        query = f"""SELECT DISTINCT {self._prefix}_ma_msg.message_num
+                   FROM {self._prefix}_ma_msg
+                   LEFT JOIN {self._prefix}_ma_hdr    ON {self._prefix}_ma_msg.message_num = {self._prefix}_ma_hdr.message_num
+                   LEFT JOIN {self._prefix}_ma_hdr_to ON {self._prefix}_ma_msg.message_num = {self._prefix}_ma_hdr_to.message_num
+                   LEFT JOIN {self._prefix}_ma_hdr_cc ON {self._prefix}_ma_msg.message_num = {self._prefix}_ma_hdr_cc.message_num
                    WHERE """
         sql = []
         arg = []

@@ -28,6 +28,14 @@ from typing import Iterator, List, Tuple
 
 class MailArchiveBackend(ABC):
     @abstractmethod
+    def db_prefix(self) -> str:
+        """
+        Return the prefix to be used for the database tables.
+        """
+        pass
+
+
+    @abstractmethod
     def mailboxes(self) -> List[str]:
         """
         Return the list of mailboxes available on the server.
