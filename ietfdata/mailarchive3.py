@@ -773,8 +773,8 @@ class MailArchive:
                              ON {self._prefix}_ma_hdr (message_num);""")
         self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}_ma_hdr_messageid
                              ON {self._prefix}_ma_hdr (message_id, message_num);""")
-        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}_ma_hdr_in_reply_to
-                             ON {self._prefix}_ma_hdr (message_num, in_reply_to);""")
+        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}_ma_hdr_in_reply
+                             ON {self._prefix}_ma_hdr (in_reply_to, message_num);""")
         self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}_ma_hdr_from_addr_date
                              ON {self._prefix}_ma_hdr (message_num, from_addr, date);""")
         self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}_ma_hdr_from_name_date
