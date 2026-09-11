@@ -31,7 +31,7 @@ if __name__ == "__main__":
     if len(sys.argv) == 2:
         sqlite_file = sys.argv[1]
     else:
-        print("Usage: python3 -m ietfdata.tools.download_ma_ietf <ietfdata-ma.sqlite>")
+        print("Usage: python3 -m ietfdata.tools.download_ma_ietf archive/ietf-ma.sqlite")
         sys.exit(1)
 
     ma = MailArchive(sqlite_file, backend = MailArchiveBackendIETF())

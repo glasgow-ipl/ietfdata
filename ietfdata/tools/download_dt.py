@@ -1,4 +1,4 @@
-# Copyright (C) 2025 University of Glasgow
+# Copyright (C) 2025-2026 University of Glasgow
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,7 +31,7 @@ if __name__ == "__main__":
     if len(sys.argv) == 2:
         sqlite_file = sys.argv[1]
     else:
-        print("Usage: python3 -m ietfdata.tools.download_dt <ietfdata-dt.sqlite>")
+        print("Usage: python3 -m ietfdata.tools.download_dt archive/ietf-dt.sqlite")
         sys.exit(1)
 
     dt = DataTracker(DTBackendArchive(sqlite_file))
