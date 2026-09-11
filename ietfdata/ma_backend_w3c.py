@@ -23,13 +23,22 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from ietfdata.ma_backend import *
+import json
+import requests
+import time
+import sys
+
+from bs4                 import BeautifulSoup
+from datetime            import datetime
+from pathlib             import Path
 from typing              import Any, Dict
+from ietfdata.ma_backend import *
 
 class MailArchiveBackendW3C(MailArchiveBackend):
 
     def __init__(self):
-        pass
+        self.session = requests.Session()
+        self.delay   = 0.33
 
 
     def db_prefix(self) -> str:
@@ -37,26 +46,46 @@ class MailArchiveBackendW3C(MailArchiveBackend):
 
 
     def mailboxes(self) -> List[str]:
-        return []
+        mailing_lists = []
+        time.sleep(self.delay)
+        resp = self.session.get("https://lists.w3.org/Archives/Public/")
+        if resp.status_code == 200:
+            soup = BeautifulSoup(resp.text, 'html.parser')
+            list_groups = soup.find_all("ul", class_="clean-list lol")
+            for lists in list_groups:
+                for ml in lists.find_all("li"):
+                    if ml.h3:
+                        name = ml.h3.text
+                        mailing_lists.append(name)
+            return mailing_lists
+        else:
+            print(f"ERROR: {resp.status_code}")
+            sys.exit()
 
 
     def open_mailbox(self, mailbox: str) -> None:
+        # https://lists.w3.org/Archives/Public/xml-dist-app/
+        print(f"open_mailbox {mailbox}")
         pass
 
 
     def close_mailbox(self) -> None:
+        print("close_mailbox")
         pass
 
 
     def validity(self) -> int:
+        print("validity")
         return 0
 
 
     def message_ids(self) -> List[int]:
+        print("message_ids")
         return []
 
 
     def fetch(self, message_ids: List[int]) -> Iterator[Tuple[int, bytes]]:
+        print(f"fetch {message_ids}")
         for i, b in [(0, bytes())]:
             yield (i, b)
 
