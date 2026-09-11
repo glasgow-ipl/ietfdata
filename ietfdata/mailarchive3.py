@@ -41,6 +41,7 @@ from typing                   import Dict, Iterator, List, Optional, Tuple, Unio
 
 from ietfdata.ma_backend      import MailArchiveBackend
 from ietfdata.ma_backend_ietf import MailArchiveBackendIETF
+from ietfdata.ma_backend_w3c  import MailArchiveBackendW3C
 from ietfdata.ma_parsing      import EmailPolicyCustom, parse_message
 
 # =================================================================================================

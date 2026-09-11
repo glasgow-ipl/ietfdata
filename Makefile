@@ -61,6 +61,9 @@ archive/ietf-dt.sqlite: | archive
 archive/ietf-ma.sqlite: | archive
 	python3 -m ietfdata.tools.download_ma_ietf $@
 
+archive/w3c-ma.sqlite: | archive
+	python3 -m ietfdata.tools.download_ma_w3c $@
+
 # =============================================================================
 # Rules to update the data derived from the archive.
 
