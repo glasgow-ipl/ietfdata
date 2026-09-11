@@ -55,11 +55,11 @@ archive:
 archive/rfc-index.xml: | archive
 	curl -s -o $@ https://www.rfc-editor.org/rfc-index.xml
 
-archive/ietfdata-dt.sqlite: | archive
+archive/ietf-dt.sqlite: | archive
 	python3 -m ietfdata.tools.download_dt $@
 
-archive/ietfdata-ma.sqlite: | archive
-	python3 -m ietfdata.tools.download_ma $@
+archive/ietf-ma.sqlite: | archive
+	python3 -m ietfdata.tools.download_ma_ietf $@
 
 # =============================================================================
 # Rules to update the data derived from the archive.
@@ -67,17 +67,17 @@ archive/ietfdata-ma.sqlite: | archive
 data:
 	mkdir $@
 
-data/participants.json: archive/ietfdata-dt.sqlite archive/ietfdata-ma.sqlite | data
+data/participants.json: archive/ietf-dt.sqlite archive/ietf-ma.sqlite | data
 	python3 -m ietfdata.tools.participants  $^ $@
 
-data/organisations.json: archive/ietfdata-dt.sqlite archive/rfc-index.xml | data
+data/organisations.json: archive/ietf-dt.sqlite archive/rfc-index.xml | data
 	python3 -m ietfdata.tools.organisations $^ $@
 
-data/affiliations.json: archive/ietfdata-dt.sqlite archive/rfc-index.xml data/participants.json data/organisations.json | data
+data/affiliations.json: archive/ietf-dt.sqlite archive/rfc-index.xml data/participants.json data/organisations.json | data
 	python3 -m ietfdata.tools.affiliations  $^ $@
 
 # Can this rule and ietfdata/tools/participants_affiliations.py be removed?
-data/affiliations2.json: archive/ietfdata-dt.sqlite archive/rfc-index.xml data/participants.json data/organisations.json | data
+data/affiliations2.json: archive/ietf-dt.sqlite archive/rfc-index.xml data/participants.json data/organisations.json | data
 	python3 -m ietfdata.tools.participants_affiliations $^ $@
 
 # =================================================================================================
