@@ -84,7 +84,11 @@ class MailArchiveBackendW3C(MailArchiveBackend):
                         msg_uid = msg.a["id"]
                         subject = msg.a.text
                         sender  = msg.span.text
-                        result = {"uid": msg_uid, "date": date, "url": msg_uri, "subject": subject, "sender": sender}
+                        result = {"uid"     : msg_uid,
+                                  "date"    : date,
+                                  "url"     : msg_uri,
+                                  "subject" : subject,
+                                  "sender"  : sender}
                         messages.append(result)
                 elif item.name == "p":
                     pass
@@ -145,7 +149,8 @@ class MailArchiveBackendW3C(MailArchiveBackend):
             for fitem in footer.find_all("li"):
                 fheader = fitem.find("span", class_="heading")
                 if fheader is not None:
-                    if fheader.text.strip() == "In reply to" or fheader.text.strip() == "Maybe in reply to":
+                    fheader_text = fheader.text.strip() 
+                    if fheader_text == "In reply to" or fheader_text == "Maybe in reply to":
                         anchor = fitem.find("a")
                         if anchor.text == "Message archived in another list or period":
                             in_reply_to = anchor["href"]
