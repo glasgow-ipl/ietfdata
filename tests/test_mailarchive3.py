@@ -49,7 +49,7 @@ class TestMailArchive3(unittest.TestCase):
 
     @classmethod
     def setUpClass(self) -> None:
-        sqlite_file = "archive/ietfdata-ma.sqlite"
+        sqlite_file = "archive/ietf-ma.sqlite"
         self.ma = MailArchive(sqlite_file)
         self.db = sqlite3.connect(sqlite_file)
 
