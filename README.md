@@ -230,12 +230,12 @@ to retrieve all discussion threads.
 You can find information about the messages sent to a mailing list:
 ```python3
 ml = ma.mailing_list("quic")
-for msg in ml.messages():
-  print(f"From:    {msg.from_()}")
-  print(f"To:      {msg.to()}")
-  print(f"Subject: {msg.subject()}")
-  print(f"Date:    {msg.date()}")
-  print(f"Message-Id:  {msg.message_id()}")
+for envelope in ml.messages():
+  print(f"From:    {envelope.from_()}")
+  print(f"To:      {envelope.to()}")
+  print(f"Subject: {envelope.subject()}")
+  print(f"Date:    {envelope.date()}")
+  print(f"Message-Id:  {envelope.message_id()}")
   print("")
 ```
 Each email message is represented by an `Envelope` object. The envelope has
@@ -244,9 +244,9 @@ a `contents()` method to retrieve the message contents, and `replies()`
 and `in_reply_to()` methods to follow the thread of discussion.
 
 Each email message on the server is uniquely identified by the combination
-of the name mailing list it was sent to, and the `uidvalidity()` and `uid()`
-of the message. Each message also has a `message_id()` that identifies the
-message.
+of the name of the mailing list it was sent to, and the `uidvalidity()` and
+`uid()` fields of the message. Each message also has a `message_id()` that
+identifies the message.
 
 If a message is sent copied to several different mailing lists, then it
 will appear in the mail archive several times, one copy in each mailing
