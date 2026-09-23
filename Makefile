@@ -79,10 +79,6 @@ data/organisations.json: archive/ietf-dt.sqlite archive/rfc-index.xml | data
 data/affiliations.json: archive/ietf-dt.sqlite archive/rfc-index.xml data/participants.json data/organisations.json | data
 	python3 -m ietfdata.tools.affiliations  $^ $@
 
-# Can this rule and ietfdata/tools/participants_affiliations.py be removed?
-data/affiliations2.json: archive/ietf-dt.sqlite archive/rfc-index.xml data/participants.json data/organisations.json | data
-	python3 -m ietfdata.tools.participants_affiliations $^ $@
-
 # =================================================================================================
 # Rules to clean-up:
 
