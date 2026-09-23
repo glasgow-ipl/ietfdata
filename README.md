@@ -123,7 +123,7 @@ The `DataTrackerExt` class is instantiated in an analogous manner to the
 ``` python
 from ietfdata.datatracker_ext import *
 
-dt = DataTrackerExt(DTBackendArchive("archive/ietf-dt.sqlite"))
+dte = DataTrackerExt(DTBackendArchive("archive/ietf-dt.sqlite"))
 ```
 
 ### Usage
@@ -131,7 +131,7 @@ Since it's a subclass of the `DataTracker`, any of the methods that can be
 used on the `DataTracker` can also be used with `DataTrackerExt`.
 
 The `DataTrackerExt` offers a number of other useful features including
-the ability to find the history of a draft or RFC:
+the ability to find the history of an RFC:
 ```python
 from ietfdata.datatracker_ext import *
 from ietfdata.rfcindex        import *
@@ -154,6 +154,9 @@ It also contains methods to find the people who currently hold various
 leadership roles in the IETF, IRTF, and IAB, and the set of currently
 active working groups and research groups, for example:
 ```python
+c = dte.ietf_chair()
+print(c.name)
+
 for p in dte.working_group_chairs():
     print(p.name)
 ```
