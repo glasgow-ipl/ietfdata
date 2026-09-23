@@ -16,7 +16,7 @@ license         = "BSD-2-Clause"
 requires-python = '>=3.13'
 
 dependencies = [
-  "bs4",
+  "beautifulsoup4",
   "imapclient",
   "pandas",
   "pandas-stubs",
