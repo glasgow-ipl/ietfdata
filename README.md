@@ -304,6 +304,37 @@ As of September 2026, the entity resolution code runs but has known
 problems and limitations that mean the results are not always accurate.
 
 
+## GitHub Access
+
+IETF working groups increasing make use of GitHub to prepare documents.
+The `ietfdata` library contains minimal, extremely limited, code to fetch
+relevant data from GitHub:
+```python
+from ietfdata.github import GitHub
+
+gh = GitHub()
+for issue in gh.issues("quicwg", "base-drafts"):
+    print(issue)
+
+for comment in gh.comments_for_issue("quicwg", "base-drafts", "5010"):
+    print(comment)
+
+user = gh.user("csperkins")
+print(user)
+
+for repo in  gh.repos_for_user("csperkins"):
+    print(repo)
+```
+
+NOTE: GitHub aggressively rate limits access for unauthenticated users to
+60 requests per hour.  Set the environment variable `GITHUB_API_TOKEN` to
+your GitHub access token before using this code to receive the higher rate
+limit (5000 requests per hour) available to logged-in users. If you don't
+have an access token, see `https://github.com/settings/tokens` when logged
+in to GitHub and select "Generate new token".
+
+
+
 ## Development
 
 To modify the `ietfdata` library, clone from GitHub then follow the
