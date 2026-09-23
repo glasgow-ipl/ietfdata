@@ -44,133 +44,137 @@ class MailArchiveBackendW3C(MailArchiveBackend):
         self.mailbox = None
 
 
-    def _find_indexes(self, list_url):
-        indexes = []
-        time.sleep(self.delay)
-        resp = self.session.get(list_url)
-        if resp.status_code == 200:
-            soup = BeautifulSoup(resp.text, 'html.parser')
-            main = soup.find("main")
-            for tbody in main.find_all("tbody"):
-                for period in tbody.find_all("td", class_="cell_period"):
-                    period_date = period.text
-                    period_url  = list_url + period.a["href"]
-                    period_path = period.a["href"]
-                    item = {"period": period_date, "url": period_url, "path": period_path}
-                    indexes.append(item)
-        else:
-            print(f"ERROR: {resp.status_code} {list_url}")
+    def _find_indexes(self, list_url:str) -> list[dict]:
+        indexes : list[dict] = []
+        #time.sleep(self.delay)
+        #resp = self.session.get(list_url)
+        #if resp.status_code == 200:
+        #    soup = BeautifulSoup(resp.text, 'html.parser')
+        #    main = soup.find("main")
+        #    if main is not None:
+        #        for tbody in main.find_all("tbody"):
+        #            for period in tbody.find_all("td", class_="cell_period"):
+        #                if period.a is None:
+        #                    continue
+        #                period_href = period.a["href"]
+        #                period_date = period.text
+        #                period_url  = list_url + period_href
+        #                item = {"period": period_date, "url": period_url, "path": period_href}
+        #                print(item)
+        #                indexes.append(item)
+        #else:
+        #    print(f"ERROR: {resp.status_code} {list_url}")
         return indexes
 
 
-    def _find_messages(self, index_url):
-        messages = []
-        time.sleep(self.delay)
-        resp = self.session.get(index_url)
-        if resp.status_code == 200:
-            soup = BeautifulSoup(resp.text, 'html.parser')
-            main = soup.find("main", class_="messages-list")
-            date = None
-            for item in main.children:
-                if item.name == "h2":
-                    try:
-                        date = datetime.strptime(item.text.strip(), "%A, %d %B %Y").date()
-                    except:
-                        print(f"Cannot parse date: {item.text.strip()}")
-                        date = None
-                elif item.name == "ul":
-                    for msg in item.find_all("li"):
-                        msg_uri = resp.url + msg.a["href"]
-                        msg_uid = msg.a["id"]
-                        subject = msg.a.text
-                        sender  = msg.span.text
-                        result = {"uid"     : msg_uid,
-                                  "date"    : date,
-                                  "url"     : msg_uri,
-                                  "subject" : subject,
-                                  "sender"  : sender}
-                        messages.append(result)
-                elif item.name == "p":
-                    pass
-                elif item.name is None:
-                    pass
-                else:
-                    print(f"eeror [{item}]")
-                    sys.exit()
-            return messages
-        else:
-            print(f"ERROR: {resp.status_code} {index_url}")
+    def _find_messages(self, index_url) -> list:
+        return []
+        #messages = []
+        #time.sleep(self.delay)
+        #resp = self.session.get(index_url)
+        #if resp.status_code == 200:
+        #    soup = BeautifulSoup(resp.text, 'html.parser')
+        #    main = soup.find("main", class_="messages-list")
+        #    date = None
+        #    for item in main.children:
+        #        if item.name == "h2":
+        #            try:
+        #                date = datetime.strptime(item.text.strip(), "%A, %d %B %Y").date()
+        #            except:
+        #                print(f"Cannot parse date: {item.text.strip()}")
+        #                date = None
+        #        elif item.name == "ul":
+        #            for msg in item.find_all("li"):
+        #                msg_uri = resp.url + msg.a["href"]
+        #                msg_uid = msg.a["id"]
+        #                subject = msg.a.text
+        #                sender  = msg.span.text
+        #                result = {"uid"     : msg_uid,
+        #                          "date"    : date,
+        #                          "url"     : msg_uri,
+        #                          "subject" : subject,
+        #                          "sender"  : sender}
+        #                messages.append(result)
+        #        elif item.name == "p":
+        #            pass
+        #        elif item.name is None:
+        #            pass
+        #        else:
+        #            print(f"eeror [{item}]")
+        #            sys.exit()
+        #    return messages
+        #else:
+        #    print(f"ERROR: {resp.status_code} {index_url}")
 
 
     def _fetch_message(self, msg_url, base_url):
-        time.sleep(self.delay)
-        resp = self.session.get(msg_url)
-        if resp.status_code == 200:
-            soup = BeautifulSoup(resp.text, 'html.parser')
-            main = soup.find("main", class_="mail")
+        pass
+        #time.sleep(self.delay)
+        #resp = self.session.get(msg_url)
+        #if resp.status_code == 200:
+        #    soup = BeautifulSoup(resp.text, 'html.parser')
+        #    main = soup.find("main", class_="mail")
 
-            headers = main.find("ul", class_="headers")
-            hdr_subject = "Subject: " + soup.find("h1").text.strip()
-            hdr_date    = headers.find("span", class_ = "date")
-            hdr_from    = headers.find("span", class_ = "from")
-            hdr_to      = headers.find("span", class_ = "to")
-            hdr_cc      = headers.find("span", class_ = "cc")
-            hdr_msg_id  = headers.find("span", class_ = "message-id")
+        #    headers = main.find("ul", class_="headers")
+        #    hdr_subject = "Subject: " + soup.find("h1").text.strip()
+        #    hdr_date    = headers.find("span", class_ = "date")
+        #    hdr_from    = headers.find("span", class_ = "from")
+        #    hdr_to      = headers.find("span", class_ = "to")
+        #    hdr_cc      = headers.find("span", class_ = "cc")
+        #    hdr_msg_id  = headers.find("span", class_ = "message-id")
 
-            msg_body = main.find("pre", class_ = "body")
+        #    msg_body = main.find("pre", class_ = "body")
 
-            attach_list = []
-            attachments = main.find("section", class_ = "message-body-part attachment-links")
-            if attachments is not None:
-                for attach in attachments.find_all("li"):
-                    parts = attach.text.split()
-                    if parts[1] == "attachment:":
-                        if len(parts) == 3 and parts[2] == "stored":
-                            attach_type = parts[0]
-                            attach_disp = "inline"
-                        else:
-                            attach_type = parts[0]
-                            attach_disp = "attach"
-                    else:
-                        print(f"ERROR: can't parse attachment")
-                        print(attach)
-                        sys.exit()
-                    attach_path = attach.find("a")["href"]
-                    attach_url  = base_url + attach_path
-                    attachment = {"media_type"  : attach_type,
-                                  "url"         : attach_url,
-                                  "path"        : attach_path,
-                                  "disposition" : attach_disp}
-                    attach_list.append(attachment)
+        #    attach_list = []
+        #    attachments = main.find("section", class_ = "message-body-part attachment-links")
+        #    if attachments is not None:
+        #        for attach in attachments.find_all("li"):
+        #            parts = attach.text.split()
+        #            if parts[1] == "attachment:":
+        #                if len(parts) == 3 and parts[2] == "stored":
+        #                    attach_type = parts[0]
+        #                    attach_disp = "inline"
+        #                else:
+        #                    attach_type = parts[0]
+        #                    attach_disp = "attach"
+        #            else:
+        #                print(f"ERROR: can't parse attachment")
+        #                print(attach)
+        #                sys.exit()
+        #            attach_path = attach.find("a")["href"]
+        #            attach_url  = base_url + attach_path
+        #            attachment = {"media_type"  : attach_type,
+        #                          "url"         : attach_url,
+        #                          "path"        : attach_path,
+        #                          "disposition" : attach_disp}
+        #            attach_list.append(attachment)
 
+        #    footer = soup.find("footer")
+        #    in_reply_to = None
+        #    for fitem in footer.find_all("li"):
+        #        fheader = fitem.find("span", class_="heading")
+        #        if fheader is not None:
+        #            fheader_text = fheader.text.strip() 
+        #            if fheader_text == "In reply to" or fheader_text == "Maybe in reply to":
+        #                anchor = fitem.find("a")
+        #                if anchor.text == "Message archived in another list or period":
+        #                    in_reply_to = anchor["href"]
+        #                else:
+        #                    in_reply_to = base_url + anchor["href"]
 
-            footer = soup.find("footer")
-            in_reply_to = None
-            for fitem in footer.find_all("li"):
-                fheader = fitem.find("span", class_="heading")
-                if fheader is not None:
-                    fheader_text = fheader.text.strip() 
-                    if fheader_text == "In reply to" or fheader_text == "Maybe in reply to":
-                        anchor = fitem.find("a")
-                        if anchor.text == "Message archived in another list or period":
-                            in_reply_to = anchor["href"]
-                        else:
-                            in_reply_to = base_url + anchor["href"]
-
-
-            item = {"msg_url"      : msg_url,
-                    "subject"      : hdr_subject,
-                    "date"         : hdr_date.text.strip()    if hdr_date   is not None else None,
-                    "from"         : hdr_from.text.strip()    if hdr_from   is not None else None,
-                    "to"           : hdr_to.text.strip()      if hdr_to     is not None else None,
-                    "cc"           : hdr_cc.text.strip()      if hdr_cc     is not None else None,
-                    "message-id"   : hdr_msg_id.text.strip()  if hdr_msg_id is not None else None,
-                    "body"         : msg_body.text.strip()    if msg_body   is not None else None,
-                    "reply_to_url" : in_reply_to,
-                    "attachments"  : attach_list}
-            return item
-        else:
-            print(f"ERROR: {resp.status_code} {msg_url}")
+        #    item = {"msg_url"      : msg_url,
+        #            "subject"      : hdr_subject,
+        #            "date"         : hdr_date.text.strip()    if hdr_date   is not None else None,
+        #            "from"         : hdr_from.text.strip()    if hdr_from   is not None else None,
+        #            "to"           : hdr_to.text.strip()      if hdr_to     is not None else None,
+        #            "cc"           : hdr_cc.text.strip()      if hdr_cc     is not None else None,
+        #            "message-id"   : hdr_msg_id.text.strip()  if hdr_msg_id is not None else None,
+        #            "body"         : msg_body.text.strip()    if msg_body   is not None else None,
+        #            "reply_to_url" : in_reply_to,
+        #            "attachments"  : attach_list}
+        #    return item
+        #else:
+        #    print(f"ERROR: {resp.status_code} {msg_url}")
 
 
     def db_prefix(self) -> str:
