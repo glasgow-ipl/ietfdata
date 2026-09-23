@@ -24,8 +24,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 ARCHIVE := archive/rfc-index.xml \
-           archive/ietfdata-dt.sqlite \
-           archive/ietfdata-ma.sqlite
+           archive/ietf-dt.sqlite \
+           archive/ietf-ma.sqlite
 
 DATA := data/participants.json  \
         data/organisations.json \
