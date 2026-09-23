@@ -288,7 +288,7 @@ Running these commands will generate three files:
 
 * The file `participants.json` contains information about the people,
   giving each participant in IETF a unique identifier (e.g., `PID:063009`)
-  that is associated with their name, email addresses, DataTracker
+  that is associated with their names, email addresses, DataTracker
   identifier, GitHub username, any other identifying information that can be
   extracted.
 
@@ -298,7 +298,7 @@ Running these commands will generate three files:
   names it uses.
 
 * The file `affiliations.json`, matches participants to organisations at
-  different stages of that participant's career.
+  different stages of their career.
 
 As of September 2026, the entity resolution code runs but has known
 problems and limitations that mean the results are not always accurate.
