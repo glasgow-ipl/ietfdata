@@ -269,8 +269,9 @@ See `rfcindex.py`
 
 To modify the `ietfdata` library, clone from GitHub then follow the
 instructions below to install dependencies and test the results. If you
-just intend to use the library to support writing a paper or to perform
-some other analysis, you can skip this section.
+just intend to use the library to support writing a paper, as part of a
+student project, or to perform some other analysis, you can skip the
+remainder of this document.
 
 Create a virtual environment and install dependencies in the usual manner:
 ```sh
