@@ -356,7 +356,10 @@ class DataTracker:
 
 
     def ext_resource_type_name_from_slug(self, slug: str) -> Optional[ExtResourceTypeName]:
-        return self._retrieve(ExtResourceTypeNameURI(uri=f"/api/v1/name/extresourcetypename/{slug}/"), ExtResourceTypeName)
+        try:
+            return self._retrieve(ExtResourceTypeNameURI(uri=f"/api/v1/name/extresourcetypename/{slug}/"), ExtResourceTypeName)
+        except RuntimeError:
+            return None
 
 
     def ext_resource_type_names(self) -> Iterator[ExtResourceTypeName]:
@@ -374,7 +377,10 @@ class DataTracker:
 
     def email_for_address(self, email_addr: str) -> Optional[Email]:
         uri = EmailURI(uri=f"/api/v1/person/email/{email_addr}/")
-        return self.email(uri)
+        try:
+            return self.email(uri)
+        except RuntimeError:
+            return None
 
 
     def email_for_person(self, person: Person) -> Iterator[Email]:
@@ -453,7 +459,10 @@ class DataTracker:
         """
         assert draft.startswith("draft-")
         assert not "," in draft
-        return self.document(DocumentURI(uri="/api/v1/doc/document/" + draft + "/"))
+        try:
+            return self.document(DocumentURI(uri="/api/v1/doc/document/" + draft + "/"))
+        except RuntimeError:
+            return None
 
 
     def document_from_rfc(self, rfc: str) -> Optional[Document]:
@@ -467,7 +476,10 @@ class DataTracker:
             A Document object
         """
         assert rfc.lower().startswith("rfc")
-        return self.document(DocumentURI(uri="/api/v1/doc/document/" + rfc.lower() + "/"))
+        try:
+            return self.document(DocumentURI(uri="/api/v1/doc/document/" + rfc.lower() + "/"))
+        except RuntimeError:
+            return None
 
 
     def documents_from_bcp(self, bcp: str) -> Iterator[Document]:
@@ -670,7 +682,10 @@ class DataTracker:
 
 
     def relationship_type_from_slug(self, slug: str) -> Optional[RelationshipType]:
-        return self._retrieve(RelationshipTypeURI(uri=f"/api/v1/name/docrelationshipname/{slug}/"), RelationshipType)
+        try:
+            return self._retrieve(RelationshipTypeURI(uri=f"/api/v1/name/docrelationshipname/{slug}/"), RelationshipType)
+        except RuntimeError:
+            return None
 
 
     def relationship_types(self) -> Iterator[RelationshipType]:
@@ -706,7 +721,10 @@ class DataTracker:
 
 
     def ballot_position_name_from_slug(self, slug: str) -> Optional[BallotPositionName]:
-        return self._retrieve(BallotPositionNameURI(uri=f"/api/v1/name/ballotpositionname/{slug}/"), BallotPositionName)
+        try:
+            return self._retrieve(BallotPositionNameURI(uri=f"/api/v1/name/ballotpositionname/{slug}/"), BallotPositionName)
+        except RuntimeError:
+            return None
 
 
     def ballot_position_names(self) -> Iterator[BallotPositionName]:
@@ -857,7 +875,10 @@ class DataTracker:
 
 
     def stream_from_slug(self, slug: str) -> Optional[Stream]:
-        return self._retrieve(StreamURI(uri=f"/api/v1/name/streamname/{slug}/"), Stream)
+        try:
+            return self._retrieve(StreamURI(uri=f"/api/v1/name/streamname/{slug}/"), Stream)
+        except RuntimeError:
+            return None
 
 
     def streams(self) -> Iterator[Stream]:
@@ -997,7 +1018,10 @@ class DataTracker:
 
 
     def role_name_from_slug(self, slug: str) -> Optional[RoleName]:
-        return self._retrieve(RoleNameURI(uri=f"/api/v1/name/rolename/{slug}/"), RoleName)
+        try:
+            return self._retrieve(RoleNameURI(uri=f"/api/v1/name/rolename/{slug}/"), RoleName)
+        except RuntimeError:
+            return None
 
 
     def role_names(self) -> Iterator[RoleName]:
@@ -1108,7 +1132,10 @@ class DataTracker:
 
 
     def group_state_from_slug(self, slug : str) -> Optional[GroupState]:
-        return self._retrieve(GroupStateURI(uri=f"/api/v1/name/groupstatename/{slug}/"), GroupState)
+        try:
+            return self._retrieve(GroupStateURI(uri=f"/api/v1/name/groupstatename/{slug}/"), GroupState)
+        except RuntimeError:
+            return None
 
 
     def group_states(self) -> Iterator[GroupState]:
@@ -1121,7 +1148,10 @@ class DataTracker:
 
 
     def group_type_name_from_slug(self, slug : str) -> Optional[GroupTypeName]:
-        return self._retrieve(GroupTypeNameURI(uri=f"/api/v1/name/grouptypename/{slug}/"), GroupTypeName)
+        try:
+            return self._retrieve(GroupTypeNameURI(uri=f"/api/v1/name/grouptypename/{slug}/"), GroupTypeName)
+        except RuntimeError:
+            return None
 
 
     def group_type_names(self) -> Iterator[GroupTypeName]:
@@ -1213,7 +1243,10 @@ class DataTracker:
 
 
     def meeting_session_status_name_from_slug(self, slug: str) -> Optional[SessionStatusName]:
-        return self._retrieve(SessionStatusNameURI(uri=f"/api/v1/name/sessionstatusname/{slug}/"), SessionStatusName)
+        try:
+            return self._retrieve(SessionStatusNameURI(uri=f"/api/v1/name/sessionstatusname/{slug}/"), SessionStatusName)
+        except RuntimeError:
+            return None
 
 
     def meeting_session_status_names(self) -> Iterator[SessionStatusName]:
@@ -1310,7 +1343,10 @@ class DataTracker:
 
 
     def meeting_type_from_slug(self, slug: str) -> Optional[MeetingType]:
-        return self._retrieve(MeetingTypeURI(uri=f"/api/v1/name/meetingtypename/{slug}/"), MeetingType)
+        try:
+            return self._retrieve(MeetingTypeURI(uri=f"/api/v1/name/meetingtypename/{slug}/"), MeetingType)
+        except RuntimeError:
+            return None
 
 
     def meeting_types(self) -> Iterator[MeetingType]:
@@ -1597,7 +1633,10 @@ class DataTracker:
 
 
     def review_assignment_state_from_slug(self, slug: str) -> Optional[ReviewAssignmentState]:
-        return self._retrieve(ReviewAssignmentStateURI(uri=f"/api/v1/name/reviewassignmentstatename/{slug}/"), ReviewAssignmentState)
+        try:
+            return self._retrieve(ReviewAssignmentStateURI(uri=f"/api/v1/name/reviewassignmentstatename/{slug}/"), ReviewAssignmentState)
+        except RuntimeError:
+            return None
 
 
     def review_assignment_states(self) -> Iterator[ReviewAssignmentState]:
@@ -1609,7 +1648,10 @@ class DataTracker:
 
 
     def review_result_type_from_slug(self, slug: str) -> Optional[ReviewResultType]:
-        return self._retrieve(ReviewResultTypeURI(uri=f"/api/v1/name/reviewresultname/{slug}/"), ReviewResultType)
+        try:
+            return self._retrieve(ReviewResultTypeURI(uri=f"/api/v1/name/reviewresultname/{slug}/"), ReviewResultType)
+        except RuntimeError:
+            return None
 
 
     def review_result_types(self) -> Iterator[ReviewResultType]:
@@ -1621,7 +1663,10 @@ class DataTracker:
 
 
     def review_type_from_slug(self, slug: str) -> Optional[ReviewType]:
-        return self._retrieve(ReviewTypeURI(uri=f"/api/v1/name/reviewtypename/{slug}/"), ReviewType)
+        try:
+            return self._retrieve(ReviewTypeURI(uri=f"/api/v1/name/reviewtypename/{slug}/"), ReviewType)
+        except RuntimeError:
+            return None
 
 
     def review_types(self) -> Iterator[ReviewType]:
@@ -1933,7 +1978,10 @@ class DataTracker:
 
 
     def continent_from_slug(self, slug : str) -> Optional[Continent]:
-        return self._retrieve(ContinentURI(uri=f"/api/v1/name/continentname/{slug}/"), Continent)
+        try:
+            return self._retrieve(ContinentURI(uri=f"/api/v1/name/continentname/{slug}/"), Continent)
+        except RuntimeError:
+            return None
 
 
     def continents(self) -> Iterator[Continent]:
@@ -1946,7 +1994,10 @@ class DataTracker:
 
 
     def country_from_slug(self, slug : str) -> Optional[Country]:
-        return self._retrieve(CountryURI(uri=f"/api/v1/name/countryname/{slug}/"), Country)
+        try:
+            return self._retrieve(CountryURI(uri=f"/api/v1/name/countryname/{slug}/"), Country)
+        except RuntimeError:
+            return None
 
 
     def countries(self,
