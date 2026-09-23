@@ -31,14 +31,18 @@ DATA := data/participants.json  \
         data/organisations.json \
         data/affiliations.json
 
+all: tests $(DATA)
+
 # =============================================================================
 # Rules to run tests.
 
-test: typecheck
+test: typecheck test-live test-archive
+
+test-live:
 	@echo "*** Testing against live datatracker"
 	python3 -m unittest discover -s tests/ -v
 
-test-archive: typecheck $(ARCHIVE)
+test-archive: $(ARCHIVE)
 	@echo "*** Testing against archived datatracker"
 	DT_TEST_ARCHIVE=1 python3 -m unittest discover -s tests/ -v
 
@@ -70,14 +74,20 @@ archive/w3c-ma.sqlite: | archive
 data:
 	mkdir $@
 
-data/participants.json: archive/ietf-dt.sqlite archive/ietf-ma.sqlite | data
-	python3 -m ietfdata.tools.participants  $^ $@
+data/participants.json: ietfdata/tools/participants.py \
+                        archive/ietf-dt.sqlite archive/ietf-ma.sqlite | data
+	python3 -m ietfdata.tools.participants  archive/ietf-dt.sqlite archive/ietf-ma.sqlite $@
 
-data/organisations.json: archive/ietf-dt.sqlite archive/rfc-index.xml | data
-	python3 -m ietfdata.tools.organisations $^ $@
+data/organisations.json: ietfdata/tools/organisations.py \
+                         archive/ietf-dt.sqlite archive/rfc-index.xml | data
+	python3 -m ietfdata.tools.organisations archive/ietf-dt.sqlite archive/rfc-index.xml $@
 
-data/affiliations.json: archive/ietf-dt.sqlite archive/rfc-index.xml data/participants.json data/organisations.json | data
-	python3 -m ietfdata.tools.affiliations  $^ $@
+data/affiliations.json: ietfdata/tools/affiliations.py \
+                        archive/ietf-dt.sqlite archive/rfc-index.xml \
+												data/participants.json data/organisations.json | data
+	python3 -m ietfdata.tools.affiliations \
+             archive/ietf-dt.sqlite archive/rfc-index.xml \
+             data/participants.json data/organisations.json $@
 
 # =================================================================================================
 # Rules to clean-up:
