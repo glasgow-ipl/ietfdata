@@ -304,7 +304,7 @@ As of September 2026, the entity resolution code runs but has known
 problems and limitations that mean the results are not always accurate.
 
 
-## GitHub Access
+## GitHub Access
 
 IETF working groups increasing make use of GitHub to prepare documents.
 The `ietfdata` library contains minimal, extremely limited, code to fetch
