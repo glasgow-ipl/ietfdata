@@ -125,6 +125,8 @@ from ietfdata.datatracker_ext import *
 
 dt = DataTrackerExt(DTBackendArchive("archive/ietf-dt.sqlite"))
 ```
+
+### Usage
 Since it's a subclass of the `DataTracker`, any of the methods that can be
 used on the `DataTracker` can also be used with `DataTrackerExt`.
 
