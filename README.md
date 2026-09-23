@@ -322,16 +322,16 @@ for comment in gh.comments_for_issue("quicwg", "base-drafts", "5010"):
 user = gh.user("csperkins")
 print(user)
 
-for repo in  gh.repos_for_user("csperkins"):
+for repo in gh.repos_for_user("csperkins"):
     print(repo)
 ```
 
 NOTE: GitHub aggressively rate limits access for unauthenticated users to
 60 requests per hour.  Set the environment variable `GITHUB_API_TOKEN` to
 your GitHub access token before using this code to receive the higher rate
-limit (5000 requests per hour) available to logged-in users. If you don't
-have an access token, see `https://github.com/settings/tokens` when logged
-in to GitHub and select "Generate new token".
+limit (5000 requests per hour) available to logged-in GitHub users. If you
+don't have a GitHub access token, see `https://github.com/settings/tokens` when
+logged in to GitHub and select "Generate new token".
 
 
 
