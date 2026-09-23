@@ -108,7 +108,7 @@ for e in dt.group_events(group = g):
 
 There is a lot of information in the Datatracker. Read the source code
 the `datatracker.py` to understand what functions can be called, and the
-code for `datatracker_types.py` to understand the objects the take or
+code for `datatracker_types.py` to understand the objects they take or
 return.
 
 
