@@ -184,15 +184,15 @@ an `sqlite` database containing a copy of the archive:
 ```python
 ma = MailArchive("archive/ietf-ma.sqlite")
 ```
-Once instantiated, a call to `ma.update()` will bring the `sqlite`
-database up to date with the IETF mail archive. The first time the
-`ma.update()` function is called, it will download a complete copy of the
-mail archive. This is approximately 40 gigabytes in size and will take
-around 24 hours to download. Subsequent calls only fetch new messages,
-and are much faster.
+If the specified `sqlite` database does not exist, calling `ma.update()`
+will download a complete copy of the mail archive and store it in the
+database. This is approximately 40 gigabytes in size and will take around
+24 hours to download. If the `sqlite` database file already exists, calling
+`ma.update()` will only fetch new messages, and so will be much faster.
+Only call `ma.update()` if you want to fetch new messages from the server.
 
 The following can be run from the command line to fetch a copy of the
-mail archive:
+mail archive and create the `sqlite` database:
 ``` bash
   python3 -m ietfdata.tools.download_ma_ietf archive/ietf-ma.sqlite
 ```
@@ -202,10 +202,10 @@ with the others. This avoids overloading the IETF's servers, and ensures
 that everyone working in the group generates the same results.
 
 
-
 ### Usage
 
-Start by importing and instantiating the library:
+Once you have a copy of the `sqlite` database containing the mail archive,
+start by importing and instantiating the library:
 ```python
 from ietfdata.mailarchive3 import *
 ma = MailArchive("archive/ietf-ma.sqlite")
@@ -221,15 +221,37 @@ You can find information about a particular mailing list:
 ml = ma.mailing_list("quic")
 print(ml.num_messages())
 ```
+Each mailing list is represented by a `MailingList` object. That has a
+`messages()` method to retrieve the messages, and a `threads()` method
+to retrieve all discussion threads.
 
-You can find information about the messages:
+
+You can find information about the messages sent to a mailing list:
 ```python3
+ml = ma.mailing_list("quic")
 for msg in ml.messages():
   print(f"From:    {msg.from_()}")
   print(f"To:      {msg.to()}")
   print(f"Subject: {msg.subject()}")
+  print(f"Date:    {msg.date()}")
+  print(f"Message-Id:  {msg.message_id()}")
   print("")
 ```
+Each email message is represented by an `Envelope` object. The envelope has
+methods (`from_()`, `to()`, `subject()`, etc.) to access the header fields,
+a `contents()` method to retrieve the message contents, and `replies()`
+and `in_reply_to()` methods to follow the thread of discussion.
+
+Each email message on the server is uniquely identified by the combination
+of the name mailing list it was sent to, and the `uidvalidity()` and `uid()`
+of the message. Each message also has a `message_id()` that identifies the
+message.
+
+If a message is sent copied to several different mailing lists, then it
+will appear in the mail archive several times, one copy in each mailing
+list. Each copy will have a different mailing list, `uidvalidity()` and
+`uid()`, but all will have the same `message_id()`.
+
 
 Read the source code for `mailarchive3.py` for details.
 
