@@ -182,14 +182,15 @@ email archive.
 The `MailArchive3` class is instantiated as follows, giving a path to
 an `sqlite` database containing a copy of the archive:
 ```python
+from ietfdata.mailarchive3 import *
 ma = MailArchive("archive/ietf-ma.sqlite")
 ```
-If the specified `sqlite` database does not exist, calling `ma.update()`
-will download a complete copy of the mail archive and store it in the
-database. This is approximately 40 gigabytes in size and will take around
-24 hours to download. If the `sqlite` database file already exists, calling
-`ma.update()` will only fetch new messages, and so will be much faster.
-Only call `ma.update()` if you want to fetch new messages from the server.
+If the specified `sqlite` database does not exist, the `ma.update()` method
+can be called to download a complete copy of the mail archive and store it
+in the database. The mail archive is approximately 40 gigabytes in size and
+will take around 24 hours to download. If the `sqlite` database file already
+exists, calling `ma.update()` will only fetch new messages, and so will be
+much faster. 
 
 The following can be run from the command line to fetch a copy of the
 mail archive and create the `sqlite` database:
