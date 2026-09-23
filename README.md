@@ -1,8 +1,9 @@
 # The ietfdata library - Access the IETF Datatracker and related resources
 
-This project contains Python 3 libraries to interact with, and
-access, the [IETF Datatracker](https://datatracker.ietf.org), 
-[RFC index](https://www.rfc-editor.org), and related resources.
+This project contains Python 3 libraries to retrieve and work with data
+from the [IETF Datatracker](https://datatracker.ietf.org), [IETF Mail
+Archive](https://mailarchive.ietf.org), [RFC
+index](https://www.rfc-editor.org), and related resources.
 
 
 ## Installation
@@ -109,6 +110,61 @@ There is a lot of information in the Datatracker. Read the source code
 the `datatracker.py` to understand what functions can be called, and the
 code for `datatracker_types.py` to understand the objects the take or
 return.
+
+
+## Accessing the IETF Datatracker Extensions
+
+The `DataTrackerExt` class is a subclass of `DataTracker` that provides
+additional features on top of those provided by the IETF Datatracker.
+
+### Instantiation
+The `DataTrackerExt` class is instantiated in an analogous manner to the
+`DataTracker` class:
+``` python
+from ietfdata.datatracker_ext import *
+
+dt = DataTrackerExt(DTBackendArchive("archive/ietf-dt.sqlite"))
+```
+Since it's a subclass of the `DataTracker`, any of the methods that can be
+used on the `DataTracker` can also be used with `DataTrackerExt`.
+
+The `DataTrackerExt` offers a number of other useful features including
+the ability to find the history of a draft or RFC:
+```python
+from ietfdata.datatracker_ext import *
+from ietfdata.rfcindex        import *
+
+dte = DataTrackerExt(DTBackendArchive("archive/ietfdata-dt.sqlite"))
+ri  = RFCIndex(rfc_index="archive/rfc-index.xml")
+rfc = ri.rfc("RFC9000")
+for d in dte.draft_history_for_rfc(rfc):
+    print("    {0: <50} | {1} | {2}".format(d.draft.name, d.rev, d.date.strftime("%Y-%m-%d")))
+```
+or the history of an Internet-draft:
+```python
+dte = DataTrackerExt(DTBackendArchive("archive/ietfdata-dt.sqlite"))
+doc = dt.document_from_draft("draft-ietf-avtcore-ecn-for-rtp")
+for d in dte.draft_history(doc):
+    print("    {0: <50} | {1} | {2}".format(d.draft.name, d.rev, d.date.strftime("%Y-%m-%d")))
+```
+
+It also contains methods to find the people who currently hold various
+leadership roles in the IETF, IRTF, and IAB, and the set of currently
+active working groups and research groups, for example:
+```python
+for p in dte.working_group_chairs():
+    print(p.name)
+```
+Finally, the `DataTrackerExt` class contains a method that given a name and
+an email address, for example as might be extracted from an email "From:"
+header, tries to find a person in the DataTracker. This uses a number of
+heuristics to find the right person even if there is no exact match:
+```python
+p1 = dte.person_from_name_email("Colin Perkins", "csp@csperkins.org")
+print(p1.id)
+p2 = dte.person_from_name_email("Colin Perkins via Datatracker", "noreply@ietf.org")
+print(p2.id)
+```
 
 
 ## Accessing the IETF Mail Archive
