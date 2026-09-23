@@ -31,7 +31,7 @@ DATA := data/participants.json  \
         data/organisations.json \
         data/affiliations.json
 
-all: tests $(DATA)
+all: test $(DATA)
 
 # =============================================================================
 # Rules to run tests.
