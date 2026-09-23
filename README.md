@@ -264,6 +264,45 @@ Read the source code for `mailarchive3.py` for details.
 See `rfcindex.py`
 
 
+## Entity Resolution
+
+One of the challenges in working with the IETF data is determining whether
+different names or identifiers represent the same person or organisation
+(this is known as "entity resolution"). For example, the email addresses
+`csp@csperkins.org`, `colin.perkins@glasgow.ac.uk`, `csp@isi.edu`, and
+`c.perkins@cs.ucl.ac.uk` all represent the same person, but working in
+different jobs at different stages of their career. Similarly, "Technische
+Universität München", "TU Munich", and "TU Muenchen" all represent the same
+university.
+
+The `ietfdata` library contains code that (attempts to) perform entity
+resolution. This can be run from the command lines as follows:
+```sh
+python3 -m ietfdata.tools.participants archive/ietf-dt.sqlite archive/ietf-ma.sqlite participants.json
+
+python3 -m ietfdata.tools.organisations archive/ietf-dt.sqlite archive/rfc-index.xml organisations.json
+
+python3 -m ietfdata.tools.affiliations archive/ietf-dt.sqlite archive/rfc-index.xml participants.json organisations.json affiliations.json
+```
+Running these commands will generate three files:
+
+* The file `participants.json` contains information about the people,
+  giving each participant in IETF a unique identifier (e.g., `PID:063009`)
+  that is associated with their name, email addresses, DataTracker
+  identifier, GitHub username, any other identifying information that can be
+  extracted.
+
+* The file `organisations.json` contains information about organisations,
+  giving each a unique identifier (e.g., `ORG:001156`) that's associated
+  with the different names the organisation has been given and the domain
+  names it uses.
+
+* The file `affiliations.json`, matches participants to organisations at
+  different stages of that participant's career.
+
+As of September 2026, the entity resolution code runs but has known
+problems and limitations that mean the results are not always accurate.
+
 
 ## Development
 
