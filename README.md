@@ -104,9 +104,79 @@ print(p.biography)
 To find information about a document:
 ```python
 d = dt.document_from_rfc("RFC9000")
+print(d.name)
 print(d.title)
-print(d.group)
+print(d.abstract)
+print(d.group)       # WG or RG name, if any
+print(d.stream)      # IETF, IRTF, etc.
+print(d.rfc)         # Returns a string
+print(d.rfc_number)  # Returns an integer
+print(d.rev)         # If an Internet-draft, returns the draft revision
+print(d.ad)          # Responsible area director, if any
+print(d.shepheard)   # Document shepherd, if any
+print(d.states)      # Use with `dt.document_state()`
+print(d.submissions) # Use with `dt.submissions()`
 ```
+
+The value returned by `d.group` can be passed to `dt.group()` (see below)
+to find information about the working group, research group, or area that
+owns the document.
+
+The value returned by `d.ad` and `d.shepherd` can be passed to `dt.person()`
+
+The value returned by `d.submissions` is a list of the different versions
+of the document:
+```python
+d = dt.document_from_draft("draft-ietf-taps-interface")
+for s in d.submissions:
+    submission = dt.submission(s)
+    print(submission.name)
+    print(submission.rev)
+    print(submission.document_date)
+    print(submission.submission_date)
+    print(submission.draft)
+    print(submission.group)
+    print(submission.replaces)
+    print(submission.authors)
+    print(submission.title)
+    print(submission.abstract)
+    print(submission.state)
+    print("")
+```
+
+It's possible to find documents that a document, `d`, relates to (these are
+usually the normative and informative references included in the document):
+```python
+for rel_doc in dt.related_documents(source = d):
+    print(rel_doc.relationship, rel_doc.target)
+```
+The return values `rel_doc.target` can be passed to `dt.document()` to find
+information about the target document.
+
+Similarly, documents that relate to a document can be found:
+```python
+for r in dt.related_documents(target = d):
+    print(r.relationship, r.source)
+```
+This can be used to find documents that reference the document `d`.
+
+A useful query is:
+```python
+d = dt.document_from_rfc("RFC9622")
+for r in dt.related_documents(target = d, relationship_type_slug="became_rfc"):
+    print(r.relationship, r.source)
+```
+which finds the Internet-draft that became the specified RFC.
+
+The complete history of a single document can be found via:
+```python
+for event in dt.document_events(d):
+    print(event)
+```
+
+The authors of a document can be found using the `dt.document_authors()`
+method. Documents written by a particular person can be found using
+the methods `dt.documents_authored_by_person()` and `dt.documents_authored_by_email()`.
 
 See also the discussion of Datatracker Extensions below.
 
