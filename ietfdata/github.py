@@ -55,7 +55,7 @@ class GitHub:
 
         self._log      = logging.getLogger("ietfdata")
         self._session  = requests.Session()
-        self._ua       = "glasgow-ietfdata/0.9.1" # Update when making a new release
+        self._ua       = "glasgow-ietfdata/0.9.2" # Update when making a new release
         self._base_url = os.environ.get("IETFDATA_GH_URL", "https://api.github.com")
         self._token    = os.getenv("GITHUB_API_TOKEN", default=None)
         self._headers  = {}

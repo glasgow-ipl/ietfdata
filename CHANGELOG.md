@@ -1,6 +1,11 @@
 Change Log -- ietfdata
 ======================
 
+## Version 0.9.2 -- 24 September 2026
+
+- Fix subpackages
+
+
 ## Version 0.9.1 -- 24 September 2026
 
 - Add minimal GitHub API access support
