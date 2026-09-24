@@ -71,6 +71,10 @@ many queries using `DTBackendLive()`.
 
 ### Usage
 
+> [!CAUTION]
+> This section is incomplete. Pull requests to provide examples for
+> how to perform common tasks are welcomed.
+
 The `DataTracker` provides an extensive API that is best explored by
 reading the source code for `datatracker.py` and `datatracker_types.py`.
 The `examples/` directory contains a number of examples of how to use 
@@ -79,8 +83,14 @@ the library.
 Start by importing and instantiating the library:
 ```python
 from ietfdata.datatracker import *
+
 dt = DataTracker(DTBackendArchive("archive/ietf-dt.sqlite"))
 ```
+Then follow the suggestions below, and read the relevant sections
+of the `datatracker.py` source code, for examples of how to access
+the data.
+
+#### People
 
 To find information about a person:
 ```python
@@ -89,6 +99,8 @@ print(p.name)
 print(p.biography)
 ```
 
+#### Documents
+
 To find information about a document:
 ```python
 d = dt.document_from_rfc("RFC9000")
@@ -96,8 +108,14 @@ print(d.title)
 print(d.group)
 ```
 
+See also the discussion of Datatracker Extensions below.
+
+
+#### Groups
+
 To find information about a group:
 ```python
+d = dt.document_from_rfc("RFC9000")
 g = dt.group(d.group)
 print(g.acronym)
 
@@ -106,10 +124,15 @@ for e in dt.group_events(group = g):
   print(e.desc)
 ```
 
-There is a lot of information in the Datatracker. Read the source code
-the `datatracker.py` to understand what functions can be called, and the
-code for `datatracker_types.py` to understand the objects they take or
-return.
+#### Meetings
+
+(tbc)
+
+
+#### Intellectual Property Rights Disclosures
+
+(tbc)
+
 
 
 ## Accessing the IETF Datatracker Extensions
