@@ -126,12 +126,12 @@ for e in dt.group_events(group = g):
 
 #### Meetings
 
-(tbc)
+(tbd)
 
 
 #### Intellectual Property Rights Disclosures
 
-(tbc)
+(tbd)
 
 
 
@@ -387,7 +387,6 @@ Will test the rfcindex module.
 ## Release Process
 
 - Edit CHANGELOG.md and ensure up-to-date
-- Edit setup.py to ensure the correct version number is present
 - Edit pyproject.toml to ensure the correct version number is present
 - Edit `ietfdata/dt_backend.py` to ensure the correct version number
 - Edit `ietfdata/github.py` to ensure the correct version number
