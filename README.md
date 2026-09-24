@@ -116,7 +116,15 @@ print(d.ad)          # Responsible area director, if any
 print(d.shepheard)   # Document shepherd, if any
 print(d.states)      # Use with `dt.document_state()`
 print(d.submissions) # Use with `dt.submissions()`
+print(d.time)
 ```
+
+Warning: the `d.time` field is the time of the last event relating to the
+document (see `dt.document_events()` below), not the time when the latest
+version of the document was published. To find the date when an
+Internet-Draft was last modified, look at `d.submissions`; to find the
+date of RFC publication look at `dt.document_events()` and find the event
+with type `published_rfc`.
 
 The value returned by `d.group` can be passed to `dt.group()` (see below)
 to find information about the working group, research group, or area that
