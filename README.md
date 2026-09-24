@@ -396,8 +396,9 @@ Will test the rfcindex module.
 - Check that the GitHub Continuous Integration run succeeds, and fix 
   any problems (this runs with a fresh cache, so can sometimes catch
   problems that aren't found by local tests).
-- Run `python3 setup.py sdist bdist_wheel` to prepare the package
-- Run `python3 -m twine upload dist/*` to upload the package
+- Run `python3 -m build --sdist` to prepare the source package
+- Run `python3 -m build --wheel` to prepare the binary package
+- Run `python3 -m twine upload dist/*` to upload the packages
 - Commit the packages files in `dist/*` push to GitHub
 - Tag the release in GitHub
 

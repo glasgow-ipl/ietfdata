@@ -27,6 +27,7 @@ dependencies = [
   "requests-cache",
   "mypy",
   "setuptools",
+  "build",
   "wheel",
   "twine",
   "keyring",
