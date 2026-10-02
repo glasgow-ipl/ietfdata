@@ -51,6 +51,8 @@ typecheck:
 # =============================================================================
 # Rules to fetch an archive of raw data from the IETF.
 
+fetch: $(ARCHIVE) $(DATA)
+
 archive:
 	mkdir $@
 
@@ -92,7 +94,6 @@ data/affiliations.json: ietfdata/tools/affiliations.py \
 
 clean:
 	rm -f $(DATA)
-	rm -f data/affiliations2.json
 
 deep-clean: clean
 	rm -f $(ARCHIVE)
@@ -100,7 +101,7 @@ deep-clean: clean
 # =================================================================================================
 # Targets that don't represent files:
 
-.PHONY: test test-archive typecheck clean deep-clean
+.PHONY: test fetch test-archive typecheck clean deep-clean
 
 # =================================================================================================
 # Configuration for make:
