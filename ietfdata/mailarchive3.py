@@ -579,17 +579,17 @@ class MailingList:
         threads = {}
         seen    = {} # type: Dict[str,Envelope]
         for msg in self.messages():
-            if len(msg.header("message-id")) > 0:
-                msg_id = msg.message_id()
+            msg_id = msg.message_id()
+            if msg_id is not None:
                 seen[msg_id] = msg
 
-                self._archive._log.debug(f"{msg.uid():5} {msg.message_id()} {msg.subject()}")
+                self._archive._log.debug(f"{msg.uid():5} {msg_id} {msg.subject()}")
 
                 parents = msg.in_reply_to()
                 if len(parents) == 0:
                     # This is the first message in the thread
-                    if msg.message_id() not in threads:
-                        threads[msg.message_id()] = self._archive.message(msg.message_id())
+                    if msg_id not in threads:
+                        threads[msg_id] = self._archive.message(msg_id)
                     self._archive._log.debug("      First in thread")
                 elif parents[0].message_id() in seen:
                     # This is part of a thread we've already seen
@@ -600,8 +600,7 @@ class MailingList:
                     # where the earlier messages in the thread are on another list,
                     # or this message is part of an existing thread but has arrived
                     # before its parent.
-                    curr = []
-                    curr.append(msg)
+                    curr = [msg]
                     while True:
                         parents = curr[0].in_reply_to()
     
@@ -612,14 +611,18 @@ class MailingList:
                         if not parent_in_this_list and this_list_only:
                             self._archive._log.debug(f"      {parents[0].message_id()} {parents[0].subject()}")
                             self._archive._log.debug(f"      Not in this list")
-                            if curr[0].message_id() not in threads:
-                                threads[curr[0].message_id()] = curr
+                            curr_msg_id = curr[0].message_id()
+                            assert curr_msg_id is not None
+                            if curr_msg_id not in threads:
+                                threads[curr_msg_id] = curr
                             break
     
                         if len(parents) == 0:
                             self._archive._log.debug("      First in thread")
-                            if curr[0].message_id() not in threads:
-                                threads[curr[0].message_id()] = curr
+                            curr_msg_id = curr[0].message_id()
+                            assert curr_msg_id is not None
+                            if curr_msg_id not in threads:
+                                threads[curr_msg_id] = curr
                             break
                         curr = parents
                         self._archive._log.debug(f"      {curr[0].message_id()} {curr[0].subject()}")
