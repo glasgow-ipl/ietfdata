@@ -1353,8 +1353,6 @@ class TestDatatracker(unittest.TestCase):
         s  = self.dt.submission(SubmissionURI(uri="/api/v1/submit/submission/2402/"))
         if s is not None:
             #self.assertEqual(s.abstract,        "Internet technical specifications often need to...")
-            self.assertEqual(s.access_key,      "f77d08da6da54f3cbecca13d31646be8")
-            self.assertEqual(s.auth_key,        "fMm6hur5dJ7gV58x5SE0vkHUoDOrSuSF")
             self.assertEqual(s.authors,         "[{'name': 'Dave Crocker', 'email': 'dcrocker@bbiw.net'}, {'name': 'Paul Overell', 'email': 'paul.overell@thus.net'}]")
             self.assertEqual(s.checks,          [SubmissionCheckURI(uri="/api/v1/submit/submissioncheck/386/")])
             self.assertEqual(s.document_date,   date.fromisoformat("2007-10-09"))
@@ -1367,7 +1365,6 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(s.name,            "draft-crocker-rfc4234bis")
             self.assertEqual(s.note,            "")
             self.assertEqual(s.pages,           13)
-            self.assertEqual(s.remote_ip,       "72.255.3.179")
             self.assertEqual(s.replaces,        "")
             self.assertEqual(s.resource_uri,    SubmissionURI(uri="/api/v1/submit/submission/2402/"))
             self.assertEqual(s.rev,             "01")

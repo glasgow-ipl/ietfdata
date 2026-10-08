@@ -297,8 +297,6 @@ class SubmissionCheckURI(URI):
 
 class Submission(Resource):
     abstract        : str
-    access_key      : str
-    auth_key        : str
     authors         : str   # See the parse_authors() method
     checks          : List[SubmissionCheckURI]
     document_date   : Optional[date]
@@ -310,7 +308,6 @@ class Submission(Resource):
     name            : str
     note            : str
     pages           : Optional[int]
-    remote_ip       : str
     replaces        : str   # This is a comma separated list of draft names (e.g., "draft-dkg-hrpc-glossary,draft-varon-hrpc-methodology")
                             # although in most cases there is only one entry, and hence no comma.
     resource_uri    : SubmissionURI
