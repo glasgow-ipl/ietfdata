@@ -99,7 +99,7 @@ class Envelope:
         return self._uid
 
 
-    def message_id(self) -> str:
+    def message_id(self) -> Optional[str]:
         """
         Retrieve the "Message-ID" from the envelope.
 
@@ -111,7 +111,10 @@ class Envelope:
         dbc = self._archive._db.cursor()
         sql = f"SELECT message_id FROM {self._prefix}_ma_hdr WHERE message_num = ?;"
         res = dbc.execute(sql, (self._message_num, )).fetchone()
-        return str(res[0])
+        if res is None:
+            return None
+        else:
+            return str(res[0])
 
 
     def from_(self) -> Optional[Address]:
