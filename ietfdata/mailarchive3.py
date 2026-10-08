@@ -374,7 +374,7 @@ class MailingList:
 
     def num_messages(self) -> int:
         dbc = self._archive._db.cursor()
-        sql = f"SELECT COUNT(*) FROM {self._prefix}_ma_msg WHERE mailing_list = (?);"
+        sql = f"SELECT COUNT(*) FROM {self._prefix}_ma_msg WHERE mailing_list = ?;"
         return int(dbc.execute(sql, (self._name, )).fetchone()[0])
 
 
