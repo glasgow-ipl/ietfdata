@@ -365,14 +365,11 @@ class MailingList:
         return self._name
 
 
-    def uidvalidity(self) -> Optional[int]:
+    def uidvalidity(self) -> int:
         dbc = self._archive._db.cursor()
-        sql = f"SELECT uidvalidity FROM {self._prefix}_ma_lists WHERE name = (?);"
-        res = dbc.execute(sql, (self._name, )).fetchone()[0]
-        if res is None:
-            return None
-        else:
-            return int(res)
+        sql = f"SELECT uidvalidity FROM {self._prefix}_ma_lists WHERE name = ?;"
+        res = dbc.execute(sql, (self._name, )).fetchone()
+        return int(res[0])
 
 
     def num_messages(self) -> int:
