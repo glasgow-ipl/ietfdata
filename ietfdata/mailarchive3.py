@@ -175,7 +175,7 @@ class Envelope:
         return res
 
 
-    def subject(self) -> str:
+    def subject(self) -> Optional[str]:
         """
         Retrieve the parsed "Subject:" header from the envelope.
 
@@ -186,7 +186,10 @@ class Envelope:
         dbc = self._archive._db.cursor()
         sql = f"SELECT subject FROM {self._prefix}_ma_hdr WHERE message_num = ?;"
         res = dbc.execute(sql, (self._message_num, )).fetchone()
-        return str(res[0])
+        if res is None:
+            return None
+        else:
+            return str(res[0])
 
 
     def date(self) -> Optional[datetime]:
