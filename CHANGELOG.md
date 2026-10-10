@@ -1,9 +1,18 @@
 Change Log -- ietfdata
 ======================
 
+## Version ???
+
+- Restructure code for performing entity resolution on participants
+  in `ietfdata.tools.participants`.
+- Support missing Message-ID and Subject headers in `mailarchive3`
+- Fix `thirdparty_ipr_disclosures()` in `ietfdata`.
+- Update `document_authors()` to allow enumerating all authors.
+
+
 ## Version 0.9.2 -- 24 September 2026
 
-- Fix subpackages
+- Fix sub-packages
 
 
 ## Version 0.9.1 -- 24 September 2026
