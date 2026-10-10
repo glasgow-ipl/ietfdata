@@ -184,7 +184,6 @@ if __name__ == "__main__":
                 if email_addr.lower() != email_addr:
                     pdb.add_person("email", email_addr.lower())
                     pdb.merge_people("email", email_addr.lower(), "email", email_addr)
-                    log.debug(f"case match {str(msg.person):30} {email_addr} <-> {email_addr.lower()}")
                 seen_full.add(email_full)
 
     print(f"Saving {new_path}")
