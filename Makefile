@@ -74,9 +74,9 @@ archive/w3c-ma.sqlite: | archive
 data:
 	mkdir $@
 
-data/participants.json: ietfdata/tools/participants.py \
+data/participants.json: ietfdata/tools/participants_ietf.py \
                         archive/ietf-dt.sqlite archive/ietf-ma.sqlite | data
-	python3 -m ietfdata.tools.participants  archive/ietf-dt.sqlite archive/ietf-ma.sqlite $@
+	python3 -m ietfdata.tools.participants_ietf  archive/ietf-dt.sqlite archive/ietf-ma.sqlite $@
 
 data/organisations.json: ietfdata/tools/organisations.py \
                          archive/ietf-dt.sqlite archive/rfc-index.xml | data
