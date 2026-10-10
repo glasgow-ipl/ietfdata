@@ -1,4 +1,4 @@
-# Copyright (C) 2023-2025 University of Glasgow
+# Copyright (C) 2023-2026 University of Glasgow
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -25,18 +25,20 @@
 
 import email.utils
 import logging
+import os
 import json
 import sys
 
 from datetime    import timedelta
 from dataclasses import dataclass, field
+from pathlib     import Path
 from typing      import List, Dict, Optional, Iterator
 
-from ietfdata.datatracker     import *
-from ietfdata.datatracker_ext import *
-from ietfdata.mailarchive3    import *
-
 class Participant:
+    """
+    The `Participant` class represents a single person that participates
+    in Internet standards development.
+    """
     log         : logging.Logger
     person_id   : Optional[str]
     identifiers : Dict[str,List[str]]
@@ -53,12 +55,30 @@ class Participant:
 
 
     def add_name(self, name:str):
+        """
+        Add a name by which this participant is known.
+
+        Multiple participants may have the same name.
+        """
         if name not in self.names:
             self.log.debug(f"Participant({id(self)}) add_name: {name}")
             self.names.append(name)
 
 
     def add_identifier(self, ident_type:str, ident_value:str):
+        """
+        Add an identifier for this participant.
+
+        The `ident_type` indicates the type of identifier being added to
+        the participant, for example "dt_person_uri", "email", "webpage",
+        "github_username", or "orcid". The `ident_value` is the value of
+        the identifier.
+
+        Example: `p.add_identifier("email", "csp@csperkins.org")`
+
+        The expectation is that the identifier uniquely identifier the
+        participant.
+        """
         assert ident_type != "names"
         if ident_type not in self.identifiers:
             self.identifiers[ident_type] = [ident_value]
@@ -69,7 +89,7 @@ class Participant:
                 if ident_type == "dt_person_uri" and len(self.identifiers[ident_type]) > 1:
                     self.log.info(f"Participant({id(self)}) adding additional dt_person_uri {ident_value}")
                     for dt_person_uri in self.identifiers[ident_type]:
-                        self.log.info(f"Participant({id(self)})          existing dt_person_uri {dt_person_uri}")
+                        self.log.info(f"Participant({id(self)}) existing dt_person_uri {dt_person_uri}")
                 self.identifiers[ident_type].append(ident_value)
             else:
                 self.log.debug(f"Participant({id(self)}) has_identifier: {ident_type} -> {ident_value}")
@@ -82,7 +102,7 @@ class Participant:
         return count
 
 
-    def merge_into(self, other):
+    def merge_into(self, other:Participant):
         self.log.debug(f"Participant({id(self)}) merge data into Participant({id(other)})")
         for name in self.names:
             other.add_name(name)
@@ -98,7 +118,11 @@ class Participant:
 
 
 
-class ParticipantDB:
+class Participants:
+    """
+    The `Participants` class represents the set of people that have been
+    found to participate in Internet standards development.
+    """
     log: logging.Logger
     pid: int
     idents: Dict[str,Dict[str,Participant]]
@@ -124,43 +148,48 @@ class ParticipantDB:
             json.dump(people, outf, indent=3, sort_keys=True)
 
 
-    def person_with_name(self, ident_type: str, ident_value: str, name:str) -> None:
-        if ident_type in self.idents:
-            if ident_value in self.idents[ident_type]:
-                person = self.idents[ident_type][ident_value]
-                person.add_name(name)
-
-
-    def person_with_identifier(self, ident_type: str, ident_value: str) -> Participant:
+    def add_person_with_name(self, ident_type: str, ident_value: str, name:str) -> Participant:
         """
-        Specify that there is a person identified by the specific identifer.
+        Add a person with the specified identifier and name.
 
-        Example: `pdb.person_with_identifier("email", "j.doe@example.org")
+        If a person with that identifier already exists, the name is added
+        to the existing person.
+
+        Example: `pdb.add_person_with_name("email", "j.doe@example.org", "Jane Doe")
         """
-        person = None
-        if not ident_type in self.idents:
-            person = Participant()
-            person.add_identifier(ident_type, ident_value)
-            self.people.add(person)
-            self.idents[ident_type] = {}
-            self.idents[ident_type][ident_value] = person
-        else:
-            if ident_value not in self.idents[ident_type]:
-                person = Participant()
-                person.add_identifier(ident_type, ident_value)
-                self.people.add(person)
-                self.idents[ident_type][ident_value] = person
-            else:
-                person = self.idents[ident_type][ident_value]
-                self.log.debug(f"Participant({id(person)}) already_exists: {ident_type} -> {ident_value}")
+        person = self.add_person(ident_type, ident_value)
+        person.add_name(name)
         return person
 
 
-    def identifies_same_person(self, ident_type1:str, ident_value1: str, ident_type2:str, ident_value2: str):
+    def add_person(self, ident_type: str, ident_value: str) -> Participant:
+        """
+        Add a person with the specified identifier.
+
+        If a person with the specified identifier already exists, this has
+        no effect.
+
+        Example: `pdb.add_person("email", "j.doe@example.org")
+        """
+        if not ident_type in self.idents:
+            self.idents[ident_type] = {}
+
+        if ident_value not in self.idents[ident_type]:
+            person = Participant()
+            person.add_identifier(ident_type, ident_value)
+            self.people.add(person)
+            self.idents[ident_type][ident_value] = person
+        else:
+            person = self.idents[ident_type][ident_value]
+            self.log.debug(f"Participant({id(person)}) already_exists: {ident_type} -> {ident_value}")
+        return person
+
+
+    def merge_people(self, ident_type1: str, ident_value1: str, ident_type2: str, ident_value2: str):
         """
         Specify that the two identifiers refer to the same person.
 
-        Example: `pdb.identifies_same_person("email", "j.doe@example.org", "name", "Jane Doe")
+        Example: `pdb.merge_people("email", "csp@csperkins.org", "github_username", "csperkins")
         """
         if not ident_type1 in self.idents:
             self.idents[ident_type1] = {}
@@ -169,8 +198,8 @@ class ParticipantDB:
 
         if   ident_value1 not in self.idents[ident_type1] and ident_value2 not in self.idents[ident_type2]:
             # Neither identifier represents a known person
-            self.person_with_identifier(ident_type1, ident_value1)
-            self.identifies_same_person(ident_type1, ident_value1, ident_type2, ident_value2)
+            self.add_person(ident_type1, ident_value1)
+            self.merge_people(ident_type1, ident_value1, ident_type2, ident_value2)
         elif ident_value1     in self.idents[ident_type1] and ident_value2 not in self.idents[ident_type2]:
             # There is a person associated with the first identifier but not the second
             person = self.idents[ident_type1][ident_value1]
@@ -234,158 +263,4 @@ class ParticipantDB:
                 if self.idents[ident_type][ident_value] == from_person:
                     self.idents[ident_type][ident_value] = to_person
                     self.log.debug(f"    {ident_type} -> {ident_value}")
-
-
-
-if __name__ == "__main__":
-    logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
-    log = logging.getLogger("ietfdata")
-
-    if len(sys.argv) == 4:
-        dt_sqlite_file = sys.argv[1]
-        ma_sqlite_file = sys.argv[2]
-        new_path       = Path(sys.argv[3])
-    else:
-        print("")
-        print("This script performs entity resolution on IETF participants. It reads")
-        print("from the datatracker and mailarchive to associate the many different")
-        print("identifiers used by each participant with a 'PID' number that can be")
-        print("used to uniquely idenitify that participant.")
-        print("")
-        print(f"Usage: python3 -m ietfdata.tools.participants <ietfdata-dt.sqlite> <ietfdata-ma.sqlite> <participants.json>")
-        print("")
-        sys.exit(1)
-
-    print(f"*** ietfdata.tools.participants")
-
-    pdb  = ParticipantDB()
-
-    ignore = ["noreply@ietf.org",
-              "noreply@github.com",
-              "noreply=40github.com@dmarc.ietf.org",
-              "notifications@github.com",
-              "noreply@icloud.com",
-              "noname@noname.com",
-              "messenger@webex.com",
-              "tracker-forces@mip4.org", # FORCES issue tracker
-              "tracker-forces@MIP4.ORG", # FORCES issue tracker
-              "tracker-mip6@mip4.org",   # Mobile IPv6 issue tracker
-              "tracker-mip4@mip4.org",   # Mobile IPv4 issue tracker
-              "tracker-mip4@levkowetz.com",
-              "3761bis@frobbit.se",      # 3761bis issue tracker
-              "ietf-action@ietf.org",    # IETF issues tracker
-              "ctp_issues@danforsberg.info", # Seamoby CTP issue tracker
-             ]
-
-    # Add identifiers based on the IETF DataTracker:
-    seen_addr = set()
-    dt  = DataTrackerExt(DTBackendArchive(dt_sqlite_file))
-
-    print("Finding participants in IETF datatracker: names")
-    for dt_person in dt.people():
-        log.debug(f"{str(dt_person.resource_uri)}")
-        pdb.person_with_identifier("dt_person_uri", str(dt_person.resource_uri))
-        # Add names:
-        if dt_person.name != "":
-            pdb.person_with_name("dt_person_uri", str(dt_person.resource_uri), dt_person.name)
-        if dt_person.name_from_draft is not None and dt_person.name_from_draft != "":
-            pdb.person_with_name("dt_person_uri", str(dt_person.resource_uri), dt_person.name_from_draft)
-        if dt_person.ascii != "":
-            pdb.person_with_name("dt_person_uri", str(dt_person.resource_uri), dt_person.ascii)
-        if dt_person.ascii_short is not None and dt_person.ascii_short != "":
-            pdb.person_with_name("dt_person_uri", str(dt_person.resource_uri), dt_person.ascii_short)
-        if dt_person.plain != "":
-            pdb.person_with_name("dt_person_uri", str(dt_person.resource_uri), dt_person.plain)
-
-
-    print("Finding participants in IETF datatracker: emails")
-    for msg in dt.emails():
-        log.debug(f"{msg.address}")
-        if msg.address in ignore:
-            continue
-        pdb.person_with_identifier("email", msg.address)
-        pdb.identifies_same_person("email", msg.address, "dt_person_uri", str(msg.person))
-        if msg.address.lower() != msg.address:
-            pdb.person_with_identifier("email", msg.address.lower())
-            pdb.identifies_same_person("email", msg.address.lower(), "email", msg.address)
-            log.debug(f"case match {str(msg.person):30} {msg.address} <-> {msg.address.lower()}")
-        seen_addr.add(msg.address)
-
-    print("Finding participants in IETF datatracker: external resources")
-    for resource in dt.person_ext_resources():
-        log.debug(str(resource.resource_uri))
-        if str(resource.name) == "/api/v1/name/extresourcename/webpage/":
-            pdb.identifies_same_person("dt_person_uri", str(resource.person), "webpage", resource.value)
-        if str(resource.name) == "/api/v1/name/extresourcename/github_username/":
-            pdb.identifies_same_person("dt_person_uri", str(resource.person), "github_username", resource.value)
-        if str(resource.name) == "/api/v1/name/extresourcename/gitlab_username/":
-            pdb.identifies_same_person("dt_person_uri", str(resource.person), "gitlab_username", resource.value)
-        if str(resource.name) == "/api/v1/name/extresourcename/orcid/":
-            pdb.identifies_same_person("dt_person_uri", str(resource.person), "orcid", resource.value)
-
-
-    # Add identifiers based on the IETF mailing list archive:
-    print("Finding participants in IETF mailarchive")
-    seen_full = set()
-    ma   = MailArchive(ma_sqlite_file)
-
-    # Add the mailing list addresses, and their -admin, -archive, and -request 
-    # addresses, to the ignore list. These will never appear in the legitimate
-    # "From:" lines but are frequently used by spammers.
-    for n in ma.mailing_list_names():
-        ignore.append(f"{n}@ietf.org")
-        ignore.append(f"{n}-admin@ietf.org")
-        ignore.append(f"{n}-archive@ietf.org")
-        ignore.append(f"{n}-archive@lists.ietf.org")
-        ignore.append(f"{n}-archive@megatron.ietf.org")
-        ignore.append(f"{n}-bounces@ietf.org")
-        ignore.append(f"{n}-request@ietf.org")
-
-    for ml_name in ma.mailing_list_names():
-        ml = ma.mailing_list(ml_name)
-        log.info(f"{ml.name()}")
-        for envelope in ml.messages():
-            from_addr = envelope.from_()
-            if from_addr is None:
-                continue
-
-            email_name = from_addr.display_name
-            email_addr = from_addr.addr_spec
-            email_full = f"{email_name} <{email_addr}>"
-
-            if email_addr == "":
-                continue
-            if email_addr in ignore:
-                continue
-            if email_addr.startswith(f"{ml_name}-bounces@"):
-                continue
-            if email_addr.lower().startswith("mailer-daemon@"):
-                continue
-            if email_addr in seen_addr:
-                # This address is already associated with a datatracker uri
-                continue
-            if email_name.endswith(" via RT") or email_name.endswith(" via Datatracker"):
-                # Discard automated emails
-                continue
-            if email_name.startswith("Datatracker on behalf of"):
-                # Discard automated emails
-                continue
-            if email_full not in seen_full:
-                pdb.person_with_identifier("email", email_addr)
-                person = dt.person_from_name_email(email_name, email_addr)
-                if person is not None and envelope.header("X-Spam-Flag") != "YES":
-                    pdb.identifies_same_person("email", email_addr, "dt_person_uri", str(person.resource_uri))
-                    if email_name is not None and email_name != "":
-                        pdb.person_with_name("dt_person_uri", str(person.resource_uri), email_name)
-                if email_name is not None and email_name != "" and envelope.header("X-Spam-Flag") != "YES":
-                    pdb.person_with_name("email", email_addr, email_name)
-                if email_addr.lower() != email_addr:
-                    pdb.person_with_identifier("email", email_addr.lower())
-                    pdb.identifies_same_person("email", email_addr.lower(), "email", email_addr)
-                    log.debug(f"case match {str(msg.person):30} {email_addr} <-> {email_addr.lower()}")
-                seen_full.add(email_full)
-
-    print(f"Saving {new_path}")
-    pdb.save(new_path)
-
 
