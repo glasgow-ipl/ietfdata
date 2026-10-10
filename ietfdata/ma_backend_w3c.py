@@ -46,24 +46,23 @@ class MailArchiveBackendW3C(MailArchiveBackend):
 
     def _find_indexes(self, list_url:str) -> list[dict]:
         indexes : list[dict] = []
-        #time.sleep(self.delay)
-        #resp = self.session.get(list_url)
-        #if resp.status_code == 200:
-        #    soup = BeautifulSoup(resp.text, 'html.parser')
-        #    main = soup.find("main")
-        #    if main is not None:
-        #        for tbody in main.find_all("tbody"):
-        #            for period in tbody.find_all("td", class_="cell_period"):
-        #                if period.a is None:
-        #                    continue
-        #                period_href = period.a["href"]
-        #                period_date = period.text
-        #                period_url  = list_url + period_href
-        #                item = {"period": period_date, "url": period_url, "path": period_href}
-        #                print(item)
-        #                indexes.append(item)
-        #else:
-        #    print(f"ERROR: {resp.status_code} {list_url}")
+        time.sleep(self.delay)
+        resp = self.session.get(list_url)
+        if resp.status_code == 200:
+            soup = BeautifulSoup(resp.text, 'html.parser')
+            main = soup.find("main")
+            if main is not None:
+                for tbody in main.find_all("tbody"):
+                    for period in tbody.find_all("td", class_="cell_period"):
+                        if period.a is None:
+                            continue
+                        href = period.a["href"]
+                        date = period.text
+                        url  = list_url + str(href)
+                        item = {"period": date, "url": url, "path": href}
+                        indexes.append(item)
+        else:
+            print(f"ERROR: {resp.status_code} {list_url}")
         return indexes
 
 
