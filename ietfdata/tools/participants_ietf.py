@@ -130,9 +130,9 @@ if __name__ == "__main__":
 
     print("Finding participants in IETF datatracker: submissions")
     for submission in dt.submissions():
-        for author in submission.parse_authors():
-            if "email" in author and "name" in author:
-                pdb.add_person_with_name("email", author["email"], author["name"])
+        for submit_author in submission.parse_authors():
+            if "email" in submit_author and "name" in submit_author:
+                pdb.add_person_with_name("email", submit_author["email"], submit_author["name"])
 
 
     print("Finding participants in IETF datatracker: meeting_registrations")
@@ -149,18 +149,18 @@ if __name__ == "__main__":
 
 
     print("Finding participants in IETF datatracker: generic_ipr_disclosures")
-    for ipr in dt.generic_ipr_disclosures():
-        pdb.add_person_with_name("email", ipr.submitter_email, ipr.submitter_name)
+    for generic_ipr in dt.generic_ipr_disclosures():
+        pdb.add_person_with_name("email", generic_ipr.submitter_email, generic_ipr.submitter_name)
 
 
     print("Finding participants in IETF datatracker: holder_ipr_disclosures")
-    for ipr in dt.holder_ipr_disclosures():
-        pdb.add_person_with_name("email", ipr.submitter_email, ipr.submitter_name)
+    for holder_ipr in dt.holder_ipr_disclosures():
+        pdb.add_person_with_name("email", holder_ipr.submitter_email, holder_ipr.submitter_name)
 
 
     print("Finding participants in IETF datatracker: thirdparty_ipr_disclosures")
-    for ipr in dt.thirdparty_ipr_disclosures():
-        pdb.add_person_with_name("email", ipr.submitter_email, ipr.submitter_name)
+    for third_ipr in dt.thirdparty_ipr_disclosures():
+        pdb.add_person_with_name("email", third_ipr.submitter_email, third_ipr.submitter_name)
 
 
     # Add identifiers based on the IETF mailing list archive:
