@@ -623,10 +623,11 @@ class DataTracker:
     # * https://datatracker.ietf.org/api/v1/doc/documentauthor/?person=...       - documents by person
     # * https://datatracker.ietf.org/api/v1/doc/documentauthor/?email=...        - documents by person
 
-    def document_authors(self, document : Document) -> Iterator[DocumentAuthor]:
+    def document_authors(self, document : Optional[Document] = None) -> Iterator[DocumentAuthor]:
         url = DocumentAuthorURI(uri="/api/v1/doc/documentauthor/")
-        url.params["document"] = document.id
-        url.params_alt["document"] = document.name
+        if document is not None:
+            url.params["document"] = document.id
+            url.params_alt["document"] = document.name
         yield from self._retrieve_multi(url, DocumentAuthor)
 
 
