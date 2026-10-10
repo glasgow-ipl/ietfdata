@@ -105,6 +105,7 @@ if __name__ == "__main__":
             log.debug(f"case match {str(msg.person):30} {msg.address} <-> {msg.address.lower()}")
         seen_addr.add(msg.address)
 
+
     print("Finding participants in IETF datatracker: person_ext_resources")
     for resource in dt.person_ext_resources():
         log.debug(str(resource.resource_uri))
@@ -117,13 +118,49 @@ if __name__ == "__main__":
         if str(resource.name) == "/api/v1/name/extresourcename/orcid/":
             pdb.merge_people("dt_person_uri", str(resource.person), "orcid", resource.value)
 
-    # FIXME: extract participants from DocumentAuthor
 
-    # FIXME: extract participants from Internet-draft submissions
+    print("Finding participants in IETF datatracker: document_authors")
+    for author in dt.document_authors():
+        if author.email is not None and author.person is not None:
+            author_email  = dt.email(author.email)
+            author_person = dt.person(author.person)
+            author_uri    = str(author_person.resource_uri)
+            pdb.merge_people("dt_person_uri", author_uri, "email", author_email.address)
 
-    # FIXME: extract participants from meeting registration data
 
-    # FIXME: extract participants from IPR disclosures
+    print("Finding participants in IETF datatracker: submissions")
+    for submission in dt.submissions():
+        for author in submission.parse_authors():
+            if "email" in author and "name" in author:
+                pdb.add_person_with_name("email", author["email"], author["name"])
+
+
+    print("Finding participants in IETF datatracker: meeting_registrations")
+    for reg in dt.meeting_registrations():
+        name = f"{reg.first_name} {reg.last_name}"
+        if reg.email is not None:
+            pdb.add_person_with_name("email", reg.email, name)
+        if reg.person is not None:
+            reg_person     = dt.person(reg.person)
+            reg_person_uri = str(reg_person.resource_uri)
+            pdb.add_person_with_name("dt_person_uri", reg_person_uri, name)
+        if reg.person is not None and reg.email is not None:
+            pdb.merge_people("dt_person_uri", reg_person_uri, "email", reg.email)
+
+
+    print("Finding participants in IETF datatracker: generic_ipr_disclosures")
+    for ipr in dt.generic_ipr_disclosures():
+        pdb.add_person_with_name("email", ipr.submitter_email, ipr.submitter_name)
+
+
+    print("Finding participants in IETF datatracker: holder_ipr_disclosures")
+    for ipr in dt.holder_ipr_disclosures():
+        pdb.add_person_with_name("email", ipr.submitter_email, ipr.submitter_name)
+
+
+    print("Finding participants in IETF datatracker: thirdparty_ipr_disclosures")
+    for ipr in dt.thirdparty_ipr_disclosures():
+        pdb.add_person_with_name("email", ipr.submitter_email, ipr.submitter_name)
 
 
     # Add identifiers based on the IETF mailing list archive:
