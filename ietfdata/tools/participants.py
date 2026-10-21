@@ -128,12 +128,32 @@ class Participants:
     idents: Dict[str,Dict[str,Participant]]
     people: set[Participant]
 
-    def __init__(self):
+    def __init__(self, load_from : Optional[Path] = None):
         logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
         self.log = logging.getLogger("ietfdata")
         self.pid = 0
         self.idents = {}
         self.people = set()
+        if load_from is not None:
+            with open(load_from, "r") as inf:
+                data = json.load(inf)
+                for pid_str, item in data.items():
+                    pid = int(pid_str[4:])
+                    if pid > self.pid:
+                        self.pid = pid
+                    person = Participant(pid_str)
+                    for ident_type, ident_values in item.items():
+                        if ident_type == "names":
+                            for ident_value in ident_values:
+                                person.add_name(ident_value)
+                        else:
+                            if not ident_type in self.idents:
+                                self.idents[ident_type] = {}
+                            for ident_value in ident_values:
+                                person.add_identifier(ident_type, ident_value)
+                                self.idents[ident_type][ident_value] = person
+                    self.people.add(person)
+
 
 
     def save(self, path:Path):
