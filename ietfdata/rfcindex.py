@@ -557,23 +557,38 @@ class RFCIndex:
 
 
     def rfc(self, rfc_id: str) -> Optional[RfcEntry]:
-        return self._rfc[rfc_id]
+        if rfc_id in self._rfc:
+            return self._rfc[rfc_id]
+        else:
+            return None
 
 
     def rfc_not_issued(self, rfc_id: str) -> Optional[RfcNotIssuedEntry]:
-        return self._rfc_not_issued[rfc_id]
+        if rfc_id in self._rfc_not_issued:
+            return self._rfc_not_issued[rfc_id]
+        else:
+            return None:
 
 
     def bcp(self, bcp_id: str) -> Optional[BcpEntry]:
-        return self._bcp[bcp_id]
+        if bcp_id in self._bcp:
+            return self._bcp[bcp_id]
+        else:
+            return None
 
 
     def fyi(self, fyi_id: str) -> Optional[FyiEntry]:
-        return self._fyi[fyi_id]
+        if fyi_id in self._fyi:
+            return self._fyi[fyi_id]
+        else:
+            return None
 
 
     def std(self, std_id: str) -> Optional[StdEntry]:
-        return self._std[std_id]
+        if std_id in self._std:
+            return self._std[std_id]
+        else:
+            return None
 
 
     def rfcs(self,
