@@ -194,11 +194,20 @@ class GitHub:
             if res.obj_json == {}:
                 break
             if not isinstance(res.obj_json, list):
+                print(f"endpoint = {endpoint}")
                 print(res)
             assert isinstance(res.obj_json, list)
             for obj in res.obj_json:
                 yield obj
             uri = res.next_uri
+
+
+    def _fix_username(self, username:str) -> str:
+        new_username = username
+        if "?" in username:
+            new_username = username[:username.find("?")]
+        return new_username
+
 
 
     # https://docs.github.com/en/rest/issues/issues?apiVersion=2026-03-10#list-repository-issues
@@ -209,6 +218,7 @@ class GitHub:
         If the owner or repo doesn't exist, or if there are no issues, an empty
         iterator is returned.
         """
+        owner = self._fix_username(owner)
         dbc = self._db.cursor()
         dbc.execute("SELECT jsondata FROM gh_issues WHERE owner = ? and repo = ?;", (owner, repo))
         res = dbc.fetchall()
@@ -233,6 +243,7 @@ class GitHub:
         If the owner, repo, or issues doesn't exist, or if there are no
         comments, an empty iterator is returned.
         """
+        owner = self._fix_username(owner)
         dbc = self._db.cursor()
         dbc.execute("SELECT jsondata FROM gh_comments WHERE owner = ? and repo = ? and issue = ?;", (owner, repo, issue))
         res = dbc.fetchall()
@@ -256,6 +267,7 @@ class GitHub:
 
         Returns None if the user does not exist.
         """
+        username = self._fix_username(username)
         dbc = self._db.cursor()
         dbc.execute("SELECT jsondata FROM gh_users WHERE owner = ?;", (username, ))
         data = dbc.fetchone()
@@ -283,6 +295,7 @@ class GitHub:
         If the user doesn't exist, or has no repositories, an empty 
         iterator is returned.
         """
+        username = self._fix_username(username)
         dbc = self._db.cursor()
         dbc.execute("SELECT jsondata FROM gh_repos WHERE owner = ?;", (username, ))
         res = dbc.fetchall()
