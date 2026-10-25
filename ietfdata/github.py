@@ -27,6 +27,7 @@ import json
 import logging
 import os
 import requests
+import sqlite3
 import sys
 import time
 
@@ -41,14 +42,14 @@ class GHResponse:
 
 
 class GitHub:
-    _log         : logging.Logger   # Private
-    _session     : requests.Session # Private
-    _ua          : str              # Private
-    _multi_delay : float            # Private
-    _base_url    : str              # Private
+    _log         : logging.Logger
+    _session     : requests.Session
+    _ua          : str
+    _multi_delay : float
+    _base_url    : str
+    _db          : sqlite3.Connection
 
-
-    def __init__(self) -> None:
+    def __init__(self, sqlite_file:Optional[str] = None) -> None:
         logging.getLogger('requests').setLevel('ERROR')
         logging.getLogger("urllib3").setLevel('ERROR')
         logging.basicConfig(level=os.getenv("IETFDATA_LOGLEVEL", default="INFO"))
@@ -72,6 +73,40 @@ class GitHub:
             # Rate limit is 5000 requests/hour if authorised
             self._multi_delay = 3600.0 / 5000.0
             self._headers["Authorization"] = f"Bearer {self._token}"
+
+        if sqlite_file is not None:
+            assert sqlite3.threadsafety == 3
+            self._db = sqlite3.connect(sqlite_file, check_same_thread=False)
+            self._db.execute("PRAGMA synchronous = OFF;")
+            self._db.execute("PRAGMA foreign_keys = ON;")
+            self._db.execute("CREATE TABLE IF NOT EXISTS gh_users ( \
+                                     owner    TEXT PRIMARY KEY, \
+                                     jsondata TEXT) STRICT;")
+            self._db.execute("CREATE TABLE IF NOT EXISTS gh_repos ( \
+                                     id       INTEGER PRIMARY KEY AUTOINCREMENT, \
+                                     owner    TEXT, \
+                                     repo     TEXT, \
+                                     jsondata TEXT) STRICT;")
+            self._db.execute("CREATE TABLE IF NOT EXISTS gh_issues ( \
+                                     id       INTEGER PRIMARY KEY AUTOINCREMENT, \
+                                     owner    TEXT, \
+                                     repo     TEXT, \
+                                     issue    TEXT, \
+                                     jsondata TEXT) STRICT;")
+            self._db.execute("CREATE TABLE IF NOT EXISTS gh_comments ( \
+                                     id       INTEGER PRIMARY KEY AUTOINCREMENT, \
+                                     owner    TEXT, \
+                                     repo     TEXT, \
+                                     issue    TEXT, \
+                                     comment  TEXT, \
+                                     jsondata TEXT) STRICT;")
+            self._db.execute("""CREATE INDEX IF NOT EXISTS index_gh_users    ON gh_users    (owner)""")
+            self._db.execute("""CREATE INDEX IF NOT EXISTS index_gh_repos    ON gh_repos    (owner, repo)""")
+            self._db.execute("""CREATE INDEX IF NOT EXISTS index_gh_issues   ON gh_issues   (owner, repo)""")
+            self._db.execute("""CREATE INDEX IF NOT EXISTS index_gh_comments ON gh_comments (owner, repo, issue)""")
+        else:
+            self._db = None
+
 
 
     def _gh_fetch(self, endpoint: str) -> GHResponse:
@@ -153,27 +188,75 @@ class GitHub:
 
     # https://docs.github.com/en/rest/issues/issues?apiVersion=2026-03-10#list-repository-issues
     def issues(self, owner:str, repo:str) -> Iterator[dict[str,Any]]:
-        for issue in self._gh_fetch_multi(f"/repos/{owner}/{repo}/issues?state=all"):
-            yield issue
+        dbc = self._db.cursor()
+        dbc.execute("SELECT jsondata FROM gh_issues WHERE owner = ? and repo = ?;", (owner, repo))
+        res = dbc.fetchall()
+        if res != []:
+            for repo in map(lambda x: x[0], res):
+                yield json.loads(repo)
+            return
 
+        for issue in self._gh_fetch_multi(f"/repos/{owner}/{repo}/issues?state=all"):
+            sql = "INSERT INTO gh_issues VALUES (null, ?, ?, ?, json(?));"
+            val = (owner, repo, issue["number"], json.dumps(issue))
+            dbc.execute(sql, val)
+            yield issue
+        self._db.commit()
+        
 
     # https://docs.github.com/en/rest/issues/comments?apiVersion=2026-03-10#list-issue-comments
     def comments_for_issue(self, owner:str, repo:str, issue:str) -> Iterator[dict[str,Any]]:
+        dbc = self._db.cursor()
+        dbc.execute("SELECT jsondata FROM gh_comments WHERE owner = ? and repo = ? and issue = ?;", (owner, repo, issue))
+        res = dbc.fetchall()
+        if res != []:
+            for repo in map(lambda x: x[0], res):
+                yield json.loads(repo)
+            return
+
         for comment in self._gh_fetch_multi(f"/repos/{owner}/{repo}/issues/{issue}/comments"):
+            sql = "INSERT INTO gh_comments VALUES (null, ?, ?, ?, ?, json(?));"
+            print(comment)
+            val = (owner, repo, issue, comment["id"], json.dumps(comment))
+            dbc.execute(sql, val)
             yield comment
+        self._db.commit()
 
 
     # https://docs.github.com/en/rest/repos/repos?apiVersion=2026-03-10#get-a-user
     def user(self, username:str) -> dict[str,Any]:
+        dbc = self._db.cursor()
+        dbc.execute("SELECT jsondata FROM gh_users WHERE owner = ?;", (username, ))
+        data = dbc.fetchone()
+        if data is not None:
+            return json.loads(data[0])
+
         res = self._gh_fetch(f"/users/{username}")
         assert isinstance(res.obj_json, dict)
+        if res.obj_json != {}:
+            sql = "INSERT INTO gh_users VALUES (?, json(?));"
+            val = (username, json.dumps(res.obj_json))
+            dbc.execute(sql, val)
+            self._db.commit()
         return res.obj_json
 
 
     # https://docs.github.com/en/rest/repos/repos?apiVersion=2026-03-10#list-repositories-for-a-user
     def repos_for_user(self, username:str) -> Iterator[dict[str,Any]]:
+        dbc = self._db.cursor()
+        dbc.execute("SELECT jsondata FROM gh_repos WHERE owner = ?;", (username, ))
+        res = dbc.fetchall()
+        if res != []:
+            for repo in map(lambda x: x[0], res):
+                yield json.loads(repo)
+            return
+
         for repo in self._gh_fetch_multi(f"/users/{username}/repos"):
+            sql = "INSERT INTO gh_repos VALUES (null, ?, ?, json(?));"
+            val = (username, repo["name"], json.dumps(repo))
+            dbc.execute(sql, val)
             yield repo
+        self._db.commit()
 
 
 # vim: set tw=0 ai:
