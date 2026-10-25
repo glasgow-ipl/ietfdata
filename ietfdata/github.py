@@ -212,7 +212,6 @@ class GitHub:
 
         for comment in self._gh_fetch_multi(f"/repos/{owner}/{repo}/issues/{issue}/comments"):
             sql = "INSERT INTO gh_comments VALUES (null, ?, ?, ?, ?, json(?));"
-            print(comment)
             val = (owner, repo, issue, comment["id"], json.dumps(comment))
             dbc.execute(sql, val)
             yield comment
