@@ -44,6 +44,20 @@ class GitHubIETF:
         self._repos = []
 
 
+    def _add_username(self, username) -> None:
+        if username not in self._users:
+            gh_user = self._gh.user(username)
+            if gh_user is not None:
+                print(f"    Found user {username}")
+                self._users.append(username)
+
+
+    def _add_reponame(self, reponame) -> None:
+        if reponame not in self._repos:
+            print(f"    Found repo {reponame}")
+            self._repos.append(reponame)
+
+
     def _fix_username(self, username) -> str:
         if username.startswith("(") and username.endswith(")"):
             username = username[1:-1]
@@ -88,16 +102,13 @@ class GitHubIETF:
             rname = dt.ext_resource_name(resource.name).slug
             if rname == "github_username":
                 username = self._fix_username(resource.value)
-                if len(username) > 1 and username not in self._users:
-                    print(f"    Found user {username}")
-                    self._users.append(username)
+                if len(username) > 1:
+                    self._add_username(username)
             if rname == "github_repo":
                 if resource.value.startswith("https://github.com/"):
                     url_stem = resource.value[19:]
                     username = self._fix_username(url_stem[:url_stem.find("/")])
-                    if username not in self._users:
-                        print(f"    Found user {username}")
-                        self._users.append(username)
+                    self._add_username(username)
 
 
     def _search_group_urls(self) -> None:
@@ -105,9 +116,7 @@ class GitHubIETF:
         for url in dt.group_urls():
             if "github" in url.url:
                 username = self._fix_username(url.url)
-                if username not in self._users:
-                    print(f"    Found user {username}")
-                    self._users.append(username)
+                self._add_username(username)
 
 
     def _search_document_urls(self) -> None:
@@ -115,13 +124,9 @@ class GitHubIETF:
         for url in dt.document_urls():
             if "github" in url.url:
                 reponame = self._fix_reponame(url.url)
-                if reponame not in self._repos:
-                    print(f"    Found repo {reponame}")
-                    self._repos.append(reponame)
+                self._add_reponame(reponame)
                 username = self._fix_username(reponame)
-                if username not in self._users:
-                    print(f"    Found user {username}")
-                    self._users.append(username)
+                self._add_username(username)
 
 
     def _search_drafts(self) -> None:
@@ -136,9 +141,7 @@ class GitHubIETF:
             for repo_data in gh.repos_for_user(user):
                 if repo_data["name"].startswith("draft-") and repo_data["fork"] == False:
                     reponame = repo_data["html_url"]
-                    if reponame not in self._repos:
-                        print(f"    Found repo {reponame}")
-                        self._repos.append(reponame)
+                    self._add_reponame(reponame)
 
 
     def find_ietf_github(self) -> None:
@@ -154,7 +157,7 @@ class GitHubIETF:
         self._search_group_urls()
         self._search_document_urls()
         self._search_drafts()
-        self._search_repos_for_users()
+        #self._search_repos_for_users()
 
 
     def users(self) -> List[str]:
