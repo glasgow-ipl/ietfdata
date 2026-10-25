@@ -567,7 +567,7 @@ class RFCIndex:
         if rfc_id in self._rfc_not_issued:
             return self._rfc_not_issued[rfc_id]
         else:
-            return None:
+            return None
 
 
     def bcp(self, bcp_id: str) -> Optional[BcpEntry]:
