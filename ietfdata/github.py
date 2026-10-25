@@ -50,6 +50,17 @@ class GitHub:
     _db          : sqlite3.Connection
 
     def __init__(self, sqlite_file:str) -> None:
+        """
+        The GitHub class provides a minimal interface for fetching data
+        about GitHub users, repositories, issues, and comments on issues.
+
+        The environment variable GITHUB_API_TOKEN should be set to your
+        GitHub API access token.
+
+        The specified `sqlite_file` will be created and used as a cache,
+        so repeated queries for the same value only access GitHub once.
+        The cache is persistant and does not expire.
+        """
         logging.getLogger('requests').setLevel('ERROR')
         logging.getLogger("urllib3").setLevel('ERROR')
         logging.basicConfig(level=os.getenv("IETFDATA_LOGLEVEL", default="INFO"))
@@ -99,10 +110,14 @@ class GitHub:
                                  issue    TEXT, \
                                  comment  TEXT, \
                                  jsondata TEXT) STRICT;")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_gh_users    ON gh_users    (owner)""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_gh_repos    ON gh_repos    (owner, repo)""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_gh_issues   ON gh_issues   (owner, repo)""")
-        self._db.execute("""CREATE INDEX IF NOT EXISTS index_gh_comments ON gh_comments (owner, repo, issue)""")
+        self._db.execute("CREATE INDEX IF NOT EXISTS index_gh_users \
+                                       ON gh_users (owner)")
+        self._db.execute("CREATE INDEX IF NOT EXISTS index_gh_repos \
+                                       ON gh_repos (owner, repo)")
+        self._db.execute("CREATE INDEX IF NOT EXISTS index_gh_issues \
+                                       ON gh_issues (owner, repo)")
+        self._db.execute("CREATE INDEX IF NOT EXISTS index_gh_comments \
+                                       ON gh_comments (owner, repo, issue)")
 
 
     def _gh_fetch(self, endpoint: str) -> GHResponse:
@@ -186,6 +201,12 @@ class GitHub:
 
     # https://docs.github.com/en/rest/issues/issues?apiVersion=2026-03-10#list-repository-issues
     def issues(self, owner:str, repo:str) -> Iterator[dict[str,Any]]:
+        """
+        Fetch the issues associated with a repository.
+
+        If the owner or repo doesn't exist, or if there are no issues, an empty
+        iterator is returned.
+        """
         dbc = self._db.cursor()
         dbc.execute("SELECT jsondata FROM gh_issues WHERE owner = ? and repo = ?;", (owner, repo))
         res = dbc.fetchall()
@@ -204,6 +225,12 @@ class GitHub:
 
     # https://docs.github.com/en/rest/issues/comments?apiVersion=2026-03-10#list-issue-comments
     def comments_for_issue(self, owner:str, repo:str, issue:str) -> Iterator[dict[str,Any]]:
+        """
+        Fetch the comments associated with an issue.
+
+        If the owner, repo, or issues doesn't exist, or if there are no
+        comments, an empty iterator is returned.
+        """
         dbc = self._db.cursor()
         dbc.execute("SELECT jsondata FROM gh_comments WHERE owner = ? and repo = ? and issue = ?;", (owner, repo, issue))
         res = dbc.fetchall()
@@ -248,6 +275,12 @@ class GitHub:
 
     # https://docs.github.com/en/rest/repos/repos?apiVersion=2026-03-10#list-repositories-for-a-user
     def repos_for_user(self, username:str) -> Iterator[dict[str,Any]]:
+        """
+        Fetch the list of GitHub repositories associated with a user.
+
+        If the user doesn't exist, or has no repositories, an empty 
+        iterator is returned.
+        """
         dbc = self._db.cursor()
         dbc.execute("SELECT jsondata FROM gh_repos WHERE owner = ?;", (username, ))
         res = dbc.fetchall()
