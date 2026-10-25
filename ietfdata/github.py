@@ -49,7 +49,7 @@ class GitHub:
     _base_url    : str
     _db          : sqlite3.Connection
 
-    def __init__(self, sqlite_file:Optional[str] = None) -> None:
+    def __init__(self, sqlite_file:str) -> None:
         logging.getLogger('requests').setLevel('ERROR')
         logging.getLogger("urllib3").setLevel('ERROR')
         logging.basicConfig(level=os.getenv("IETFDATA_LOGLEVEL", default="INFO"))
@@ -74,39 +74,35 @@ class GitHub:
             self._multi_delay = 3600.0 / 5000.0
             self._headers["Authorization"] = f"Bearer {self._token}"
 
-        if sqlite_file is not None:
-            assert sqlite3.threadsafety == 3
-            self._db = sqlite3.connect(sqlite_file, check_same_thread=False)
-            self._db.execute("PRAGMA synchronous = OFF;")
-            self._db.execute("PRAGMA foreign_keys = ON;")
-            self._db.execute("CREATE TABLE IF NOT EXISTS gh_users ( \
-                                     owner    TEXT PRIMARY KEY, \
-                                     jsondata TEXT) STRICT;")
-            self._db.execute("CREATE TABLE IF NOT EXISTS gh_repos ( \
-                                     id       INTEGER PRIMARY KEY AUTOINCREMENT, \
-                                     owner    TEXT, \
-                                     repo     TEXT, \
-                                     jsondata TEXT) STRICT;")
-            self._db.execute("CREATE TABLE IF NOT EXISTS gh_issues ( \
-                                     id       INTEGER PRIMARY KEY AUTOINCREMENT, \
-                                     owner    TEXT, \
-                                     repo     TEXT, \
-                                     issue    TEXT, \
-                                     jsondata TEXT) STRICT;")
-            self._db.execute("CREATE TABLE IF NOT EXISTS gh_comments ( \
-                                     id       INTEGER PRIMARY KEY AUTOINCREMENT, \
-                                     owner    TEXT, \
-                                     repo     TEXT, \
-                                     issue    TEXT, \
-                                     comment  TEXT, \
-                                     jsondata TEXT) STRICT;")
-            self._db.execute("""CREATE INDEX IF NOT EXISTS index_gh_users    ON gh_users    (owner)""")
-            self._db.execute("""CREATE INDEX IF NOT EXISTS index_gh_repos    ON gh_repos    (owner, repo)""")
-            self._db.execute("""CREATE INDEX IF NOT EXISTS index_gh_issues   ON gh_issues   (owner, repo)""")
-            self._db.execute("""CREATE INDEX IF NOT EXISTS index_gh_comments ON gh_comments (owner, repo, issue)""")
-        else:
-            self._db = None
-
+        assert sqlite3.threadsafety == 3
+        self._db = sqlite3.connect(sqlite_file, check_same_thread=False)
+        self._db.execute("PRAGMA synchronous = OFF;")
+        self._db.execute("PRAGMA foreign_keys = ON;")
+        self._db.execute("CREATE TABLE IF NOT EXISTS gh_users ( \
+                                 owner    TEXT PRIMARY KEY, \
+                                 jsondata TEXT) STRICT;")
+        self._db.execute("CREATE TABLE IF NOT EXISTS gh_repos ( \
+                                 id       INTEGER PRIMARY KEY AUTOINCREMENT, \
+                                 owner    TEXT, \
+                                 repo     TEXT, \
+                                 jsondata TEXT) STRICT;")
+        self._db.execute("CREATE TABLE IF NOT EXISTS gh_issues ( \
+                                 id       INTEGER PRIMARY KEY AUTOINCREMENT, \
+                                 owner    TEXT, \
+                                 repo     TEXT, \
+                                 issue    TEXT, \
+                                 jsondata TEXT) STRICT;")
+        self._db.execute("CREATE TABLE IF NOT EXISTS gh_comments ( \
+                                 id       INTEGER PRIMARY KEY AUTOINCREMENT, \
+                                 owner    TEXT, \
+                                 repo     TEXT, \
+                                 issue    TEXT, \
+                                 comment  TEXT, \
+                                 jsondata TEXT) STRICT;")
+        self._db.execute("""CREATE INDEX IF NOT EXISTS index_gh_users    ON gh_users    (owner)""")
+        self._db.execute("""CREATE INDEX IF NOT EXISTS index_gh_repos    ON gh_repos    (owner, repo)""")
+        self._db.execute("""CREATE INDEX IF NOT EXISTS index_gh_issues   ON gh_issues   (owner, repo)""")
+        self._db.execute("""CREATE INDEX IF NOT EXISTS index_gh_comments ON gh_comments (owner, repo, issue)""")
 
 
     def _gh_fetch(self, endpoint: str) -> GHResponse:
