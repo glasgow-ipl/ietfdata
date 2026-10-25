@@ -56,6 +56,8 @@ class GitHubIETF:
             username = username[23:]
         elif username.startswith("github.com/"):
             username = username[11:]
+        elif username.startswith("http://") and username.endswith(".github.io/"):
+            username = username[7:-11]
         elif username.startswith("https://") and username.endswith(".github.io/"):
             username = username[8:-11]
         elif username.startswith("https://") and username.endswith(".github.io"):
