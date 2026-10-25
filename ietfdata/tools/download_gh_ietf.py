@@ -137,7 +137,7 @@ class GitHubIETF:
 
     def _search_repos_for_users(self) -> None:
         for user in sorted(self._users):
-            print(f"  Search GitHub repos for user {user}")
+            print(f"  Search for drafts in GitHub repos of user {user}")
             for repo_data in gh.repos_for_user(user):
                 if repo_data["name"].startswith("draft-") and repo_data["fork"] == False:
                     reponame = repo_data["html_url"]
