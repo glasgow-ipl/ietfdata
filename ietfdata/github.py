@@ -193,6 +193,8 @@ class GitHub:
             res = self._gh_fetch(uri)
             if res.obj_json == {}:
                 break
+            if not isinstance(res.obj_json, list):
+                print(res)
             assert isinstance(res.obj_json, list)
             for obj in res.obj_json:
                 yield obj
