@@ -32,7 +32,7 @@ import sys
 import time
 
 from dataclasses       import dataclass
-from typing            import Any, Iterator
+from typing            import Any, Iterator, Optional
 from typing_extensions import Self
 
 @dataclass
@@ -219,12 +219,18 @@ class GitHub:
 
 
     # https://docs.github.com/en/rest/repos/repos?apiVersion=2026-03-10#get-a-user
-    def user(self, username:str) -> dict[str,Any]:
+    def user(self, username:str) -> Optional[dict[str,Any]]:
+        """
+        Fetch information about a GitHub user.
+
+        Returns None if the user does not exist.
+        """
         dbc = self._db.cursor()
         dbc.execute("SELECT jsondata FROM gh_users WHERE owner = ?;", (username, ))
         data = dbc.fetchone()
         if data is not None:
-            return json.loads(data[0])
+            obj = json.loads(data[0]) # type: dict[str,Any]
+            return obj
 
         res = self._gh_fetch(f"/users/{username}")
         assert isinstance(res.obj_json, dict)
@@ -233,7 +239,9 @@ class GitHub:
             val = (username, json.dumps(res.obj_json))
             dbc.execute(sql, val)
             self._db.commit()
-        return res.obj_json
+            return res.obj_json
+        else:
+            return None
 
 
     # https://docs.github.com/en/rest/repos/repos?apiVersion=2026-03-10#list-repositories-for-a-user
