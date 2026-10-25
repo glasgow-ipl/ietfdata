@@ -157,7 +157,7 @@ class GitHubIETF:
         self._search_group_urls()
         self._search_document_urls()
         self._search_drafts()
-        #self._search_repos_for_users()
+        self._search_repos_for_users()
 
 
     def users(self) -> List[str]:
