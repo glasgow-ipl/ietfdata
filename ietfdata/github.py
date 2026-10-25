@@ -176,6 +176,8 @@ class GitHub:
         uri = endpoint
         while uri is not None:
             res = self._gh_fetch(uri)
+            if res.obj_json == {}:
+                break
             assert isinstance(res.obj_json, list)
             for obj in res.obj_json:
                 yield obj
