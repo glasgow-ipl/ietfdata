@@ -3736,7 +3736,7 @@ class TestDatatracker(unittest.TestCase):
 
     def test_countries_in_eu(self) -> None:
         countries = list(self.dt.countries(in_eu = True))
-        self.assertEqual(len(countries), 28)  # Bollocks to Brexit
+        self.assertEqual(len(countries), 27)  # Bollocks to Brexit
 
 
     def test_countries_slug(self) -> None:
