@@ -40,8 +40,8 @@ class GitHubIETF:
         """
         self._gh = gh
         self._dt = dt
-        self._users = []
-        self._repos = []
+        self._users : list[str] = []
+        self._repos : list[tuple] = []
 
 
     def _add_username(self, username) -> None:
@@ -62,7 +62,7 @@ class GitHubIETF:
             self._repos.append(reponame)
 
 
-    def _fix_username(self, username) -> str:
+    def _fix_username(self, username:str) -> str:
         if username.startswith("(") and username.endswith(")"):
             username = username[1:-1]
         if username.startswith("'") and username.endswith("'"):
@@ -89,7 +89,7 @@ class GitHubIETF:
         return username
 
 
-    def _fix_reponame(self, reponame) -> str:
+    def _fix_reponame(self, reponame:str) -> str:
         if reponame.count("/") > 4:
             index  = 0
             offset = 0
@@ -174,14 +174,14 @@ class GitHubIETF:
         return sorted(self._users)
 
 
-    def repos(self) -> List[str]:
+    def repos(self) -> list[tuple]:
         """
         Retrieve the list of GitHub repos found by find_ietf_github().
 
         This will return an empty list if find_ietf_github() has not
         been called.
         """
-        return sorted(self._repos)
+        return self._repos
 
 
 if __name__ == "__main__":
@@ -195,13 +195,15 @@ if __name__ == "__main__":
     gh_ietf = GitHubIETF(gh, dt)
     gh_ietf.find_ietf_github()
 
-    gh_json = {"users": [],
-               "repos": {}}
+    gh_users = []
+    gh_repos = {}
 
     for user in gh_ietf.users():
-        gh_json["users"].append(user)
+        gh_users.append(user)
     for owner, repo, url in gh_ietf.repos():
-        gh_json["repos"][url] = {"owner": owner, "repo": repo, "url": url}
+        gh_repos[url] = {"owner": owner, "repo": repo, "url": url}
+
+    gh_json = {"users": gh_users, "repos": gh_repos}
 
     with open(sys.argv[3], "w") as outf:
         json.dump(gh_json, outf, indent=3)
