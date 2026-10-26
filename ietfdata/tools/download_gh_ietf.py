@@ -52,9 +52,13 @@ class GitHubIETF:
                 self._users.append(username)
 
 
-    def _add_reponame(self, reponame) -> None:
+    def _add_reponame(self, repo_url) -> None:
+        assert repo_url.startswith("https://github.com/")
+        user = repo_url[19:repo_url.find("/", 19)]
+        repo = repo_url[repo_url.rfind("/") + 1:]
+        reponame = (user, repo, repo_url)
         if reponame not in self._repos:
-            print(f"    Found repo {reponame}")
+            print(f"    Found repo {repo_url}")
             self._repos.append(reponame)
 
 
@@ -192,12 +196,12 @@ if __name__ == "__main__":
     gh_ietf.find_ietf_github()
 
     gh_json = {"users": [],
-               "repos": []}
+               "repos": {}}
 
     for user in gh_ietf.users():
         gh_json["users"].append(user)
-    for repo in gh_ietf.repos():
-        gh_json["repos"].append(repo)
+    for owner, repo, url in gh_ietf.repos():
+        gh_json["repos"][url] = {"owner": owner, "repo": repo, "url": url}
 
     with open(sys.argv[3], "w") as outf:
         json.dump(gh_json, outf, indent=3)
