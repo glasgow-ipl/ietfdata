@@ -89,6 +89,7 @@ class GitHub:
         self._db = sqlite3.connect(sqlite_file, check_same_thread=False)
         self._db.execute("PRAGMA synchronous = OFF;")
         self._db.execute("PRAGMA foreign_keys = ON;")
+        self._db.execute("PRAGMA mmap_size = 268435456;")
         self._db.execute("CREATE TABLE IF NOT EXISTS gh_users ( \
                                  owner    TEXT PRIMARY KEY, \
                                  jsondata TEXT) STRICT;")
