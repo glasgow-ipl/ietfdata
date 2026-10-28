@@ -150,7 +150,7 @@ class GitHub:
                     self._log.error(f"_gh_fetch: {r.status_code} {endpoint}")
                     sys.exit(1)
                 elif r.status_code == 403 or r.status_code == 404:
-                    self._log.warning(f"_gh_fetch: {r.status_code} {endpoint}")
+                    self._log.debug(f"_gh_fetch: {r.status_code} {endpoint}")
                     return GHResponse({}, None)
                 elif r.status_code == 429:
                     retry_after = int(r.headers['Retry-After']) 
