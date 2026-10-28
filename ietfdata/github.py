@@ -223,7 +223,7 @@ class GitHub:
         sql = "SELECT jsondata FROM gh_issues WHERE owner = ? and repo = ?;"
         arg = (owner, repo)
         qplan = dbc.execute("EXPLAIN QUERY PLAN " + sql, arg).fetchone()
-        assert qplan[3] == "SEARCH gh_issues USING INDEX index_gh_issues"
+        assert qplan[3].startswith("SEARCH gh_issues USING INDEX index_gh_issues")
         dbc.execute(sql, arg)
         res = dbc.fetchall()
         if res != []:
@@ -252,7 +252,7 @@ class GitHub:
         sql = "SELECT jsondata FROM gh_comments WHERE owner = ? and repo = ? and issue = ?;"
         arg = (owner, repo, issue)
         qplan = dbc.execute("EXPLAIN QUERY PLAN " + sql, arg).fetchone()
-        assert qplan[3] == "SEARCH gh_comments USING INDEX index_gh_comments"
+        assert qplan[3].startswith("SEARCH gh_comments USING INDEX index_gh_comments")
         dbc.execute(sql, arg)
         res = dbc.fetchall()
         if res != []:
@@ -280,7 +280,7 @@ class GitHub:
         sql = "SELECT jsondata FROM gh_users WHERE owner = ?;"
         arg = (username, )
         qplan = dbc.execute("EXPLAIN QUERY PLAN " + sql, arg).fetchone()
-        assert qplan[3] == "SEARCH gh_users USING INDEX sqlite_autoindex_gh_users_1"
+        assert qplan[3].startswith("SEARCH gh_users USING INDEX sqlite_autoindex_gh_users_1")
         dbc.execute(sql, arg)
         data = dbc.fetchone()
         if data is not None:
@@ -312,7 +312,7 @@ class GitHub:
         sql = "SELECT jsondata FROM gh_repos WHERE owner = ?;"
         arg = (username, )
         qplan = dbc.execute("EXPLAIN QUERY PLAN " + sql, arg).fetchone()
-        assert qplan[3] == "SEARCH gh_repos USING INDEX index_gh_repos"
+        assert qplan[3].startswith("SEARCH gh_repos USING INDEX index_gh_repos")
         dbc.execute(sql, arg)
         res = dbc.fetchall()
         if res != []:
