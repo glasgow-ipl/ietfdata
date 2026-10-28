@@ -543,9 +543,7 @@ class DTBackendArchive(DTBackend):
         for column in to_many:
             # Ensure an appropriate index exists before executing the query
             index_sql = f"CREATE INDEX IF NOT EXISTS index_{table_name}_{column} ON {table_name}_{column} (_parent)"
-            self._log.warning(index_sql)
-            for res in self._db.execute(index_sql):
-                self._log.warning(res)
+            self._db.execute(index_sql)
 
             result[column] = []
             sql = f"SELECT {column} FROM {table_name}_{column} WHERE _parent = ?;"
