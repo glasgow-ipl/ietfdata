@@ -229,6 +229,8 @@ class GitHub:
         res = dbc.fetchall()
         if res != []:
             for repo in map(lambda x: x[0], res):
+                if repo == "{}":
+                    break
                 yield json.loads(repo)
             return
 
@@ -237,6 +239,10 @@ class GitHub:
             val = (owner, repo, issue["number"], json.dumps(issue))
             dbc.execute(sql, val)
             yield issue
+        sql = "INSERT INTO gh_issues VALUES (null, ?, ?, ?, json(?));"
+        val = (owner, repo, "-", "{}")
+        dbc.execute(sql, val)
+
         self._db.commit()
         
 
@@ -258,6 +264,8 @@ class GitHub:
         res = dbc.fetchall()
         if res != []:
             for repo in map(lambda x: x[0], res):
+                if repo == "{}":
+                    break
                 yield json.loads(repo)
             return
 
@@ -266,6 +274,9 @@ class GitHub:
             val = (owner, repo, issue, comment["id"], json.dumps(comment))
             dbc.execute(sql, val)
             yield comment
+        sql = "INSERT INTO gh_comments VALUES (null, ?, ?, ?, ?, json(?));"
+        val = (owner, repo, issue, "-", "{}")
+        dbc.execute(sql, val)
         self._db.commit()
 
 
