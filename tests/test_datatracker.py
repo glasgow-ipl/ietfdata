@@ -1068,8 +1068,9 @@ class TestDatatracker(unittest.TestCase):
 
     def test_documents_from_std(self) -> None:
         d  = list(self.dt.documents_from_std("std68"))
-        self.assertEqual(len(d), 1)
+        self.assertEqual(len(d), 2)
         self.assertEqual(d[0].resource_uri, DocumentURI(uri="/api/v1/doc/document/rfc5234/"))
+        self.assertEqual(d[1].resource_uri, DocumentURI(uri="/api/v1/doc/document/rfc7405/"))
 
 
     def test_document_state(self) -> None:
