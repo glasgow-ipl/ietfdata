@@ -148,7 +148,7 @@ class GitHubIETF:
                     self._add_reponame(reponame)
 
 
-    def find_ietf_github(self) -> None:
+    def update(self) -> None:
         """
         Search the DataTracker and Internet-drafts to locate the GitHub
         usernames and repositories mentioned; expand the search to find
@@ -186,7 +186,7 @@ class GitHubIETF:
 
 if __name__ == "__main__":
     if len(sys.argv) != 4:
-        print("Usage: python3 -m ietfdata.tools.download_gh_ietf archive/ietf-dt.sqlite archive/github.sqlite archive/ietf-gh.json")
+        print("Usage: python3 -m ietfdata.github_ietf archive/ietf-dt.sqlite archive/github.sqlite archive/ietf-gh.json")
         sys.exit(1)
 
     dt = DataTracker(DTBackendArchive(sys.argv[1]))
@@ -208,4 +208,3 @@ if __name__ == "__main__":
     with open(sys.argv[3], "w") as outf:
         json.dump(gh_json, outf, indent=3)
 
-    
