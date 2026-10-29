@@ -229,20 +229,21 @@ class GitHub:
         res = dbc.fetchall()
         if res != []:
             for repo in map(lambda x: x[0], res):
-                if repo == "{}":
-                    break
-                yield json.loads(repo)
+                if repo != "{}":
+                    yield json.loads(repo)
             return
 
+        count = 0
         for issue in self._gh_fetch_multi(f"/repos/{owner}/{repo}/issues?state=all"):
+            count += 1
             sql = "INSERT INTO gh_issues VALUES (null, ?, ?, ?, json(?));"
             val = (owner, repo, issue["number"], json.dumps(issue))
             dbc.execute(sql, val)
             yield issue
-        sql = "INSERT INTO gh_issues VALUES (null, ?, ?, ?, json(?));"
-        val = (owner, repo, "-", "{}")
-        dbc.execute(sql, val)
-
+        if count == 0:
+            sql = "INSERT INTO gh_issues VALUES (null, ?, ?, ?, json(?));"
+            val = (owner, repo, "-", "{}")
+            dbc.execute(sql, val)
         self._db.commit()
         
 
@@ -264,19 +265,21 @@ class GitHub:
         res = dbc.fetchall()
         if res != []:
             for repo in map(lambda x: x[0], res):
-                if repo == "{}":
-                    break
-                yield json.loads(repo)
+                if repo != "{}":
+                    yield json.loads(repo)
             return
 
+        count = 0
         for comment in self._gh_fetch_multi(f"/repos/{owner}/{repo}/issues/{issue}/comments"):
+            count += 1
             sql = "INSERT INTO gh_comments VALUES (null, ?, ?, ?, ?, json(?));"
             val = (owner, repo, issue, comment["id"], json.dumps(comment))
             dbc.execute(sql, val)
             yield comment
-        sql = "INSERT INTO gh_comments VALUES (null, ?, ?, ?, ?, json(?));"
-        val = (owner, repo, issue, "-", "{}")
-        dbc.execute(sql, val)
+        if count == 0:
+            sql = "INSERT INTO gh_comments VALUES (null, ?, ?, ?, ?, json(?));"
+            val = (owner, repo, issue, "-", "{}")
+            dbc.execute(sql, val)
         self._db.commit()
 
 
