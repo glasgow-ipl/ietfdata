@@ -47,8 +47,8 @@ if __name__ == "__main__":
 
     for user in gh_ietf.users():
         gh_users.append(user)
-    for owner, repo, url in gh_ietf.repos():
-        gh_repos[url] = {"owner": owner, "repo": repo, "url": url}
+    for repo in gh_ietf.repos():
+        gh_repos[f"{repo['user']}/{repo['repo']}"] = repo
 
     gh_json = {"users": gh_users, "repos": gh_repos}
 
