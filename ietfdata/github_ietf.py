@@ -64,7 +64,7 @@ class GitHubIETF(GitHub):
         assert repo_url.startswith("https://github.com/")
         user = repo_url[19:repo_url.find("/", 19)]
         repo = repo_url[repo_url.rfind("/") + 1:]
-        reponame = {"username": user, "reponame": repo, "url": repo_url}
+        reponame = {"user": user, "repo": repo, "url": repo_url}
         if reponame not in self._repos:
             print(f"    Found repo {repo_url}")
             self._repos.append(reponame)
