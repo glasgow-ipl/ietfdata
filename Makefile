@@ -29,7 +29,8 @@ ARCHIVE := archive/rfc-index.xml \
 
 DATA := data/participants.json  \
         data/organisations.json \
-        data/affiliations.json
+        data/affiliations.json \
+				data/github-ietf.json
 
 # =============================================================================
 # Rules to run tests.
@@ -56,6 +57,9 @@ fetch: $(ARCHIVE) $(DATA)
 archive:
 	mkdir $@
 
+archive/ietf-drafts: | archive
+	mkdir $@
+
 archive/rfc-index.xml: | archive
 	curl -s -o $@ https://www.rfc-editor.org/rfc-index.xml
 
@@ -67,6 +71,11 @@ archive/ietf-ma.sqlite: | archive
 
 archive/w3c-ma.sqlite: | archive
 	python3 -m ietfdata.tools.download_ma_w3c $@
+
+# Scripts that use the GitHub API should list the github.sqlite cache file as
+# an order only prerequisite. Since this is managed as a cache, not a one-off
+# download, there's no need to rerun scripts when it's updated.
+archive/github.sqlite: | archive
 
 # =============================================================================
 # Rules to update the data derived from the archive.
@@ -85,9 +94,11 @@ data/organisations.json: ietfdata/tools/organisations.py \
 data/affiliations.json: ietfdata/tools/affiliations.py \
                         archive/ietf-dt.sqlite archive/rfc-index.xml \
 												data/participants.json data/organisations.json | data
-	python3 -m ietfdata.tools.affiliations \
-             archive/ietf-dt.sqlite archive/rfc-index.xml \
-             data/participants.json data/organisations.json $@
+	python3 -m ietfdata.tools.affiliations archive/ietf-dt.sqlite archive/rfc-index.xml data/participants.json data/organisations.json $@
+
+data/github-ietf.json: ietfdata/tools/find_github_ietf.py \
+                       archive/ietf-dt.sqlite | archive/ietf-drafts archive/github.sqlite
+	python3 -m ietfdata.tools.find_github_ietf archive/ietf-dt.sqlite archive/ietf-drafts archive/github.sqlite data/github-ietf.json
 
 # =================================================================================================
 # Rules to clean-up:
