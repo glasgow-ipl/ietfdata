@@ -300,15 +300,18 @@ class GitHub:
         data = dbc.fetchone()
         if data is not None:
             obj = json.loads(data[0]) # type: dict[str,Any]
-            return obj
+            if obj != "{}":
+                return obj
+            else:
+                return None
 
         res = self._gh_fetch(f"/users/{username}")
         assert isinstance(res.obj_json, dict)
+        sql = "INSERT INTO gh_users VALUES (?, json(?));"
+        val = (username, json.dumps(res.obj_json))
+        dbc.execute(sql, val)
+        self._db.commit()
         if res.obj_json != {}:
-            sql = "INSERT INTO gh_users VALUES (?, json(?));"
-            val = (username, json.dumps(res.obj_json))
-            dbc.execute(sql, val)
-            self._db.commit()
             return res.obj_json
         else:
             return None
@@ -329,22 +332,29 @@ class GitHub:
         """
         username = self._fix_username(username)
         dbc = self._db.cursor()
-        sql = "SELECT jsondata FROM gh_repos WHERE owner = ?;"
+        sql = "SELECT repo, jsondata FROM gh_repos WHERE owner = ?;"
         arg = (username, )
         qplan = dbc.execute("EXPLAIN QUERY PLAN " + sql, arg).fetchone()
         assert qplan[3].startswith("SEARCH gh_repos USING INDEX index_gh_repos")
         dbc.execute(sql, arg)
         res = dbc.fetchall()
         if res != []:
-            for repo in map(lambda x: x[0], res):
-                yield json.loads(repo)
+            for repo, jsondata in res:
+                if repo != "-":
+                    yield json.loads(jsondata)
             return
 
+        count = 0
         for repo in self._gh_fetch_multi(f"/users/{username}/repos"):
+            count += 1
             sql = "INSERT INTO gh_repos VALUES (null, ?, ?, json(?));"
             val = (username, repo["name"], json.dumps(repo))
             dbc.execute(sql, val)
             yield repo
+        if count == 0:
+            sql = "INSERT INTO gh_repos VALUES (null, ?, ?, json(?));"
+            val = (username, "-", "{}")
+            dbc.execute(sql, val)
         self._db.commit()
 
 
