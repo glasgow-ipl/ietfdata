@@ -151,7 +151,7 @@ class GitHubIETF(GitHub):
         paths   = []
         width   = 80
 
-        for doc in dt.documents(doctype = dt.document_type_from_slug("draft")):
+        for doc in self._dt.documents(doctype = self._dt.document_type_from_slug("draft")):
             if doc.submissions == []:
                 # Drafts without submissions cannot be downloaded
                 continue
@@ -159,7 +159,7 @@ class GitHubIETF(GitHub):
             draft_name = doc.name
             draft_rev  = "00"
             for submission_uri in doc.submissions:
-                submission = dt.submission(submission_uri)
+                submission = self._dt.submission(submission_uri)
                 if submission.rev >= draft_rev:
                     draft_name = submission.name
                     draft_rev  = submission.rev
@@ -254,26 +254,4 @@ class GitHubIETF(GitHub):
         """
         return self._repos
 
-
-if __name__ == "__main__":
-    if len(sys.argv) != 4:
-        print("Usage: python3 -m ietfdata.github_ietf archive/ietf-dt.sqlite archive/github.sqlite archive/ietf-gh.json")
-        sys.exit(1)
-
-    dt = DataTracker(DTBackendArchive(sys.argv[1]))
-    gh_ietf = GitHubIETF(sys.argv[2], dt, "archive/ietf-drafts")
-    gh_ietf.find_repositories()
-
-    gh_users = []
-    gh_repos = {}
-
-    for user in gh_ietf.users():
-        gh_users.append(user)
-    for owner, repo, url in gh_ietf.repos():
-        gh_repos[url] = {"owner": owner, "repo": repo, "url": url}
-
-    gh_json = {"users": gh_users, "repos": gh_repos}
-
-    with open(sys.argv[3], "w") as outf:
-        json.dump(gh_json, outf, indent=3)
 
