@@ -314,6 +314,11 @@ class GitHub:
             return None
 
 
+    # FIXME https://api.github.com/users/csperkins/social_accounts
+    def user_social(self, username:str) -> Optional[dict[str,Any]]:
+        return None
+
+
     # https://docs.github.com/en/rest/repos/repos?apiVersion=2026-03-10#list-repositories-for-a-user
     def repos_for_user(self, username:str) -> Iterator[dict[str,Any]]:
         """
