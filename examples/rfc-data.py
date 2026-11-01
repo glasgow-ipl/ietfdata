@@ -34,7 +34,7 @@ from ietfdata.rfcindex    import *
 
 # =============================================================================
 
-dt = DataTracker(DTBackendArchive("archive/ietfdata-dt.sqlite"))
+dt = DataTracker(DTBackendArchive("archive/ietf-dt.sqlite"))
 ri = RFCIndex(rfc_index="archive/rfc-index.xml")
 
 def print_submission(draft):

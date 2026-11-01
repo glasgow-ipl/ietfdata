@@ -84,7 +84,7 @@ def person_chair_roles(dt: DataTracker, person: Person):
 # =============================================================================
 # Example: print all the information we can find about a person
 
-dt = DataTracker(DTBackendArchive("archive/ietfdata-dt.sqlite"))
+dt = DataTracker(DTBackendArchive("archive/ietf-dt.sqlite"))
 
 p = dt.person_from_email("csp@csperkins.org")
 

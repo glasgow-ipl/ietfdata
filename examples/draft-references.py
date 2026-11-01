@@ -34,7 +34,7 @@ from ietfdata.datatracker import *
 # =============================================================================
 # Example: print information about document authors
 
-dt    = DataTracker(DTBackendArchive("archive/ietfdata-dt.sqlite"))
+dt    = DataTracker(DTBackendArchive("archive/ietf-dt.sqlite"))
 draft = "draft-ietf-quic-transport"
 
 print(f"{draft}:")

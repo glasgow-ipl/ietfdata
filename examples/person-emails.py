@@ -34,7 +34,7 @@ from ietfdata.datatracker import *
 
 # =============================================================================
 
-dt = DataTracker(DTBackendArchive("archive/ietfdata-dt.sqlite"))
+dt = DataTracker(DTBackendArchive("archive/ietf-dt.sqlite"))
 
 for alias in dt.person_aliases(name="Colin Perkins"):
     for email in dt.email_for_person(dt.person(alias.person)):
