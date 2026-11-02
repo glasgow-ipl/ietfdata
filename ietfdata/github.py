@@ -300,7 +300,7 @@ class GitHub:
         data = dbc.fetchone()
         if data is not None:
             obj = json.loads(data[0]) # type: dict[str,Any]
-            if obj != "{}":
+            if obj != {}:
                 return obj
             else:
                 return None
