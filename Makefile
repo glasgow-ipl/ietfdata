@@ -30,7 +30,9 @@ ARCHIVE := archive/rfc-index.xml \
 DATA := data/participants.json  \
         data/organisations.json \
         data/affiliations.json \
-				data/github-ietf.json
+        data/github_ietf.json \
+        data/ietf_meeting.json \
+        data/rfcs_per_year.csv
 
 # =============================================================================
 # Rules to run tests.
@@ -96,9 +98,17 @@ data/affiliations.json: ietfdata/tools/affiliations.py \
 												data/participants.json data/organisations.json | data
 	python3 -m ietfdata.tools.affiliations archive/ietf-dt.sqlite archive/rfc-index.xml data/participants.json data/organisations.json $@
 
-data/github-ietf.json: ietfdata/tools/find_github_ietf.py \
+data/github_ietf.json: ietfdata/tools/find_github_ietf.py \
                        archive/ietf-dt.sqlite | archive/ietf-drafts archive/github.sqlite
-	python3 -m ietfdata.tools.find_github_ietf archive/ietf-dt.sqlite archive/ietf-drafts archive/github.sqlite data/github-ietf.json
+	python3 -m ietfdata.tools.find_github_ietf archive/ietf-dt.sqlite archive/ietf-drafts archive/github.sqlite data/github_ietf.json
+
+
+
+data/ietf_meeting.json: examples.new/ietf_meetings.py archive/ietf-dt.sqlite
+	python3 $^ $@
+
+data/rfcs_per_year.csv: examples.new/rfcs_per_year.py archive/ietf-dt.sqlite
+	python3 $^ $@
 
 # =================================================================================================
 # Rules to clean-up:
