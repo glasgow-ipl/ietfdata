@@ -31,7 +31,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from pathlib              import Path
 from ietfdata.datatracker import *
 
-dt = DataTracker(DTBackendArchive("archive/ietf-dt.sqlite"))
+dt = DataTracker(DTBackendArchive("archive/ietf_dt.sqlite"))
 
 for group in dt.groups(parent = dt.group_from_acronym("iesg")):
     state = dt.group_state(group.state)

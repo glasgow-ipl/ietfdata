@@ -23,15 +23,15 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-ARCHIVE := archive/rfc-index.xml \
-           archive/ietf-dt.sqlite \
-           archive/ietf-ma.sqlite
+ARCHIVE := archive/rfc_index.xml \
+           archive/ietf_dt.sqlite \
+           archive/ietf_ma.sqlite
 
 DATA := data/participants.json  \
         data/organisations.json \
         data/affiliations.json \
         data/github_ietf.json \
-        data/ietf_meeting.json \
+        data/ietf_meetings.json \
         data/rfcs_per_year.csv
 
 # =============================================================================
@@ -59,19 +59,19 @@ fetch: $(ARCHIVE) $(DATA)
 archive:
 	mkdir $@
 
-archive/ietf-drafts: | archive
+archive/ietf_drafts: | archive
 	mkdir $@
 
-archive/rfc-index.xml: | archive
+archive/rfc_index.xml: | archive
 	curl -s -o $@ https://www.rfc-editor.org/rfc-index.xml
 
-archive/ietf-dt.sqlite: | archive
+archive/ietf_dt.sqlite: | archive
 	python3 -m ietfdata.tools.download_dt $@
 
-archive/ietf-ma.sqlite: | archive
+archive/ietf_ma.sqlite: | archive
 	python3 -m ietfdata.tools.download_ma_ietf $@
 
-archive/w3c-ma.sqlite: | archive
+archive/w3c_ma.sqlite: | archive
 	python3 -m ietfdata.tools.download_ma_w3c $@
 
 # Scripts that use the GitHub API should list the github.sqlite cache file as
@@ -86,28 +86,28 @@ data:
 	mkdir $@
 
 data/participants.json: ietfdata/tools/participants_ietf.py \
-                        archive/ietf-dt.sqlite archive/ietf-ma.sqlite | data
-	python3 -m ietfdata.tools.participants_ietf  archive/ietf-dt.sqlite archive/ietf-ma.sqlite $@
+                        archive/ietf_dt.sqlite archive/ietf_ma.sqlite | data
+	python3 -m ietfdata.tools.participants_ietf  archive/ietf_dt.sqlite archive/ietf_ma.sqlite $@
 
 data/organisations.json: ietfdata/tools/organisations.py \
-                         archive/ietf-dt.sqlite archive/rfc-index.xml | data
-	python3 -m ietfdata.tools.organisations archive/ietf-dt.sqlite archive/rfc-index.xml $@
+                         archive/ietf_dt.sqlite archive/rfc_index.xml | data
+	python3 -m ietfdata.tools.organisations archive/ietf_dt.sqlite archive/rfc_index.xml $@
 
 data/affiliations.json: ietfdata/tools/affiliations.py \
-                        archive/ietf-dt.sqlite archive/rfc-index.xml \
+                        archive/ietf_dt.sqlite archive/rfc_index.xml \
 												data/participants.json data/organisations.json | data
-	python3 -m ietfdata.tools.affiliations archive/ietf-dt.sqlite archive/rfc-index.xml data/participants.json data/organisations.json $@
+	python3 -m ietfdata.tools.affiliations archive/ietf_dt.sqlite archive/rfc_index.xml data/participants.json data/organisations.json $@
 
 data/github_ietf.json: ietfdata/tools/find_github_ietf.py \
-                       archive/ietf-dt.sqlite | archive/ietf-drafts archive/github.sqlite
-	python3 -m ietfdata.tools.find_github_ietf archive/ietf-dt.sqlite archive/ietf-drafts archive/github.sqlite data/github_ietf.json
+                       archive/ietf_dt.sqlite | archive/ietf_drafts archive/github.sqlite
+	python3 -m ietfdata.tools.find_github_ietf archive/ietf_dt.sqlite archive/ietf_drafts archive/github.sqlite data/github_ietf.json
 
 
 
-data/ietf_meeting.json: examples.new/ietf_meetings.py archive/ietf-dt.sqlite
+data/ietf_meetings.json: examples.new/ietf_meetings.py archive/ietf_dt.sqlite
 	python3 $^ $@
 
-data/rfcs_per_year.csv: examples.new/rfcs_per_year.py archive/ietf-dt.sqlite
+data/rfcs_per_year.csv: examples.new/rfcs_per_year.py archive/ietf_dt.sqlite
 	python3 $^ $@
 
 # =================================================================================================

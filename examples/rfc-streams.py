@@ -38,7 +38,7 @@ streams = {}
 total = 0
 legacy = 0
 
-ri = RFCIndex(rfc_index="archive/rfc-index.xml")
+ri = RFCIndex(rfc_index="archive/rfc_index.xml")
 
 for rfc in ri.rfcs():
     total += 1

@@ -31,7 +31,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from ietfdata.datatracker import *
 
 if len(sys.argv) != 3:
-    print("Usage: python rfcs_per_year.py archive/ietf-dt.sqlite data/rfcs-per-year.csv")
+    print("Usage: python rfcs_per_year.py archive/ietf_dt.sqlite data/rfcs-per-year.csv")
     sys.exit(1)
 
 dt = DataTracker(DTBackendArchive(sys.argv[1]))

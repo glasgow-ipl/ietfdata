@@ -34,7 +34,7 @@ from ietfdata.datatracker import *
 # =============================================================================
 # Example: print an organisational chart for the IETF
 
-dt = DataTracker(DTBackendArchive("archive/ietf-dt.sqlite"))
+dt = DataTracker(DTBackendArchive("archive/ietf_dt.sqlite"))
 
 def print_group(group : Group, level : int):
     for i in range(0, level):

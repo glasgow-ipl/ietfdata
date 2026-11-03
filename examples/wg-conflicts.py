@@ -43,7 +43,7 @@ from ietfdata.datatracker import *
 # The conflict list is saved in the file conflicts.txt
 
 
-dt = DataTracker(DTBackendArchive("archive/ietf-dt.sqlite"))
+dt = DataTracker(DTBackendArchive("archive/ietf_dt.sqlite"))
 
 doc_state    = dt.document_state_type_from_slug("draft")
 draft        = dt.document_type_from_slug("draft")

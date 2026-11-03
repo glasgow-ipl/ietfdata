@@ -33,7 +33,7 @@ from datetime             import timedelta
 from ietfdata.datatracker import *
 
 if len(sys.argv) != 3:
-    print("Usage: python ietf_meetings.py archive/ietf-dt.sqlite data/ietf_meetings.json")
+    print("Usage: python ietf_meetings.py archive/ietf_dt.sqlite data/ietf_meetings.json")
     sys.exit(1)
 
 dt = DataTracker(DTBackendArchive(sys.argv[1]))

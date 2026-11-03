@@ -64,8 +64,8 @@ def month_num(month):
         print("huh?")
         sys.exit(1)
 
-ri = RFCIndex(rfc_index="archive/rfc-index.xml")
-dt = DataTracker(DTBackendArchive("archive/ietf-dt.sqlite"))
+ri = RFCIndex(rfc_index="archive/rfc_index.xml")
+dt = DataTracker(DTBackendArchive("archive/ietf_dt.sqlite"))
 
 print("RFC      Date       DaysBeforeBallot   TotalTimeWithIESG")
 for rfc in ri.rfcs(since="2013-01"):

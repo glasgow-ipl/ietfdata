@@ -32,7 +32,7 @@ from pathlib                  import Path
 from ietfdata.datatracker     import *
 from ietfdata.datatracker_ext import *
 
-dt = DataTracker(DTBackendArchive("archive/ietf-dt.sqlite"))
+dt = DataTracker(DTBackendArchive("archive/ietf_dt.sqlite"))
 
 st_iesg  = dt.document_state_type_from_slug("draft-iesg")
 pub_req  = dt.document_state_from_slug(state_type = st_iesg, slug = "pub-req")

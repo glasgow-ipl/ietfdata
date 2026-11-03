@@ -33,7 +33,7 @@ from pathlib              import Path
 from ietfdata.datatracker import *
 from ietfdata.rfcindex    import *
 
-dt = DataTracker(DTBackendArchive("archive/ietf-dt.sqlite"))
+dt = DataTracker(DTBackendArchive("archive/ietf_dt.sqlite"))
 
 with requests.Session() as session:
 	print("Finding chatlogs for QUIC WG:")

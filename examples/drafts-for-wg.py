@@ -32,7 +32,7 @@ from pathlib                  import Path
 from ietfdata.datatracker     import *
 from ietfdata.datatracker_ext import *
 
-dt = DataTrackerExt(DTBackendArchive("archive/ietf-dt.sqlite"))
+dt = DataTrackerExt(DTBackendArchive("archive/ietf_dt.sqlite"))
 
 group   = dt.group_from_acronym("quic")
 doctype = dt.document_type_from_slug("draft")

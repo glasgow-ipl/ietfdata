@@ -34,7 +34,7 @@ from ietfdata.datatracker     import *
 from ietfdata.datatracker_ext import *
 from dateutil.parser          import *
 
-dt = DataTrackerExt(DTBackendArchive("archive/ietf-dt.sqlite"))
+dt = DataTrackerExt(DTBackendArchive("archive/ietf_dt.sqlite"))
 
 # =============================================================================
 # Information about the IAB:

@@ -32,7 +32,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from pathlib              import Path
 from ietfdata.datatracker import *
 
-dt = DataTracker(DTBackendArchive("archive/ietf-dt.sqlite"))
+dt = DataTracker(DTBackendArchive("archive/ietf_dt.sqlite"))
 
 print("*** Holder IPR disclosures:")
 for holder_disclosure in dt.holder_ipr_disclosures():

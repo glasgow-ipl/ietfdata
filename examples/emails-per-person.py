@@ -35,7 +35,7 @@ from ietfdata.datatracker import *
 # =============================================================================
 # Find the number of email addresses for each participants in the IETF.
 
-dt = DataTracker(DTBackendArchive("archive/ietf-dt.sqlite"))
+dt = DataTracker(DTBackendArchive("archive/ietf_dt.sqlite"))
 
 people = {}
 

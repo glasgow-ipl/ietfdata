@@ -33,8 +33,8 @@ from datetime              import date, datetime, timedelta, timezone
 from ietfdata.datatracker  import *
 from ietfdata.mailarchive3 import *
 
-dt = DataTracker(DTBackendArchive("archive/ietf-dt.sqlite"))
-ma = MailArchive("archive/ietf-ma.sqlite")
+dt = DataTracker(DTBackendArchive("archive/ietf_dt.sqlite"))
+ma = MailArchive("archive/ietf_ma.sqlite")
 
 mt = dt.meeting_type_from_slug("ietf")
 

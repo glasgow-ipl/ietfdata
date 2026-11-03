@@ -34,7 +34,7 @@ from ietfdata.datatracker import *
 # =============================================================================
 # Example: print information about document authors
 
-dt = DataTracker(DTBackendArchive("archive/ietf-dt.sqlite"))
+dt = DataTracker(DTBackendArchive("archive/ietf_dt.sqlite"))
 
 doc = dt.document_from_draft("draft-ietf-mmusic-rfc4566bis")
 print("Title: {}".format(doc.title))
