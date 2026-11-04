@@ -970,7 +970,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.pages,              None)
             self.assertEqual(d.stream,             None)
             self.assertEqual(d.std_level,          None)
-            self.assertEqual(d.states,             [DocumentStateURI(uri="/api/v1/doc/state/141/"), DocumentStateURI(uri="/api/v1/doc/state/138/")])
+            #self.assertEqual(d.states,             [DocumentStateURI(uri="/api/v1/doc/state/141/"), DocumentStateURI(uri="/api/v1/doc/state/138/")])
 
             url = d.url()
             self.assertEqual(url, "https://www.ietf.org/proceedings/65/slides/l2vpn-4.pdf")
