@@ -618,23 +618,26 @@ class DTBackendArchive(DTBackend):
                     param_names.append(f"\"{param_name[:-5]}\" <= ?")
                     param_values.append(param_value)
                 elif param_name in to_one:
-                    # FIXME: the use of LIKE forces sqlite to scan rather than use the index
                     index_names.append(f"\"{param_name}\"")
-                    param_names.append(f"\"{param_name}\" LIKE ?")
                     # Several datatracker API endpoints allow querying documents, but
                     # take a document ID rather than a document name as their parameter.
                     # The value returned by the datatracker, that we store in the sqlite
                     # database, is however the document name. We use params_alt to allow
                     # DataTracker() class to pass in both the document ID and name.
                     if param_name in obj_uri.params_alt:
-                        param_values.append(f"/api/v1/%/{obj_uri.params_alt[param_name]}/")
+                        param_names.append(f"\"{param_name}\" = ?")
+                        param_values.append(obj_uri.params_alt[param_name])
                     else:
+                        # FIXME: the use of LIKE forces sqlite to scan rather than use the index
+                        param_names.append(f"\"{param_name}\" LIKE ?")
                         param_values.append(f"/api/v1/%/{param_value}/")
                 elif param_name in to_many:
                     raise RuntimeError(f"_datatracker_get_multi on {obj_uri} to_many parameter \"{param_name}\" not implmemented")
                 else:
                     raise RuntimeError(f"_datatracker_get_multi on {obj_uri} unknown parameter \"{param_name}\"")
             sql += " AND ".join(param_names)
+        if order_by is not None:
+            sql += f" ORDER BY {order_by}"
         sql += ";"
 
         # Ensure an appropriate index exists before executing the query
