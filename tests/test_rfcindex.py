@@ -39,11 +39,7 @@ class TestRFCIndex(unittest.TestCase):
 
     @classmethod
     def setUpClass(self) -> None:
-        self.index = RFCIndex(cache_dir = "data")
-        if os.getenv("DT_TEST_ARCHIVE") is not None:
-            self.index = RFCIndex(rfc_index = "archive/rfc_index.xml")
-        else:
-            self.index = RFCIndex(cache_dir = "archive")
+        self.index = RFCIndex(rfc_index = "archive/rfc_index.xml")
 
     def test_rfc(self):
         rfc = self.index.rfc("RFC3550")
