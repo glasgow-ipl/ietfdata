@@ -23,16 +23,20 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-ARCHIVE := archive/rfc_index.xml \
+ARCHIVE := archive/rfc_index.xml  \
            archive/ietf_dt.sqlite \
            archive/ietf_ma.sqlite
 
 DATA := data/participants.json  \
         data/organisations.json \
-        data/affiliations.json \
-        data/github_ietf.json \
-        data/ietf_meetings.json \
-        data/rfcs_per_year.csv
+        data/affiliations.json  \
+        data/github_ietf.json
+
+EXAMPLES := data/ietf_meetings.json \
+            data/rfcs_per_year.csv \
+            data/rfcs_per_year_stream.csv
+
+all: test $(DATA) $(EXAMPLES)
 
 # =============================================================================
 # Rules to run tests.
@@ -102,7 +106,8 @@ data/github_ietf.json: ietfdata/tools/find_github_ietf.py \
                        archive/ietf_dt.sqlite | archive/ietf_drafts archive/github.sqlite
 	python3 -m ietfdata.tools.find_github_ietf archive/ietf_dt.sqlite archive/ietf_drafts archive/github.sqlite data/github_ietf.json
 
-
+# =============================================================================
+# Rules to build the examples.
 
 data/ietf_meetings.json: examples.new/ietf_meetings.py archive/ietf_dt.sqlite
 	python3 $^ $@
@@ -118,6 +123,7 @@ data/rfcs_per_year_stream.csv: examples.new/rfcs_per_year_stream.py archive/ietf
 
 clean:
 	rm -f $(DATA)
+	rm -f $(EXAMPLES)
 
 deep-clean: clean
 	rm -f $(ARCHIVE)
@@ -125,7 +131,7 @@ deep-clean: clean
 # =================================================================================================
 # Targets that don't represent files:
 
-.PHONY: test fetch test-archive typecheck clean deep-clean
+.PHONY: fetch test test-live test-archive typecheck clean deep-clean
 
 # =================================================================================================
 # Configuration for make:
