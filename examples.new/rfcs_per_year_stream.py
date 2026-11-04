@@ -59,11 +59,13 @@ with open(sys.argv[2], "w") as outf:
     print("# year", file=outf, end="")
     for stream in sorted(streams):
         print(f",{stream}", file=outf, end="")
-    print("", file=outf)
+    print(",total", file=outf)
     
     for year in sorted(rfcs_per_year.keys()):
         print(f"{year}", file=outf, end="")
+        total = 0
         for stream in sorted(streams):
             print(f",{rfcs_per_year[year][stream]}", file=outf, end="")
-        print("", file=outf)
+            total += rfcs_per_year[year][stream]
+        print(f",{total}", file=outf)
 
