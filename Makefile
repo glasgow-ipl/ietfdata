@@ -110,6 +110,9 @@ data/ietf_meetings.json: examples.new/ietf_meetings.py archive/ietf_dt.sqlite
 data/rfcs_per_year.csv: examples.new/rfcs_per_year.py archive/ietf_dt.sqlite
 	python3 $^ $@
 
+data/rfcs_per_year_stream.csv: examples.new/rfcs_per_year_stream.py archive/ietf_dt.sqlite
+	python3 $^ $@
+
 # =================================================================================================
 # Rules to clean-up:
 
