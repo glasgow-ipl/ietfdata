@@ -610,7 +610,7 @@ class DataTracker:
         url = DocumentEventURI(uri="/api/v1/doc/docevent/")
         if doc is not None:
             url.params["doc"]  = doc.id
-            url.params_alt["doc"] = doc.name
+            url.params_alt["doc"] = f"/api/v1/doc/document/{doc.name}/"
         if by is not None:
             url.params["by"]   = by.id
         if event_type is not None:
@@ -627,7 +627,7 @@ class DataTracker:
         url = DocumentAuthorURI(uri="/api/v1/doc/documentauthor/")
         if document is not None:
             url.params["document"] = document.id
-            url.params_alt["document"] = document.name
+            url.params_alt["document"] = f"/api/v1/doc/document/{document.name}/"
         yield from self._retrieve_multi(url, DocumentAuthor)
 
 
@@ -657,10 +657,10 @@ class DataTracker:
         url = RelatedDocumentURI(uri="/api/v1/doc/relateddocument/")
         if source is not None:
             url.params["source"] = source.id
-            url.params_alt["source"] = source.name
+            url.params_alt["source"] = f"/api/v1/doc/document/{source.name}/"
         if target is not None:
             url.params["target"] = target.id
-            url.params_alt["target"] = target.name
+            url.params_alt["target"] = f"/api/v1/doc/document/{target.name}/"
         if relationship_type is not None:
             url.params["relationship"] = relationship_type.slug
         if relationship_type_slug is not None:
@@ -791,7 +791,7 @@ class DataTracker:
             url.params["by"] = by.id
         if doc is not None:
             url.params["doc"] = doc.id
-            url.params_alt["doc"] = doc.name
+            url.params_alt["doc"] = f"/api/v1/doc/document/{doc.name}/"
         if event_type is not None:
             url.params["type"] = event_type
         yield from self._retrieve_multi(url, BallotDocumentEvent)
@@ -858,7 +858,7 @@ class DataTracker:
         url = DocumentUrlURI(uri="/api/v1/doc/documenturl/")
         if doc is not None:
             url.params["doc"] = doc.id
-            url.params_alt["doc"] = doc.name
+            url.params_alt["doc"] = f"/api/v1/doc/document/{doc.name}/"
         yield from self._retrieve_multi(url, DocumentUrl)
 
 
@@ -1699,7 +1699,7 @@ class DataTracker:
         url = ReviewRequestURI(uri="/api/v1/review/reviewrequest/")
         if doc is not None:
             url.params["doc"] = doc.id
-            url.params_alt["doc"] = doc.name
+            url.params_alt["doc"] = f"/api/v1/doc/document/{doc.name}/"
         if requested_by is not None:
             url.params["requested_by"] = requested_by.id
         if state is not None:
@@ -1751,7 +1751,7 @@ class DataTracker:
         url = ReviewWishURI(uri="/api/v1/review/reviewwish/")
         if doc is not None:
             url.params["doc"] = doc.id
-            url.params_alt["doc"] = doc.name
+            url.params_alt["doc"] = f"/api/v1/doc/document/{doc.name}/"
         if person is not None:
             url.params["person"] = person.id
         if team is not None:
@@ -1793,7 +1793,7 @@ class DataTracker:
         url = HistoricalReviewRequestURI(uri="/api/v1/review/historicalreviewrequest/")
         if doc is not None:
             url.params["doc"] = doc.id
-            url.params_alt["doc"] = doc.name
+            url.params_alt["doc"] = f"/api/v1/doc/document/{doc.name}/"
         if requested_by is not None:
             url.params["requested_by"] = requested_by.id
         if state is not None:
