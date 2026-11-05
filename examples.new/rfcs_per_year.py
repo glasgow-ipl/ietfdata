@@ -48,6 +48,7 @@ for rfc in dt.documents(doctype = dt.document_type_from_slug("rfc")):
 
 with open(sys.argv[2], "w") as outf:
     cumul = 0
+    print("Year,Total,Cumulative", file=outf)
     for year in sorted(rfcs_per_year.keys()):
         cumul += rfcs_per_year[year]
         print(f"{year},{rfcs_per_year[year]},{cumul}", file=outf)

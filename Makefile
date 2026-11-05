@@ -36,10 +36,12 @@ EXAMPLES := data/ietf_meetings.json \
             data/rfcs_per_year.csv \
             data/rfcs_per_year_stream.csv
 
-all: test $(DATA) $(EXAMPLES)
+FIGURES := figures/rfcs_per_year.pdf
+
+all: test $(DATA) $(EXAMPLES) $(FIGURES)
 
 # =============================================================================
-# Rules to run tests.
+# Rules to run tests:
 
 test: typecheck test-live test-archive
 
@@ -56,7 +58,7 @@ typecheck:
 	mypy tests/*.py
 
 # =============================================================================
-# Rules to fetch an archive of raw data from the IETF.
+# Rules to fetch an archive of raw data from the IETF:
 
 fetch: $(ARCHIVE) $(DATA)
 
@@ -84,7 +86,7 @@ archive/w3c_ma.sqlite: | archive
 archive/github.sqlite: | archive
 
 # =============================================================================
-# Rules to update the data derived from the archive.
+# Rules to update the data derived from the archive:
 
 data:
 	mkdir $@
@@ -107,7 +109,7 @@ data/github_ietf.json: ietfdata/tools/find_github_ietf.py \
 	python3 -m ietfdata.tools.find_github_ietf archive/ietf_dt.sqlite archive/ietf_drafts archive/github.sqlite data/github_ietf.json
 
 # =============================================================================
-# Rules to build the examples.
+# Rules to build the examples:
 
 data/ietf_meetings.json: examples.new/ietf_meetings.py archive/ietf_dt.sqlite
 	python3 $^ $@
@@ -116,6 +118,12 @@ data/rfcs_per_year.csv: examples.new/rfcs_per_year.py archive/ietf_dt.sqlite
 	python3 $^ $@
 
 data/rfcs_per_year_stream.csv: examples.new/rfcs_per_year_stream.py archive/ietf_dt.sqlite
+	python3 $^ $@
+
+# =================================================================================================
+# Rules to plot figures:
+
+figures/rfcs_per_year.pdf: figures/rfcs_per_year.py data/rfcs_per_year.csv
 	python3 $^ $@
 
 # =================================================================================================
