@@ -41,26 +41,30 @@ csv = pd.read_csv(csv_path)
 matplotlib.use("PDF")
 
 plt.figure(figsize=(3.5,2))
-plt.rc('font',**{'family':'serif','serif':['Times'], 'size': 9})
-plt.rc('text', usetex=True)
-plt.rc('axes', axisbelow=True)
-plt.rcParams['pdf.fonttype'] = 42
+plt.rcParams["font.family"] = "serif"
+plt.rcParams["font.serif"] = ["Times"]
+plt.rcParams["font.size"] = 9
+plt.rcParams["text.usetex"] = True
+plt.rcParams["pdf.fonttype"] = 42
+plt.rcParams["axes.axisbelow"] = True
 
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(figsize=(3.5,2))
 
 bottom = np.zeros(len(csv))
 for stream in ["Legacy", "IETF", "IRTF", "IAB", "ISE", "Editorial"]:
     ax.bar(csv["Year"], csv[stream], bottom=bottom, label=stream)
     bottom += np.array(csv[stream])
-ax.legend()
+ax.legend(fontsize=6)
 
 plt.plot()
 
-# Annotate with date IETF created
-plt.plot([1986, 1986], [0, 430], ':', color='black')
-plt.text(1978, 440, 'IETF Created', color='black')
-
 plt.xlabel("Year")
 plt.ylabel("RFCs Published")
+plt.ylim(top=500)
+
+# Annotate with date IETF created
+plt.plot([1986, 1986], [0, 400], ':', color='black')
+plt.text(1983, 410, 'IETF Created', color='black', fontsize=7)
+
 plt.savefig(pdf_path, format="pdf", bbox_inches="tight")
 
