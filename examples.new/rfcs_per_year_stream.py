@@ -43,7 +43,6 @@ for stream in dt.streams():
 rfcs_per_year = {}
 
 for rfc in dt.documents(doctype = dt.document_type_from_slug("rfc")):
-    print(f"\r{rfc.name.upper():8}", end="")
     for event in dt.document_events(doc = rfc, event_type = "published_rfc"):
         year = event.time.year
         if year not in rfcs_per_year:
@@ -53,19 +52,19 @@ for rfc in dt.documents(doctype = dt.document_type_from_slug("rfc")):
         stream = dt.stream(rfc.stream).slug
         rfcs_per_year[year][stream] += 1
 
-print("\r        \r", end="")
-
 with open(sys.argv[2], "w") as outf:
     print("# year", file=outf, end="")
     for stream in sorted(streams):
         print(f",{stream}", file=outf, end="")
-    print(",total", file=outf)
+    print(",total,cumulative", file=outf)
     
+    cumul = 0
     for year in sorted(rfcs_per_year.keys()):
         print(f"{year}", file=outf, end="")
         total = 0
         for stream in sorted(streams):
             print(f",{rfcs_per_year[year][stream]}", file=outf, end="")
             total += rfcs_per_year[year][stream]
-        print(f",{total}", file=outf)
+        cumul += total
+        print(f",{total},{cumul}", file=outf)
 
