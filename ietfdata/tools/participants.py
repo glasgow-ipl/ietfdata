@@ -51,7 +51,6 @@ class Participant:
         self.person_id   = person_id
         self.identifiers = {}
         self.names       = []
-        self.log.debug(f"Participant({id(self)}) created ({self.person_id})")
 
 
     def add_name(self, name:str):
@@ -61,7 +60,6 @@ class Participant:
         Multiple participants may have the same name.
         """
         if name not in self.names:
-            self.log.debug(f"Participant({id(self)}) add_name: {name}")
             self.names.append(name)
 
 
@@ -82,17 +80,13 @@ class Participant:
         assert ident_type != "names"
         if ident_type not in self.identifiers:
             self.identifiers[ident_type] = [ident_value]
-            self.log.debug(f"Participant({id(self)}) add_identifier: {ident_type} -> {ident_value}")
         else:
             if ident_value not in self.identifiers[ident_type]:
-                self.log.debug(f"Participant({id(self)}) add_identifier: {ident_type} -> {ident_value}")
                 if ident_type == "dt_person_uri" and len(self.identifiers[ident_type]) > 1:
                     self.log.info(f"Participant({id(self)}) adding additional dt_person_uri {ident_value}")
                     for dt_person_uri in self.identifiers[ident_type]:
                         self.log.info(f"Participant({id(self)}) existing dt_person_uri {dt_person_uri}")
                 self.identifiers[ident_type].append(ident_value)
-            else:
-                self.log.debug(f"Participant({id(self)}) has_identifier: {ident_type} -> {ident_value}")
 
 
     def num_idents(self) -> int:
@@ -103,7 +97,6 @@ class Participant:
 
 
     def merge_into(self, other:Participant):
-        self.log.debug(f"Participant({id(self)}) merge data into Participant({id(other)})")
         for name in self.names:
             other.add_name(name)
         self.names = []
@@ -200,8 +193,8 @@ class Participants:
             self.people.add(person)
             self.idents[ident_type][ident_value] = person
         else:
+            # Participant already exists
             person = self.idents[ident_type][ident_value]
-            self.log.debug(f"Participant({id(person)}) already_exists: {ident_type} -> {ident_value}")
         return person
 
 
@@ -277,10 +270,8 @@ class Participants:
         """
         Private helper method: do not use.
         """
-        self.log.debug(f"Participant({id(from_person)}) -> Participant({id(to_person)})")
         for ident_type in self.idents:
             for ident_value in self.idents[ident_type]:
                 if self.idents[ident_type][ident_value] == from_person:
                     self.idents[ident_type][ident_value] = to_person
-                    self.log.debug(f"    {ident_type} -> {ident_value}")
 

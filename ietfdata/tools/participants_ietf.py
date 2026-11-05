@@ -102,7 +102,6 @@ if __name__ == "__main__":
         if msg.address.lower() != msg.address:
             pdb.add_person("email", msg.address.lower())
             pdb.merge_people("email", msg.address.lower(), "email", msg.address)
-            log.debug(f"case match {str(msg.person):30} {msg.address} <-> {msg.address.lower()}")
         seen_addr.add(msg.address)
 
 
