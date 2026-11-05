@@ -23,10 +23,10 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import sys
-import pandas as pd
+import matplotlib
 import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
+import pandas as pd
+import sys
  
 if len(sys.argv) != 3:
     print(f"Usage: python3 {sys.argv[0]} <input_file.csv> <output_file.pdf>")
@@ -36,6 +36,8 @@ csv_path = sys.argv[1]
 pdf_path = sys.argv[2]
 
 csv = pd.read_csv(csv_path)
+
+matplotlib.use("PDF")
 
 plt.figure(figsize=(3.5,2))
 plt.rc('font',**{'family':'serif','serif':['Times'], 'size': 9})

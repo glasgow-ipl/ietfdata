@@ -36,7 +36,8 @@ EXAMPLES := data/ietf_meetings.json \
             data/rfcs_per_year.csv \
             data/rfcs_per_year_stream.csv
 
-FIGURES := figures/rfcs_per_year.pdf
+FIGURES := figures/rfcs_per_year.pdf \
+           figures/rfcs_per_year_stream.pdf
 
 all: test $(DATA) $(EXAMPLES) $(FIGURES)
 
@@ -124,6 +125,9 @@ data/rfcs_per_year_stream.csv: examples.new/rfcs_per_year_stream.py archive/ietf
 # Rules to plot figures:
 
 figures/rfcs_per_year.pdf: figures/rfcs_per_year.py data/rfcs_per_year.csv
+	python3 $^ $@
+
+figures/rfcs_per_year_stream.pdf: figures/rfcs_per_year_stream.py data/rfcs_per_year_stream.csv
 	python3 $^ $@
 
 # =================================================================================================

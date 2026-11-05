@@ -25,6 +25,7 @@ dependencies = [
   "psycopg",
   "requests",
   "requests-cache",
+  "matplotlib",
   "mypy",
   "setuptools",
   "build",

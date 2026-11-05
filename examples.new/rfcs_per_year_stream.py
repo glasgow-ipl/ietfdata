@@ -53,18 +53,17 @@ for rfc in dt.documents(doctype = dt.document_type_from_slug("rfc")):
         rfcs_per_year[year][stream] += 1
 
 with open(sys.argv[2], "w") as outf:
-    print("# year", file=outf, end="")
+    print("Year", file=outf, end="")
     for stream in sorted(streams):
-        print(f",{stream}", file=outf, end="")
-    print(",total,cumulative", file=outf)
+        if len(stream) < 5:
+            print(f",{stream.upper()}", file=outf, end="")
+        else:
+            print(f",{stream.capitalize()}", file=outf, end="")
+    print("", file=outf)
     
-    cumul = 0
     for year in sorted(rfcs_per_year.keys()):
         print(f"{year}", file=outf, end="")
-        total = 0
         for stream in sorted(streams):
             print(f",{rfcs_per_year[year][stream]}", file=outf, end="")
-            total += rfcs_per_year[year][stream]
-        cumul += total
-        print(f",{total},{cumul}", file=outf)
+        print(f"", file=outf)
 
