@@ -2039,15 +2039,12 @@ class DataTracker:
 
     def stats_meeting_registrations(self,
                 affiliation   : Optional[str]             = None,
-                attended      : Optional[bool]            = None,
                 country_code  : Optional[str]             = None,
                 email         : Optional[str]             = None,
                 first_name    : Optional[str]             = None,
                 last_name     : Optional[str]             = None,
                 meeting       : Optional[Meeting]         = None,
-                person        : Optional[Person]          = None,
-                reg_type      : Optional[str]             = None,
-                ticket_type   : Optional[str]             = None) -> Iterator[StatsMeetingRegistration]:
+                person        : Optional[Person]          = None) -> Iterator[StatsMeetingRegistration]:
         """
         There are four ways to access meeting registration data from the 
         datatracker:
@@ -2071,8 +2068,6 @@ class DataTracker:
         url = StatsMeetingRegistrationURI(uri="/api/v1/stats/meetingregistration/")
         if affiliation is not None:
             url.params["affiliation"] = affiliation
-        if attended is not None:
-            url.params["attended"] = attended
         if country_code is not None:
             url.params["country_code"] = country_code
         if email is not None:
@@ -2085,10 +2080,6 @@ class DataTracker:
             url.params["meeting"] = meeting.id
         if person is not None:
             url.params["person"] = person.id
-        if reg_type is not None:
-            url.params["reg_type"] = reg_type
-        if ticket_type is not None:
-            url.params["ticket_type"] = ticket_type
         yield from self._retrieve_multi(url, StatsMeetingRegistration)
 
 

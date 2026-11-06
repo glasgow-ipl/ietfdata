@@ -38,6 +38,7 @@ from abc               import ABC, abstractmethod
 from datetime          import date, datetime, timedelta, timezone
 from typing            import List, Optional, Tuple, Dict, Iterator, Type, TypeVar, Any, Generic
 from typing_extensions import Self
+from itertools         import combinations
 
 from ietfdata.datatracker_types import *
 
@@ -350,6 +351,47 @@ class DTBackendArchive(DTBackend):
 
 
 
+    def _create_indexes(self, endpoints) -> None:
+        dbc = self._db.cursor()
+        for endpoint, params in endpoints.items():
+            sql = "SELECT table_name FROM ietf_dt_schema WHERE endpoint = ?;"
+            val = (endpoint, )
+            table_name = dbc.execute(sql, val).fetchone()[0]
+
+            sql = "SELECT column_name, column_type FROM ietf_dt_schema_columns WHERE endpoint = ?;"
+            val = (endpoint, )
+            column_types = {}
+            column_names = []
+            for column_name, column_type in dbc.execute(sql, val).fetchall():
+                column_names.append(column_name)
+                column_types[column_name] = column_type
+
+            index_columns = []
+            for param in params:
+                if param not in column_names:
+                    raise RuntimeError(f"Unknown index column \"{param}\" for {table_name}")
+                if column_types[param] == "to_many":
+                    pass
+                else:
+                    index_columns.append(param)
+
+            if   len(index_columns) == 0:
+                continue
+            elif len(index_columns) == 1:
+                sql = f"CREATE INDEX IF NOT EXISTS index_{table_name} ON {table_name} ('{index_columns[0]}');"
+                self._db.execute(sql)
+            else:
+                i = 0
+                for length in range(1, len(index_columns)):
+                    for arg in combinations(index_columns, length):
+                        i += 1
+                        s = ", ".join(map(lambda x: f"'{x}'", arg))
+                        sql = f"CREATE INDEX IF NOT EXISTS index_{table_name}_{i} ON {table_name} ({s});"
+                        self._db.execute(sql)
+            self._db.commit()
+
+
+
     def _download_data(self, endpoints) -> None:
         for endpoint in endpoints:
             dbc = self._db.cursor()
@@ -407,89 +449,92 @@ class DTBackendArchive(DTBackend):
 
 
     def update(self) -> None:
-        endpoints_to_mirror = [
-            "/api/v1/doc/ballotdocevent/",
-            "/api/v1/doc/ballottype/",
-            "/api/v1/doc/docevent/",
-            "/api/v1/doc/document/",
-            "/api/v1/doc/documentauthor/",
-            "/api/v1/doc/documenturl/",
-            "/api/v1/doc/relateddocument/",
-            "/api/v1/doc/state/",
-            "/api/v1/doc/statetype/",
-            "/api/v1/group/changestategroupevent/",
-            "/api/v1/group/group/",
-            "/api/v1/group/groupevent/",
-            "/api/v1/group/grouphistory/",
-            "/api/v1/group/groupmilestone/",
-            "/api/v1/group/groupmilestonehistory/",
-            "/api/v1/group/groupurl/",
-            "/api/v1/group/milestonegroupevent/",
-            "/api/v1/group/role/",
-            "/api/v1/group/rolehistory/",
-            "/api/v1/ipr/genericiprdisclosure/",
-            "/api/v1/ipr/holderiprdisclosure/",
-            "/api/v1/ipr/iprdisclosurebase/",
-            "/api/v1/ipr/thirdpartyiprdisclosure/",
-            "/api/v1/meeting/attended/",
-            "/api/v1/meeting/meeting/",
-            "/api/v1/meeting/registration/",
-            "/api/v1/meeting/schedtimesessassignment/",
-            "/api/v1/meeting/schedule/",
-            "/api/v1/meeting/schedulingevent/",
-            "/api/v1/meeting/session/",
-            "/api/v1/meeting/timeslot/",
-            "/api/v1/name/ballotpositionname/",
-            "/api/v1/name/continentname/",
-            "/api/v1/name/countryname/",
-            "/api/v1/name/docrelationshipname/",
-            "/api/v1/name/doctagname/",
-            "/api/v1/name/doctypename/",
-            "/api/v1/name/docurltagname/",
-            "/api/v1/name/extresourcename/",
-            "/api/v1/name/extresourcetypename/",
-            "/api/v1/name/groupmilestonestatename/",
-            "/api/v1/name/groupstatename/",
-            "/api/v1/name/grouptypename/",
-            "/api/v1/name/iprdisclosurestatename/",
-            "/api/v1/name/iprlicensetypename/",
-            "/api/v1/name/meetingtypename/",
-            "/api/v1/name/reviewassignmentstatename/",
-            "/api/v1/name/reviewrequeststatename/",
-            "/api/v1/name/reviewresultname/",
-            "/api/v1/name/reviewtypename/",
-            "/api/v1/name/rolename/",
-            "/api/v1/name/sessionpurposename/",
-            "/api/v1/name/sessionstatusname/",
-            "/api/v1/name/streamname/",
-            "/api/v1/person/alias/",
-            "/api/v1/person/email/",
-            "/api/v1/person/historicalemail/",
-            "/api/v1/person/historicalperson/",
-            "/api/v1/person/person/",
-            "/api/v1/person/personextresource/",
-            "/api/v1/review/historicalreviewassignment/",
-            "/api/v1/review/historicalreviewersettings/",
-            "/api/v1/review/historicalreviewrequest/",
-            "/api/v1/review/historicalunavailableperiod/",
-            "/api/v1/review/nextreviewerinteam/",
-            "/api/v1/review/reviewassignment/",
-            "/api/v1/review/reviewersettings/",
-            "/api/v1/review/reviewrequest/",
-            "/api/v1/review/reviewsecretarysettings/",
-            "/api/v1/review/reviewteamsettings/",
-            "/api/v1/review/reviewwish/",
-            "/api/v1/review/unavailableperiod/",
-            "/api/v1/stats/countryalias/",
-            "/api/v1/stats/meetingregistration/",
-            "/api/v1/submit/submission/",
-            "/api/v1/submit/submissioncheck/",
-            "/api/v1/submit/submissionevent/"
-            ]
+        endpoints = {
+            "/api/v1/doc/ballotdocevent/" : ["ballot_type", "by", "doc", "type"],
+            "/api/v1/doc/ballottype/" : [],
+            "/api/v1/doc/docevent/" : ["doc", "by", "type"],
+            "/api/v1/doc/document/" : ["type", "states", "stream", "group"],
+            "/api/v1/doc/documentauthor/" : ["person", "document", "email"],
+            "/api/v1/doc/documenturl/" : ["doc"],
+            "/api/v1/doc/relateddocument/" : ["source", "target", "relationship"],
+            "/api/v1/doc/state/" : ["type", "slug"],
+            "/api/v1/doc/statetype/" : [],
+            "/api/v1/group/changestategroupevent/" : ["by", "group", "state"],
+            "/api/v1/group/group/" : ["acronym", "name", "state", "parent"],
+            "/api/v1/group/groupevent/" : ["by", "group", "type"],
+            "/api/v1/group/grouphistory/" : ["acronym", "name", "state", "parent"],
+            "/api/v1/group/groupmilestone/" : ["group", "state"],
+            "/api/v1/group/groupmilestonehistory/" : ["group", "milestone", "state"],
+            "/api/v1/group/groupurl/" : ["group"],
+            "/api/v1/group/milestonegroupevent/" : ["by", "group", "milestone", "type"],
+            "/api/v1/group/role/" : ["email", "group", "name", "person"],
+            "/api/v1/group/rolehistory/" : ["email", "group", "name", "person"],
+            "/api/v1/ipr/genericiprdisclosure/" : ["holder_legal_name", "holder_contact_name", "submitter_email", "submitter_name"],
+            "/api/v1/ipr/holderiprdisclosure/" : ["holder_legal_name", "holder_contact_name", "ietfer_name", "ietfer_contact_email", "licensing", "submitter_email", "submitter_name"],
+            "/api/v1/ipr/iprdisclosurebase/" : ["holder_legal_name", "state", "submitter_email", "submitter_name"],
+            "/api/v1/ipr/thirdpartyiprdisclosure/" : ["holder_legal_name", "ietfer_contact_email", "ietfer_name", "submitter_email", "submitter_name"],
+            "/api/v1/meeting/attended/" : ["session", "person"],
+            "/api/v1/meeting/meeting/" : ["date", "type"],
+            "/api/v1/meeting/registration/" : ["affiliation", "country_code", "email", "first_name", "last_name", "meeting", "person"],
+            "/api/v1/meeting/schedtimesessassignment/" : ["schedule"],
+            "/api/v1/meeting/schedule/" : [],
+            "/api/v1/meeting/schedulingevent/" : ["session", "by"],
+            "/api/v1/meeting/session/" : ["meeting", "group"],
+            "/api/v1/meeting/timeslot/" : [],
+            "/api/v1/name/ballotpositionname/" : ["slug"],
+            "/api/v1/name/continentname/" : [],
+            "/api/v1/name/countryname/" : ["continent", "in_eu", "slug", "name"],
+            "/api/v1/name/docrelationshipname/" : [],
+            "/api/v1/name/doctagname/" : [],
+            "/api/v1/name/doctypename/" : [],
+            "/api/v1/name/docurltagname/" : [],
+            "/api/v1/name/extresourcename/" : [],
+            "/api/v1/name/extresourcetypename/" : [],
+            "/api/v1/name/groupmilestonestatename/" : [],
+            "/api/v1/name/groupstatename/" : [],
+            "/api/v1/name/grouptypename/" : [],
+            "/api/v1/name/iprdisclosurestatename/" : [],
+            "/api/v1/name/iprlicensetypename/" : [],
+            "/api/v1/name/meetingtypename/" : [],
+            "/api/v1/name/reviewassignmentstatename/" : [],
+            "/api/v1/name/reviewrequeststatename/" : [],
+            "/api/v1/name/reviewresultname/" : [],
+            "/api/v1/name/reviewtypename/" : [],
+            "/api/v1/name/rolename/" : [],
+            "/api/v1/name/sessionpurposename/" : [],
+            "/api/v1/name/sessionstatusname/" : [],
+            "/api/v1/name/streamname/" : ["slug"],
+            "/api/v1/person/alias/" : ["person", "name"],
+            "/api/v1/person/email/" : ["person", "address"],
+            "/api/v1/person/historicalemail/" : ["person", "address"],
+            "/api/v1/person/historicalperson/" : ["id"],
+            "/api/v1/person/person/" : ["name", "ascii", "plain"],
+            "/api/v1/person/personextresource/" : ["person", "name"],
+            "/api/v1/review/historicalreviewassignment/" : ["assigned_on", "completed_on", "result", "review_request", "reviewer", "state"],
+            "/api/v1/review/historicalreviewersettings/" : ["person", "team"],
+            "/api/v1/review/historicalreviewrequest/" : ["doc", "requested_by", "state", "team", "type"],
+            "/api/v1/review/historicalunavailableperiod/" : ["history_type", "id", "person", "team"],
+            "/api/v1/review/nextreviewerinteam/" : ["team"],
+            "/api/v1/review/reviewassignment/" : ["assigned_on", "completed_on", "result", "review_request", "reviewer", "state"],
+            "/api/v1/review/reviewersettings/" : ["person", "team"],
+            "/api/v1/review/reviewrequest/" : ["doc", "requested_by", "state", "team", "type"],
+            "/api/v1/review/reviewsecretarysettings/" : ["person", "team"],
+            "/api/v1/review/reviewteamsettings/" : ["group"],
+            "/api/v1/review/reviewwish/" : ["doc", "person", "team"],
+            "/api/v1/review/unavailableperiod/" : ["person", "team"],
+            "/api/v1/stats/countryalias/" : ["alias"],
+            "/api/v1/stats/meetingregistration/" : ["affiliation", "country_code", "email", "first_name", "last_name", "meeting", "person"],
+            "/api/v1/submit/submission/" : ["submission_date"],
+            "/api/v1/submit/submissioncheck/" : [],
+            "/api/v1/submit/submissionevent/" : ["submission"]
+        }
 
-        self._fetch_schemas(endpoints_to_mirror)
-        self._create_tables(endpoints_to_mirror)
-        self._download_data(endpoints_to_mirror)
+        api_endpoints = list(endpoints.keys())
+
+        self._fetch_schemas(api_endpoints)
+        self._create_tables(api_endpoints)
+        self._create_indexes(endpoints)
+        self._download_data(api_endpoints)
 
 
 
@@ -641,15 +686,24 @@ class DTBackendArchive(DTBackend):
         sql += ";"
 
         # Ensure an appropriate index exists before executing the query
-        if len(index_names) > 0:
-            index_sql = f"CREATE INDEX IF NOT EXISTS index_{table_name} ON {table_name} ({", ".join(index_names)});"
-            self._log.debug(index_sql)
-            self._db.execute(index_sql)
+        #if len(index_names) > 0:
+        #    index_sql = f"CREATE INDEX IF NOT EXISTS index_{table_name} ON {table_name} ({", ".join(index_names)});"
+        #    self._log.debug(index_sql)
+        #    self._db.execute(index_sql)
 
         #print(sql)
         #print(param_values)
-        #qplan = dbc.execute("EXPLAIN QUERY PLAN " + sql, param_values).fetchone()
-        #print(qplan)
+        qplan = dbc.execute("EXPLAIN QUERY PLAN " + sql, param_values).fetchone()
+        if len(qplan) == 4:
+            if not qplan[3].startswith("SEARCH"):
+                if "LIKE ?" in sql:
+                    # LIKE queries always SCAN
+                    pass 
+                elif len(param_values) == 0:
+                    # If there are no parameters we're pulling everything, so a SCAN is expected
+                    pass
+                else:
+                    raise RuntimeError(f"No index for {qplan} for {sql} {param_values}")
 
         # Reconstruct the JSON object
         for items in dbc.execute(sql, param_values).fetchall():

@@ -3803,11 +3803,6 @@ class TestDatatracker(unittest.TestCase):
         self.assertEqual(len(list(regs)), 93)
 
 
-    def test_stats_meeting_registrations_attended(self) -> None:
-        regs = self.dt.stats_meeting_registrations(attended=True)
-        self.assertIsNot(regs, None)
-
-
     def test_stats_meeting_registrations_country_code(self) -> None:
         regs = self.dt.stats_meeting_registrations(country_code="GB")
         self.assertIsNot(regs, None)
@@ -3841,16 +3836,6 @@ class TestDatatracker(unittest.TestCase):
         regs = self.dt.stats_meeting_registrations(person=self.dt.person(PersonURI(uri="/api/v1/person/person/117769/")))
         self.assertIsNot(regs, None)
         self.assertEqual(len(list(regs)), 24)
-
-
-    def test_stats_meeting_registrations_reg_type(self) -> None:
-        regs = self.dt.stats_meeting_registrations(reg_type="remote")
-        self.assertIsNot(regs, None)
-
-
-    def test_stats_meeting_registrations_ticket_type(self) -> None:
-        regs = self.dt.stats_meeting_registrations(ticket_type="one_day")
-        self.assertIsNot(regs, None)
 
 
 if __name__ == '__main__':
