@@ -925,10 +925,13 @@ class DataTracker:
 
     # FIXME: add `acronym`, `list_email` parameters
     def groups(self,
+            name          : Optional[str]        = None,
             name_contains : Optional[str]        = None,
             group_state   : Optional[GroupState] = None,
             parent        : Optional[Group]      = None) -> Iterator[Group]:
         url = GroupURI(uri="/api/v1/group/group/")
+        if name is not None:
+            url.params["name"] = name
         if name_contains is not None:
             url.params["name__contains"] = name_contains
         if group_state is not None:
