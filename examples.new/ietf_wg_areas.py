@@ -56,6 +56,7 @@ dt = DataTracker(DTBackendArchive(sys.argv[1]))
 area_history : dict[str,list[dict[str,str|None]]] = {}
 
 for wg in working_groups(dt):
+    assert wg.parent is not None
     area = dt.group(wg.parent)
     assert area is not None
 
@@ -78,6 +79,8 @@ for wg in working_groups(dt):
                 new_area = None
             else:
                 new_area = find_area(dt, new_area_name)
+
+            old_area_name = None
 
             if "</b> from " in event.desc:
                 old_area_start = event.desc.find("</b> from ") + 10
