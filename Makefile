@@ -40,7 +40,9 @@ EXAMPLES := data/ietf_meetings.json \
 FIGURES := figures/rfcs_per_year.pdf \
            figures/rfcs_per_year_stream.pdf
 
-all: test $(DATA) $(EXAMPLES) $(FIGURES)
+all: test results
+
+results: $(DATA) $(EXAMPLES) $(FIGURES)
 
 # =============================================================================
 # Rules to run tests:
@@ -147,7 +149,7 @@ deep-clean: clean
 # =================================================================================================
 # Targets that don't represent files:
 
-.PHONY: fetch test test-live test-archive typecheck clean deep-clean
+.PHONY: fetch results test test-live test-archive typecheck clean deep-clean
 
 # =================================================================================================
 # Configuration for make:
