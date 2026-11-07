@@ -33,6 +33,7 @@ DATA := data/participants.json  \
         data/github_ietf.json
 
 EXAMPLES := data/ietf_meetings.json \
+            data/ietf_wg_areas.json \
             data/rfcs_per_year.csv \
             data/rfcs_per_year_stream.csv
 
@@ -55,7 +56,7 @@ test-archive: $(ARCHIVE)
 	DT_TEST_ARCHIVE=1 python3 -m unittest discover -s tests/ -v
 
 typecheck:
-	mypy ietfdata/*.py ietfdata/tools/*.py
+	mypy ietfdata/*.py ietfdata/tools/*.py examples.new/*.py
 	mypy tests/*.py
 
 # =============================================================================
@@ -113,6 +114,9 @@ data/github_ietf.json: ietfdata/tools/find_github_ietf.py \
 # Rules to build the examples:
 
 data/ietf_meetings.json: examples.new/ietf_meetings.py archive/ietf_dt.sqlite
+	python3 $^ $@
+
+data/ietf_wg_areas.json: examples.new/ietf_wg_areas.py archive/ietf_dt.sqlite
 	python3 $^ $@
 
 data/rfcs_per_year.csv: examples.new/rfcs_per_year.py archive/ietf_dt.sqlite
