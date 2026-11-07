@@ -36,25 +36,26 @@ if len(sys.argv) != 3:
 
 dt = DataTracker(DTBackendArchive(sys.argv[1]))
 
-streams = []
-for stream in dt.streams():
-    streams.append(stream.slug)
+stream_names = []
+for s in dt.streams():
+    stream_names.append(s.slug)
 
-rfcs_per_year = {}
+rfcs_per_year : dict[int,dict[str,int]] = {}
 
 for rfc in dt.documents(doctype = dt.document_type_from_slug("rfc")):
     for event in dt.document_events(doc = rfc, event_type = "published_rfc"):
         year = event.time.year
         if year not in rfcs_per_year:
             rfcs_per_year[year] = {}
-            for s in streams:
-                rfcs_per_year[year][s] = 0
-        stream = dt.stream(rfc.stream).slug
-        rfcs_per_year[year][stream] += 1
+            for stream_name in stream_names:
+                rfcs_per_year[year][stream_name] = 0
+        assert rfc.stream is not None
+        stream_name = dt.stream(rfc.stream).slug
+        rfcs_per_year[year][stream_name] += 1
 
 with open(sys.argv[2], "w") as outf:
     print("Year", file=outf, end="")
-    for stream in sorted(streams):
+    for stream in sorted(stream_names):
         if len(stream) < 5:
             print(f",{stream.upper()}", file=outf, end="")
         else:
@@ -63,7 +64,7 @@ with open(sys.argv[2], "w") as outf:
     
     for year in sorted(rfcs_per_year.keys()):
         print(f"{year}", file=outf, end="")
-        for stream in sorted(streams):
-            print(f",{rfcs_per_year[year][stream]}", file=outf, end="")
+        for stream_name in sorted(stream_names):
+            print(f",{rfcs_per_year[year][stream_name]}", file=outf, end="")
         print(f"", file=outf)
 
