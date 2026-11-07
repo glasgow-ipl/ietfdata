@@ -31,6 +31,48 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from ietfdata.datatracker import *
 
+# Map IETF working groups to their area.
+#
+# The IETF occasionally reorganises the set of areas that exist, resulting
+# in some working group moving between areas. This code reads the working
+# group events to track such moves.
+#
+# The output JSON file mostly contains entries that look like:
+#
+#    "tls": [
+#      {
+#         "from": null,
+#         "to": null,
+#         "area": "sec"
+#      }
+#   ],
+#
+# indicating that the TLS working group has always been in the SEC area.
+# A more complex entry looks like:
+#
+#   "masque": [
+#      {
+#         "from": null,
+#         "to": "2020-05-11",
+#         "area": "int"
+#      },
+#      {
+#         "from": "2020-05-11",
+#         "to": "2024-01-17",
+#         "area": "tsv"
+#      },
+#      {
+#         "from": "2024-01-17",
+#         "to": null,
+#         "area": "wit"
+#      }
+#   ],
+#
+# indicating that the MASQUE working group was part of the INT area until
+# 2020-05-11, then moved to the TSV area until 2024-01-17, and has been in
+# the WIT area since then.
+
+
 def working_groups(dt:DataTracker) -> Iterator[Group]:
     for area in dt.groups(parent = dt.group_from_acronym("iesg")):
         for group in dt.groups(parent = area):
