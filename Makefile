@@ -35,10 +35,12 @@ DATA := data/participants.json  \
 EXAMPLES := data/ietf_meetings.json \
             data/ietf_wg_areas.json \
             data/rfcs_per_year.csv \
-            data/rfcs_per_year_stream.csv
+            data/rfcs_per_year_stream.csv \
+            data/rfcs_per_year_area.csv
 
 FIGURES := figures/rfcs_per_year.pdf \
-           figures/rfcs_per_year_stream.pdf
+           figures/rfcs_per_year_stream.pdf \
+           figures/rfcs_per_year_area.pdf
 
 all: test results
 
@@ -127,6 +129,9 @@ data/rfcs_per_year.csv: examples.new/rfcs_per_year.py archive/ietf_dt.sqlite
 data/rfcs_per_year_stream.csv: examples.new/rfcs_per_year_stream.py archive/ietf_dt.sqlite
 	python3 $^ $@
 
+data/rfcs_per_year_area.csv: examples.new/rfcs_per_year_area.py archive/ietf_dt.sqlite data/ietf_wg_areas.json
+	python3 $^ $@
+
 # =================================================================================================
 # Rules to plot figures:
 
@@ -134,6 +139,9 @@ figures/rfcs_per_year.pdf: figures/rfcs_per_year.py data/rfcs_per_year.csv
 	python3 $^ $@
 
 figures/rfcs_per_year_stream.pdf: figures/rfcs_per_year_stream.py data/rfcs_per_year_stream.csv
+	python3 $^ $@
+
+figures/rfcs_per_year_area.pdf: figures/rfcs_per_year_area.py data/rfcs_per_year_area.csv
 	python3 $^ $@
 
 # =================================================================================================
