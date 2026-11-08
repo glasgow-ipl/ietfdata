@@ -150,6 +150,7 @@ figures/rfcs_per_year_area.pdf: figures/rfcs_per_year_area.py data/rfcs_per_year
 clean:
 	rm -f $(DATA)
 	rm -f $(EXAMPLES)
+	rm -f $(FIGURES)
 
 deep-clean: clean
 	rm -f $(ARCHIVE)
