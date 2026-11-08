@@ -105,7 +105,7 @@ for rfc in dt.documents(doctype = dt.document_type_from_slug("rfc")):
 
             if g_type == "wg":
                 # The RFC was publihed by a working group
-                wg_area = wga.area_for_wg(group.acronym, rfc.time)
+                wg_area = wga.area_for_wg(group.acronym, event.time)
                 rfcs_per_year[year][wg_area] += 1
             elif g_type == "area":
                 # The RFC was published by an area
