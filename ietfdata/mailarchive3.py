@@ -110,7 +110,13 @@ class Envelope:
         """
         dbc = self._archive._db.cursor()
         sql = f"SELECT message_id FROM {self._prefix}_ma_hdr WHERE message_num = ?;"
-        res = dbc.execute(sql, (self._message_num, )).fetchone()
+        arg = (self._message_num, )
+
+        qplan  = dbc.execute("EXPLAIN QUERY PLAN " + sql, arg).fetchone()
+        assert len(qplan) == 4
+        assert qplan[3].startswith("SEARCH ")
+
+        res = dbc.execute(sql, arg).fetchone()
         if res is None:
             return None
         else:
@@ -128,7 +134,13 @@ class Envelope:
         """
         dbc = self._archive._db.cursor()
         sql = f"SELECT from_name, from_addr FROM {self._prefix}_ma_hdr WHERE message_num = ?;"
-        name, addr = dbc.execute(sql, (self._message_num, )).fetchone()
+        arg = (self._message_num, )
+
+        qplan  = dbc.execute("EXPLAIN QUERY PLAN " + sql, arg).fetchone()
+        assert len(qplan) == 4
+        assert qplan[3].startswith("SEARCH ")
+
+        name, addr = dbc.execute(sql, arg).fetchone()
 
         # Check the name is valid:
         if name is None:
@@ -153,8 +165,14 @@ class Envelope:
         """
         dbc = self._archive._db.cursor()
         sql = f"SELECT to_name, to_addr FROM {self._prefix}_ma_hdr_to WHERE message_num = ?;"
+        arg = (self._message_num, )
+
+        qplan  = dbc.execute("EXPLAIN QUERY PLAN " + sql, arg).fetchone()
+        assert len(qplan) == 4
+        assert qplan[3].startswith("SEARCH ")
+
         res = []
-        for name, addr in dbc.execute(sql, (self._message_num, )).fetchall():
+        for name, addr in dbc.execute(sql, arg).fetchall():
             res.append(Address(display_name = name, addr_spec = addr))
         return res
 
@@ -169,8 +187,14 @@ class Envelope:
         """
         dbc = self._archive._db.cursor()
         sql = f"SELECT cc_name, cc_addr FROM {self._prefix}_ma_hdr_cc WHERE message_num = ?;"
+        arg = (self._message_num, )
+
+        qplan  = dbc.execute("EXPLAIN QUERY PLAN " + sql, arg).fetchone()
+        assert len(qplan) == 4
+        assert qplan[3].startswith("SEARCH ")
+
         res = []
-        for name, addr in dbc.execute(sql, (self._message_num, )).fetchall():
+        for name, addr in dbc.execute(sql, arg).fetchall():
             res.append(Address(display_name = name, addr_spec = addr))
         return res
 
@@ -185,7 +209,13 @@ class Envelope:
         """
         dbc = self._archive._db.cursor()
         sql = f"SELECT subject FROM {self._prefix}_ma_hdr WHERE message_num = ?;"
-        res = dbc.execute(sql, (self._message_num, )).fetchone()
+        arg = (self._message_num, )
+
+        qplan  = dbc.execute("EXPLAIN QUERY PLAN " + sql, arg).fetchone()
+        assert len(qplan) == 4
+        assert qplan[3].startswith("SEARCH ")
+
+        res = dbc.execute(sql, arg).fetchone()
         if res is None:
             return None
         else:
@@ -203,7 +233,13 @@ class Envelope:
         """
         dbc = self._archive._db.cursor()
         sql = f"SELECT date FROM {self._prefix}_ma_hdr WHERE message_num = ?;"
-        res = dbc.execute(sql, (self._message_num, )).fetchone()
+        arg = (self._message_num, )
+
+        qplan  = dbc.execute("EXPLAIN QUERY PLAN " + sql, arg).fetchone()
+        assert len(qplan) == 4
+        assert qplan[3].startswith("SEARCH ")
+
+        res = dbc.execute(sql, arg).fetchone()
         if res[0] is not None:
             return datetime.fromisoformat(res[0]).astimezone(UTC)
         else:
@@ -277,8 +313,14 @@ class Envelope:
         """
         dbc = self._archive._db.cursor()
         sql = f"SELECT message_num FROM {self._prefix}_ma_hdr WHERE in_reply_to = ?;"
+        arg = (self.message_id(), )
+
+        qplan  = dbc.execute("EXPLAIN QUERY PLAN " + sql, arg).fetchone()
+        assert len(qplan) == 4
+        assert qplan[3].startswith("SEARCH ")
+
         replies = []
-        for message_num in dbc.execute(sql, (self.message_id(), )).fetchall():
+        for message_num in dbc.execute(sql, arg).fetchall():
             replies.append(Envelope(self._archive, message_num[0]))
         return replies
 
@@ -371,7 +413,13 @@ class MailingList:
     def uidvalidity(self) -> int:
         dbc = self._archive._db.cursor()
         sql = f"SELECT uidvalidity FROM {self._prefix}_ma_lists WHERE name = ?;"
-        res = dbc.execute(sql, (self._name, )).fetchone()
+        arg = (self._name, )
+
+        qplan  = dbc.execute("EXPLAIN QUERY PLAN " + sql, arg).fetchone()
+        assert len(qplan) == 4
+        assert qplan[3].startswith("SEARCH ")
+
+        res = dbc.execute(sql, arg).fetchone()
         return int(res[0])
 
 
@@ -384,7 +432,13 @@ class MailingList:
     def message_uids(self) -> Iterator[int]:
         dbc = self._archive._db.cursor()
         sql = f"SELECT uid FROM {self._prefix}_ma_msg WHERE mailing_list = ? and uidvalidity = ?;"
-        for uid in map(lambda x : x[0], dbc.execute(sql, (self.name(), self.uidvalidity()))):
+        arg = (self.name(), self.uidvalidity())
+
+        qplan  = dbc.execute("EXPLAIN QUERY PLAN " + sql, arg).fetchone()
+        assert len(qplan) == 4
+        assert qplan[3].startswith("SEARCH ")
+
+        for uid in map(lambda x : x[0], dbc.execute(sql, arg)):
             yield uid
 
 
@@ -396,6 +450,11 @@ class MailingList:
         dbc = self._archive._db.cursor()
         sql = f"SELECT message_num FROM {self._prefix}_ma_msg WHERE mailing_list = ? and uidvalidity = ? and uid = ?;"
         arg = (self._name, self.uidvalidity(), uid)
+
+        qplan  = dbc.execute("EXPLAIN QUERY PLAN " + sql, arg).fetchone()
+        assert len(qplan) == 4
+        assert qplan[3].startswith("SEARCH ")
+
         res = dbc.execute(sql, arg).fetchone()
         if res is None:
             return None
@@ -410,6 +469,11 @@ class MailingList:
         dbc = self._archive._db.cursor()
         sql = f"SELECT message_num FROM {self._prefix}_ma_msg WHERE mailing_list = ? AND uidvalidity = ?;"
         arg = (self.name(), self.uidvalidity())
+
+        qplan  = dbc.execute("EXPLAIN QUERY PLAN " + sql, arg).fetchone()
+        assert len(qplan) == 4
+        assert qplan[3].startswith("SEARCH ")
+
         for res in map(lambda x : x[0], dbc.execute(sql, arg).fetchall()):
             assert res is not None
             yield Envelope(self._archive, res)
@@ -776,18 +840,18 @@ class MailArchive:
                                 in_reply_to  TEXT,
                                 FOREIGN KEY (message_num)  REFERENCES {self._prefix}_ma_msg (message_num)
                             );""")
-        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}_ma_hdr
+        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}__ma_hdr
                              ON {self._prefix}_ma_hdr (message_num);""")
-        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}_ma_hdr_messageid
+        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}__ma_hdr_messageid
                              ON {self._prefix}_ma_hdr (message_id, message_num);""")
-        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}_ma_hdr_in_reply
+        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}__ma_hdr_in_reply
                              ON {self._prefix}_ma_hdr (in_reply_to, message_num);""")
-        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}_ma_hdr_from_addr_date
-                             ON {self._prefix}_ma_hdr (message_num, from_addr, date);""")
-        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}_ma_hdr_from_name_date
-                             ON {self._prefix}_ma_hdr (message_num, from_name, date);""")
-        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}_ma_hdr_date_subject
-                             ON {self._prefix}_ma_hdr (message_num, date, subject);""")
+        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}__ma_hdr_from_addr_date
+                             ON {self._prefix}_ma_hdr (from_addr, date);""")
+        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}__ma_hdr_from_name_date
+                             ON {self._prefix}_ma_hdr (from_name, date);""")
+        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}__ma_hdr_date_subject
+                             ON {self._prefix}_ma_hdr (date, subject);""")
 
         self._db.execute(f"""CREATE TABLE IF NOT EXISTS {self._prefix}_ma_hdr_to (
                                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -797,10 +861,10 @@ class MailArchive:
                                 to_addr     TEXT,
                                 FOREIGN KEY (message_num) REFERENCES {self._prefix}_ma_msg (message_num)
                             );""")
-        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}_ma_hdr_to
+        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}__ma_hdr_to
                              ON {self._prefix}_ma_hdr_to (message_num);""")
-        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}_ma_hdr_to_to_index
-                             ON {self._prefix}_ma_hdr_to (message_num, to_index);""")
+        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}__ma_hdr_to_to_index
+                             ON {self._prefix}_ma_hdr_to (to_index);""")
 
         self._db.execute(f"""CREATE TABLE IF NOT EXISTS {self._prefix}_ma_hdr_cc (
                                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -810,10 +874,10 @@ class MailArchive:
                                 cc_addr     TEXT,
                                 FOREIGN KEY (message_num) REFERENCES {self._prefix}_ma_msg (message_num)
                             );""")
-        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}_ma_hdr_cc
+        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}__ma_hdr_cc
                              ON {self._prefix}_ma_hdr_cc (message_num);""")
-        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}_ma_hdr_cc_cc_index
-                             ON {self._prefix}_ma_hdr_cc (message_num, cc_index);""")
+        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}__ma_hdr_cc_cc_index
+                             ON {self._prefix}_ma_hdr_cc (cc_index);""")
 
         self._db.execute(f"""CREATE TABLE IF NOT EXISTS {self._prefix}_ma_msg_metadata (
                                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -821,8 +885,8 @@ class MailArchive:
                                 project     TEXT,
                                 key_        TEXT,
                                 value       TEXT);""")
-        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}_ma_msg_metadata
-                             ON {self._prefix}_ma_msg_metadata (message_num, project, key_);""")
+        self._db.execute(f"""CREATE INDEX IF NOT EXISTS index_{self._prefix}__ma_msg_metadata
+                             ON {self._prefix}_ma_msg_metadata (project, key_);""")
 
         self._db.commit()
 
@@ -937,11 +1001,11 @@ class MailArchive:
                  mailing_list_name : Optional[str] = None, # Exact match
                  sent_after        : str = "1970-01-01T00:00:00",
                  sent_before       : str = "2038-01-19T03:14:07",
-                 from_name         : Optional[str] = None, # Substring match
+                 from_name         : Optional[str] = None, # Exact match
                  from_addr         : Optional[str] = None,
                  to_addr           : Optional[str] = None,
                  cc_addr           : Optional[str] = None,
-                 subject           : Optional[str] = None, # Substring match
+                 subject           : Optional[str] = None, # Substring match - slow
                  message_id        : Optional[str] = None,
                  in_reply_to       : Optional[str] = None,
                 ) -> Iterator[Envelope]:
@@ -968,7 +1032,7 @@ class MailArchive:
         arg.append(sent_before)
 
         if from_name is not None:
-            sql.append("from_name LIKE ?")
+            sql.append("from_name == ?")
             arg.append(from_name)
         if from_addr is not None:
             sql.append("from_addr == ?")
@@ -991,9 +1055,16 @@ class MailArchive:
 
         query += " AND ".join(sql)
         query += ";"
-        qplan  = dbc.execute("EXPLAIN QUERY PLAN " + query, arg).fetchone()
-        self._log.debug(query)
-        self._log.debug(qplan)
+
+        if subject is not None:
+            # Queries for the subject use LIKE so will SCAN the database
+            pass
+        else:
+            # ...everything else should SEARCH
+            qplan  = dbc.execute("EXPLAIN QUERY PLAN " + query, arg).fetchone()
+            assert len(qplan) == 4
+            assert qplan[3].startswith("SEARCH ")
+
         for msg_num in map(lambda x : x[0], dbc.execute(query, arg).fetchall()): 
             yield Envelope(self, msg_num)
 
