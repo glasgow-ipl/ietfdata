@@ -130,7 +130,7 @@ class DataTracker:
         self.backend = backend
         self.backend.update()
 
-        self._hints = {} # type: Dict[str, Hints]
+        self._hints : dict[str,Hints[Resource]] = {}
         self._hints["/api/v1/doc/ballotdocevent/"]                 = Hints(BallotDocumentEvent,         "id")
         self._hints["/api/v1/doc/ballottype/"]                     = Hints(BallotType,                  "id")
         self._hints["/api/v1/doc/docevent/"]                       = Hints(DocumentEvent,               "id")
