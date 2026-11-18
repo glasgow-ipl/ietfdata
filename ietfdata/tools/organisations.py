@@ -386,21 +386,21 @@ class OrganisationMatcher:
     _org_db : OrganisationDB
     _orgs   : set[Tuple[str,str]]
 
-    def __init__(self):
+    def __init__(self) -> None:
         logging.basicConfig(level=os.environ.get("IETFDATA_LOGLEVEL", "INFO"))
         self._log    = logging.getLogger("ietfdata")
         self._org_db = OrganisationDB()
         self._orgs   = set()
 
 
-    def add(self, organisation:Optional[str], email:str):
+    def add(self, organisation:Optional[str], email:str) -> None:
         blocklist = ["University"]
         if organisation is None or organisation == "" or organisation in blocklist:
             return
         self._orgs.add((organisation, email))
 
 
-    def find_organisations_ietf(self, sqlite_file:str, rfc_index:str):
+    def find_organisations_ietf(self, sqlite_file:str, rfc_index:str) -> None:
         """
         Search the IETF Datatracker to find organisations.
 
@@ -453,7 +453,7 @@ class OrganisationMatcher:
         print(f"  {len(names):5} names for {len(orgs):5} organisations")
 
 
-    def consolidate_organisations(self):
+    def consolidate_organisations(self) -> None:
         assert self._org_db.get_all_domains() == []
         assert self._org_db.get_all_organisations() == []
 
@@ -615,7 +615,7 @@ class OrganisationMatcher:
         #         self._org_db.organisations_match(acronym, org)
 
 
-    def dump(self, path:Path):
+    def dump(self, path:Path) -> None:
         self._org_db.dump(path)
 
 
