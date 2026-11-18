@@ -52,7 +52,7 @@ class GitHubIETF(GitHub):
         Path(id_archive_dir).mkdir(exist_ok = True)
 
 
-    def _add_username(self, username) -> None:
+    def _add_username(self, username:str) -> None:
         if username not in self._users:
             gh_user = self.user(username)
             if gh_user is not None:
@@ -60,7 +60,7 @@ class GitHubIETF(GitHub):
                 self._users.append(username)
 
 
-    def _add_reponame(self, repo_url) -> None:
+    def _add_reponame(self, repo_url:str) -> None:
         assert repo_url.startswith("https://github.com/")
         user = repo_url[19:repo_url.find("/", 19)]
         repo = repo_url[repo_url.rfind("/") + 1:]
