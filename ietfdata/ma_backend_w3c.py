@@ -37,6 +37,11 @@ from typing              import Any, Dict
 from ietfdata.ma_backend import *
 
 class MailArchiveBackendW3C(MailArchiveBackend):
+    _log    : logging.Logger
+    session : requests.Session
+    delay   : float
+    mailbox : str | None
+
     def __init__(self) -> None:
         self._log    = logging.getLogger("ietfdata")
         self.session = requests.Session()
@@ -44,8 +49,8 @@ class MailArchiveBackendW3C(MailArchiveBackend):
         self.mailbox = None
 
 
-    def _find_indexes(self, list_url:str) -> list[dict]:
-        indexes : list[dict] = []
+    def _find_indexes(self, list_url:str) -> list[dict[str,Any]]:
+        indexes : list[dict[str,Any]] = []
         time.sleep(self.delay)
         resp = self.session.get(list_url)
         if resp.status_code == 200:
@@ -66,7 +71,7 @@ class MailArchiveBackendW3C(MailArchiveBackend):
         return indexes
 
 
-    def _find_messages(self, index_url) -> list:
+    def _find_messages(self, index_url:str) -> list[dict[str,Any]]:
         return []
         #messages = []
         #time.sleep(self.delay)
@@ -106,8 +111,8 @@ class MailArchiveBackendW3C(MailArchiveBackend):
         #    print(f"ERROR: {resp.status_code} {index_url}")
 
 
-    def _fetch_message(self, msg_url, base_url):
-        pass
+    def _fetch_message(self, msg_url:str, base_url:str) -> dict[str,Any]:
+        return {}
         #time.sleep(self.delay)
         #resp = self.session.get(msg_url)
         #if resp.status_code == 200:
