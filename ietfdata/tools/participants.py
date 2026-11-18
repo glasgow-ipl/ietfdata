@@ -53,7 +53,7 @@ class Participant:
         self.names       = []
 
 
-    def add_name(self, name:str):
+    def add_name(self, name:str) -> None:
         """
         Add a name by which this participant is known.
 
@@ -63,7 +63,7 @@ class Participant:
             self.names.append(name)
 
 
-    def add_identifier(self, ident_type:str, ident_value:str):
+    def add_identifier(self, ident_type:str, ident_value:str) -> None:
         """
         Add an identifier for this participant.
 
@@ -96,7 +96,7 @@ class Participant:
         return count
 
 
-    def merge_into(self, other:Participant):
+    def merge_into(self, other:Participant) -> None:
         for name in self.names:
             other.add_name(name)
         self.names = []
@@ -149,7 +149,7 @@ class Participants:
 
 
 
-    def save(self, path:Path):
+    def save(self, path:Path) -> None:
         people = {}
         for person in self.people:
             if person.person_id is None:
@@ -198,7 +198,9 @@ class Participants:
         return person
 
 
-    def merge_people(self, ident_type1: str, ident_value1: str, ident_type2: str, ident_value2: str):
+    def merge_people(self,
+                     ident_type1: str, ident_value1: str,
+                     ident_type2: str, ident_value2: str) -> None:
         """
         Specify that the two identifiers refer to the same person.
 
@@ -266,7 +268,7 @@ class Participants:
             raise RuntimeError("This cannot happen (2)")
 
 
-    def _update_refs(self, from_person: Participant, to_person: Participant):
+    def _update_refs(self, from_person: Participant, to_person: Participant) -> None:
         """
         Private helper method: do not use.
         """
