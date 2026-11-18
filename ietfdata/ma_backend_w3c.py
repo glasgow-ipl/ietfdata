@@ -37,7 +37,7 @@ from typing              import Any, Dict
 from ietfdata.ma_backend import *
 
 class MailArchiveBackendW3C(MailArchiveBackend):
-    def __init__(self):
+    def __init__(self) -> None:
         self._log    = logging.getLogger("ietfdata")
         self.session = requests.Session()
         self.delay   = 0.33

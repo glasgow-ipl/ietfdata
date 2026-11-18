@@ -35,7 +35,7 @@ class MailArchiveBackendIETF(MailArchiveBackend):
     _mailbox_path   : str
     _mailbox_info   : Dict[bytes,Any]
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._imap_server = "imap.ietf.org"
         self._imap        = None
 

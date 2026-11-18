@@ -25,7 +25,8 @@
 
 import sys
 
-from ietfdata.mailarchive3 import *
+from ietfdata.mailarchive3    import *
+from ietfdata.ma_backend_ietf import MailArchiveBackendIETF
 
 if __name__ == "__main__":
     if len(sys.argv) == 2:

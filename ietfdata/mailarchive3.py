@@ -501,7 +501,7 @@ class MailingList:
         return df
 
 
-    def update(self, verbose=True) -> List[int]:
+    def update(self, verbose:bool=True) -> list[int]:
         """
         Update the local copy of this mailing list from the server.
 
@@ -557,7 +557,7 @@ class MailingList:
 
 
 
-    def reindex(self, verbose=True) -> None:
+    def reindex(self, verbose:bool=True) -> None:
         """
         Rebuild the database tables indexing this mailing list.
 
@@ -622,7 +622,7 @@ class MailingList:
             self._archive._db.commit()
 
 
-    def threads(self, this_list_only=False) -> Dict[str, List[Envelope]]:
+    def threads(self, this_list_only:bool=False) -> Dict[str, List[Envelope]]:
         """
         Returns a dictionary of threads in this mailing list.
 
@@ -921,7 +921,7 @@ class MailArchive:
         ml.update()
 
 
-    def update(self, verbose=True) -> None:
+    def update(self, verbose:bool=True) -> None:
         """
         Contact the mail server to update the local copy of the mailing list
         archive.
@@ -941,7 +941,7 @@ class MailArchive:
             ml.update(verbose)
 
 
-    def reindex(self, verbose=True) -> None:
+    def reindex(self, verbose:bool=True) -> None:
         """
         Rebuild the header indexes.
 
@@ -1069,7 +1069,7 @@ class MailArchive:
             yield Envelope(self, msg_num)
 
 
-    def clear_metadata(self, project: str):
+    def clear_metadata(self, project: str) -> None:
         """
         Remove metadata relating to the project from all mailing lists
         and message envelopes.
