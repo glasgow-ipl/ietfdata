@@ -252,7 +252,7 @@ class DTBackendArchive(DTBackend):
 
 
 
-    def _fetch_schemas(self, endpoints) -> None:
+    def _fetch_schemas(self, endpoints:list[str]) -> None:
         self._db.execute("""CREATE TABLE IF NOT EXISTS ietf_dt_schema (
                                 endpoint    TEXT PRIMARY KEY,
                                 table_name  TEXT,
@@ -292,7 +292,7 @@ class DTBackendArchive(DTBackend):
 
 
 
-    def _create_tables(self, endpoints) -> None:
+    def _create_tables(self, endpoints:list[str]) -> None:
         for endpoint in endpoints:
             dbc = self._db.cursor()
             sql = "SELECT table_name FROM ietf_dt_schema WHERE endpoint = ?;"
@@ -351,7 +351,7 @@ class DTBackendArchive(DTBackend):
 
 
 
-    def _create_indexes(self, endpoints) -> None:
+    def _create_indexes(self, endpoints:dict[str,list[str]]) -> None:
         dbc = self._db.cursor()
         for endpoint, params in endpoints.items():
             sql = "SELECT table_name FROM ietf_dt_schema WHERE endpoint = ?;"
@@ -392,7 +392,7 @@ class DTBackendArchive(DTBackend):
 
 
 
-    def _download_data(self, endpoints) -> None:
+    def _download_data(self, endpoints:list[str]) -> None:
         for endpoint in endpoints:
             dbc = self._db.cursor()
             sql = "SELECT table_name, sort_by FROM ietf_dt_schema WHERE endpoint = ?;"
