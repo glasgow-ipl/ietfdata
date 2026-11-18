@@ -1,8 +1,4 @@
-from typing import Any
+from _typeshed import Incomplete
 
-version_info: Any
-version: Any
-maintainer: str
-maintainer_email: str
-author: str
-author_email: str
+version: Incomplete
+version_info: Incomplete

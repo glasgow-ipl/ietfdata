@@ -24,7 +24,6 @@ dependencies = [
   "pydantic",
   "psycopg",
   "requests",
-  "requests-cache",
   "matplotlib",
   "mypy",
   "setuptools",

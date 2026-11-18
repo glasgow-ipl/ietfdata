@@ -1,8 +1,8 @@
-from typing import Any
+import imaplib
 
-IMAPClientError: Any
-IMAPClientAbortError: Any
-IMAPClientReadOnlyError: Any
+IMAPClientError = imaplib.IMAP4.error
+IMAPClientAbortError = imaplib.IMAP4.abort
+IMAPClientReadOnlyError = imaplib.IMAP4.readonly
 
 class CapabilityError(IMAPClientError): ...
 class LoginError(IMAPClientError): ...
