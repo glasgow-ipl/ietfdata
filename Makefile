@@ -97,7 +97,8 @@ archive/github.sqlite: | archive
 data:
 	mkdir $@
 
-data/participants.json: ietfdata/tools/participants_ietf.py \
+data/participants.json: ietfdata/tools/participants.py \
+                        ietfdata/tools/participants_ietf.py \
                         archive/ietf_dt.sqlite archive/ietf_ma.sqlite | data
 	python3 -m ietfdata.tools.participants_ietf  archive/ietf_dt.sqlite archive/ietf_ma.sqlite $@
 
