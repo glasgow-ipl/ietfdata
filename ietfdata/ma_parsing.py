@@ -183,7 +183,7 @@ def _fixup_from_addr_2at(from_name:str, from_addr:str):
     raise RuntimeError(f"Cannot fix from_addr containing two @ signs: {from_addr}")
 
 
-def _parse_header_from(msg) -> Tuple[Optional[str],Optional[str]]:
+def _parse_header_from(msg) -> Tuple[str | None, str | None]:
     """
     This is a private helper function - do not use.
     """
@@ -268,7 +268,7 @@ def _parse_header_from(msg) -> Tuple[Optional[str],Optional[str]]:
 
 
 
-def _parse_header_to_cc(msg, to_cc:str):
+def _parse_header_to_cc(msg, to_cc:str) -> list[tuple[int, str, str]]:
     """
     This is a private helper function - do not use.
     """
