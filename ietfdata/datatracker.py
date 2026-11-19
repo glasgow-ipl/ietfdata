@@ -51,7 +51,6 @@ import logging
 import os
 import re
 import requests
-import requests_cache
 import sys
 import time
 import urllib.parse
@@ -122,7 +121,6 @@ class DataTracker:
 
     def __init__(self, backend : DTBackend):
         logging.getLogger('requests').setLevel('ERROR')
-        logging.getLogger('requests_cache').setLevel('ERROR')
         logging.getLogger("urllib3").setLevel('ERROR')
         logging.basicConfig(level=os.getenv("IETFDATA_LOGLEVEL", default="INFO"))
         self.log = logging.getLogger("ietfdata")
