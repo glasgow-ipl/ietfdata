@@ -27,6 +27,7 @@ import logging
 import os
 import sys
 
+from datetime                    import datetime
 from pathlib                     import Path
 from ietfdata.datatracker_ext    import DataTrackerExt
 from ietfdata.dt_backend         import DTBackendArchive
@@ -94,6 +95,7 @@ if __name__ == "__main__":
 
 
     print("Finding participants in IETF datatracker: emails")
+    t1 = datetime.now()
     for msg in dt.emails():
         if msg.address in ignore:
             continue
@@ -103,6 +105,8 @@ if __name__ == "__main__":
             pdb.add_person("email", msg.address.lower())
             pdb.merge_people("email", msg.address.lower(), "email", msg.address)
         seen_addr.add(msg.address)
+    t2 = datetime.now()
+    print(f"   {(t2-t1).seconds} seconds")
 
 
     print("Finding participants in IETF datatracker: person_ext_resources")
