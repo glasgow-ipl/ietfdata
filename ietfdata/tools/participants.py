@@ -272,8 +272,9 @@ class Participants:
         """
         Private helper method: do not use.
         """
+        # FIXME: this is slow
         for ident_type in self.idents:
-            for ident_value in self.idents[ident_type]:
-                if self.idents[ident_type][ident_value] == from_person:
+            for ident_value, person in self.idents[ident_type].items():
+                if person == from_person:
                     self.idents[ident_type][ident_value] = to_person
 
