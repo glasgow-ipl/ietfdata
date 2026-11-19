@@ -95,7 +95,6 @@ if __name__ == "__main__":
 
 
     print("Finding participants in IETF datatracker: emails")
-    t1 = datetime.now()
     for email in dt.emails():
         if email.address in ignore:
             continue
@@ -109,9 +108,6 @@ if __name__ == "__main__":
             pdb.add_person(  "email", email_lower)
             pdb.merge_people("email", email_lower, "email", email.address)
             seen_addr.add(email_lower)
-
-    t2 = datetime.now()
-    print(f"   {(t2-t1).seconds} seconds")
 
 
     print("Finding participants in IETF datatracker: person_ext_resources")
