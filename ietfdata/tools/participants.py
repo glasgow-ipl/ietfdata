@@ -63,6 +63,17 @@ class Participant:
             self.names.append(name)
 
 
+    def get_identifiers(self, ident_type:str) -> list[str]:
+        if self.has_identifier(ident_type):
+            return self.identifiers[ident_type]
+        else:
+            return []
+
+
+    def has_identifier(self, ident_type:str) -> bool:
+        return ident_type in self.identifiers
+
+
     def add_identifier(self, ident_type:str, ident_value:str) -> None:
         """
         Add an identifier for this participant.
@@ -168,7 +179,7 @@ class Participants:
         If a person with that identifier already exists, the name is added
         to the existing person.
 
-        Example: `pdb.add_person_with_name("email", "j.doe@example.org", "Jane Doe")
+        Example: `pdb.add_person_with_name("email", "j.doe@example.org", "Jane Doe")`
         """
         person = self.add_person(ident_type, ident_value)
         person.add_name(name)
@@ -182,7 +193,7 @@ class Participants:
         If a person with the specified identifier already exists, this has
         no effect.
 
-        Example: `pdb.add_person("email", "j.doe@example.org")
+        Example: `pdb.add_person("email", "j.doe@example.org")`
         """
         if not ident_type in self.idents:
             self.idents[ident_type] = {}
@@ -271,10 +282,19 @@ class Participants:
     def _update_refs(self, from_person: Participant, to_person: Participant) -> None:
         """
         Private helper method: do not use.
+
+        Finds any references to `from_person` and updates them to refer
+        to `to_person` instead.
         """
-        # FIXME: this is slow
         for ident_type in self.idents:
-            for ident_value, person in self.idents[ident_type].items():
-                if person == from_person:
-                    self.idents[ident_type][ident_value] = to_person
+            for to_ident in to_person.get_identifiers(ident_type):
+                if to_ident in self.idents[ident_type]:
+                    if self.idents[ident_type][to_ident] == from_person:
+                        # Update the reference from `from_person` to `to_person`
+                        self.idents[ident_type][to_ident] = to_person
+                    elif self.idents[ident_type][to_ident] == to_person:
+                        # The reference already points to the right person
+                        continue
+                    else:
+                        raise RuntimeError("Invalid reference in _update_refs")
 
