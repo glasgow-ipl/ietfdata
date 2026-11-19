@@ -96,15 +96,20 @@ if __name__ == "__main__":
 
     print("Finding participants in IETF datatracker: emails")
     t1 = datetime.now()
-    for msg in dt.emails():
-        if msg.address in ignore:
+    for email in dt.emails():
+        if email.address in ignore:
             continue
-        pdb.add_person("email", msg.address)
-        pdb.merge_people("email", msg.address, "dt_person_uri", str(msg.person))
-        if msg.address.lower() != msg.address:
-            pdb.add_person("email", msg.address.lower())
-            pdb.merge_people("email", msg.address.lower(), "email", msg.address)
-        seen_addr.add(msg.address)
+        pdb.add_person(  "dt_person_uri", str(email.person))
+        pdb.add_person(  "email", email.address)
+        pdb.merge_people("email", email.address, "dt_person_uri", str(email.person))
+        seen_addr.add(email.address)
+
+        email_lower = email.address.lower()
+        if email_lower != email.address:
+            pdb.add_person(  "email", email_lower)
+            pdb.merge_people("email", email_lower, "email", email.address)
+            seen_addr.add(email_lower)
+
     t2 = datetime.now()
     print(f"   {(t2-t1).seconds} seconds")
 
