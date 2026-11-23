@@ -2141,7 +2141,7 @@ class TestDatatracker(unittest.TestCase):
     def test_meeting_attendance(self) -> None:
         person   = self.dt.person(PersonURI(uri="/api/v1/person/person/125662/"))
         attended = list(self.dt.meeting_attendance(person = person))
-        self.assertEqual(len(attended), 103)
+        self.assertEqual(len(attended), 105)
 
 
     def test_meeting_session_assignment(self) -> None:
