@@ -740,7 +740,7 @@ class TestDatatracker(unittest.TestCase):
             self.assertEqual(d.shepherd,           None)
             self.assertEqual(d.submissions,        [])
             self.assertEqual(d.intended_std_level, "/api/v1/name/intendedstdlevelname/std/")
-            self.assertEqual(d.ad,                 PersonURI(uri="/api/v1/person/person/2515/"))
+            self.assertEqual(d.ad,                 PersonURI(uri="/api/v1/person/person/114505/"))
             self.assertEqual(d.note,               "")
             self.assertEqual(d.words,              34861)
             self.assertEqual(d.tags,               [DocumentTagURI(uri="/api/v1/name/doctagname/app-min/")])
