@@ -134,9 +134,9 @@ def _fixup_from_addr_0at(from_name:str, from_addr:str):
         # print(f"_fixup_from_addr_0at: rewrite From: \"{from_addr}\" -> \"{repl_addr}\"")
         return from_name, repl_addr
 
-    if from_name == "":
-        # print(f"_fixup_from_addr_0at: returned \"{from_addr}\" as name with no address")
-        return from_addr, None
+    if from_addr == "":
+        # print(f"_fixup_from_addr_0at: returned \"{from_name}\" \"{from_addr}\" as name with no address")
+        return from_name, None
     else:
         # print(f"_fixup_from_addr_0at: cannot rewrite From: \"{from_addr}\"")
         return from_name, from_addr
@@ -205,6 +205,9 @@ def _parse_header_from(msg) -> Tuple[str | None, str | None]:
             else:
                 part_text = part_bytes.decode(charset, errors="backslashreplace")
             hdr = hdr + part_text
+
+    if hdr.endswith('", <>'):
+        hdr = f"{hdr[:-4]} <>"
 
     addr_list = getaddresses([hdr])
     if len(addr_list) == 0:
